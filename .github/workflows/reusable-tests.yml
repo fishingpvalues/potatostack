@@ -1,0 +1,92 @@
+name: Reusable Tests
+
+on:
+  workflow_call:
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - uses: pre-commit/action@v3.0.0
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Trufflehog
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          extra_args: --debug --only-verified
+
+  docker-compose-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
+      - name: Validate docker-compose.yml
+        run: docker-compose -f docker-compose.yml config
+
+  opa-conftest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Conftest
+        run: |
+          wget https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Linux_x86_64.tar.gz
+          tar -xzf conftest_0.45.0_Linux_x86_64.tar.gz
+          sudo mv conftest /usr/local/bin/
+      - name: Run Conftest
+        run: conftest test docker-compose.yml
+
+  trivy-scan-images:
+    runs-on: ubuntu-latest
+    needs: [pre-commit, secret-scan, docker-compose-config, opa-conftest]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Trivy
+      run: |
+        sudo apt-get install wget apt-transport-https gnupg lsb-release -y
+        wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+        echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+        sudo apt-get update
+        sudo apt-get install trivy -y
+    - name: Scan images with Trivy
+      run: |
+        images=$(grep 'image:' docker-compose.yml | awk '{print $2}')
+        for img in $images; do
+          echo "Scanning image for vulnerabilities: $img"
+          trivy image --exit-code 1 --severity HIGH,CRITICAL --no-progress "$img"
+          echo "----------------------------------------"
+        done
+
+  license-scan:
+    runs-on: ubuntu-latest
+    needs: [pre-commit, secret-scan, docker-compose-config, opa-conftest]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Trivy
+      run: |
+        sudo apt-get install wget apt-transport-https gnupg lsb-release -y
+        wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+        echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+        sudo apt-get update
+        sudo apt-get install trivy -y
+    - name: Scan images for licenses
+      run: |
+        images=$(grep 'image:' docker-compose.yml | awk '{print $2}')
+        for img in $images; do
+          echo "Scanning image for licenses: $img"
+          trivy image --license-full --exit-code 0 --no-progress "$img"
+          echo "----------------------------------------"
+        done

@@ -1,0 +1,11 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  call-reusable-tests:
+    uses: ./.github/workflows/reusable-tests.yml
