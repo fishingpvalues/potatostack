@@ -1,0 +1,123 @@
+groups:
+  - name: system_alerts
+    interval: 30s
+    rules:
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is above 85% (current: {{ $value }}%)"
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is above 80% (current: {{ $value }}%)"
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint=~"/mnt/.*"} / node_filesystem_size_bytes{mountpoint=~"/mnt/.*"}) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low disk space on {{ $labels.mountpoint }}"
+          description: "Disk space is below 10% (current: {{ $value }}%)"
+
+      - alert: HighDiskIO
+        expr: rate(node_disk_io_time_seconds_total[5m]) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High disk I/O on {{ $labels.device }}"
+          description: "Disk I/O utilization is above 80%"
+
+  - name: smart_alerts
+    interval: 1m
+    rules:
+      - alert: SMARTFailure
+        expr: smartctl_device_smart_status != 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SMART failure detected on {{ $labels.device }}"
+          description: "Drive {{ $labels.device }} has SMART status FAILED - immediate action required!"
+
+      - alert: HighDiskTemperature
+        expr: smartctl_device_temperature_celsius > 45
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High disk temperature on {{ $labels.device }}"
+          description: "Disk temperature is {{ $value }}°C (threshold: 45°C)"
+
+      - alert: ReallocatedSectors
+        expr: smartctl_ata_smart_attributes_reallocated_sector_ct_raw_value > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Reallocated sectors detected on {{ $labels.device }}"
+          description: "{{ $value }} reallocated sectors detected - potential drive failure"
+
+  - name: kopia_alerts
+    interval: 1m
+    rules:
+      - alert: KopiaBackupFailed
+        expr: increase(kopia_snapshot_manager_errors_total[1h]) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kopia backup errors detected"
+          description: "Kopia has encountered {{ $value }} errors in the last hour"
+
+      - alert: KopiaNoRecentSnapshot
+        expr: (time() - kopia_snapshot_manager_last_snapshot_time_seconds) > 86400
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "No recent Kopia snapshots"
+          description: "Last snapshot was {{ $value | humanizeDuration }} ago"
+
+  - name: vpn_alerts
+    interval: 30s
+    rules:
+      - alert: SurfsharkVPNDown
+        expr: up{job="surfshark"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Surfshark VPN is down"
+          description: "VPN connection lost - P2P traffic may be exposed!"
+
+  - name: container_alerts
+    interval: 30s
+    rules:
+      - alert: ContainerDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.job }} is down"
+          description: "Container has been down for more than 2 minutes"
+
+      - alert: ContainerHighMemory
+        expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.name }} high memory usage"
+          description: "Memory usage is {{ $value }}% of limit"
