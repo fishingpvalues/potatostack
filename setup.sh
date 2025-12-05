@@ -74,10 +74,13 @@ echo ""
 echo -e "${GREEN}Step 3: Creating directory structure...${NC}"
 
 # Create all necessary directories on main HDD
-mkdir -p /mnt/seconddrive/{kopia/{repository,config,cache,logs,tmp},qbittorrent/config,slskd/{config,logs},nextcloud,gitea,uptime-kuma}
+mkdir -p /mnt/seconddrive/{kopia/{repository,config,cache,logs,tmp},qbittorrent/{config,logs},slskd/{config,logs},nextcloud,gitea,uptime-kuma}
 
 # Create cache directories
 mkdir -p /mnt/cachehdd/{torrents/{incomplete,pr0n,music,tv-shows,movies},soulseek/{incomplete,pr0n,music,tv-shows,movies}}
+
+# Create log directories for Promtail monitoring
+mkdir -p /var/log/netdata
 
 # Set permissions
 chmod -R 755 /mnt/seconddrive

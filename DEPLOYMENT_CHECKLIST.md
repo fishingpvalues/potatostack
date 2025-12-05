@@ -10,9 +10,42 @@ This checklist will guide you through deploying PotatoStack to your Le Potato SB
 - [ ] Cache HDD connected and accessible
 - [ ] Network connected (Ethernet recommended for stability)
 - [ ] Minimum 2GB RAM available
-- [ ] At least 1GB swap configured (recommended for 2GB RAM system)
+- [ ] **CRITICAL: At least 2-3GB swap configured** (PotatoStack allocates ~5.5GB total limits)
 
-### 2. Mount External Drives
+**⚠️ MEMORY WARNING**: This stack has container memory limits totaling ~5.5GB, which exceeds the 2GB physical RAM. You MUST configure adequate swap space (2-3GB minimum) or containers will be OOM-killed. The setup.sh script does NOT automatically create swap - you must do this manually (see below).
+
+### 2. Configure Swap Space (CRITICAL)
+
+If you don't have sufficient swap configured, create it now:
+
+```bash
+# Check current swap
+free -h
+
+# If swap is less than 2GB, create additional swap
+sudo fallocate -l 3G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+
+# Make permanent by adding to /etc/fstab
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+
+# Verify
+free -h
+# You should see at least 2-3GB in the Swap row
+```
+
+**Alternative**: If deploying on SD card/eMMC, use a swap file on one of your HDDs:
+```bash
+sudo fallocate -l 3G /mnt/seconddrive/swapfile
+sudo chmod 600 /mnt/seconddrive/swapfile
+sudo mkswap /mnt/seconddrive/swapfile
+sudo swapon /mnt/seconddrive/swapfile
+echo '/mnt/seconddrive/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
+
+### 3. Mount External Drives
 
 Mount your HDDs to the correct locations:
 
@@ -38,7 +71,7 @@ sudo mount -a
 df -h
 ```
 
-### 3. Clone Repository on Le Potato
+### 4. Clone Repository on Le Potato
 
 ```bash
 # Install git if not already installed
@@ -51,7 +84,7 @@ git clone https://github.com/fishingpvalues/potatostack.git
 cd potatostack
 ```
 
-### 4. Configure Environment Variables
+### 5. Configure Environment Variables
 
 ```bash
 # Copy the example env file
@@ -70,7 +103,7 @@ nano .env
 - `SLSKD_PASSWORD`
 - `ALERT_EMAIL_USER`, `ALERT_EMAIL_PASSWORD`, `ALERT_EMAIL_TO` (Gmail app password)
 
-### 5. Configure Alertmanager Email (Optional)
+### 6. Configure Alertmanager Email (Optional)
 
 If you want email alerts:
 
@@ -93,7 +126,7 @@ If you want email alerts:
 
    Replace `${ALERT_EMAIL_USER}` with your actual email address, or use an init script to substitute them.
 
-### 6. Run Pre-Flight Check
+### 7. Run Pre-Flight Check
 
 ```bash
 # Run the pre-flight check script
@@ -103,7 +136,7 @@ chmod +x preflight-check.sh
 
 Fix any errors reported before proceeding.
 
-### 7. Run Setup Script
+### 8. Run Setup Script
 
 ```bash
 # Make setup script executable
@@ -123,7 +156,7 @@ This will:
 
 ## Deployment
 
-### 8. Start the Stack
+### 9. Start the Stack
 
 ```bash
 # Start all services
@@ -133,7 +166,7 @@ docker-compose up -d
 docker-compose logs -f
 ```
 
-### 9. Verify Services
+### 10. Verify Services
 
 Check that all services are running:
 
@@ -147,7 +180,7 @@ docker-compose logs -f <service-name>
 
 All services should show "Up" status.
 
-### 10. Access Web Interfaces
+### 11. Access Web Interfaces
 
 From your network (replace `192.168.178.40` with your Le Potato's IP):
 
@@ -167,7 +200,7 @@ From your network (replace `192.168.178.40` with your Le Potato's IP):
 
 ## Post-Deployment Configuration
 
-### 11. Configure Nginx Proxy Manager
+### 12. Configure Nginx Proxy Manager
 
 1. Access NPM at http://192.168.178.40:81
 2. Default credentials: `admin@example.com` / `changeme`
@@ -175,7 +208,7 @@ From your network (replace `192.168.178.40` with your Le Potato's IP):
 4. Set up proxy hosts for your services
 5. Request Let's Encrypt SSL certificates if exposing externally
 
-### 12. Configure VPN Killswitch Verification
+### 13. Configure VPN Killswitch Verification
 
 Verify that P2P traffic goes through VPN:
 
@@ -189,7 +222,7 @@ docker exec qbittorrent curl ipinfo.io
 # Should fail or timeout (qBittorrent uses surfshark's network)
 ```
 
-### 13. Set Up Grafana Dashboards
+### 14. Set Up Grafana Dashboards
 
 1. Access Grafana at http://192.168.178.40:3000
 2. Login with credentials from `.env` (default: admin / your_password)
@@ -201,7 +234,7 @@ docker exec qbittorrent curl ipinfo.io
 
 Go to: Dashboard → Import → Enter ID → Select Prometheus datasource → Import
 
-### 14. Configure Kopia Backups
+### 15. Configure Kopia Backups
 
 1. Access Kopia at https://192.168.178.40:51515
 2. Login with credentials from `.env`
@@ -211,14 +244,14 @@ Go to: Dashboard → Import → Enter ID → Select Prometheus datasource → Im
    - Container configs: `/home/youruser/potatostack/config`
 4. Configure schedule (e.g., daily at 2 AM)
 
-### 15. Set Up Uptime Kuma Monitoring
+### 16. Set Up Uptime Kuma Monitoring
 
 1. Access Uptime Kuma at http://192.168.178.40:3002
 2. Create admin account
 3. Add monitors for all critical services
 4. Configure notifications (Email, Telegram, Discord, etc.)
 
-### 16. Configure Nextcloud
+### 17. Configure Nextcloud
 
 1. Access Nextcloud at http://192.168.178.40:8082
 2. Complete initial setup wizard
@@ -227,14 +260,14 @@ Go to: Dashboard → Import → Enter ID → Select Prometheus datasource → Im
    - Torrents folder: `/external/torrents` (read-only)
    - Soulseek folder: `/external/soulseek` (read-only)
 
-### 17. Configure Gitea
+### 18. Configure Gitea
 
 1. Access Gitea at http://192.168.178.40:3001
 2. Complete initial setup
 3. Create admin account
 4. Configure SSH access on port 2222 if needed
 
-### 18. Configure qBittorrent
+### 19. Configure qBittorrent
 
 1. Access qBittorrent at http://192.168.178.40:8080
 2. Default credentials: `admin` / `adminadmin`
@@ -244,7 +277,7 @@ Go to: Dashboard → Import → Enter ID → Select Prometheus datasource → Im
    - Incomplete path: `/incomplete`
 5. Enable Web UI authentication
 
-### 19. Configure slskd (Soulseek)
+### 20. Configure slskd (Soulseek)
 
 1. Access slskd at http://192.168.178.40:2234
 2. Login with credentials from `.env`
@@ -252,7 +285,7 @@ Go to: Dashboard → Import → Enter ID → Select Prometheus datasource → Im
 4. Set shared folders: `/var/slskd/shared`
 5. Set download folder: `/var/slskd/incomplete`
 
-### 20. Set Up Portainer
+### 21. Set Up Portainer
 
 1. Access Portainer at http://192.168.178.40:9000
 2. Create admin account
@@ -287,7 +320,7 @@ sudo ufw enable
 sudo ufw status verbose
 ```
 
-### 22. Configure External Access (Optional)
+### 23. Configure External Access (Optional)
 
 If you want external access via your Fritzbox:
 
@@ -297,7 +330,7 @@ If you want external access via your Fritzbox:
 4. Use Nginx Proxy Manager for HTTPS with Let's Encrypt
 5. Enable fail2ban on exposed services
 
-### 23. Set Up Automated Backups
+### 24. Set Up Automated Backups
 
 Create a cron job to backup Docker volumes:
 
@@ -310,7 +343,7 @@ crontab -e
 
 ## Monitoring & Maintenance
 
-### 24. Set Up Health Checks
+### 25. Set Up Health Checks
 
 Verify all health checks are passing:
 
@@ -320,7 +353,7 @@ docker ps --format "table {{.Names}}\t{{.Status}}"
 
 All services should show "(healthy)" status.
 
-### 25. Enable Watchtower Notifications
+### 26. Enable Watchtower Notifications
 
 Update `.env` with notification URL:
 
@@ -334,7 +367,7 @@ WATCHTOWER_NOTIFICATION_URL=discord://YOUR_WEBHOOK_TOKEN@YOUR_WEBHOOK_ID
 
 Restart watchtower: `docker-compose restart watchtower`
 
-### 26. Test Alert System
+### 27. Test Alert System
 
 Trigger a test alert:
 
