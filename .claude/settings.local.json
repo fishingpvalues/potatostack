@@ -3,7 +3,9 @@
     "allow": [
       "WebFetch(domain:libre.computer)",
       "Bash(chmod:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

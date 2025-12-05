@@ -49,14 +49,14 @@ scrape_configs:
           host: lepotato
           __path__: /qbittorrent-logs/*.log
 
-  - job_name: nicotine
+  - job_name: slskd
     static_configs:
       - targets:
           - localhost
         labels:
-          job: nicotine
+          job: slskd
           host: lepotato
-          __path__: /nicotine-logs/*.log
+          __path__: /slskd-logs/*.log
 
   - job_name: netdata
     static_configs:

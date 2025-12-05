@@ -118,10 +118,10 @@ services:
     mem_reservation: 256m
     cpus: 1.5
 
-  nicotine:
-    image: ghcr.io/slskd/slskd:latest  # Modern, maintained Soulseek daemon
-    container_name: nicotine
-    hostname: nicotine
+  slskd:
+    image: ghcr.io/slskd/slskd:latest  # slskd - Modern Soulseek daemon with web UI (NOT traditional Nicotine+)
+    container_name: slskd
+    hostname: slskd
     restart: unless-stopped
     network_mode: service:surfshark
     depends_on:
@@ -133,21 +133,21 @@ services:
       - TZ=Europe/Berlin
       - SLSKD_HTTP_PORT=2234
       - SLSKD_SLSK_LISTEN_PORT=50000
-      - SLSKD_USERNAME=${NICOTINE_USER:-admin}
-      - SLSKD_PASSWORD=${NICOTINE_PASSWORD}
+      - SLSKD_USERNAME=${SLSKD_USER:-admin}
+      - SLSKD_PASSWORD=${SLSKD_PASSWORD}
       - SLSKD_METRICS=true
       - SLSKD_METRICS_URL=http://localhost:5031/metrics
     volumes:
-      - /mnt/seconddrive/nicotine/config:/app
-      - /mnt/seconddrive/nicotine/logs:/app/logs
+      - /mnt/seconddrive/slskd/config:/app
+      - /mnt/seconddrive/slskd/logs:/app/logs
       - /mnt/cachehdd/soulseek:/var/slskd/shared
       - /mnt/cachehdd/soulseek/incomplete:/var/slskd/incomplete
     labels:
       - "homepage.group=Media & Downloads"
-      - "homepage.name=Nicotine+"
+      - "homepage.name=slskd (Soulseek)"
       - "homepage.icon=slskd.png"
       - "homepage.href=http://192.168.178.40:2234"
-      - "homepage.description=Soulseek P2P via VPN"
+      - "homepage.description=Soulseek P2P via VPN (slskd client)"
     mem_limit: 384m
     mem_reservation: 192m
     cpus: 1
@@ -297,7 +297,7 @@ services:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /mnt/seconddrive/kopia/logs:/kopia-logs:ro
       - /mnt/seconddrive/qbittorrent/config/logs:/qbittorrent-logs:ro
-      - /mnt/seconddrive/nicotine/logs:/nicotine-logs:ro
+      - /mnt/seconddrive/slskd/logs:/slskd-logs:ro
       - ./config/promtail:/etc/promtail
     command: -config.file=/etc/promtail/config.yml
     depends_on:
