@@ -1,0 +1,108 @@
+---
+# Homepage Dashboard Services Configuration
+
+- Media & Downloads:
+    - qBittorrent:
+        icon: qbittorrent.png
+        href: http://192.168.178.40:8080
+        description: Torrent client via Surfshark VPN
+        widget:
+          type: qbittorrent
+          url: http://surfshark:8080
+          username: admin
+          password: {{HOMEPAGE_VAR_QBITTORRENT_PASSWORD}}
+
+    - Nicotine+ (Soulseek):
+        icon: slskd.png
+        href: http://192.168.178.40:2234
+        description: Soulseek P2P file sharing
+        widget:
+          type: customapi
+          url: http://surfshark:2234/api/v0/application
+          mappings:
+            - field: version
+              label: Version
+
+- Storage & Backup:
+    - Nextcloud:
+        icon: nextcloud.png
+        href: http://192.168.178.40:8082
+        description: File sync and sharing
+        widget:
+          type: nextcloud
+          url: http://nextcloud
+          username: {{HOMEPAGE_VAR_NEXTCLOUD_USER}}
+          password: {{HOMEPAGE_VAR_NEXTCLOUD_PASSWORD}}
+
+    - Kopia:
+        icon: kopia.png
+        href: https://192.168.178.40:51515
+        description: Encrypted backup server
+        widget:
+          type: customapi
+          url: http://kopia:51516/metrics
+          mappings:
+            - field: kopia_snapshot_manager_snapshots_total
+              label: Total Snapshots
+
+- Monitoring:
+    - Grafana:
+        icon: grafana.png
+        href: http://192.168.178.40:3000
+        description: Metrics visualization
+        widget:
+          type: grafana
+          url: http://grafana:3000
+          username: {{HOMEPAGE_VAR_GRAFANA_USER}}
+          password: {{HOMEPAGE_VAR_GRAFANA_PASSWORD}}
+
+    - Prometheus:
+        icon: prometheus.png
+        href: http://192.168.178.40:9090
+        description: Metrics collection
+        widget:
+          type: prometheus
+          url: http://prometheus:9090
+
+    - Uptime Kuma:
+        icon: uptime-kuma.png
+        href: http://192.168.178.40:3002
+        description: Service monitoring
+        widget:
+          type: uptimekuma
+          url: http://uptime-kuma:3001
+          slug: potatostack
+
+    - Dozzle:
+        icon: dozzle.png
+        href: http://192.168.178.40:8083
+        description: Container log viewer
+
+- Management:
+    - Portainer:
+        icon: portainer.png
+        href: http://192.168.178.40:9000
+        description: Docker management
+        widget:
+          type: portainer
+          url: http://portainer:9000
+          env: 1
+          key: {{HOMEPAGE_VAR_PORTAINER_KEY}}
+
+    - Nginx Proxy Manager:
+        icon: nginx-proxy-manager.png
+        href: http://192.168.178.40:81
+        description: Reverse proxy management
+        widget:
+          type: npm
+          url: http://nginx-proxy-manager:81
+          username: {{HOMEPAGE_VAR_NPM_USER}}
+          password: {{HOMEPAGE_VAR_NPM_PASSWORD}}
+
+    - Gitea:
+        icon: gitea.png
+        href: http://192.168.178.40:3001
+        description: Git server
+        widget:
+          type: gitea
+          url: http://gitea:3000

@@ -1,0 +1,569 @@
+# PotatoStack v2.0 - Complete Self-Hosted Stack for Le Potato SBC
+
+A fully integrated, state-of-the-art Docker stack optimized for the Le Potato single-board computer, featuring P2P file sharing, encrypted backups, comprehensive monitoring, and cloud storage.
+
+> **Latest Update (Dec 2025):** Added Netdata real-time monitoring, enhanced Homepage integration, comprehensive security documentation, and complete log aggregation. See [ENHANCEMENTS.md](ENHANCEMENTS.md) for details.
+
+## Overview
+
+PotatoStack is designed specifically for the Le Potato (AML-S905X-CC) with its limited resources (2GB RAM, quad-core ARM Cortex-A53). Every service is carefully tuned for stability and performance on this hardware.
+
+### What's Included
+
+#### 🌐 VPN & P2P
+- **Surfshark VPN** with killswitch protection
+- **qBittorrent** for torrents (through VPN only)
+- **Nicotine+/slskd** for Soulseek P2P file sharing (through VPN only)
+
+#### 💾 Storage & Backup
+- **Kopia** - Encrypted, deduplicated backups with web UI
+- **Nextcloud** - Self-hosted cloud storage with sync clients
+- Integrated access to shared media folders
+
+#### 📊 Monitoring Stack
+- **Prometheus** - Metrics collection
+- **Grafana** - Beautiful dashboards
+- **Loki** - Log aggregation
+- **Thanos** - Long-term metrics storage
+- **Alertmanager** - Email/Telegram/Slack alerts
+- **Netdata** ⭐ NEW - Real-time monitoring with auto-discovery
+- **node-exporter** - System metrics (CPU, RAM, disk, network)
+- **cAdvisor** - Container metrics
+- **smartctl-exporter** - HDD health monitoring (SMART data)
+
+#### 🛠️ Management Tools
+- **Portainer CE** - Docker GUI management
+- **Watchtower** - Automatic container updates
+- **Uptime Kuma** - Service uptime monitoring
+- **Dozzle** - Real-time log viewer
+- **Homepage** - Unified dashboard for all services
+
+#### 🔐 Infrastructure
+- **Nginx Proxy Manager** - Reverse proxy with Let's Encrypt SSL
+- **Gitea** - Self-hosted Git server
+
+## Hardware Requirements
+
+### Le Potato Specifications
+- CPU: Quad-core ARM Cortex-A53 @ 1.416GHz
+- RAM: 2GB DDR3
+- Architecture: ARM64
+- Power: ~4W under load
+
+### Storage Requirements
+1. **Main HDD** (mounted at `/mnt/seconddrive`):
+   - Minimum 500GB recommended
+   - Stores: Kopia backups, Nextcloud data, configs, Gitea repos
+
+2. **Cache HDD** (mounted at `/mnt/cachehdd`):
+   - Minimum 250GB recommended
+   - Stores: Active torrents, Soulseek downloads
+   - Used for intelligent caching of frequently accessed files
+
+## Quick Start
+
+### Prerequisites
+
+```bash
+# Install Docker and Docker Compose
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $USER
+sudo apt install docker-compose
+
+# Mount your HDDs (adjust device names)
+sudo mkdir -p /mnt/seconddrive /mnt/cachehdd
+# Add to /etc/fstab for permanent mounting:
+# UUID=your-uuid-here /mnt/seconddrive ext4 defaults 0 2
+# UUID=your-uuid-here /mnt/cachehdd ext4 defaults 0 2
+```
+
+### Installation
+
+```bash
+# Clone or download the PotatoStack files
+cd ~/potatostack
+
+# Run the automated setup script
+sudo ./setup.sh
+
+# Or manual setup:
+cp .env.example .env
+nano .env  # Fill in your passwords and credentials
+
+# Create directory structure
+./setup.sh  # Handles this automatically
+
+# Initialize Kopia repository (first time only)
+docker run --rm \
+  -e KOPIA_PASSWORD="your_strong_password" \
+  -v /mnt/seconddrive/kopia/repository:/repository \
+  -v /mnt/seconddrive/kopia/config:/app/config \
+  -v /mnt/seconddrive/kopia/cache:/app/cache \
+  kopia/kopia:latest \
+  repository create filesystem --path=/repository
+
+# Start the stack
+docker-compose up -d
+
+# Check status
+docker-compose ps
+docker-compose logs -f
+```
+
+## Service Access
+
+| Service | URL | Default Port |
+|---------|-----|--------------|
+| Homepage Dashboard | http://192.168.178.40:3003 | 3003 |
+| Netdata ⭐ | http://192.168.178.40:19999 | 19999 |
+| Nginx Proxy Manager | http://192.168.178.40:81 | 81 |
+| Portainer | http://192.168.178.40:9000 | 9000 |
+| Grafana | http://192.168.178.40:3000 | 3000 |
+| Prometheus | http://192.168.178.40:9090 | 9090 |
+| qBittorrent | http://192.168.178.40:8080 | 8080 |
+| Nicotine+ | http://192.168.178.40:2234 | 2234 |
+| Kopia | https://192.168.178.40:51515 | 51515 |
+| Nextcloud | http://192.168.178.40:8082 | 8082 |
+| Gitea | http://192.168.178.40:3001 | 3001 |
+| Uptime Kuma | http://192.168.178.40:3002 | 3002 |
+| Dozzle | http://192.168.178.40:8083 | 8083 |
+| Alertmanager | http://192.168.178.40:9093 | 9093 |
+
+### Default Credentials
+
+**IMPORTANT**: Change these immediately after first login!
+
+- **Nginx Proxy Manager**: admin@example.com / changeme
+- **Portainer**: Set on first login
+- **Grafana**: admin / (from your .env GRAFANA_PASSWORD)
+- **qBittorrent**: admin / adminadmin
+- **Kopia**: admin / (from your .env KOPIA_SERVER_PASSWORD)
+- **Nextcloud**: admin / (from your .env NEXTCLOUD_ADMIN_PASSWORD)
+
+## Post-Installation Configuration
+
+### 1. Configure Nginx Proxy Manager
+
+1. Login at http://192.168.178.40:81
+2. Change default credentials
+3. Add SSL certificates (Let's Encrypt)
+4. Create proxy hosts for each service
+5. Enable 2FA in settings
+
+### 2. Set Up Monitoring Dashboards
+
+Import these Grafana dashboards (ID from grafana.com):
+
+```bash
+# In Grafana UI: + → Import Dashboard → Enter ID
+
+1860   # Node Exporter Full
+193    # Docker Container Monitoring
+20204  # SMART HDD Monitoring
+22604  # SMARTctl Exporter Dashboard
+11074  # Node Exporter for Prometheus
+13639  # Loki Dashboard
+```
+
+### 3. Configure Alertmanager
+
+Edit `config/alertmanager/config.yml` to add your notification channels:
+
+```yaml
+# For Gmail alerts (already configured in template)
+# Enable "App Passwords" in Google Account settings
+
+# For Telegram:
+- name: 'telegram'
+  telegram_configs:
+    - bot_token: 'YOUR_BOT_TOKEN'
+      chat_id: YOUR_CHAT_ID
+
+# For Discord:
+- name: 'discord'
+  discord_configs:
+    - webhook_url: 'YOUR_WEBHOOK_URL'
+```
+
+### 4. Set Up Kopia Clients
+
+On your other devices (Windows/Mac/Linux/Android/iOS):
+
+1. Download Kopia from https://kopia.io/docs/installation/
+2. Connect to repository:
+   - Server URL: `https://192.168.178.40:51515`
+   - Username: `admin` (or as configured)
+   - Password: Your KOPIA_SERVER_PASSWORD
+   - Accept self-signed certificate fingerprint
+3. Create backup policies and schedules
+
+### 5. Configure Nextcloud
+
+1. Access http://192.168.178.40:8082
+2. Enable recommended apps (Calendar, Contacts, Talk)
+3. Configure external storage:
+   - Add /external/torrents as read-only
+   - Add /external/soulseek as read-only
+4. Install clients: https://nextcloud.com/install/#install-clients
+5. Enable 2FA: Settings → Security → Two-Factor Authentication
+
+### 6. Set Up WireGuard VPN (Fritzbox)
+
+For secure external access:
+
+1. Enable WireGuard on Fritzbox
+2. Create VPN profiles for each device
+3. Configure firewall rules to allow only VPN IPs
+4. Update .env with VPN IP ranges if needed
+
+### 7. Configure qBittorrent
+
+1. Login at http://192.168.178.40:8080
+2. Change default password
+3. Set download paths:
+   - Default: `/downloads`
+   - Incomplete: `/incomplete`
+4. Enable categories for auto-organization:
+   - pr0n → /downloads/pr0n
+   - music → /downloads/music
+   - tv-shows → /downloads/tv-shows
+   - movies → /downloads/movies
+
+### 8. Configure Nicotine+ (Soulseek)
+
+1. Access http://192.168.178.40:2234
+2. Login with your Soulseek credentials
+3. Set shared folders: `/var/slskd/shared`
+4. Configure download folder: `/var/slskd/incomplete`
+
+## Architecture
+
+### Network Layout
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Internet                              │
+└──────────────────┬──────────────────────────────────────┘
+                   │
+            ┌──────▼──────┐
+            │  Fritzbox   │
+            │  Router     │
+            └──────┬──────┘
+                   │ 192.168.178.0/24
+                   │
+        ┌──────────▼───────────┐
+        │    Le Potato SBC     │
+        │  192.168.178.40      │
+        └──────────┬───────────┘
+                   │
+    ┌──────────────┼──────────────┐
+    │              │              │
+┌───▼────┐  ┌─────▼─────┐  ┌────▼─────┐
+│  VPN   │  │ Proxy     │  │ Monitor  │
+│ Network│  │ Network   │  │ Network  │
+└───┬────┘  └─────┬─────┘  └────┬─────┘
+    │             │              │
+┌───▼──────┐  ┌──▼────────┐ ┌───▼──────┐
+│qBittorrent│ │Nginx PM   │ │Prometheus│
+│Nicotine+  │ │Homepage   │ │Grafana   │
+└───────────┘ │Nextcloud  │ │Loki      │
+              └───────────┘ └──────────┘
+```
+
+### Volume Layout
+
+```
+/mnt/seconddrive/          # Main HDD
+├── kopia/                 # Backup repository
+│   ├── repository/        # Encrypted backup data
+│   ├── config/            # Kopia configuration
+│   ├── cache/             # Metadata cache
+│   └── logs/              # Detailed logs
+├── nextcloud/             # User files
+├── gitea/                 # Git repositories
+└── uptime-kuma/           # Monitoring data
+
+/mnt/cachehdd/             # Cache HDD
+├── torrents/              # Active downloads
+│   ├── incomplete/        # In-progress
+│   ├── pr0n/             # Completed (category)
+│   ├── music/            # Completed (category)
+│   ├── tv-shows/         # Completed (category)
+│   └── movies/           # Completed (category)
+└── soulseek/             # Soulseek downloads
+    ├── incomplete/        # In-progress
+    ├── pr0n/
+    ├── music/
+    ├── tv-shows/
+    └── movies/
+```
+
+## Resource Management
+
+The stack is optimized for Le Potato's 2GB RAM:
+
+| Service | RAM Limit | CPU Limit |
+|---------|-----------|-----------|
+| Surfshark VPN | 256MB | 1.0 |
+| qBittorrent | 512MB | 1.5 |
+| Nicotine+ | 384MB | 1.0 |
+| Kopia | 768MB | 2.0 |
+| Nextcloud | 512MB | 1.5 |
+| Prometheus | 512MB | 1.0 |
+| Grafana | 384MB | 1.0 |
+| All others | 64-256MB | 0.25-0.5 |
+
+**Total estimated usage**: ~1.7GB RAM under normal load, leaving headroom for burst operations.
+
+## Monitoring & Alerts
+
+### Available Metrics
+
+- **System**: CPU, RAM, disk usage, disk I/O, network traffic
+- **SMART**: HDD temperature, reallocated sectors, power-on hours, health status
+- **Containers**: Per-container CPU/RAM/network usage
+- **Kopia**: Backup success/failure, snapshot counts, repository size
+- **VPN**: Connection status, IP leak detection
+
+### Alert Rules
+
+Pre-configured alerts (edit `config/prometheus/alerts.yml`):
+
+- High memory usage (>85% for 5min)
+- High CPU usage (>80% for 5min)
+- Low disk space (<10% free)
+- High disk I/O (>80% utilization)
+- SMART failures or warnings
+- High HDD temperature (>45°C)
+- Reallocated sectors detected
+- Kopia backup failures
+- VPN connection drops
+- Container crashes
+
+## Security Best Practices
+
+1. **Change all default passwords** in `.env` file
+2. **Enable 2FA** on all services that support it (Nextcloud, NPM, Portainer)
+3. **Use strong passwords** - generate with `openssl rand -base64 32`
+4. **Restrict VPN access** - Only allow known IPs through Fritzbox firewall
+5. **Use HTTPS** - Configure SSL certificates in Nginx Proxy Manager
+6. **Regular updates** - Watchtower handles this automatically
+7. **Backup your backups** - Kopia repository to external/cloud storage
+8. **Monitor logs** - Check Dozzle and Loki regularly
+
+## Maintenance
+
+### Daily
+- Check Homepage dashboard for service status
+- Review Grafana for anomalies
+
+### Weekly
+- Review Uptime Kuma for downtime incidents
+- Check Dozzle logs for errors
+- Verify Kopia backups are running
+
+### Monthly
+- Update containers (Watchtower does this automatically)
+- Review disk space on both HDDs
+- Check SMART data for HDD health
+- Test backup restoration from Kopia
+- Review and prune old logs
+
+### Commands
+
+```bash
+# View logs
+docker-compose logs -f [service_name]
+
+# Restart service
+docker-compose restart [service_name]
+
+# Update all containers
+docker-compose pull
+docker-compose up -d
+
+# Check resource usage
+docker stats
+
+# Backup docker-compose and configs
+tar -czf potatostack-backup-$(date +%Y%m%d).tar.gz \
+  docker-compose.yml .env config/
+
+# Stop everything
+docker-compose down
+
+# Stop and remove all data (CAREFUL!)
+docker-compose down -v
+```
+
+## Troubleshooting
+
+### VPN Issues
+
+**Problem**: P2P traffic not going through VPN
+
+```bash
+# Check VPN connection
+docker exec surfshark curl https://ipinfo.io/ip
+
+# Should show Surfshark IP, not your real IP
+# Check qBittorrent is using VPN
+docker exec qbittorrent curl https://ipinfo.io/ip
+```
+
+**Problem**: VPN keeps disconnecting
+
+- Check Surfshark credentials in `.env`
+- Try different server location
+- Switch between OpenVPN and WireGuard
+
+### Kopia Issues
+
+**Problem**: Can't connect to Kopia server
+
+```bash
+# Check if container is running
+docker ps | grep kopia
+
+# View logs
+docker logs kopia_server
+
+# Verify repository
+docker exec kopia_server kopia repository status
+```
+
+**Problem**: Out of memory during backup
+
+- Reduce `GOMAXPROCS` to 1 in docker-compose.yml
+- Increase `GOGC` to 75 or 100
+- Schedule backups during low-activity hours
+
+### Nextcloud Issues
+
+**Problem**: Slow performance
+
+- Check if Nextcloud has enough RAM (increase limit if needed)
+- Enable Redis cache (add to docker-compose.yml)
+- Move database to SSD if available
+
+### Monitoring Issues
+
+**Problem**: Grafana dashboards show no data
+
+```bash
+# Check if Prometheus is scraping
+docker logs prometheus
+
+# Verify targets are up
+# Open http://192.168.178.40:9090/targets
+```
+
+**Problem**: Alerts not being sent
+
+- Check Alertmanager configuration
+- Verify email credentials (Gmail app password)
+- Check logs: `docker logs alertmanager`
+
+## Mobile Apps
+
+### iOS
+- **Nextcloud**: Official app from App Store
+- **Kopia**: Use web interface (Safari)
+- **Grafana**: Official app
+- **Uptime Kuma**: Progressive Web App (add to home screen)
+- **WireGuard**: Official app for VPN access
+
+### Android
+- **Nextcloud**: Official app from Play Store
+- **Kopia**: Use web interface (Chrome)
+- **Grafana**: Official app
+- **Uptime Kuma**: Progressive Web App
+- **WireGuard**: Official app for VPN access
+- **Termux**: SSH access to Le Potato
+
+## Advanced Customization
+
+### Adding Custom Dashboards
+
+Place dashboard JSON in `config/grafana/provisioning/dashboards/` - they'll auto-import on restart.
+
+### Custom Alertmanager Routes
+
+Edit `config/alertmanager/config.yml` to route specific alerts to different receivers.
+
+### Adding Services
+
+1. Add service to `docker-compose.yml`
+2. Add to appropriate network
+3. Set resource limits
+4. Add to `config/homepage/services.yaml`
+5. Add Prometheus scrape config if needed
+6. Create alert rules in `config/prometheus/alerts.yml`
+
+## FAQ
+
+**Q: Can I run this on other SBCs?**
+A: Yes! Works on Raspberry Pi 4, Odroid, etc. Adjust resource limits accordingly.
+
+**Q: How much power does this use?**
+A: Le Potato ~4W + 2x HDD ~10W = ~14W total (€25-30/year at EU electricity prices)
+
+**Q: Can I access this from the internet?**
+A: Yes, but ONLY through WireGuard VPN on your Fritzbox. Never expose directly.
+
+**Q: What about IPv6?**
+A: Disabled by default for simplicity. Can be enabled if needed.
+
+**Q: How do I add more storage?**
+A: Add mount points to docker-compose.yml volumes and update paths in service configs.
+
+## 📤 Uploading to GitHub
+
+**IMPORTANT:** Before uploading to GitHub, read:
+1. [SECURITY.md](SECURITY.md) - Critical security information including GitHub breach warning
+2. [GITHUB_UPLOAD_GUIDE.md](GITHUB_UPLOAD_GUIDE.md) - Step-by-step upload instructions
+
+Quick upload:
+```bash
+chmod +x git-commands.sh
+./git-commands.sh
+```
+
+## 📖 Additional Documentation
+
+- **[ENHANCEMENTS.md](ENHANCEMENTS.md)** - Latest improvements based on homelab community research
+- **[STACK_OVERVIEW.md](STACK_OVERVIEW.md)** - Architecture diagrams and service reference
+- **[SECURITY.md](SECURITY.md)** - Comprehensive security guide
+- **[GITHUB_UPLOAD_GUIDE.md](GITHUB_UPLOAD_GUIDE.md)** - Safe repository upload instructions
+
+## Support & Contributions
+
+This is a fully integrated, production-ready stack. All services are configured to work together seamlessly.
+
+### Community Research
+
+This stack incorporates best practices from:
+- [Virtualization Howto](https://www.virtualizationhowto.com/)
+- [XDA Developers](https://www.xda-developers.com/)
+- [TechHut](https://techhut.tv/)
+- [Techno Tim](https://technotim.live/)
+- [Homepage Documentation](https://gethomepage.dev/)
+- r/homelab and r/selfhosted communities
+
+See [ENHANCEMENTS.md](ENHANCEMENTS.md) for detailed research references.
+
+### Useful Links
+- [Kopia Documentation](https://kopia.io/docs/)
+- [Nextcloud Documentation](https://docs.nextcloud.com/)
+- [Grafana Dashboards](https://grafana.com/grafana/dashboards/)
+- [Prometheus Documentation](https://prometheus.io/docs/)
+- [Docker Compose Reference](https://docs.docker.com/compose/)
+
+## License
+
+This configuration is provided as-is for personal use. Individual services have their own licenses.
+
+---
+
+**Built with ❤️ for the Le Potato community**

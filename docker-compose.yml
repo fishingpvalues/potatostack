@@ -1,0 +1,705 @@
+version: '3.8'
+
+################################################################################
+# POTATOSTACK - Fully Integrated Stack for Le Potato SBC
+# Optimized for ARM64 with 2GB RAM
+# Includes: VPN (Surfshark), P2P (qBittorrent, Nicotine+), Backups (Kopia),
+#           Storage (Nextcloud), Monitoring (Prometheus, Grafana, Loki),
+#           Management (Portainer, Watchtower, Uptime Kuma, Dozzle),
+#           Git (Gitea), Reverse Proxy (Nginx Proxy Manager), Dashboard (Homepage)
+################################################################################
+
+networks:
+  vpn:
+    driver: bridge
+    name: potatostack_vpn
+  monitoring:
+    driver: bridge
+    name: potatostack_monitoring
+  proxy:
+    driver: bridge
+    name: potatostack_proxy
+  default:
+    driver: bridge
+    name: potatostack_default
+
+volumes:
+  portainer_data:
+  prometheus_data:
+  grafana_data:
+  loki_data:
+  thanos_data:
+  alertmanager_data:
+  nextcloud_db:
+  nextcloud_data:
+  gitea_data:
+  gitea_db:
+  npm_data:
+  npm_ssl:
+  npm_db:
+
+services:
+
+  ############################################################################
+  # VPN STACK - Surfshark with killswitch for P2P traffic
+  ############################################################################
+
+  surfshark:
+    image: ilteoood/docker-surfshark:latest
+    container_name: surfshark
+    hostname: surfshark
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    environment:
+      - SURFSHARK_USER=${SURFSHARK_USER}  # Set in .env file
+      - SURFSHARK_PASSWORD=${SURFSHARK_PASSWORD}  # Set in .env file
+      - SURFSHARK_COUNTRY=nl  # Netherlands for good P2P speeds
+      - SURFSHARK_CITY=ams  # Amsterdam
+      - CONNECTION_TYPE=openvpn  # or wireguard
+      - LAN_NETWORK=192.168.178.0/24  # Your Fritzbox network
+      - DNS=1.1.1.1,1.0.0.1
+    networks:
+      - vpn
+      - monitoring
+    ports:
+      # qBittorrent WebUI
+      - "8080:8080"
+      # Nicotine+ WebUI
+      - "2234:2234"
+      # P2P ports
+      - "6881:6881"
+      - "6881:6881/udp"
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+      - net.ipv6.conf.all.disable_ipv6=1
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "https://ipinfo.io/ip"]
+      interval: 5m
+      timeout: 20s
+      retries: 3
+      start_period: 30s
+    mem_limit: 256m
+    mem_reservation: 128m
+    cpus: 1
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    hostname: qbittorrent
+    restart: unless-stopped
+    network_mode: service:surfshark
+    depends_on:
+      surfshark:
+        condition: service_healthy
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Berlin
+      - WEBUI_PORT=8080
+      - TORRENTING_PORT=6881
+    volumes:
+      - /mnt/seconddrive/qbittorrent/config:/config
+      - /mnt/cachehdd/torrents:/downloads
+      - /mnt/cachehdd/torrents/incomplete:/incomplete
+    labels:
+      - "homepage.group=Media & Downloads"
+      - "homepage.name=qBittorrent"
+      - "homepage.icon=qbittorrent.png"
+      - "homepage.href=http://192.168.178.40:8080"
+      - "homepage.description=Torrent client via VPN"
+      - "homepage.widget.type=qbittorrent"
+      - "homepage.widget.url=http://surfshark:8080"
+      - "homepage.widget.username=admin"
+      - "homepage.widget.password={{HOMEPAGE_VAR_QBITTORRENT_PASSWORD}}"
+    mem_limit: 512m
+    mem_reservation: 256m
+    cpus: 1.5
+
+  nicotine:
+    image: ghcr.io/slskd/slskd:latest  # Modern, maintained Soulseek daemon
+    container_name: nicotine
+    hostname: nicotine
+    restart: unless-stopped
+    network_mode: service:surfshark
+    depends_on:
+      surfshark:
+        condition: service_healthy
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Berlin
+      - SLSKD_HTTP_PORT=2234
+      - SLSKD_SLSK_LISTEN_PORT=50000
+      - SLSKD_USERNAME=${NICOTINE_USER:-admin}
+      - SLSKD_PASSWORD=${NICOTINE_PASSWORD}
+      - SLSKD_METRICS=true
+      - SLSKD_METRICS_URL=http://localhost:5031/metrics
+    volumes:
+      - /mnt/seconddrive/nicotine/config:/app
+      - /mnt/seconddrive/nicotine/logs:/app/logs
+      - /mnt/cachehdd/soulseek:/var/slskd/shared
+      - /mnt/cachehdd/soulseek/incomplete:/var/slskd/incomplete
+    labels:
+      - "homepage.group=Media & Downloads"
+      - "homepage.name=Nicotine+"
+      - "homepage.icon=slskd.png"
+      - "homepage.href=http://192.168.178.40:2234"
+      - "homepage.description=Soulseek P2P via VPN"
+    mem_limit: 384m
+    mem_reservation: 192m
+    cpus: 1
+
+  ############################################################################
+  # BACKUP - Kopia Server (from existing config)
+  ############################################################################
+
+  kopia:
+    image: kopia/kopia:latest
+    container_name: kopia_server
+    hostname: lepotato-backup
+    restart: unless-stopped
+    networks:
+      - monitoring
+      - proxy
+    ports:
+      - "51515:51515"
+      - "51516:51516"
+    environment:
+      - TZ=Europe/Berlin
+      - KOPIA_PASSWORD=${KOPIA_PASSWORD}
+      - GOGC=50
+      - GOMAXPROCS=2
+      - KOPIA_CONFIG_PATH=/app/config/repository.config
+      - KOPIA_CACHE_DIRECTORY=/app/cache
+      - KOPIA_LOG_DIR=/app/logs
+      - KOPIA_PROMETHEUS_ENABLED=true
+      - KOPIA_PROMETHEUS_LISTEN_ADDR=:51516
+    volumes:
+      - /mnt/seconddrive/kopia/repository:/repository
+      - /mnt/seconddrive/kopia/config:/app/config
+      - /mnt/seconddrive/kopia/cache:/app/cache
+      - /mnt/seconddrive/kopia/logs:/app/logs
+      - /mnt/seconddrive/kopia/tmp:/tmp
+      - /:/host:ro
+    cap_add:
+      - SYS_ADMIN
+    devices:
+      - /dev/fuse:/dev/fuse
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:51515/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    command:
+      - server
+      - start
+      - --address=0.0.0.0:51515
+      - --tls-generate-cert
+      - --tls-generate-rsa-key-size=4096
+      - --server-username=${KOPIA_SERVER_USER:-admin}
+      - --server-password=${KOPIA_SERVER_PASSWORD}
+      - --log-level=info
+      - --file-log-level=debug
+      - --metrics-listen-addr=:51516
+    mem_limit: 768m
+    mem_reservation: 384m
+    cpus: 2
+
+  ############################################################################
+  # MONITORING STACK - Prometheus, Grafana, Loki, Thanos, Alertmanager
+  ############################################################################
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    hostname: prometheus
+    restart: unless-stopped
+    networks:
+      - monitoring
+      - proxy
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    volumes:
+      - ./config/prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    depends_on:
+      - node-exporter
+      - cadvisor
+      - smartctl-exporter
+    mem_limit: 512m
+    mem_reservation: 256m
+    cpus: 1
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    hostname: grafana
+    restart: unless-stopped
+    networks:
+      - monitoring
+      - proxy
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-clock-panel
+      - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:%(http_port)s/grafana/
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+      - loki
+    mem_limit: 384m
+    mem_reservation: 192m
+    cpus: 1
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    hostname: loki
+    restart: unless-stopped
+    networks:
+      - monitoring
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./config/loki:/etc/loki
+      - loki_data:/loki
+    mem_limit: 256m
+    mem_reservation: 128m
+    cpus: 0.5
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    hostname: promtail
+    restart: unless-stopped
+    networks:
+      - monitoring
+    volumes:
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /mnt/seconddrive/kopia/logs:/kopia-logs:ro
+      - /mnt/seconddrive/qbittorrent/config/logs:/qbittorrent-logs:ro
+      - /mnt/seconddrive/nicotine/logs:/nicotine-logs:ro
+      - ./config/promtail:/etc/promtail
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    mem_limit: 128m
+    mem_reservation: 64m
+    cpus: 0.5
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    hostname: alertmanager
+    restart: unless-stopped
+    networks:
+      - monitoring
+      - proxy
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./config/alertmanager:/etc/alertmanager
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+    mem_limit: 128m
+    mem_reservation: 64m
+    cpus: 0.5
+
+  thanos-sidecar:
+    image: quay.io/thanos/thanos:latest
+    container_name: thanos-sidecar
+    hostname: thanos-sidecar
+    restart: unless-stopped
+    networks:
+      - monitoring
+    command:
+      - 'sidecar'
+      - '--tsdb.path=/prometheus'
+      - '--prometheus.url=http://prometheus:9090'
+      - '--grpc-address=0.0.0.0:10901'
+      - '--http-address=0.0.0.0:10902'
+    volumes:
+      - prometheus_data:/prometheus:ro
+    depends_on:
+      - prometheus
+    mem_limit: 128m
+    mem_reservation: 64m
+    cpus: 0.5
+
+  thanos-query:
+    image: quay.io/thanos/thanos:latest
+    container_name: thanos-query
+    hostname: thanos-query
+    restart: unless-stopped
+    networks:
+      - monitoring
+      - proxy
+    ports:
+      - "10902:10902"
+    command:
+      - 'query'
+      - '--http-address=0.0.0.0:10902'
+      - '--store=thanos-sidecar:10901'
+    depends_on:
+      - thanos-sidecar
+    mem_limit: 128m
+    mem_reservation: 64m
+    cpus: 0.5
+
+  ############################################################################
+  # SYSTEM MONITORING - Node Exporter, cAdvisor, SMART
+  ############################################################################
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    hostname: node-exporter
+    restart: unless-stopped
+    networks:
+      - monitoring
+    ports:
+      - "9100:9100"
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    mem_limit: 64m
+    mem_reservation: 32m
+    cpus: 0.25
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    hostname: cadvisor
+    restart: unless-stopped
+    networks:
+      - monitoring
+    ports:
+      - "8081:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    devices:
+      - /dev/kmsg
+    privileged: true
+    mem_limit: 128m
+    mem_reservation: 64m
+    cpus: 0.5
+
+  smartctl-exporter:
+    image: prometheuscommunity/smartctl-exporter:latest
+    container_name: smartctl-exporter
+    hostname: smartctl-exporter
+    restart: unless-stopped
+    networks:
+      - monitoring
+    ports:
+      - "9633:9633"
+    privileged: true
+    user: root
+    mem_limit: 64m
+    mem_reservation: 32m
+    cpus: 0.25
+
+  netdata:
+    image: netdata/netdata:latest
+    container_name: netdata
+    hostname: lepotato-netdata
+    restart: unless-stopped
+    networks:
+      - monitoring
+      - proxy
+    ports:
+      - "19999:19999"
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    environment:
+      - NETDATA_CLAIM_TOKEN=${NETDATA_CLAIM_TOKEN}
+      - NETDATA_CLAIM_URL=https://app.netdata.cloud
+      - NETDATA_CLAIM_ROOMS=${NETDATA_CLAIM_ROOMS}
+      - DOCKER_HOST=/var/run/docker.sock
+    volumes:
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /mnt/seconddrive:/host/mnt/seconddrive:ro
+      - /mnt/cachehdd:/host/mnt/cachehdd:ro
+    labels:
+      - "homepage.group=Monitoring"
+      - "homepage.name=Netdata"
+      - "homepage.icon=netdata.png"
+      - "homepage.href=http://192.168.178.40:19999"
+      - "homepage.description=Real-time system monitoring"
+    mem_limit: 256m
+    mem_reservation: 128m
+    cpus: 1
+
+  ############################################################################
+  # NEXTCLOUD - File sharing and sync
+  ############################################################################
+
+  nextcloud-db:
+    image: mariadb:10.11
+    container_name: nextcloud-db
+    hostname: nextcloud-db
+    restart: unless-stopped
+    networks:
+      - default
+    environment:
+      - MYSQL_ROOT_PASSWORD=${NEXTCLOUD_DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_PASSWORD=${NEXTCLOUD_DB_PASSWORD}
+    volumes:
+      - nextcloud_db:/var/lib/mysql
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW --innodb-file-per-table=1 --skip-innodb-read-only-compressed
+    mem_limit: 256m
+    mem_reservation: 128m
+    cpus: 0.5
+
+  nextcloud:
+    image: nextcloud:stable
+    container_name: nextcloud
+    hostname: nextcloud
+    restart: unless-stopped
+    networks:
+      - default
+      - proxy
+    ports:
+      - "8082:80"
+    environment:
+      - MYSQL_HOST=nextcloud-db
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_PASSWORD=${NEXTCLOUD_DB_PASSWORD}
+      - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER:-admin}
+      - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
+      - NEXTCLOUD_TRUSTED_DOMAINS=192.168.178.40 lepotato.local
+      - OVERWRITEPROTOCOL=https
+      - PHP_MEMORY_LIMIT=512M
+      - PHP_UPLOAD_LIMIT=10G
+    volumes:
+      - nextcloud_data:/var/www/html
+      - /mnt/seconddrive/nextcloud:/data
+      - /mnt/cachehdd/torrents:/external/torrents:ro
+      - /mnt/cachehdd/soulseek:/external/soulseek:ro
+    depends_on:
+      - nextcloud-db
+    mem_limit: 512m
+    mem_reservation: 256m
+    cpus: 1.5
+
+  ############################################################################
+  # GITEA - Git server
+  ############################################################################
+
+  gitea-db:
+    image: postgres:14-alpine
+    container_name: gitea-db
+    hostname: gitea-db
+    restart: unless-stopped
+    networks:
+      - default
+    environment:
+      - POSTGRES_USER=gitea
+      - POSTGRES_PASSWORD=${GITEA_DB_PASSWORD}
+      - POSTGRES_DB=gitea
+    volumes:
+      - gitea_db:/var/lib/postgresql/data
+    mem_limit: 128m
+    mem_reservation: 64m
+    cpus: 0.5
+
+  gitea:
+    image: gitea/gitea:latest
+    container_name: gitea
+    hostname: gitea
+    restart: unless-stopped
+    networks:
+      - default
+      - proxy
+    ports:
+      - "3001:3000"
+      - "2222:22"
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - GITEA__database__DB_TYPE=postgres
+      - GITEA__database__HOST=gitea-db:5432
+      - GITEA__database__NAME=gitea
+      - GITEA__database__USER=gitea
+      - GITEA__database__PASSWD=${GITEA_DB_PASSWORD}
+    volumes:
+      - gitea_data:/data
+      - /mnt/seconddrive/gitea:/data/gitea/repositories
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    depends_on:
+      - gitea-db
+    mem_limit: 384m
+    mem_reservation: 192m
+    cpus: 1
+
+  ############################################################################
+  # MANAGEMENT TOOLS - Portainer, Watchtower, Uptime Kuma, Dozzle
+  ############################################################################
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    hostname: portainer
+    restart: unless-stopped
+    networks:
+      - default
+      - proxy
+    ports:
+      - "9000:9000"
+      - "9443:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    mem_limit: 128m
+    mem_reservation: 64m
+    cpus: 0.5
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    hostname: watchtower
+    restart: unless-stopped
+    networks:
+      - monitoring
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=86400  # Daily updates
+      - WATCHTOWER_INCLUDE_RESTARTING=true
+      - WATCHTOWER_INCLUDE_STOPPED=false
+      - WATCHTOWER_REVIVE_STOPPED=false
+      - WATCHTOWER_NOTIFICATIONS=shoutrrr
+      - WATCHTOWER_NOTIFICATION_URL=${WATCHTOWER_NOTIFICATION_URL}  # e.g., telegram://token@telegram?channels=channelid
+      - TZ=Europe/Berlin
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    mem_limit: 64m
+    mem_reservation: 32m
+    cpus: 0.25
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:latest
+    container_name: uptime-kuma
+    hostname: uptime-kuma
+    restart: unless-stopped
+    networks:
+      - default
+      - proxy
+      - monitoring
+    ports:
+      - "3002:3001"
+    volumes:
+      - /mnt/seconddrive/uptime-kuma:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    mem_limit: 256m
+    mem_reservation: 128m
+    cpus: 0.5
+
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    hostname: dozzle
+    restart: unless-stopped
+    networks:
+      - proxy
+    ports:
+      - "8083:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - DOZZLE_LEVEL=info
+      - DOZZLE_TAILSIZE=300
+      - DOZZLE_FILTER=status=running
+    mem_limit: 64m
+    mem_reservation: 32m
+    cpus: 0.25
+
+  ############################################################################
+  # REVERSE PROXY & DASHBOARD
+  ############################################################################
+
+  nginx-proxy-manager:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: nginx-proxy-manager
+    hostname: npm
+    restart: unless-stopped
+    networks:
+      - proxy
+      - monitoring
+    ports:
+      - "80:80"
+      - "443:443"
+      - "81:81"
+    environment:
+      - DB_SQLITE_FILE=/data/database.sqlite
+      - DISABLE_IPV6=true
+    volumes:
+      - npm_data:/data
+      - npm_ssl:/etc/letsencrypt
+    mem_limit: 256m
+    mem_reservation: 128m
+    cpus: 1
+
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    hostname: homepage
+    restart: unless-stopped
+    networks:
+      - proxy
+      - monitoring
+      - default
+    ports:
+      - "3003:3000"
+    environment:
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - ./config/homepage:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /mnt/seconddrive:/mnt/seconddrive:ro
+      - /mnt/cachehdd:/mnt/cachehdd:ro
+    mem_limit: 128m
+    mem_reservation: 64m
+    cpus: 0.5

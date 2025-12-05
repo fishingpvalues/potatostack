@@ -1,0 +1,32 @@
+# PotatoStack .gitignore
+
+# Environment file with passwords
+.env
+
+# Docker volumes
+volumes/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+
+# Backup files
+*.bak
+*.backup
+*.tar.gz
+backup-*.tar.gz

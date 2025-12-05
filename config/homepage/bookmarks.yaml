@@ -1,0 +1,38 @@
+---
+# Homepage Bookmarks Configuration
+
+- Documentation:
+    - Kopia Docs:
+        - href: https://kopia.io/docs/
+          icon: kopia.png
+    - Nextcloud Docs:
+        - href: https://docs.nextcloud.com/
+          icon: nextcloud.png
+    - Grafana Dashboards:
+        - href: https://grafana.com/grafana/dashboards/
+          icon: grafana.png
+    - Homepage Docs:
+        - href: https://gethomepage.dev/
+          icon: homepage.png
+
+- Quick Links:
+    - Fritzbox:
+        - href: http://fritz.box
+          icon: https://avm.de/favicon.ico
+    - Netdata Cloud:
+        - href: https://app.netdata.cloud
+          icon: netdata.png
+    - Surfshark:
+        - href: https://my.surfshark.com
+          icon: si-surfshark
+
+- Monitoring:
+    - Prometheus Targets:
+        - href: http://192.168.178.40:9090/targets
+          icon: prometheus.png
+    - Alertmanager:
+        - href: http://192.168.178.40:9093
+          icon: prometheus.png
+    - Loki:
+        - href: http://192.168.178.40:3100
+          icon: grafana.png
