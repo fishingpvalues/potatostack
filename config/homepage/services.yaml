@@ -10,7 +10,7 @@
           type: qbittorrent
           url: http://surfshark:8080
           username: admin
-          password: {{HOMEPAGE_VAR_QBITTORRENT_PASSWORD}}
+          password: "{{HOMEPAGE_VAR_QBITTORRENT_PASSWORD}}"
 
     - slskd (Soulseek):
         icon: slskd.png
@@ -31,8 +31,8 @@
         widget:
           type: nextcloud
           url: http://nextcloud
-          username: {{HOMEPAGE_VAR_NEXTCLOUD_USER}}
-          password: {{HOMEPAGE_VAR_NEXTCLOUD_PASSWORD}}
+          username: "{{HOMEPAGE_VAR_NEXTCLOUD_USER}}"
+          password: "{{HOMEPAGE_VAR_NEXTCLOUD_PASSWORD}}"
 
     - Kopia:
         icon: kopia.png
@@ -53,8 +53,8 @@
         widget:
           type: grafana
           url: http://grafana:3000
-          username: {{HOMEPAGE_VAR_GRAFANA_USER}}
-          password: {{HOMEPAGE_VAR_GRAFANA_PASSWORD}}
+          username: "{{HOMEPAGE_VAR_GRAFANA_USER}}"
+          password: "{{HOMEPAGE_VAR_GRAFANA_PASSWORD}}"
 
     - Prometheus:
         icon: prometheus.png
@@ -87,7 +87,7 @@
           type: portainer
           url: http://portainer:9000
           env: 1
-          key: {{HOMEPAGE_VAR_PORTAINER_KEY}}
+          key: "{{HOMEPAGE_VAR_PORTAINER_KEY}}"
 
     - Nginx Proxy Manager:
         icon: nginx-proxy-manager.png
@@ -96,8 +96,8 @@
         widget:
           type: npm
           url: http://nginx-proxy-manager:81
-          username: {{HOMEPAGE_VAR_NPM_USER}}
-          password: {{HOMEPAGE_VAR_NPM_PASSWORD}}
+          username: "{{HOMEPAGE_VAR_NPM_USER}}"
+          password: "{{HOMEPAGE_VAR_NPM_PASSWORD}}"
 
     - Gitea:
         icon: gitea.png
