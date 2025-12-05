@@ -234,6 +234,7 @@ services:
     volumes:
       - ./config/prometheus:/etc/prometheus
       - prometheus_data:/prometheus
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:
       - node-exporter
       - cadvisor
@@ -316,6 +317,10 @@ services:
       - proxy
     ports:
       - "9093:9093"
+    environment:
+      - ALERT_EMAIL_USER=${ALERT_EMAIL_USER}
+      - ALERT_EMAIL_PASSWORD=${ALERT_EMAIL_PASSWORD}
+      - ALERT_EMAIL_TO=${ALERT_EMAIL_TO}
     volumes:
       - ./config/alertmanager:/etc/alertmanager
       - alertmanager_data:/alertmanager

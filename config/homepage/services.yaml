@@ -12,10 +12,10 @@
           username: admin
           password: {{HOMEPAGE_VAR_QBITTORRENT_PASSWORD}}
 
-    - Nicotine+ (Soulseek):
+    - slskd (Soulseek):
         icon: slskd.png
         href: http://192.168.178.40:2234
-        description: Soulseek P2P file sharing
+        description: Soulseek P2P file sharing via VPN
         widget:
           type: customapi
           url: http://surfshark:2234/api/v0/application
