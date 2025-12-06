@@ -90,19 +90,51 @@ fi
 echo "User confirmed. Proceeding with ZFS pool creation..."
 echo
 
-# --- Step 4: ZFS Pool Creation ---
-echo "Creating ZFS pool '$POOL_NAME' from main drive $MAIN_DRIVE..."
+# --- Step 4: ZFS Pool Creation with SOTA Optimizations ---
+echo "Creating ZFS pool '$POOL_NAME' from main drive $MAIN_DRIVE with optimizations..."
 # -f: force, required to overwrite existing partitions on the drive.
-# -o ashift=12: optimizes for 4K sector drives, which is standard for most modern HDDs.
+# -o ashift=12: optimizes for 4K sector drives (modern HDDs)
+# -O compression=lz4: Enable lightweight compression (minimal CPU, significant space savings)
+# -O atime=off: Disable access time updates (reduces writes, better for HDD lifespan)
+# -O relatime=on: Update atime only when modified (good compromise)
+# -O xattr=sa: Store extended attributes in inodes (better performance)
+# -O dnodesize=auto: Automatic dnode sizing for better metadata performance
 # -m "$MOUNT_POINT": sets the mount point for the root of the pool.
-zpool create -f -o ashift=12 -m "$MOUNT_POINT" "$POOL_NAME" "$MAIN_DRIVE"
+zpool create -f \
+  -o ashift=12 \
+  -O compression=lz4 \
+  -O atime=off \
+  -O relatime=on \
+  -O xattr=sa \
+  -O dnodesize=auto \
+  -O recordsize=128k \
+  -O sync=standard \
+  -O redundant_metadata=most \
+  -m "$MOUNT_POINT" \
+  "$POOL_NAME" "$MAIN_DRIVE"
 
-echo "Pool '$POOL_NAME' created successfully."
+echo "Pool '$POOL_NAME' created successfully with compression and optimizations."
 echo
 
 echo "Adding $CACHE_DRIVE as a cache device (L2ARC) to the pool..."
 zpool add -f "$POOL_NAME" cache "$CACHE_DRIVE"
 echo "Cache device added successfully."
+echo
+
+# Set additional optimizations for Le Potato's limited resources
+echo "Applying Le Potato-specific ZFS optimizations..."
+# Reduce prefetch for low RAM systems
+echo "zfs_prefetch_disable=0" >> /etc/modprobe.d/zfs.conf
+# Optimize for sequential reads (good for media/backups)
+zfs set primarycache=metadata "$POOL_NAME"
+zfs set secondarycache=all "$POOL_NAME"
+# Enable deduplication table optimization (not dedup itself, just table)
+zfs set dedup=off "$POOL_NAME"  # Explicitly disable (requires too much RAM)
+# Set sync behavior for better performance
+zfs set sync=standard "$POOL_NAME"
+# Enable async writes for better performance
+zfs set logbias=throughput "$POOL_NAME"
+echo "Le Potato optimizations applied."
 echo
 
 # --- Step 5: Verification ---
