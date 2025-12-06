@@ -5,7 +5,7 @@
 # This script prepares your system for running the PotatoStack
 ################################################################################
 
-set -e
+set -euo pipefail
 
 echo "========================================"
 echo "PotatoStack Setup for Le Potato SBC"
@@ -18,6 +18,21 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Args
+NONINTERACTIVE=false
+SKIP_PULL=false
+for arg in "$@"; do
+  case "$arg" in
+    --non-interactive)
+      NONINTERACTIVE=true
+      ;;
+    --skip-pull)
+      SKIP_PULL=true
+      ;;
+    *) ;;
+  esac
+done
+
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then
     echo -e "${RED}Please run as root (sudo ./setup.sh)${NC}"
@@ -25,6 +40,15 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 echo -e "${GREEN}Step 1: Checking system requirements...${NC}"
+
+# Determine docker compose command
+if command -v docker-compose >/dev/null 2>&1; then
+    DC="docker-compose"
+elif docker compose version >/dev/null 2>&1; then
+    DC="docker compose"
+else
+    DC="docker-compose" # will be installed below
+fi
 
 # Check if Docker is installed
 if ! command -v docker &> /dev/null; then
@@ -39,7 +63,7 @@ else
 fi
 
 # Check if Docker Compose is installed
-if ! command -v docker-compose &> /dev/null; then
+if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
     echo -e "${YELLOW}Docker Compose not found. Installing...${NC}"
     apt-get update
     apt-get install -y docker-compose-plugin docker-compose
@@ -96,17 +120,33 @@ echo -e "${GREEN}Step 4: Setting up environment file...${NC}"
 if [ ! -f ".env" ]; then
     cp .env.example .env
     echo -e "${YELLOW}Created .env file from template${NC}"
-    echo -e "${RED}IMPORTANT: Edit .env file and fill in your passwords!${NC}"
-    echo -e "${RED}Use: nano .env${NC}"
-    echo ""
-    read -p "Press enter to edit .env now, or Ctrl+C to exit and edit later..."
-    nano .env
+    if [ "$NONINTERACTIVE" = false ]; then
+        echo -e "${RED}IMPORTANT: Edit .env file and fill in your passwords!${NC}"
+        echo -e "${RED}Use: nano .env${NC}"
+        echo ""
+        read -p "Press enter to edit .env now, or Ctrl+C to exit and edit later..."
+        nano .env
+    else
+        echo -e "${YELLOW}Non-interactive mode: Skipping editor${NC}"
+    fi
 else
     echo -e "${GREEN}.env file already exists${NC}"
 fi
 
 echo ""
-echo -e "${GREEN}Step 5: Installing required tools...${NC}"
+echo -e "${GREEN}Step 5: Preflight checks...${NC}"
+
+# Run preflight (non-blocking)
+if [ -x "./preflight-check.sh" ]; then
+    set +e
+    ./preflight-check.sh || true
+    set -e
+else
+    echo -e "${YELLOW}Preflight script not found; skipping${NC}"
+fi
+
+echo ""
+echo -e "${GREEN}Step 6: Installing required tools...${NC}"
 
 # Install smartmontools for SMART monitoring
 if ! command -v smartctl &> /dev/null; then
@@ -118,7 +158,7 @@ else
 fi
 
 echo ""
-echo -e "${GREEN}Step 6: Initializing Kopia repository...${NC}"
+echo -e "${GREEN}Step 7: Initializing Kopia repository...${NC}"
 
 # Check if Kopia repo already exists
 if [ ! -f "/mnt/seconddrive/kopia/config/repository.config" ]; then
@@ -142,23 +182,39 @@ else
 fi
 
 echo ""
-echo -e "${GREEN}Step 7: Optimizing system for containerized workloads...${NC}"
+echo -e "${GREEN}Step 8: Optimizing system for containerized workloads...${NC}"
 
-# Increase inotify limits for containers
-echo "fs.inotify.max_user_watches=524288" >> /etc/sysctl.conf
-echo "fs.inotify.max_user_instances=512" >> /etc/sysctl.conf
-sysctl -p
+# Increase inotify limits for containers (idempotent)
+grep -q '^fs.inotify.max_user_watches=524288' /etc/sysctl.conf || echo "fs.inotify.max_user_watches=524288" >> /etc/sysctl.conf
+grep -q '^fs.inotify.max_user_instances=512' /etc/sysctl.conf || echo "fs.inotify.max_user_instances=512" >> /etc/sysctl.conf
 
-# Enable IP forwarding for VPN
-echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
-sysctl -p
+# Enable IP forwarding for VPN (idempotent)
+grep -q '^net.ipv4.ip_forward=1' /etc/sysctl.conf || echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+
+sysctl -p >/dev/null 2>&1 || true
 
 echo -e "${GREEN}System optimizations applied${NC}"
 
 echo ""
-echo -e "${GREEN}Step 8: Pulling Docker images (this may take a while)...${NC}"
+if [ "$SKIP_PULL" = false ]; then
+    echo -e "${GREEN}Step 9: Pulling Docker images (this may take a while)...${NC}"
+    $DC pull
+else
+    echo -e "${YELLOW}Skipping image pull (requested)${NC}"
+fi
 
-docker-compose pull
+echo ""
+echo -e "${GREEN}Step 10: Optional systemd auto-start...${NC}"
+if [ "$NONINTERACTIVE" = true ]; then
+    if [ -d "systemd" ]; then
+        echo -e "${YELLOW}Non-interactive: Installing systemd services automatically${NC}"
+        (cd systemd && yes | ./install-systemd-services.sh) || echo -e "${YELLOW}Systemd install encountered an issue; continue manually if needed${NC}"
+    else
+        echo -e "${YELLOW}systemd/ not found; skipping auto-install${NC}"
+    fi
+else
+    echo -e "${YELLOW}Run: cd systemd && sudo ./install-systemd-services.sh  to enable auto-start on boot${NC}"
+fi
 
 echo ""
 echo "========================================"
@@ -167,9 +223,9 @@ echo "========================================"
 echo ""
 echo "Next steps:"
 echo "1. Review and update your .env file if you haven't already"
-echo "2. Start the stack: docker-compose up -d"
-echo "3. Check logs: docker-compose logs -f"
-echo "4. Access Homepage dashboard at: http://192.168.178.40:3003"
+echo "2. Start the stack: make up    (or: docker compose up -d)"
+echo "3. Check logs:    make logs  (or: docker compose logs -f)"
+echo "4. Access Homepage dashboard at: http://<HOST_ADDR>:3003 (set in .env)"
 echo ""
 echo "Recommended Grafana dashboards to import:"
 echo "  - Node Exporter Full: 1860"

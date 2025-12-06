@@ -27,7 +27,7 @@ schema_config:
         period: 24h
 
 limits_config:
-  retention_period: 30d
+  retention_period: ${LOKI_RETENTION_DAYS:-14d}
   max_query_length: 721h
   max_query_parallelism: 2
   max_entries_limit_per_query: 5000
@@ -37,7 +37,7 @@ compactor:
   shared_store: filesystem
   retention_enabled: true
   retention_delete_delay: 2h
-  retention_delete_worker_count: 50
+  retention_delete_worker_count: 5
 
 chunk_store_config:
   max_look_back_period: 0s

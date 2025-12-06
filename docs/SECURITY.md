@@ -85,7 +85,7 @@ openssl rand -base64 32
 - [ ] Grafana admin password
 - [ ] Nextcloud admin password
 - [ ] Portainer admin password
-- [ ] Nicotine+ password
+- [ ] slskd (Soulseek) password
 
 ### 2. Two-Factor Authentication (2FA)
 
@@ -164,8 +164,8 @@ docker exec surfshark curl -s https://ipinfo.io/ip
 docker exec qbittorrent curl -s https://ipinfo.io/ip
 # Should show SAME Surfshark IP
 
-# Check Nicotine+ IP (if it supports curl)
-docker exec nicotine curl -s https://ipinfo.io/ip
+# Check slskd IP (via Surfshark namespace)
+docker exec surfshark curl -s --max-time 10 http://localhost:2234 || true
 # Should show SAME Surfshark IP
 
 # If ANY show your real IP, DO NOT USE - fix configuration first!

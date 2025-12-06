@@ -3,7 +3,7 @@ version: '3.8'
 ################################################################################
 # POTATOSTACK - Fully Integrated Stack for Le Potato SBC
 # Optimized for ARM64 with 2GB RAM
-# Includes: VPN (Surfshark), P2P (qBittorrent, Nicotine+), Backups (Kopia),
+# Includes: VPN (Surfshark), P2P (qBittorrent, slskd/Soulseek), Backups (Kopia),
 #           Storage (Nextcloud), Monitoring (Prometheus, Grafana, Loki),
 #           Management (Portainer, Watchtower, Uptime Kuma, Dozzle),
 #           Git (Gitea), Reverse Proxy (Nginx Proxy Manager), Dashboard (Homepage)
@@ -28,7 +28,6 @@ volumes:
   prometheus_data:
   grafana_data:
   loki_data:
-  thanos_data:
   alertmanager_data:
   nextcloud_db:
   nextcloud_data:
@@ -45,7 +44,7 @@ services:
   ############################################################################
 
   surfshark:
-    image: ilteoood/docker-surfshark:latest
+    image: ilteoood/docker-surfshark:${SURFSHARK_TAG:-latest}
     container_name: surfshark
     hostname: surfshark
     restart: unless-stopped
@@ -56,22 +55,22 @@ services:
     environment:
       - SURFSHARK_USER=${SURFSHARK_USER}  # Set in .env file
       - SURFSHARK_PASSWORD=${SURFSHARK_PASSWORD}  # Set in .env file
-      - SURFSHARK_COUNTRY=nl  # Netherlands for good P2P speeds
-      - SURFSHARK_CITY=ams  # Amsterdam
-      - CONNECTION_TYPE=openvpn  # or wireguard
-      - LAN_NETWORK=192.168.178.0/24  # Your Fritzbox network
-      - DNS=1.1.1.1,1.0.0.1
+      - SURFSHARK_COUNTRY=${SURFSHARK_COUNTRY:-nl}  # e.g., nl
+      - SURFSHARK_CITY=${SURFSHARK_CITY:-ams}  # e.g., ams
+      - CONNECTION_TYPE=${SURFSHARK_CONNECTION_TYPE:-openvpn}  # openvpn or wireguard
+      - LAN_NETWORK=${LAN_NETWORK:-192.168.178.0/24}
+      - DNS=${VPN_DNS:-1.1.1.1,1.0.0.1}
     networks:
       - vpn
       - monitoring
     ports:
       # qBittorrent WebUI
-      - "8080:8080"
-      # Nicotine+ WebUI
-      - "2234:2234"
+      - "${HOST_BIND:-0.0.0.0}:8080:8080"
+      # slskd WebUI
+      - "${HOST_BIND:-0.0.0.0}:2234:2234"
       # P2P ports
-      - "6881:6881"
-      - "6881:6881/udp"
+      - "${HOST_BIND:-0.0.0.0}:6881:6881"
+      - "${HOST_BIND:-0.0.0.0}:6881:6881/udp"
     sysctls:
       - net.ipv4.conf.all.src_valid_mark=1
       - net.ipv6.conf.all.disable_ipv6=1
@@ -84,9 +83,13 @@ services:
     mem_limit: 256m
     mem_reservation: 128m
     cpus: 1
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '3'
 
   qbittorrent:
-    image: lscr.io/linuxserver/qbittorrent:latest
+    image: lscr.io/linuxserver/qbittorrent:${QBITTORRENT_TAG:-latest}
     container_name: qbittorrent
     hostname: qbittorrent
     restart: unless-stopped
@@ -108,18 +111,23 @@ services:
       - "homepage.group=Media & Downloads"
       - "homepage.name=qBittorrent"
       - "homepage.icon=qbittorrent.png"
-      - "homepage.href=http://192.168.178.40:8080"
+      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:8080"
       - "homepage.description=Torrent client via VPN"
       - "homepage.widget.type=qbittorrent"
       - "homepage.widget.url=http://surfshark:8080"
       - "homepage.widget.username=admin"
       - "homepage.widget.password={{HOMEPAGE_VAR_QBITTORRENT_PASSWORD}}"
+      - "com.centurylinklabs.watchtower.enable=true"
     mem_limit: 512m
     mem_reservation: 256m
     cpus: 1.5
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '3'
 
   slskd:
-    image: ghcr.io/slskd/slskd:latest  # slskd - Modern Soulseek daemon with web UI (NOT traditional Nicotine+)
+    image: ghcr.io/slskd/slskd:${SLSKD_TAG:-latest}  # slskd - Modern Soulseek daemon with web UI
     container_name: slskd
     hostname: slskd
     restart: unless-stopped
@@ -146,18 +154,23 @@ services:
       - "homepage.group=Media & Downloads"
       - "homepage.name=slskd (Soulseek)"
       - "homepage.icon=slskd.png"
-      - "homepage.href=http://192.168.178.40:2234"
+      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:2234"
       - "homepage.description=Soulseek P2P via VPN (slskd client)"
+      - "com.centurylinklabs.watchtower.enable=true"
     mem_limit: 384m
     mem_reservation: 192m
     cpus: 1
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '3'
 
   ############################################################################
   # BACKUP - Kopia Server (from existing config)
   ############################################################################
 
   kopia:
-    image: kopia/kopia:latest
+    image: kopia/kopia:${KOPIA_TAG:-latest}
     container_name: kopia_server
     hostname: lepotato-backup
     restart: unless-stopped
@@ -165,8 +178,8 @@ services:
       - monitoring
       - proxy
     ports:
-      - "51515:51515"
-      - "51516:51516"
+      - "${HOST_BIND:-0.0.0.0}:51515:51515"
+      - "${HOST_BIND:-0.0.0.0}:51516:51516"
     environment:
       - TZ=Europe/Berlin
       - KOPIA_PASSWORD=${KOPIA_PASSWORD}
@@ -208,13 +221,23 @@ services:
     mem_limit: 768m
     mem_reservation: 384m
     cpus: 2
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '3'
+    labels:
+      - "homepage.group=Storage & Backup"
+      - "homepage.name=Kopia"
+      - "homepage.icon=kopia.png"
+      - "homepage.href=https://${HOST_ADDR:-192.168.178.40}:51515"
+      - "homepage.description=Encrypted backups"
 
   ############################################################################
   # MONITORING STACK - Prometheus, Grafana, Loki, Thanos, Alertmanager
   ############################################################################
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:${PROMETHEUS_TAG:-latest}
     container_name: prometheus
     hostname: prometheus
     restart: unless-stopped
@@ -222,15 +245,14 @@ services:
       - monitoring
       - proxy
     ports:
-      - "9090:9090"
+      - "${HOST_BIND:-0.0.0.0}:9090:9090"
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=30d'
+      - '--storage.tsdb.retention.time=${PROMETHEUS_RETENTION_DAYS:-14d}'
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
-      - '--web.enable-admin-api'
     volumes:
       - ./config/prometheus:/etc/prometheus
       - prometheus_data:/prometheus
@@ -242,9 +264,19 @@ services:
     mem_limit: 512m
     mem_reservation: 256m
     cpus: 1
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '3'
+    labels:
+      - "homepage.group=Monitoring"
+      - "homepage.name=Prometheus"
+      - "homepage.icon=prometheus.png"
+      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:9090"
+      - "homepage.description=Metrics collection"
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:${GRAFANA_TAG:-latest}
     container_name: grafana
     hostname: grafana
     restart: unless-stopped
@@ -252,7 +284,7 @@ services:
       - monitoring
       - proxy
     ports:
-      - "3000:3000"
+      - "${HOST_BIND:-0.0.0.0}:3000:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
@@ -268,16 +300,26 @@ services:
     mem_limit: 384m
     mem_reservation: 192m
     cpus: 1
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '3'
+    labels:
+      - "homepage.group=Monitoring"
+      - "homepage.name=Grafana"
+      - "homepage.icon=grafana.png"
+      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:3000"
+      - "homepage.description=Dashboards"
 
   loki:
-    image: grafana/loki:latest
+    image: grafana/loki:${LOKI_TAG:-latest}
     container_name: loki
     hostname: loki
     restart: unless-stopped
     networks:
       - monitoring
     ports:
-      - "3100:3100"
+      - "${HOST_BIND:-0.0.0.0}:3100:3100"
     command: -config.file=/etc/loki/local-config.yaml
     volumes:
       - ./config/loki:/etc/loki
@@ -285,9 +327,13 @@ services:
     mem_limit: 256m
     mem_reservation: 128m
     cpus: 0.5
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '3'
 
   promtail:
-    image: grafana/promtail:latest
+    image: grafana/promtail:${PROMTAIL_TAG:-latest}
     container_name: promtail
     hostname: promtail
     restart: unless-stopped
@@ -300,15 +346,20 @@ services:
       - /mnt/seconddrive/qbittorrent/config/logs:/qbittorrent-logs:ro
       - /mnt/seconddrive/slskd/logs:/slskd-logs:ro
       - ./config/promtail:/etc/promtail
+      - /var/lib/promtail:/var/lib/promtail
     command: -config.file=/etc/promtail/config.yml
     depends_on:
       - loki
     mem_limit: 128m
     mem_reservation: 64m
     cpus: 0.5
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '3'
 
   alertmanager:
-    image: prom/alertmanager:latest
+    image: prom/alertmanager:${ALERTMANAGER_TAG:-latest}
     container_name: alertmanager
     hostname: alertmanager
     restart: unless-stopped
@@ -316,7 +367,7 @@ services:
       - monitoring
       - proxy
     ports:
-      - "9093:9093"
+      - "${HOST_BIND:-0.0.0.0}:9093:9093"
     environment:
       - ALERT_EMAIL_USER=${ALERT_EMAIL_USER}
       - ALERT_EMAIL_PASSWORD=${ALERT_EMAIL_PASSWORD}
@@ -330,61 +381,31 @@ services:
     mem_limit: 128m
     mem_reservation: 64m
     cpus: 0.5
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '3'
+    labels:
+      - "homepage.group=Monitoring"
+      - "homepage.name=Alertmanager"
+      - "homepage.icon=prometheus.png"
+      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:9093"
+      - "homepage.description=Alert routing"
 
-  thanos-sidecar:
-    image: quay.io/thanos/thanos:latest
-    container_name: thanos-sidecar
-    hostname: thanos-sidecar
-    restart: unless-stopped
-    networks:
-      - monitoring
-    command:
-      - 'sidecar'
-      - '--tsdb.path=/prometheus'
-      - '--prometheus.url=http://prometheus:9090'
-      - '--grpc-address=0.0.0.0:10901'
-      - '--http-address=0.0.0.0:10902'
-    volumes:
-      - prometheus_data:/prometheus:ro
-    depends_on:
-      - prometheus
-    mem_limit: 128m
-    mem_reservation: 64m
-    cpus: 0.5
-
-  thanos-query:
-    image: quay.io/thanos/thanos:latest
-    container_name: thanos-query
-    hostname: thanos-query
-    restart: unless-stopped
-    networks:
-      - monitoring
-      - proxy
-    ports:
-      - "10902:10902"
-    command:
-      - 'query'
-      - '--http-address=0.0.0.0:10902'
-      - '--store=thanos-sidecar:10901'
-    depends_on:
-      - thanos-sidecar
-    mem_limit: 128m
-    mem_reservation: 64m
-    cpus: 0.5
 
   ############################################################################
   # SYSTEM MONITORING - Node Exporter, cAdvisor, SMART
   ############################################################################
 
   node-exporter:
-    image: prom/node-exporter:latest
+    image: prom/node-exporter:${NODE_EXPORTER_TAG:-latest}
     container_name: node-exporter
     hostname: node-exporter
     restart: unless-stopped
     networks:
       - monitoring
     ports:
-      - "9100:9100"
+      - "${HOST_BIND:-0.0.0.0}:9100:9100"
     command:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
@@ -397,16 +418,20 @@ services:
     mem_limit: 64m
     mem_reservation: 32m
     cpus: 0.25
+    logging:
+      options:
+        max-size: '5m'
+        max-file: '2'
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
+    image: gcr.io/cadvisor/cadvisor:${CADVISOR_TAG:-latest}
     container_name: cadvisor
     hostname: cadvisor
     restart: unless-stopped
     networks:
       - monitoring
     ports:
-      - "8081:8080"
+      - "${HOST_BIND:-0.0.0.0}:8081:8080"
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
@@ -419,24 +444,38 @@ services:
     mem_limit: 128m
     mem_reservation: 64m
     cpus: 0.5
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '3'
+    command:
+      - "--docker_only=true"
+      - "--housekeeping_interval=15s"
+      - "--max_housekeeping_interval=1m"
+      - "--store_container_labels=false"
+      - "--disable_metrics=advtcp,sched,hugetlb,percpu,process"
 
   smartctl-exporter:
-    image: prometheuscommunity/smartctl-exporter:latest
+    image: prometheuscommunity/smartctl-exporter:${SMARTCTL_EXPORTER_TAG:-latest}
     container_name: smartctl-exporter
     hostname: smartctl-exporter
     restart: unless-stopped
     networks:
       - monitoring
     ports:
-      - "9633:9633"
+      - "${HOST_BIND:-0.0.0.0}:9633:9633"
     privileged: true
     user: root
     mem_limit: 64m
     mem_reservation: 32m
     cpus: 0.25
+    logging:
+      options:
+        max-size: '5m'
+        max-file: '2'
 
   netdata:
-    image: netdata/netdata:latest
+    image: netdata/netdata:${NETDATA_TAG:-latest}
     container_name: netdata
     hostname: lepotato-netdata
     restart: unless-stopped
@@ -444,7 +483,7 @@ services:
       - monitoring
       - proxy
     ports:
-      - "19999:19999"
+      - "${HOST_BIND:-0.0.0.0}:19999:19999"
     cap_add:
       - SYS_PTRACE
       - SYS_ADMIN
@@ -467,18 +506,23 @@ services:
       - "homepage.group=Monitoring"
       - "homepage.name=Netdata"
       - "homepage.icon=netdata.png"
-      - "homepage.href=http://192.168.178.40:19999"
+      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:19999"
       - "homepage.description=Real-time system monitoring"
+      - "com.centurylinklabs.watchtower.enable=true"
     mem_limit: 256m
     mem_reservation: 128m
     cpus: 1
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '3'
 
   ############################################################################
   # NEXTCLOUD - File sharing and sync
   ############################################################################
 
   nextcloud-db:
-    image: mariadb:10.11
+    image: mariadb:${MARIADB_TAG:-10.11}
     container_name: nextcloud-db
     hostname: nextcloud-db
     restart: unless-stopped
@@ -491,13 +535,18 @@ services:
       - MYSQL_PASSWORD=${NEXTCLOUD_DB_PASSWORD}
     volumes:
       - nextcloud_db:/var/lib/mysql
+      - ./config/mariadb/low-memory.cnf:/etc/mysql/conf.d/low-memory.cnf:ro
     command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW --innodb-file-per-table=1 --skip-innodb-read-only-compressed
     mem_limit: 256m
     mem_reservation: 128m
     cpus: 0.5
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '3'
 
   nextcloud:
-    image: nextcloud:stable
+    image: nextcloud:${NEXTCLOUD_TAG:-stable}
     container_name: nextcloud
     hostname: nextcloud
     restart: unless-stopped
@@ -505,7 +554,7 @@ services:
       - default
       - proxy
     ports:
-      - "8082:80"
+      - "${HOST_BIND:-0.0.0.0}:8082:80"
     environment:
       - MYSQL_HOST=nextcloud-db
       - MYSQL_DATABASE=nextcloud
@@ -513,10 +562,12 @@ services:
       - MYSQL_PASSWORD=${NEXTCLOUD_DB_PASSWORD}
       - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER:-admin}
       - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
-      - NEXTCLOUD_TRUSTED_DOMAINS=192.168.178.40 lepotato.local
+      - NEXTCLOUD_TRUSTED_DOMAINS=${HOST_ADDR:-192.168.178.40} lepotato.local
       - OVERWRITEPROTOCOL=https
       - PHP_MEMORY_LIMIT=512M
       - PHP_UPLOAD_LIMIT=10G
+      - REDIS_HOST=${REDIS_HOST:-}
+      - REDIS_HOST_PASSWORD=${REDIS_PASSWORD:-}
     volumes:
       - nextcloud_data:/var/www/html
       - /mnt/seconddrive/nextcloud:/data
@@ -527,13 +578,41 @@ services:
     mem_limit: 512m
     mem_reservation: 256m
     cpus: 1.5
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '3'
+    labels:
+      - "homepage.group=Storage & Backup"
+      - "homepage.name=Nextcloud"
+      - "homepage.icon=nextcloud.png"
+      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:8082"
+      - "homepage.description=Cloud storage"
+
+  redis:
+    image: redis:${REDIS_TAG:-7-alpine}
+    container_name: redis
+    hostname: redis
+    restart: unless-stopped
+    profiles:
+      - cache
+    networks:
+      - default
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
+    mem_limit: 96m
+    mem_reservation: 48m
+    cpus: 0.5
+    logging:
+      options:
+        max-size: '5m'
+        max-file: '2'
 
   ############################################################################
   # GITEA - Git server
   ############################################################################
 
   gitea-db:
-    image: postgres:14-alpine
+    image: postgres:${POSTGRES_TAG:-14-alpine}
     container_name: gitea-db
     hostname: gitea-db
     restart: unless-stopped
@@ -548,9 +627,13 @@ services:
     mem_limit: 128m
     mem_reservation: 64m
     cpus: 0.5
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '3'
 
   gitea:
-    image: gitea/gitea:latest
+    image: gitea/gitea:${GITEA_TAG:-latest}
     container_name: gitea
     hostname: gitea
     restart: unless-stopped
@@ -558,8 +641,8 @@ services:
       - default
       - proxy
     ports:
-      - "3001:3000"
-      - "2222:22"
+      - "${HOST_BIND:-0.0.0.0}:3001:3000"
+      - "${HOST_BIND:-0.0.0.0}:2222:22"
     environment:
       - USER_UID=1000
       - USER_GID=1000
@@ -578,13 +661,23 @@ services:
     mem_limit: 384m
     mem_reservation: 192m
     cpus: 1
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '3'
+    labels:
+      - "homepage.group=Infrastructure"
+      - "homepage.name=Gitea"
+      - "homepage.icon=gitea.png"
+      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:3001"
+      - "homepage.description=Git server"
 
   ############################################################################
   # MANAGEMENT TOOLS - Portainer, Watchtower, Uptime Kuma, Dozzle
   ############################################################################
 
   portainer:
-    image: portainer/portainer-ce:latest
+    image: portainer/portainer-ce:${PORTAINER_TAG:-latest}
     container_name: portainer
     hostname: portainer
     restart: unless-stopped
@@ -592,17 +685,28 @@ services:
       - default
       - proxy
     ports:
-      - "9000:9000"
-      - "9443:9443"
+      - "${HOST_BIND:-0.0.0.0}:9000:9000"
+      - "${HOST_BIND:-0.0.0.0}:9443:9443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - portainer_data:/data
     mem_limit: 128m
     mem_reservation: 64m
     cpus: 0.5
+    logging:
+      options:
+        max-size: '5m'
+        max-file: '2'
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "homepage.group=Management"
+      - "homepage.name=Portainer"
+      - "homepage.icon=portainer.png"
+      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:9000"
+      - "homepage.description=Docker GUI"
 
   watchtower:
-    image: containrrr/watchtower:latest
+    image: containrrr/watchtower:${WATCHTOWER_TAG:-latest}
     container_name: watchtower
     hostname: watchtower
     restart: unless-stopped
@@ -617,14 +721,19 @@ services:
       - WATCHTOWER_NOTIFICATIONS=shoutrrr
       - WATCHTOWER_NOTIFICATION_URL=${WATCHTOWER_NOTIFICATION_URL}  # e.g., telegram://token@telegram?channels=channelid
       - TZ=Europe/Berlin
+      - WATCHTOWER_LABEL_ENABLE=true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     mem_limit: 64m
     mem_reservation: 32m
     cpus: 0.25
+    logging:
+      options:
+        max-size: '5m'
+        max-file: '2'
 
   uptime-kuma:
-    image: louislam/uptime-kuma:latest
+    image: louislam/uptime-kuma:${UPTIME_KUMA_TAG:-latest}
     container_name: uptime-kuma
     hostname: uptime-kuma
     restart: unless-stopped
@@ -633,23 +742,29 @@ services:
       - proxy
       - monitoring
     ports:
-      - "3002:3001"
+      - "${HOST_BIND:-0.0.0.0}:3002:3001"
     volumes:
       - /mnt/seconddrive/uptime-kuma:/app/data
       - /var/run/docker.sock:/var/run/docker.sock:ro
     mem_limit: 256m
     mem_reservation: 128m
     cpus: 0.5
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '3'
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
 
   dozzle:
-    image: amir20/dozzle:latest
+    image: amir20/dozzle:${DOZZLE_TAG:-latest}
     container_name: dozzle
     hostname: dozzle
     restart: unless-stopped
     networks:
       - proxy
     ports:
-      - "8083:8080"
+      - "${HOST_BIND:-0.0.0.0}:8083:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
@@ -659,13 +774,19 @@ services:
     mem_limit: 64m
     mem_reservation: 32m
     cpus: 0.25
+    logging:
+      options:
+        max-size: '5m'
+        max-file: '2'
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
 
   ############################################################################
   # REVERSE PROXY & DASHBOARD
   ############################################################################
 
   nginx-proxy-manager:
-    image: jc21/nginx-proxy-manager:latest
+    image: jc21/nginx-proxy-manager:${NPM_TAG:-latest}
     container_name: nginx-proxy-manager
     hostname: npm
     restart: unless-stopped
@@ -673,9 +794,9 @@ services:
       - proxy
       - monitoring
     ports:
-      - "80:80"
-      - "443:443"
-      - "81:81"
+      - "${HOST_BIND:-0.0.0.0}:80:80"
+      - "${HOST_BIND:-0.0.0.0}:443:443"
+      - "${HOST_BIND:-0.0.0.0}:81:81"
     environment:
       - DB_SQLITE_FILE=/data/database.sqlite
       - DISABLE_IPV6=true
@@ -685,9 +806,19 @@ services:
     mem_limit: 256m
     mem_reservation: 128m
     cpus: 1
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '3'
+    labels:
+      - "homepage.group=Infrastructure"
+      - "homepage.name=Nginx Proxy Manager"
+      - "homepage.icon=npm.png"
+      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:81"
+      - "homepage.description=Reverse proxy & SSL"
 
   homepage:
-    image: ghcr.io/gethomepage/homepage:latest
+    image: ghcr.io/gethomepage/homepage:${HOMEPAGE_TAG:-latest}
     container_name: homepage
     hostname: homepage
     restart: unless-stopped
@@ -696,7 +827,7 @@ services:
       - monitoring
       - default
     ports:
-      - "3003:3000"
+      - "${HOST_BIND:-0.0.0.0}:3003:3000"
     environment:
       - PUID=1000
       - PGID=1000
@@ -708,3 +839,9 @@ services:
     mem_limit: 128m
     mem_reservation: 64m
     cpus: 0.5
+    logging:
+      options:
+        max-size: '5m'
+        max-file: '2'
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"

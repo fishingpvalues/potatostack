@@ -1,7 +1,9 @@
 # PotatoStack .gitignore
 
-# Environment file with passwords
+# Environment files (secrets)
 .env
+.env.*
+.envrc
 
 # Docker volumes
 volumes/
@@ -9,6 +11,8 @@ volumes/
 # Logs
 *.log
 logs/
+log/
+.logs/
 
 # Temporary files
 *.tmp
@@ -24,6 +28,7 @@ Thumbs.db
 .vscode/
 .idea/
 *.iml
+.history/
 
 # Backup files
 *.bak

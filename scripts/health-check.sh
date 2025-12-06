@@ -76,24 +76,33 @@ else
 fi
 echo ""
 
+# Detect docker compose command
+if command -v docker-compose >/dev/null 2>&1; then
+    DC="docker-compose"
+elif docker compose version >/dev/null 2>&1; then
+    DC="docker compose"
+else
+    DC="docker-compose"
+fi
+
 # 3. DOCKER CHECKS
 echo -e "${BLUE}[3] DOCKER SERVICES${NC}"
 check "Docker is running" "systemctl is-active --quiet docker" true
-check "Docker Compose is available" "command -v docker-compose" true
+check "Docker Compose is available" "command -v docker-compose || docker compose version" true
 
-if docker-compose ps &> /dev/null; then
+if $DC ps &> /dev/null; then
     # Count services
-    TOTAL_SERVICES=$(docker-compose ps --services | wc -l)
-    RUNNING_SERVICES=$(docker-compose ps --filter "status=running" --services | wc -l)
+    TOTAL_SERVICES=$($DC ps --services | wc -l)
+    RUNNING_SERVICES=$($DC ps --filter "status=running" --services | wc -l)
 
     echo -e "  ${GREEN}→${NC} Running services: $RUNNING_SERVICES / $TOTAL_SERVICES"
 
     # Check critical services
-    check "Surfshark VPN is running" "docker-compose ps surfshark | grep -q Up" true
-    check "Prometheus is running" "docker-compose ps prometheus | grep -q Up" false
-    check "Grafana is running" "docker-compose ps grafana | grep -q Up" false
-    check "Kopia is running" "docker-compose ps kopia | grep -q Up" false
-    check "Portainer is running" "docker-compose ps portainer | grep -q Up" false
+    check "Surfshark VPN is running" "$DC ps surfshark | grep -q Up" true
+    check "Prometheus is running" "$DC ps prometheus | grep -q Up" false
+    check "Grafana is running" "$DC ps grafana | grep -q Up" false
+    check "Kopia is running" "$DC ps kopia | grep -q Up" false
+    check "Portainer is running" "$DC ps portainer | grep -q Up" false
 else
     echo -e "${RED}  Cannot access docker-compose. Are you in the right directory?${NC}"
 fi

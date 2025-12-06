@@ -31,10 +31,10 @@
                          │ │ (Backups)       │ │  │ │ (Alerts)     │ │
                          │ └─────────────────┘ │  │ └──────────────┘ │
                          │                     │  │                  │
-                         │ ┌─────────────────┐ │  │ ┌──────────────┐ │
-                         │ │ Gitea           │ │  │ │ Thanos       │ │
-                         │ │ (Git Server)    │ │  │ │ (Long-term)  │ │
-                         │ └─────────────────┘ │  │ └──────────────┘ │
+                         │ ┌─────────────────┐ │  │                  │
+                         │ │ Gitea           │ │  │                  │
+                         │ │ (Git Server)    │ │  │                  │
+                         │ └─────────────────┘ │  │                  │
                          └─────────────────────┘  └──────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -78,7 +78,7 @@
 |---------|------|-----|---------|-----|
 | **Surfshark** | - | 256MB | VPN with killswitch | Internal only |
 | **qBittorrent** | 8080 | 512MB | Torrent client via VPN | http://192.168.178.40:8080 |
-| **Nicotine+** | 2234 | 384MB | Soulseek P2P via VPN | http://192.168.178.40:2234 |
+| **slskd (Soulseek)** | 2234 | 384MB | Soulseek P2P via VPN | http://192.168.178.40:2234 |
 
 **Total: ~1152MB**
 
@@ -178,7 +178,7 @@ All devices → Kopia clients → Kopia server → /mnt/seconddrive/kopia/reposi
 
 ### Download Flow
 ```
-qBittorrent/Nicotine+ → VPN (forced) → Internet
+qBittorrent/slskd → VPN (forced) → Internet
                      → /mnt/cachehdd/[category]/
                      → Nextcloud external storage (read-only)
 ```
@@ -273,7 +273,7 @@ sudo chown -R 1000:1000 /mnt/seconddrive /mnt/cachehdd
 | 443 | Nginx PM | HTTPS | SSL termination |
 | 81 | Nginx PM | HTTP | Admin interface |
 | 2222 | Gitea | SSH | Git over SSH |
-| 2234 | Nicotine+ | HTTP | Soulseek UI |
+| 2234 | slskd | HTTP | Soulseek UI |
 | 3000 | Grafana | HTTP | Dashboards |
 | 3001 | Gitea | HTTP | Web UI |
 | 3002 | Uptime Kuma | HTTP | Monitoring UI |

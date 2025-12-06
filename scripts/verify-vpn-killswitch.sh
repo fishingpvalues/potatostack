@@ -104,7 +104,7 @@ echo
 
 if [[ $REPLY =~ ^[Yy][Ee][Ss]$ ]]; then
     echo "  Stopping Surfshark VPN..."
-    docker-compose stop surfshark
+    $DC stop surfshark
 
     sleep 5
 
@@ -112,13 +112,13 @@ if [[ $REPLY =~ ^[Yy][Ee][Ss]$ ]]; then
 
     # Try to access internet from qBittorrent namespace
     # Since qBittorrent uses network_mode: service:surfshark, it should NOT be able to access internet
-    if docker-compose exec -T qbittorrent curl -s --max-time 5 ipinfo.io/ip &> /dev/null; then
+    if $DC exec -T qbittorrent curl -s --max-time 5 ipinfo.io/ip &> /dev/null; then
         echo -e "${RED}  ✗ KILLSWITCH FAILED! qBittorrent can access internet without VPN!${NC}"
         echo -e "${RED}  This is a CRITICAL security issue!${NC}"
 
         # Restart Surfshark
         echo "  Restarting Surfshark..."
-        docker-compose start surfshark
+        $DC start surfshark
         exit 1
     else
         echo -e "${GREEN}  ✓ KILLSWITCH WORKING! qBittorrent cannot access internet without VPN${NC}"
@@ -126,7 +126,7 @@ if [[ $REPLY =~ ^[Yy][Ee][Ss]$ ]]; then
 
     # Restart Surfshark
     echo "  Restarting Surfshark..."
-    docker-compose start surfshark
+    $DC start surfshark
 
     echo "  Waiting for VPN to reconnect..."
     sleep 15
@@ -168,3 +168,11 @@ echo "  3. Configure Alertmanager to notify if VPN goes down"
 echo ""
 
 exit 0
+# Detect docker compose command
+if command -v docker-compose >/dev/null 2>&1; then
+    DC="docker-compose"
+elif docker compose version >/dev/null 2>&1; then
+    DC="docker compose"
+else
+    DC="docker-compose"
+fi

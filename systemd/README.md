@@ -256,6 +256,5 @@ sudo rm /mnt/seconddrive/potatostack.swap
 
 ## See Also
 
-- [IMPROVEMENTS_RECOMMENDATIONS.md](../IMPROVEMENTS_RECOMMENDATIONS.md) - Full recommendations document
-- [DEPLOYMENT_CHECKLIST.md](../DEPLOYMENT_CHECKLIST.md) - Deployment guide
+- See main README and docs/DEPLOYMENT.md for deployment guidance.
 - [systemd documentation](https://www.freedesktop.org/software/systemd/man/systemd.service.html)
