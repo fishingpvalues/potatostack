@@ -1,24 +1,6 @@
 ---
-# Homepage Settings
-
-title: PotatoStack Dashboard
-background: https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1920&q=80
-cardBlur: md
+title: "PotatoStack"
+subtitle: "Le Potato Home Stack"
 theme: dark
 color: slate
 headerStyle: clean
-hideVersion: true
-statusStyle: dot
-layout:
-  Media & Downloads:
-    style: row
-    columns: 2
-  Storage & Backup:
-    style: row
-    columns: 2
-  Monitoring:
-    style: row
-    columns: 4
-  Management:
-    style: row
-    columns: 3

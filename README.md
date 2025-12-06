@@ -2,7 +2,7 @@
 
 A fully integrated, state-of-the-art Docker stack optimized for the Le Potato single-board computer, featuring P2P file sharing, encrypted backups, comprehensive monitoring, and cloud storage.
 
-> **Latest Update (Dec 2025):** Added Netdata real-time monitoring, enhanced Homepage integration, comprehensive security documentation, and complete log aggregation. See [ENHANCEMENTS.md](ENHANCEMENTS.md) for details.
+> Latest: Real-time Netdata monitoring, enhanced Homepage integration, security hardening, and full log aggregation. See docs/STACK_OVERVIEW.md for a component map.
 
 ## Overview
 
@@ -13,7 +13,7 @@ PotatoStack is designed specifically for the Le Potato (AML-S905X-CC) with its l
 #### 🌐 VPN & P2P
 - **Surfshark VPN** with killswitch protection
 - **qBittorrent** for torrents (through VPN only)
-- **Nicotine+/slskd** for Soulseek P2P file sharing (through VPN only)
+- **slskd (Soulseek)** for P2P file sharing (through VPN only)
 
 #### 💾 Storage & Backup
 - **Kopia** - Encrypted, deduplicated backups with web UI
@@ -24,7 +24,6 @@ PotatoStack is designed specifically for the Le Potato (AML-S905X-CC) with its l
 - **Prometheus** - Metrics collection
 - **Grafana** - Beautiful dashboards
 - **Loki** - Log aggregation
-- **Thanos** - Long-term metrics storage
 - **Alertmanager** - Email/Telegram/Slack alerts
 - **Netdata** ⭐ NEW - Real-time monitoring with auto-discovery
 - **node-exporter** - System metrics (CPU, RAM, disk, network)
@@ -52,11 +51,11 @@ PotatoStack is designed specifically for the Le Potato (AML-S905X-CC) with its l
 
 ### Storage Requirements
 1. **Main HDD** (mounted at `/mnt/seconddrive`):
-   - Minimum 500GB recommended
+   - Sized for long‑term data: 14TB in the reference setup
    - Stores: Kopia backups, Nextcloud data, configs, Gitea repos
 
 2. **Cache HDD** (mounted at `/mnt/cachehdd`):
-   - Minimum 250GB recommended
+   - High‑IO cache disk: 500GB in the reference setup
    - Stores: Active torrents, Soulseek downloads
    - Used for intelligent caching of frequently accessed files
 
@@ -84,7 +83,10 @@ sudo mkdir -p /mnt/seconddrive /mnt/cachehdd
 # Clone or download the PotatoStack files
 cd ~/potatostack
 
-# Run the automated setup script
+# Option A: One-liner install via Makefile (recommended)
+make env && sudo make install
+
+# Option B: Run the automated setup script
 sudo ./setup.sh
 
 # Or manual setup:
@@ -104,11 +106,26 @@ docker run --rm \
   repository create filesystem --path=/repository
 
 # Start the stack
-docker-compose up -d
+docker-compose up -d   # or: docker compose up -d
 
 # Check status
-docker-compose ps
-docker-compose logs -f
+docker-compose ps      # or: docker compose ps
+docker-compose logs -f # or: docker compose logs -f
+```
+
+Local IP and access
+
+- Configure `HOST_ADDR` in `.env` (default: `192.168.178.40`) to match your Le Potato’s LAN IP. Homepage links use this.
+- Optionally limit bindings by setting `HOST_BIND` (default `0.0.0.0`) to your LAN IP to avoid exposing ports on all interfaces.
+- Expose services externally only via Nginx Proxy Manager with HTTPS and auth.
+
+Optional components
+
+- Nextcloud Redis cache (improves responsiveness):
+
+```bash
+# Edit .env: set REDIS_HOST=redis
+COMPOSE_PROFILES=cache docker compose up -d
 ```
 
 ## Service Access
@@ -122,7 +139,7 @@ docker-compose logs -f
 | Grafana | http://192.168.178.40:3000 | 3000 |
 | Prometheus | http://192.168.178.40:9090 | 9090 |
 | qBittorrent | http://192.168.178.40:8080 | 8080 |
-| Nicotine+ | http://192.168.178.40:2234 | 2234 |
+| slskd (Soulseek) | http://192.168.178.40:2234 | 2234 |
 | Kopia | https://192.168.178.40:51515 | 51515 |
 | Nextcloud | http://192.168.178.40:8082 | 8082 |
 | Gitea | http://192.168.178.40:3001 | 3001 |
@@ -150,6 +167,32 @@ docker-compose logs -f
 3. Add SSL certificates (Let's Encrypt)
 4. Create proxy hosts for each service
 5. Enable 2FA in settings
+
+### Security Notes
+
+- Change all default passwords (NPM, Grafana, qBittorrent, slskd, Nextcloud) and enable 2FA where available.
+- Keep Prometheus and other admin UIs accessible only on LAN or behind NPM auth.
+- Consider setting `HOST_BIND` in `.env` to your LAN IP to avoid binding to all interfaces.
+
+### USB 2.0 & I/O Tips (Le Potato)
+
+- Prefer sequential I/O: keep active downloads on `/mnt/cachehdd` (already set) and schedule Kopia backups during off‑hours.
+- Lower monitoring churn: default scrape interval is 30s and log retention 14d; adjust via `.env` (`PROMETHEUS_RETENTION_DAYS`, `LOKI_RETENTION_DAYS`).
+- Log limits applied to all services to reduce SD/HDD wear; consider disabling chatty debug logs inside apps.
+- Optional: enable ZRAM swap to reduce HDD I/O:
+  - `sudo ./scripts/setup-zram.sh` (installs zram-tools; adds ~512MB compressed swap)
+- Optional: USB I/O tuning:
+  - `sudo ./scripts/usb-io-tuning.sh` (temporary) or `sudo ./scripts/usb-io-tuning.sh --persist` (udev rule)
+
+### Nextcloud Optimization
+
+- After first login/setup, optimize caching:
+
+```bash
+./scripts/nextcloud-optimize.sh
+```
+
+- This enables APCu local cache and Redis file locking (if `REDIS_HOST` is set in `.env`).
 
 ### 2. Set Up Monitoring Dashboards
 
@@ -230,7 +273,7 @@ For secure external access:
    - tv-shows → /downloads/tv-shows
    - movies → /downloads/movies
 
-### 8. Configure Nicotine+ (Soulseek)
+### 8. Configure slskd (Soulseek)
 
 1. Access http://192.168.178.40:2234
 2. Login with your Soulseek credentials
@@ -266,7 +309,7 @@ For secure external access:
     │             │              │
 ┌───▼──────┐  ┌──▼────────┐ ┌───▼──────┐
 │qBittorrent│ │Nginx PM   │ │Prometheus│
-│Nicotine+  │ │Homepage   │ │Grafana   │
+│slskd      │ │Homepage   │ │Grafana   │
 └───────────┘ │Nextcloud  │ │Loki      │
               └───────────┘ └──────────┘
 ```
@@ -274,7 +317,7 @@ For secure external access:
 ### Volume Layout
 
 ```
-/mnt/seconddrive/          # Main HDD
+/mnt/seconddrive/          # Main HDD (14TB)
 ├── kopia/                 # Backup repository
 │   ├── repository/        # Encrypted backup data
 │   ├── config/            # Kopia configuration
@@ -284,7 +327,7 @@ For secure external access:
 ├── gitea/                 # Git repositories
 └── uptime-kuma/           # Monitoring data
 
-/mnt/cachehdd/             # Cache HDD
+/mnt/cachehdd/             # Cache HDD (500GB)
 ├── torrents/              # Active downloads
 │   ├── incomplete/        # In-progress
 │   ├── pr0n/             # Completed (category)
@@ -307,7 +350,7 @@ The stack is optimized for Le Potato's 2GB RAM:
 |---------|-----------|-----------|
 | Surfshark VPN | 256MB | 1.0 |
 | qBittorrent | 512MB | 1.5 |
-| Nicotine+ | 384MB | 1.0 |
+| slskd (Soulseek) | 384MB | 1.0 |
 | Kopia | 768MB | 2.0 |
 | Nextcloud | 512MB | 1.5 |
 | Prometheus | 512MB | 1.0 |
@@ -497,7 +540,7 @@ Edit `config/alertmanager/config.yml` to route specific alerts to different rece
 1. Add service to `docker-compose.yml`
 2. Add to appropriate network
 3. Set resource limits
-4. Add to `config/homepage/services.yaml`
+4. Add Homepage labels in `docker-compose.yml` (auto-discovery)
 5. Add Prometheus scrape config if needed
 6. Create alert rules in `config/prometheus/alerts.yml`
 
@@ -518,24 +561,14 @@ A: Disabled by default for simplicity. Can be enabled if needed.
 **Q: How do I add more storage?**
 A: Add mount points to docker-compose.yml volumes and update paths in service configs.
 
-## 📤 Uploading to GitHub
+## 📖 Documentation
 
-**IMPORTANT:** Before uploading to GitHub, read:
-1. [SECURITY.md](SECURITY.md) - Critical security information including GitHub breach warning
-2. [GITHUB_UPLOAD_GUIDE.md](GITHUB_UPLOAD_GUIDE.md) - Step-by-step upload instructions
-
-Quick upload:
-```bash
-chmod +x git-commands.sh
-./git-commands.sh
-```
-
-## 📖 Additional Documentation
-
-- **[ENHANCEMENTS.md](ENHANCEMENTS.md)** - Latest improvements based on homelab community research
-- **[STACK_OVERVIEW.md](STACK_OVERVIEW.md)** - Architecture diagrams and service reference
-- **[SECURITY.md](SECURITY.md)** - Comprehensive security guide
-- **[GITHUB_UPLOAD_GUIDE.md](GITHUB_UPLOAD_GUIDE.md)** - Safe repository upload instructions
+- docs/STACK_OVERVIEW.md – Architecture and service map
+- docs/SECURITY.md – Security guide and checklist
+- docs/OPERATIONAL_RUNBOOK.md – Day‑2 operations and procedures
+- docs/DEPLOYMENT.md – Deployment steps
+- docs/QUICKSTART.md – Quick start notes
+- Legacy docs moved to docs/archive/
 
 ## Support & Contributions
 
@@ -551,7 +584,7 @@ This stack incorporates best practices from:
 - [Homepage Documentation](https://gethomepage.dev/)
 - r/homelab and r/selfhosted communities
 
-See [ENHANCEMENTS.md](ENHANCEMENTS.md) for detailed research references.
+See docs/STACK_OVERVIEW.md for detailed architecture and links.
 
 ### Useful Links
 - [Kopia Documentation](https://kopia.io/docs/)
