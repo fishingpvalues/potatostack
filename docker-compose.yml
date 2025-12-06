@@ -110,7 +110,7 @@ services:
     labels:
       - "homepage.group=Media & Downloads"
       - "homepage.name=qBittorrent"
-      - "homepage.icon=qbittorrent.png"
+      - "homepage.icon=si-qbittorrent"
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:8080"
       - "homepage.description=Torrent client via VPN"
       - "homepage.widget.type=qbittorrent"
@@ -271,7 +271,7 @@ services:
     labels:
       - "homepage.group=Monitoring"
       - "homepage.name=Prometheus"
-      - "homepage.icon=prometheus.png"
+      - "homepage.icon=si-prometheus"
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:9090"
       - "homepage.description=Metrics collection"
 
@@ -307,7 +307,7 @@ services:
     labels:
       - "homepage.group=Monitoring"
       - "homepage.name=Grafana"
-      - "homepage.icon=grafana.png"
+      - "homepage.icon=si-grafana"
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:3000"
       - "homepage.description=Dashboards"
 
@@ -388,7 +388,7 @@ services:
     labels:
       - "homepage.group=Monitoring"
       - "homepage.name=Alertmanager"
-      - "homepage.icon=prometheus.png"
+      - "homepage.icon=si-prometheus"
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:9093"
       - "homepage.description=Alert routing"
 
@@ -585,7 +585,7 @@ services:
     labels:
       - "homepage.group=Storage & Backup"
       - "homepage.name=Nextcloud"
-      - "homepage.icon=nextcloud.png"
+      - "homepage.icon=si-nextcloud"
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:8082"
       - "homepage.description=Cloud storage"
 
@@ -668,7 +668,7 @@ services:
     labels:
       - "homepage.group=Infrastructure"
       - "homepage.name=Gitea"
-      - "homepage.icon=gitea.png"
+      - "homepage.icon=si-gitea"
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:3001"
       - "homepage.description=Git server"
 
@@ -701,7 +701,7 @@ services:
       - "com.centurylinklabs.watchtower.enable=true"
       - "homepage.group=Management"
       - "homepage.name=Portainer"
-      - "homepage.icon=portainer.png"
+      - "homepage.icon=si-portainer"
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:9000"
       - "homepage.description=Docker GUI"
 
@@ -813,7 +813,7 @@ services:
     labels:
       - "homepage.group=Infrastructure"
       - "homepage.name=Nginx Proxy Manager"
-      - "homepage.icon=npm.png"
+      - "homepage.icon=si-nginx"
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:81"
       - "homepage.description=Reverse proxy & SSL"
 

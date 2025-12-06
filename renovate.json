@@ -1,0 +1,28 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "enabled": true,
+  "extends": ["config:recommended"],
+  "timezone": "Europe/Berlin",
+  "dependencyDashboard": true,
+  "labels": ["dependencies"],
+  "regexManagers": [
+    {
+      "fileMatch": ["^\\.env(\\..*)?$", "^\\.env\\.example$"],
+      "matchStrings": [
+        "(?<depName>[A-Z_]+)_TAG=(?<currentValue>[^\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "{{ depName | replace('_TAG','') | toLowerCase }}",
+      "versioningTemplate": "docker"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchDatasources": ["docker"],
+      "groupName": "docker images",
+      "separateMajorMinor": true,
+      "automerge": false
+    }
+  ]
+}
+
