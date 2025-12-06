@@ -121,3 +121,81 @@ groups:
         annotations:
           summary: "Container {{ $labels.name }} high memory usage"
           description: "Memory usage is {{ $value }}% of limit"
+
+  - name: swap_alerts
+    interval: 30s
+    rules:
+      - alert: SwapUsageCritical
+        expr: ((node_memory_SwapTotal_bytes - node_memory_SwapFree_bytes) / node_memory_SwapTotal_bytes) * 100 > 80
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CRITICAL: Swap usage above 80% on Le Potato"
+          description: "Swap usage is {{ $value | humanizePercentage }} - system will slow down significantly. Consider cleaning old logs or restarting heavy services."
+
+      - alert: SwapUsageHigh
+        expr: ((node_memory_SwapTotal_bytes - node_memory_SwapFree_bytes) / node_memory_SwapTotal_bytes) * 100 > 60
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High swap usage on Le Potato"
+          description: "Swap usage is {{ $value | humanizePercentage }}. Monitor closely."
+
+      - alert: HighSwapIO
+        expr: rate(node_vmstat_pswpin[5m]) + rate(node_vmstat_pswpout[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High swap I/O activity"
+          description: "System is thrashing (heavy swap in/out). Performance will be degraded."
+
+      - alert: SwapNotAvailable
+        expr: node_memory_SwapTotal_bytes == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CRITICAL: No swap configured on Le Potato"
+          description: "Le Potato requires swap for 2GB RAM. Run systemctl start potatostack-swap.service immediately."
+
+  - name: lepotato_specific_alerts
+    interval: 1m
+    rules:
+      - alert: MemoryPressureHigh
+        expr: rate(node_vmstat_pgmajfault[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory pressure detected"
+          description: "Page major faults: {{ $value }}/sec. System experiencing memory pressure."
+
+      - alert: SystemLoadHigh
+        expr: node_load5 / count(node_cpu_seconds_total{mode="idle"}) > 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "System load is high for Le Potato"
+          description: "5-minute load average ({{ $value }}) exceeds 2x CPU cores. Check running services."
+
+      - alert: DiskIOSaturation
+        expr: rate(node_disk_io_time_weighted_seconds_total[5m]) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk I/O saturation on single-bus system"
+          description: "I/O wait time is high. Le Potato's single storage controller is saturated."
+
+      - alert: CPUThrottling
+        expr: rate(node_cpu_frequency_min_hertz[5m]) < rate(node_cpu_frequency_max_hertz[5m]) * 0.8
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "CPU frequency scaling detected"
+          description: "CPU may be throttling due to thermals or power management."
