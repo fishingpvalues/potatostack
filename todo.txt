@@ -1,0 +1,112 @@
+
+  /init - create an AGENTS.md file with instructions for Codex
+  /status - show current session configuration
+  /approvals - choose what Codex can do without approval
+  /model - choose what model and reasoning effort to use
+  /review - review any changes and find issues
+
+■ MCP client for `desktop-commander` failed to start: request timed out
+
+■ MCP client for `context7` failed to start: request timed out
+
+
+• Explored
+  └ List ls -la
+    Read docker-compose.yml
+    Search nextcloud|gitea|npm|authelia|authentik|traefik|cloudflared|adguard|pihole|vaultwarden|paperless|wireguard|
+n8n|
+           syncthing|immich|tailscale|caddy|autoupdate|postgres|redis|minio in docker-compose.yml
+    Read docker-compose.yml
+    List config
+
+
+• Explored
+  └ Read Makefile, renovate.json, .env.example
+    List loki
+    Read local-config.yaml
+    Read config.yml, alerts.yml, .pre-commit-config.yaml, deploy.sh
+    List systemd
+    Search . in systemd
+    Search Thanos|longterm-metrics|blackbox|oauth2-proxy|authelia|authentik|sso|tailscale|cloudflared|cf tunnel|
+crowdsec|
+           fail2ban|clamav|paperless|photoprism|immich|miniflux|wikijs|syncthing|restic|borg|sops|age|docker
+secrets|no-
+           new-privileges|read_only|seccomp|apparmor
+    List .github
+    Search . in .github
+    Read reusable-tests.yml
+
+• Updated Plan
+  └ ✔ Inventory repository files/services
+    □ Summarize current stack & configs
+    □ Identify gaps vs common homelab stacks
+    □ (Optional) Web search for comparables
+
+─ Worked for 5m 39s ───────────────────────────────────────────────────────────────────────────────────────────────────
+
+• Here’s a quick readout of what you already have, then my prioritized gap analysis. If you’d like, I can run a focused
+  web scan for comparable ARM64 homelab stacks and refine these findings.
+
+  What You Already Have
+
+  - Core: Surfshark VPN with killswitch, qBittorrent + slskd on the VPN (good use of network_mode: service:surfshark).
+  - Storage/Backup: Nextcloud + MariaDB (+ optional Redis profile), Kopia server with metrics and verification scripts.
+  - Observability: Prometheus, Grafana, Loki, Promtail, Alertmanager, Node Exporter, cAdvisor, SMART exporter, Netdata.
+  - Ops UX: Nginx Proxy Manager, Homepage, Uptime Kuma, Dozzle, Portainer, Gitea.
+  - Safety/Quality: OPA policy for compose, pre-commit, CI with Trivy and conftest, systemd helpers (auto‑swap,
+    autostart), thorough docs.
+
+  High‑Impact Gaps To Consider
+
+  - Identity & SSO: Add Authelia or Authentik SSO in front of Grafana, Nextcloud, Gitea, Portainer. Easiest path is NPM
+    + Authelia; more “infra as code” approach is Traefik + OAuth2-Proxy/Authelia. Improves LAN/WAN security and reduces
+    password sprawl.
+  - Remote Access (Zero‑trust): Add Tailscale (or Headscale) for admin access when off‑LAN. Alternative: Cloudflare
+    Tunnel for HTTPS ingress without port‑forwarding.
+  - Database Backups: Add daily mysqldump and pg_dump to /mnt/seconddrive/backups/db/ (then Kopia snapshots those
+    dumps). This avoids inconsistent backups of live DB volumes.
+  - Offsite Backups: Configure a remote Kopia repository (S3/Backblaze/Wasabi via repo connect) or a periodic rclone
+    sync of the on‑disk repo. Your verify-kopia-backups.sh already nudges for offsite—wire this in.
+  - Monitoring Completeness: Add blackbox-exporter (HTTP/HTTPS probes) and an internet speedtest-exporter (ISP health).
+    Optional: fritzbox_exporter since your docs assume a Fritz!Box.
+  - Ingress Policy Hardening: Add security_opt: no-new-privileges:true, read_only: true, and cap_drop: [ALL] to
+    non‑privileged services; mount tmpfs for /tmp where feasible. This is a simple but high‑value hardening pass.
+  - VPN Engine Choice: Consider qmcgaw/gluetun for the VPN base (supports Surfshark, robust firewall/killswitch, rich
+    metrics). Your current Surfshark image works, but Gluetun gives reliability + exporter‑friendly metrics.
+  - Secrets Management: Move sensitive envs to Docker secrets or manage .env with sops+age and a short doc for key
+    rotation. CI already does secret scanning; this closes the loop operationally.
+  - UPS/NUT Support: Add a network-ups-tools container and a Prometheus NUT exporter to protect against power loss and
+    track battery health.
+  - Long‑Term Metrics: Your guidelines mention a longterm-metrics profile with Thanos, but it’s not in compose. If you
+    want extended retention off‑box, add Thanos sidecars/compactor as an optional profile.
+  - Compose Policy vs Bindings: OPA denies 0.0.0.0: bindings; many services default to HOST_BIND=0.0.0.0. Either
+    set HOST_BIND to your LAN IP (preferred) or relax the rule for explicitly LAN‑bound use. See policy/docker-
+    compose.rego:139 and your use of HOST_BIND in docker-compose.yml.
+  - Healthchecks: Add container healthchecks for qBittorrent, slskd, Nextcloud, Grafana, NPM (you already have
+    several). This tightens depends_on gating and improves kube‑like resilience.
+
+  Nice‑To‑Have Enhancements
+
+  - DNS & Ad‑block: Optional Pi‑hole/AdGuard Home + Unbound (SBC‑friendly if constrained).
+  - Nextcloud Performance: Switch to nextcloud:fpm + an nginx container when you have margin; keep the current image
+    for simplicity on Le Potato.
+  - Update Strategy: If you want less risk than auto‑updates, replace Watchtower with diun (notify‑only) and use
+    Renovate tags (you already have renovate.json).
+  - Grafana Dashboards: Add curated dashboards for blackbox, Netdata, UPS/NUT, and Gluetun if adopted.
+  - CI Polish: You already scan images with Trivy. Consider a scheduled “weekly” workflow to report drift and critical
+    CVEs.
+
+  Concrete, Minimal Additions I Can Wire Up Quickly
+
+  - Add prom/blackbox-exporter + scrape + basic HTTP alerts.
+  - Add tailscale/tailscale container (or host install) with brief doc.
+  - Add backup-cron container that runs nightly mysqldump/pg_dump into /mnt/seconddrive/backups/db/.
+  - Add no-new-privileges/read_only/cap_drop to non‑privileged services where safe.
+  - Optional: Introduce Authelia with NPM (login portal + basic rule set) and one example protected route.
+
+  Would you like me to:
+
+  - Run a quick web scan of comparable ARM64 homelab stacks (Traefik/Authelia, Gluetun VPN, Thanos, NUT) to cross‑check
+    and prioritize? I’ll need your approval to use network access.
+  - Implement 1–2 of the “Concrete Additions” above (starting with blackbox-exporter + DB dump cron), and update docs
+    accordingly?
