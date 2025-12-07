@@ -191,7 +191,7 @@ warn[msg] {
     msg = sprintf("WARNING: Service '%s' writes to '%s' (not /mnt/). Consider moving to HDD to protect SD card", [service, vol])
 }
 
-# Deny if docker socket is writable (unless Portainer/Watchtower)
+# Deny if docker socket is writable (unless Portainer/Diun/Autoheal)
 deny[msg] {
     some service
     some vol
@@ -199,7 +199,7 @@ deny[msg] {
     contains(vol, "/var/run/docker.sock")
     not endswith(vol, ":ro")
     service != "portainer"
-    service != "watchtower"
+    service != "autoheal"
     service != "homepage"
     service != "uptime-kuma"
     service != "dozzle"

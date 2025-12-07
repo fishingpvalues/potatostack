@@ -83,7 +83,7 @@ graph TB
         PE[Portainer]
         UK[Uptime Kuma]
         DW[Dozzle]
-        WT[Watchtower]
+        DN[Diun]
     end
     
     subgraph "Network Layer"
@@ -119,7 +119,7 @@ graph TB
 
 - **Health Checks**: Automated container health monitoring with restart policies
 - **Graceful Degradation**: Service failures don't cascade to other components
-- **Automated Recovery**: Watchtower ensures latest security patches are applied
+- **Automated Recovery**: Diun notifies of updates; Autoheal restarts unhealthy containers
 - **Data Redundancy**: Encrypted backups with deduplication and integrity verification
 
 ### 3. Observability
@@ -402,7 +402,8 @@ graph TB
             CA[cadvisor]
             SE[smartctl-exporter]
             NETD[netdata]
-            WT[watchtower]
+            DN[diun]
+            AH[autoheal]
         end
         
         subgraph "potatostack_vpn"

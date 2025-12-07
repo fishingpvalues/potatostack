@@ -11,7 +11,7 @@ PotatoStack is designed specifically for the Le Potato (AML-S905X-CC) with its l
 ### What's Included
 
 #### 🌐 VPN & P2P
-- **Surfshark VPN** with killswitch protection
+- **Gluetun VPN** with killswitch protection (supports Surfshark, NordVPN, ProtonVPN, and 60+ providers)
 - **qBittorrent** for torrents (through VPN only)
 - **slskd (Soulseek)** for P2P file sharing (through VPN only)
 
@@ -32,7 +32,7 @@ PotatoStack is designed specifically for the Le Potato (AML-S905X-CC) with its l
 
 #### 🛠️ Management Tools
 - **Portainer CE** - Docker GUI management
-- **Watchtower** - Automatic container updates
+- **Diun** - Docker image update notifications (safer than auto-updates)
 - **Uptime Kuma** - Service uptime monitoring
 - **Dozzle** - Real-time log viewer
 - **Homepage** - Unified dashboard for all services
@@ -92,6 +92,8 @@ sudo ./setup.sh
 # Or manual setup:
 cp .env.example .env
 nano .env  # Fill in your passwords and credentials
+          # HOST_BIND is pre-set to 192.168.178.40 for security
+          # Change if your Le Potato has a different LAN IP
 
 # Create directory structure
 ./setup.sh  # Handles this automatically
@@ -391,7 +393,7 @@ Pre-configured alerts (edit `config/prometheus/alerts.yml`):
 3. **Use strong passwords** - generate with `openssl rand -base64 32`
 4. **Restrict VPN access** - Only allow known IPs through Fritzbox firewall
 5. **Use HTTPS** - Configure SSL certificates in Nginx Proxy Manager
-6. **Regular updates** - Watchtower handles this automatically
+6. **Regular updates** - Diun notifies you; use Renovate PRs for safe updates
 7. **Backup your backups** - Kopia repository to external/cloud storage
 8. **Monitor logs** - Check Dozzle and Loki regularly
 
@@ -407,7 +409,7 @@ Pre-configured alerts (edit `config/prometheus/alerts.yml`):
 - Verify Kopia backups are running
 
 ### Monthly
-- Update containers (Watchtower does this automatically)
+- Review Diun notifications and apply updates via Renovate PRs
 - Review disk space on both HDDs
 - Check SMART data for HDD health
 - Test backup restoration from Kopia

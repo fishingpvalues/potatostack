@@ -70,7 +70,8 @@ graph TB
     end
     
     subgraph "System Services"
-        WT[Watchtower<br/>Auto Updates]
+        DN[Diun<br/>Update Notifications]
+        AH[Autoheal<br/>Restart Unhealthy]
     end
     
     UI --> NPM
@@ -354,7 +355,8 @@ graph TB
             CA_CONTAINER[cadvisor]
             SE_CONTAINER[smartctl-exporter]
             NETD_CONTAINER[netdata]
-            WT_CONTAINER[watchtower]
+            DN_CONTAINER[diun]
+            AH_CONTAINER[autoheal]
         end
         
         subgraph "potatostack_default"
@@ -784,7 +786,8 @@ graph TB
 | **portainer** | None | homepage | default, proxy | 9000, 9443 |
 | **uptime-kuma** | None | homepage | default, proxy, monitoring | 3002 |
 | **dozzle** | None | homepage | proxy | 8083 |
-| **watchtower** | docker socket | None | monitoring | - |
+| **diun** | docker socket (ro) | None | monitoring | - |
+| **autoheal** | docker socket | None | default | - |
 
 ---
 

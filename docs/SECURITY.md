@@ -153,22 +153,26 @@ HTTP/2 Support: ✓
 
 ### 5. VPN Killswitch Verification
 
-**Ensure P2P traffic ONLY goes through Surfshark:**
+**Ensure P2P traffic ONLY goes through Gluetun VPN:**
 
 ```bash
-# Check Surfshark IP
-docker exec surfshark curl -s https://ipinfo.io/ip
-# Should show Surfshark IP, NOT your real IP
+# Check Gluetun public IP (via HTTP control server)
+curl -s http://localhost:8000/v1/publicip/ip
+# Should show VPN provider's IP, NOT your real IP
 
-# Check qBittorrent IP
-docker exec qbittorrent curl -s https://ipinfo.io/ip
-# Should show SAME Surfshark IP
+# Or check via container
+docker exec gluetun wget -qO- https://ipinfo.io/ip
+# Should show VPN IP
 
-# Check slskd IP (via Surfshark namespace)
-docker exec surfshark curl -s --max-time 10 http://localhost:2234 || true
-# Should show SAME Surfshark IP
+# Check qBittorrent IP (shares Gluetun's network)
+docker exec qbittorrent wget -qO- https://ipinfo.io/ip 2>/dev/null || echo "Network isolated (good!)"
+# Note: This may fail due to killswitch (expected behavior)
 
-# If ANY show your real IP, DO NOT USE - fix configuration first!
+# Verify VPN status
+curl -s http://localhost:8000/v1/vpn/status
+# Should return: {"status":"running"}
+
+# If IP check shows your real IP, DO NOT USE - fix configuration first!
 ```
 
 ### 6. Container Security
@@ -189,7 +193,7 @@ docker ps --format "{{.Names}}" | xargs -I {} docker inspect {} --format '{{.Nam
 # Only these should be privileged:
 # - smartctl-exporter (needs direct disk access)
 # - netdata (needs system access)
-# - surfshark (needs network admin)
+# - gluetun (needs network admin for VPN/firewall)
 ```
 
 ### 7. Backup Security
@@ -226,13 +230,14 @@ grep -r "password\|secret\|token" /mnt/seconddrive/*/logs/ || echo "No secrets f
 
 ### 9. Update Strategy
 
-**Watchtower handles automatic updates, but verify:**
+**Diun notifies of updates; apply via Renovate PRs or manually:**
 
 ```bash
-# Check Watchtower logs
-docker logs watchtower
+# Check Diun notifications
+docker logs diun
 
-# Manually update all images
+# Review and apply Renovate PRs (recommended)
+# OR manually update after reviewing changes:
 docker-compose pull
 docker-compose up -d
 

@@ -898,8 +898,8 @@ SLSKD_PASSWORD=change_this_slskd_password
 NETDATA_CLAIM_TOKEN=
 NETDATA_CLAIM_ROOMS=
 
-# Watchtower Notifications
-WATCHTOWER_NOTIFICATION_URL=
+# Diun Notifications (configure in config/diun/diun.yml)
+# Supports: Gotify, Telegram, Discord, Email, Webhook
 ```
 
 #### Homepage Configuration
@@ -1267,13 +1267,14 @@ Steps to Configure:
   1. Create Telegram Bot via @BotFather
   2. Get Bot Token
   3. Get Chat ID (send message to bot, then call API)
-  4. Configure Watchtower notification URL
+  4. Configure Diun in config/diun/diun.yml
 
-Notification URL Format:
-  telegram://<bot_token>@telegram?channels=<chat_id>
-
-Example:
-  WATCHTOWER_NOTIFICATION_URL=telegram://123456789:ABCdefGHIjklMNOpqrsTUVwxyz@telegram?channels=-123456789
+Configuration in diun.yml:
+  notif:
+    telegram:
+      token: 123456789:ABCdefGHIjklMNOpqrsTUVwxyz
+      chatIDs:
+        - -123456789
 ```
 
 #### Discord Integration
@@ -1284,13 +1285,14 @@ Steps to Configure:
   1. Go to Discord Server Settings > Integrations > Webhooks
   2. Create New Webhook
   3. Copy Webhook URL
-  4. Configure Alertmanager or Watchtower
+  4. Configure Diun in config/diun/diun.yml
 
-Webhook URL Format:
-  discord://<webhook_id>/<webhook_token>
-
-Example:
-  WATCHTOWER_NOTIFICATION_URL=discord://123456789012345678/ABCdefGHIjklMNOpqrsTUVwxyz
+Configuration in diun.yml:
+  notif:
+    discord:
+      webhookURL: https://discord.com/api/webhooks/123456789012345678/ABCdefGHIjklMNOpqrsTUVwxyz
+      mentions:
+        - "@everyone"
 ```
 
 #### Netdata Cloud Integration
