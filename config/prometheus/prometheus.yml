@@ -109,6 +109,13 @@ scrape_configs:
 
   # Nginx Proxy Manager does not expose Prometheus metrics by default; remove noisy scrape
 
+  - job_name: 'slskd'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['slskd:5031']
+        labels:
+          instance: 'lepotato'
+
   - job_name: 'docker-containers'
     docker_sd_configs:
       - host: unix:///var/run/docker.sock

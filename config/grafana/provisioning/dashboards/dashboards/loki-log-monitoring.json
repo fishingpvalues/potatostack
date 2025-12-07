@@ -1,0 +1,1378 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Loki Log Monitoring",
+    "tags": [
+      "logs",
+      "loki",
+      "monitoring",
+      "sota-2025"
+    ],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "schemaVersion": 39,
+    "version": 1,
+    "links": [],
+    "panels": [
+      {
+        "collapsed": false,
+        "datasource": null,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        },
+        "id": 16,
+        "panels": [],
+        "title": "Four Golden Signals - Log System Overview",
+        "type": "row"
+      },
+       {
+         "datasource": "Loki",
+         "description": "Total number of log entries in the last 1 hour",
+         "fieldConfig": {
+           "defaults": {
+             "color": {
+               "mode": "thresholds"
+             },
+             "mappings": [
+               {
+                 "options": {
+                   "match": "null",
+                   "result": {
+                     "color": "gray",
+                     "index": 0,
+                     "text": "N/A"
+                   }
+                 },
+                 "type": "special"
+               }
+             ],
+             "thresholds": {
+               "mode": "absolute",
+               "steps": [
+                 {
+                   "color": "green",
+                   "value": null
+                 }
+               ]
+             },
+             "unit": "none"
+           },
+           "overrides": []
+         },
+         "gridPos": {
+           "h": 4,
+           "w": 6,
+           "x": 0,
+           "y": 1
+         },
+         "id": 1,
+         "links": [],
+         "maxDataPoints": 100,
+         "options": {
+           "colorMode": "value",
+           "graphMode": "none",
+           "justifyMode": "auto",
+           "orientation": "horizontal",
+           "reduceOptions": {
+             "values": false,
+             "calcs": [
+               "lastNotNull"
+             ],
+             "fields": ""
+           },
+           "textMode": "value_and_name",
+           "wideLayout": true
+         },
+         "pluginVersion": "11.0.0",
+         "targets": [
+           {
+             "expr": "count_over_time({job=\"varlogs\"}[1h])",
+             "format": "time_series",
+             "intervalFactor": 1,
+             "legendFormat": "",
+             "refId": "A"
+           }
+         ],
+         "title": "Total Logs (Last 1h)",
+         "type": "stat"
+       },
+       {
+         "datasource": "Loki",
+         "description": "Total number of log entries in the last 24 hours",
+         "fieldConfig": {
+           "defaults": {
+             "color": {
+               "mode": "thresholds"
+             },
+             "mappings": [
+               {
+                 "options": {
+                   "match": "null",
+                   "result": {
+                     "color": "gray",
+                     "index": 0,
+                     "text": "N/A"
+                   }
+                 },
+                 "type": "special"
+               }
+             ],
+             "thresholds": {
+               "mode": "absolute",
+               "steps": [
+                 {
+                   "color": "green",
+                   "value": null
+                 }
+               ]
+             },
+             "unit": "none"
+           },
+           "overrides": []
+         },
+         "gridPos": {
+           "h": 4,
+           "w": 6,
+           "x": 6,
+           "y": 1
+         },
+         "id": 2,
+         "links": [],
+         "maxDataPoints": 100,
+         "options": {
+           "colorMode": "value",
+           "graphMode": "none",
+           "justifyMode": "auto",
+           "orientation": "horizontal",
+           "reduceOptions": {
+             "values": false,
+             "calcs": [
+               "lastNotNull"
+             ],
+             "fields": ""
+           },
+           "textMode": "value_and_name",
+           "wideLayout": true
+         },
+         "pluginVersion": "11.0.0",
+         "targets": [
+           {
+             "expr": "count_over_time({job=\"varlogs\"}[24h])",
+             "format": "time_series",
+             "intervalFactor": 1,
+             "legendFormat": "",
+             "refId": "A"
+           }
+         ],
+         "title": "Total Logs (Last 24h)",
+         "type": "stat"
+       },
+       {
+         "datasource": "Loki",
+         "description": "Log rate per second over the last 5 minutes",
+         "fieldConfig": {
+           "defaults": {
+             "color": {
+               "mode": "thresholds"
+             },
+             "mappings": [
+               {
+                 "options": {
+                   "match": "null",
+                   "result": {
+                     "color": "gray",
+                     "index": 0,
+                     "text": "N/A"
+                   }
+                 },
+                 "type": "special"
+               }
+             ],
+             "thresholds": {
+               "mode": "absolute",
+               "steps": [
+                 {
+                   "color": "green",
+                   "value": null
+                 },
+                 {
+                   "color": "orange",
+                   "value": 100
+                 },
+                 {
+                   "color": "red",
+                   "value": 1000
+                 }
+               ]
+             },
+             "unit": "reqps"
+           },
+           "overrides": []
+         },
+         "gridPos": {
+           "h": 4,
+           "w": 6,
+           "x": 12,
+           "y": 1
+         },
+         "id": 3,
+         "links": [],
+         "maxDataPoints": 100,
+         "options": {
+           "colorMode": "value",
+           "graphMode": "area",
+           "justifyMode": "auto",
+           "orientation": "horizontal",
+           "reduceOptions": {
+             "values": false,
+             "calcs": [
+               "lastNotNull"
+             ],
+             "fields": ""
+           },
+           "textMode": "value_and_name",
+           "wideLayout": true
+         },
+         "pluginVersion": "11.0.0",
+         "targets": [
+           {
+             "expr": "sum(rate({job=\"varlogs\"}[5m]))",
+             "format": "time_series",
+             "intervalFactor": 1,
+             "legendFormat": "",
+             "refId": "A"
+           }
+         ],
+         "title": "Log Rate (Last 5m)",
+         "type": "stat"
+       },
+       {
+         "datasource": "Loki",
+         "description": "Estimated daily log volume based on current rate",
+         "fieldConfig": {
+           "defaults": {
+             "color": {
+               "mode": "thresholds"
+             },
+             "mappings": [
+               {
+                 "options": {
+                   "match": "null",
+                   "result": {
+                     "color": "gray",
+                     "index": 0,
+                     "text": "N/A"
+                   }
+                 },
+                 "type": "special"
+               }
+             ],
+             "thresholds": {
+               "mode": "absolute",
+               "steps": [
+                 {
+                   "color": "green",
+                   "value": null
+                 }
+               ]
+             },
+             "unit": "bytes"
+           },
+           "overrides": []
+         },
+         "gridPos": {
+           "h": 4,
+           "w": 6,
+           "x": 18,
+           "y": 1
+         },
+         "id": 4,
+         "links": [],
+         "maxDataPoints": 100,
+         "options": {
+           "colorMode": "value",
+           "graphMode": "area",
+           "justifyMode": "auto",
+           "orientation": "horizontal",
+           "reduceOptions": {
+             "values": false,
+             "calcs": [
+               "lastNotNull"
+             ],
+             "fields": ""
+           },
+           "textMode": "value_and_name",
+           "wideLayout": true
+         },
+         "pluginVersion": "11.0.0",
+         "targets": [
+           {
+             "expr": "sum(rate({job=\"varlogs\"}[5m])) * 60 * 60 * 24",
+             "format": "time_series",
+             "intervalFactor": 1,
+             "legendFormat": "",
+             "refId": "A"
+           }
+         ],
+         "title": "Daily Log Volume (Est.)",
+         "type": "stat"
+       },
+      {
+        "collapsed": true,
+        "datasource": null,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 4
+        },
+        "id": 17,
+        "panels": [
+          {
+            "aliasColors": {},
+            "bars": false,
+            "dashLength": 10,
+            "dashes": false,
+            "datasource": "Loki",
+            "fieldConfig": {
+              "defaults": {
+                "custom": {}
+              },
+              "overrides": []
+            },
+            "fill": 4,
+            "fillGradient": 0,
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 0,
+              "y": 5
+            },
+            "hiddenSeries": false,
+            "id": 5,
+            "legend": {
+              "alignAsTable": true,
+              "avg": true,
+              "current": true,
+              "max": true,
+              "min": true,
+              "show": true,
+              "total": false,
+              "values": true
+            },
+            "lines": true,
+            "linewidth": 1,
+            "links": [],
+            "nullPointMode": "null",
+            "options": {
+              "alertThreshold": true
+            },
+            "percentage": false,
+            "pluginVersion": "7.3.7",
+            "pointradius": 5,
+            "points": false,
+            "renderer": "flot",
+            "seriesOverrides": [
+              {
+                "alias": "Log Rate",
+                "color": "#37872D"
+              }
+            ],
+            "spaceLength": 10,
+            "stack": false,
+            "steppedLine": false,
+            "targets": [
+              {
+                "expr": "sum(rate({job=\"varlogs\"}[5m])) by (job)",
+                "format": "time_series",
+                "intervalFactor": 1,
+                "legendFormat": "{{job}}",
+                "refId": "A"
+              }
+            ],
+            "thresholds": [],
+            "timeFrom": null,
+            "timeRegions": [],
+            "timeShift": null,
+            "title": "Log Rate by Job",
+            "tooltip": {
+              "shared": true,
+              "sort": 0,
+              "value_type": "individual"
+            },
+            "type": "graph",
+            "xaxis": {
+              "buckets": null,
+              "mode": "time",
+              "name": null,
+              "show": true,
+              "values": []
+            },
+            "yaxes": [
+              {
+                "format": "reqps",
+                "label": null,
+                "logBase": 1,
+                "max": null,
+                "min": 0,
+                "show": true
+              },
+              {
+                "format": "short",
+                "label": null,
+                "logBase": 1,
+                "max": null,
+                "min": null,
+                "show": false
+              }
+            ],
+            "yaxis": {
+              "align": false,
+              "alignLevel": null
+            }
+          },
+          {
+            "aliasColors": {},
+            "bars": false,
+            "dashLength": 10,
+            "dashes": false,
+            "datasource": "Loki",
+            "fieldConfig": {
+              "defaults": {
+                "custom": {}
+              },
+              "overrides": []
+            },
+            "fill": 4,
+            "fillGradient": 0,
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 12,
+              "y": 5
+            },
+            "hiddenSeries": false,
+            "id": 6,
+            "legend": {
+              "alignAsTable": true,
+              "avg": true,
+              "current": true,
+              "max": true,
+              "min": true,
+              "show": true,
+              "total": false,
+              "values": true
+            },
+            "lines": true,
+            "linewidth": 1,
+            "links": [],
+            "nullPointMode": "null",
+            "options": {
+              "alertThreshold": true
+            },
+            "percentage": false,
+            "pluginVersion": "7.3.7",
+            "pointradius": 5,
+            "points": false,
+            "renderer": "flot",
+            "seriesOverrides": [
+              {
+                "alias": "Log Volume",
+                "color": "#E0B400"
+              }
+            ],
+            "spaceLength": 10,
+            "stack": false,
+            "steppedLine": false,
+            "targets": [
+              {
+                "expr": "sum(increase({job=\"varlogs\"}[1h])) by (job)",
+                "format": "time_series",
+                "intervalFactor": 1,
+                "legendFormat": "{{job}}",
+                "refId": "A"
+              }
+            ],
+            "thresholds": [],
+            "timeFrom": null,
+            "timeRegions": [],
+            "timeShift": null,
+            "title": "Log Volume by Job (Hourly)",
+            "tooltip": {
+              "shared": true,
+              "sort": 0,
+              "value_type": "individual"
+            },
+            "type": "graph",
+            "xaxis": {
+              "buckets": null,
+              "mode": "time",
+              "name": null,
+              "show": true,
+              "values": []
+            },
+            "yaxes": [
+              {
+                "format": "short",
+                "label": null,
+                "logBase": 1,
+                "max": null,
+                "min": 0,
+                "show": true
+              },
+              {
+                "format": "short",
+                "label": null,
+                "logBase": 1,
+                "max": null,
+                "min": null,
+                "show": false
+              }
+            ],
+            "yaxis": {
+              "align": false,
+              "alignLevel": null
+            }
+          }
+        ],
+        "title": "Log Volumes and Rates",
+        "type": "row"
+      },
+      {
+        "collapsed": true,
+        "datasource": null,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 5
+        },
+        "id": 18,
+        "panels": [
+          {
+            "datasource": "Loki",
+            "gridPos": {
+              "h": 10,
+              "w": 12,
+              "x": 0,
+              "y": 6
+            },
+            "id": 7,
+            "targets": [
+              {
+                "expr": "{job=\"varlogs\", level=\"error\"}",
+                "refId": "A"
+              }
+            ],
+            "title": "Error Logs",
+            "type": "logs",
+            "options": {
+              "showLabels": true,
+              "showTime": true,
+              "wrapLogMessage": true,
+              "dedupStrategy": "none"
+            },
+            "timeFrom": null,
+            "timeShift": null,
+            "hideTimeOverride": false,
+            "maxDataPoints": 1000,
+            "interval": "",
+            "links": [],
+            "transparent": false,
+            "fieldConfig": {
+              "defaults": {
+                "custom": {},
+                "mappings": [],
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            }
+          },
+          {
+            "datasource": "Loki",
+            "gridPos": {
+              "h": 10,
+              "w": 12,
+              "x": 12,
+              "y": 6
+            },
+            "id": 8,
+            "targets": [
+              {
+                "expr": "{job=\"varlogs\", level=\"warning\"}",
+                "refId": "A"
+              }
+            ],
+            "title": "Warning Logs",
+            "type": "logs",
+            "options": {
+              "showLabels": true,
+              "showTime": true,
+              "wrapLogMessage": true,
+              "dedupStrategy": "none"
+            },
+            "timeFrom": null,
+            "timeShift": null,
+            "hideTimeOverride": false,
+            "maxDataPoints": 1000,
+            "interval": "",
+            "links": [],
+            "transparent": false,
+            "fieldConfig": {
+              "defaults": {
+                "custom": {},
+                "mappings": [],
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            }
+          }
+        ],
+        "title": "Error and Warning Logs",
+        "type": "row"
+      },
+      {
+        "collapsed": true,
+        "datasource": null,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 6
+        },
+        "id": 19,
+        "panels": [
+          {
+            "aliasColors": {},
+            "bars": false,
+            "dashLength": 10,
+            "dashes": false,
+            "datasource": "Loki",
+            "fieldConfig": {
+              "defaults": {
+                "custom": {}
+              },
+              "overrides": []
+            },
+            "fill": 4,
+            "fillGradient": 0,
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 0,
+              "y": 7
+            },
+            "hiddenSeries": false,
+            "id": 9,
+            "legend": {
+              "alignAsTable": true,
+              "avg": true,
+              "current": true,
+              "max": true,
+              "min": true,
+              "show": true,
+              "total": false,
+              "values": true
+            },
+            "lines": true,
+            "linewidth": 1,
+            "links": [],
+            "nullPointMode": "null",
+            "options": {
+              "alertThreshold": true
+            },
+            "percentage": false,
+            "pluginVersion": "7.3.7",
+            "pointradius": 5,
+            "points": false,
+            "renderer": "flot",
+            "seriesOverrides": [
+              {
+                "alias": "Error Rate",
+                "color": "#C4162A"
+              }
+            ],
+            "spaceLength": 10,
+            "stack": false,
+            "steppedLine": false,
+            "targets": [
+              {
+                "expr": "sum(rate({job=\"varlogs\", level=\"error\"}[5m]))",
+                "format": "time_series",
+                "intervalFactor": 1,
+                "legendFormat": "Error Rate",
+                "refId": "A"
+              }
+            ],
+            "thresholds": [],
+            "timeFrom": null,
+            "timeRegions": [],
+            "timeShift": null,
+            "title": "Error Log Rate",
+            "tooltip": {
+              "shared": true,
+              "sort": 0,
+              "value_type": "individual"
+            },
+            "type": "graph",
+            "xaxis": {
+              "buckets": null,
+              "mode": "time",
+              "name": null,
+              "show": true,
+              "values": []
+            },
+            "yaxes": [
+              {
+                "format": "reqps",
+                "label": null,
+                "logBase": 1,
+                "max": null,
+                "min": 0,
+                "show": true
+              },
+              {
+                "format": "short",
+                "label": null,
+                "logBase": 1,
+                "max": null,
+                "min": null,
+                "show": false
+              }
+            ],
+            "yaxis": {
+              "align": false,
+              "alignLevel": null
+            }
+          },
+          {
+            "aliasColors": {},
+            "bars": false,
+            "dashLength": 10,
+            "dashes": false,
+            "datasource": "Loki",
+            "fieldConfig": {
+              "defaults": {
+                "custom": {}
+              },
+              "overrides": []
+            },
+            "fill": 4,
+            "fillGradient": 0,
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 12,
+              "y": 7
+            },
+            "hiddenSeries": false,
+            "id": 10,
+            "legend": {
+              "alignAsTable": true,
+              "avg": true,
+              "current": true,
+              "max": true,
+              "min": true,
+              "show": true,
+              "total": false,
+              "values": true
+            },
+            "lines": true,
+            "linewidth": 1,
+            "links": [],
+            "nullPointMode": "null",
+            "options": {
+              "alertThreshold": true
+            },
+            "percentage": false,
+            "pluginVersion": "7.3.7",
+            "pointradius": 5,
+            "points": false,
+            "renderer": "flot",
+            "seriesOverrides": [
+              {
+                "alias": "Warning Rate",
+                "color": "#FF780A"
+              }
+            ],
+            "spaceLength": 10,
+            "stack": false,
+            "steppedLine": false,
+            "targets": [
+              {
+                "expr": "sum(rate({job=\"varlogs\", level=\"warning\"}[5m]))",
+                "format": "time_series",
+                "intervalFactor": 1,
+                "legendFormat": "Warning Rate",
+                "refId": "A"
+              }
+            ],
+            "thresholds": [],
+            "timeFrom": null,
+            "timeRegions": [],
+            "timeShift": null,
+            "title": "Warning Log Rate",
+            "tooltip": {
+              "shared": true,
+              "sort": 0,
+              "value_type": "individual"
+            },
+            "type": "graph",
+            "xaxis": {
+              "buckets": null,
+              "mode": "time",
+              "name": null,
+              "show": true,
+              "values": []
+            },
+            "yaxes": [
+              {
+                "format": "reqps",
+                "label": null,
+                "logBase": 1,
+                "max": null,
+                "min": 0,
+                "show": true
+              },
+              {
+                "format": "short",
+                "label": null,
+                "logBase": 1,
+                "max": null,
+                "min": null,
+                "show": false
+              }
+            ],
+            "yaxis": {
+              "align": false,
+              "alignLevel": null
+            }
+          }
+        ],
+        "title": "Error and Warning Rates",
+        "type": "row"
+      },
+      {
+        "collapsed": true,
+        "datasource": null,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 7
+        },
+        "id": 20,
+        "panels": [
+          {
+            "aliasColors": {},
+            "bars": false,
+            "dashLength": 10,
+            "dashes": false,
+            "datasource": "Loki",
+            "fieldConfig": {
+              "defaults": {
+                "custom": {}
+              },
+              "overrides": []
+            },
+            "fill": 4,
+            "fillGradient": 0,
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 0,
+              "y": 8
+            },
+            "hiddenSeries": false,
+            "id": 11,
+            "legend": {
+              "alignAsTable": true,
+              "avg": true,
+              "current": true,
+              "max": true,
+              "min": true,
+              "show": true,
+              "total": false,
+              "values": true
+            },
+            "lines": true,
+            "linewidth": 1,
+            "links": [],
+            "nullPointMode": "null",
+            "options": {
+              "alertThreshold": true
+            },
+            "percentage": false,
+            "pluginVersion": "7.3.7",
+            "pointradius": 5,
+            "points": false,
+            "renderer": "flot",
+            "seriesOverrides": [
+              {
+                "alias": "Info Logs",
+                "color": "#5794F2"
+              },
+              {
+                "alias": "Debug Logs",
+                "color": "#B877D9"
+              }
+            ],
+            "spaceLength": 10,
+            "stack": false,
+            "steppedLine": false,
+            "targets": [
+              {
+                "expr": "sum(rate({job=\"varlogs\", level=\"info\"}[5m]))",
+                "format": "time_series",
+                "intervalFactor": 1,
+                "legendFormat": "Info Logs",
+                "refId": "A"
+              },
+              {
+                "expr": "sum(rate({job=\"varlogs\", level=\"debug\"}[5m]))",
+                "format": "time_series",
+                "intervalFactor": 1,
+                "legendFormat": "Debug Logs",
+                "refId": "B"
+              }
+            ],
+            "thresholds": [],
+            "timeFrom": null,
+            "timeRegions": [],
+            "timeShift": null,
+            "title": "Info and Debug Log Rates",
+            "tooltip": {
+              "shared": true,
+              "sort": 0,
+              "value_type": "individual"
+            },
+            "type": "graph",
+            "xaxis": {
+              "buckets": null,
+              "mode": "time",
+              "name": null,
+              "show": true,
+              "values": []
+            },
+            "yaxes": [
+              {
+                "format": "reqps",
+                "label": null,
+                "logBase": 1,
+                "max": null,
+                "min": 0,
+                "show": true
+              },
+              {
+                "format": "short",
+                "label": null,
+                "logBase": 1,
+                "max": null,
+                "min": null,
+                "show": false
+              }
+            ],
+            "yaxis": {
+              "align": false,
+              "alignLevel": null
+            }
+          },
+          {
+            "aliasColors": {},
+            "bars": false,
+            "dashLength": 10,
+            "dashes": false,
+            "datasource": "Loki",
+            "fieldConfig": {
+              "defaults": {
+                "custom": {}
+              },
+              "overrides": []
+            },
+            "fill": 4,
+            "fillGradient": 0,
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 12,
+              "y": 8
+            },
+            "hiddenSeries": false,
+            "id": 12,
+            "legend": {
+              "alignAsTable": true,
+              "avg": true,
+              "current": true,
+              "max": true,
+              "min": true,
+              "show": true,
+              "total": false,
+              "values": true
+            },
+            "lines": true,
+            "linewidth": 1,
+            "links": [],
+            "nullPointMode": "null",
+            "options": {
+              "alertThreshold": true
+            },
+            "percentage": false,
+            "pluginVersion": "7.3.7",
+            "pointradius": 5,
+            "points": false,
+            "renderer": "flot",
+            "seriesOverrides": [
+              {
+                "alias": "All Logs",
+                "color": "#8F3BB8"
+              }
+            ],
+            "spaceLength": 10,
+            "stack": false,
+            "steppedLine": false,
+            "targets": [
+              {
+                "expr": "sum(rate({job=\"varlogs\"}[5m])) by (level)",
+                "format": "time_series",
+                "intervalFactor": 1,
+                "legendFormat": "{{level}}",
+                "refId": "A"
+              }
+            ],
+            "thresholds": [],
+            "timeFrom": null,
+            "timeRegions": [],
+            "timeShift": null,
+            "title": "Log Volume by Level",
+            "tooltip": {
+              "shared": true,
+              "sort": 0,
+              "value_type": "individual"
+            },
+            "type": "graph",
+            "xaxis": {
+              "buckets": null,
+              "mode": "time",
+              "name": null,
+              "show": true,
+              "values": []
+            },
+            "yaxes": [
+              {
+                "format": "reqps",
+                "label": null,
+                "logBase": 1,
+                "max": null,
+                "min": 0,
+                "show": true
+              },
+              {
+                "format": "short",
+                "label": null,
+                "logBase": 1,
+                "max": null,
+                "min": null,
+                "show": false
+              }
+            ],
+            "yaxis": {
+              "align": false,
+              "alignLevel": null
+            }
+          }
+        ],
+        "title": "Log Levels",
+        "type": "row"
+      },
+      {
+        "collapsed": true,
+        "datasource": null,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 19
+        },
+        "id": 21,
+        "panels": [
+          {
+            "aliasColors": {},
+            "bars": false,
+            "dashLength": 10,
+            "dashes": false,
+            "datasource": "Loki",
+            "fieldConfig": {
+              "defaults": {
+                "custom": {}
+              },
+              "overrides": []
+            },
+            "fill": 1,
+            "fillGradient": 0,
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 0,
+              "y": 20
+            },
+            "hiddenSeries": false,
+            "id": 22,
+            "legend": {
+              "alignAsTable": true,
+              "avg": true,
+              "current": true,
+              "max": true,
+              "min": true,
+              "show": true,
+              "total": false,
+              "values": true
+            },
+            "lines": true,
+            "linewidth": 1,
+            "links": [],
+            "nullPointMode": "null",
+            "options": {
+              "alertThreshold": true
+            },
+            "percentage": false,
+            "pluginVersion": "7.3.7",
+            "pointradius": 2,
+            "points": false,
+            "renderer": "flot",
+            "seriesOverrides": [],
+            "spaceLength": 10,
+            "stack": false,
+            "steppedLine": false,
+            "targets": [
+              {
+                "expr": "sum(rate({job=\"varlogs\"}[5m])) by(level)",
+                "format": "time_series",
+                "intervalFactor": 1,
+                "legendFormat": "Log Rate by Level - {{level}}",
+                "refId": "A"
+              },
+              {
+                "expr": "avg(sum(rate({job=\"varlogs\"}[5m])) by(level)) + (2 * stddev(sum(rate({job=\"varlogs\"}[5m])) by(level)))",
+                "format": "time_series",
+                "hide": false,
+                "intervalFactor": 1,
+                "legendFormat": "Upper Control Limit (2σ)",
+                "refId": "B"
+              },
+              {
+                "expr": "avg(sum(rate({job=\"varlogs\"}[5m])) by(level)) - (2 * stddev(sum(rate({job=\"varlogs\"}[5m])) by(level)))",
+                "format": "time_series",
+                "hide": false,
+                "intervalFactor": 1,
+                "legendFormat": "Lower Control Limit (2σ)",
+                "refId": "C"
+              }
+            ],
+            "thresholds": [],
+            "timeFrom": null,
+            "timeRegions": [],
+            "timeShift": null,
+            "title": "Statistical Process Control - Log Rate by Level",
+            "tooltip": {
+              "shared": true,
+              "sort": 0,
+              "value_type": "individual"
+            },
+            "type": "graph",
+            "xaxis": {
+              "buckets": null,
+              "mode": "time",
+              "name": null,
+              "show": true,
+              "values": []
+            },
+            "yaxes": [
+              {
+                "format": "reqps",
+                "label": null,
+                "logBase": 1,
+                "max": null,
+                "min": "0",
+                "show": true
+              },
+              {
+                "format": "short",
+                "label": null,
+                "logBase": 1,
+                "max": null,
+                "min": null,
+                "show": true
+              }
+            ],
+            "yaxis": {
+              "align": false,
+              "alignLevel": null
+            }
+          },
+          {
+            "cards": {
+              "cardPadding": 1,
+              "cardRound": 2
+            },
+            "color": {
+              "cardColor": "#b4ff00",
+              "colorScale": "sqrt",
+              "colorScheme": "interpolateOranges",
+              "exponent": 0.5,
+              "mode": "opacity"
+            },
+            "dataFormat": "timeseries",
+            "datasource": "Loki",
+            "fieldConfig": {
+              "defaults": {
+                "custom": {}
+              },
+              "overrides": []
+            },
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 12,
+              "y": 20
+            },
+            "heatmap": {},
+            "hideZeroBuckets": false,
+            "highlightCards": true,
+            "id": 23,
+            "legend": {
+              "show": false
+            },
+            "links": [],
+            "reverseYBuckets": false,
+            "targets": [
+              {
+                "expr": "sum(rate({job=\"varlogs\"}[5m])) by(level)",
+                "format": "time_series",
+                "intervalFactor": 1,
+                "legendFormat": "",
+                "refId": "A"
+              }
+            ],
+            "title": "Time Series Heatmap - Log Level Distribution",
+            "tooltip": {
+              "show": true,
+              "showHistogram": false
+            },
+            "type": "heatmap",
+            "xAxis": {
+              "show": true
+            },
+            "xBucketNumber": null,
+            "xBucketSize": null,
+            "yAxis": {
+              "decimals": 0,
+              "format": "reqps",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true,
+              "splitFactor": null
+            },
+            "yBucketBound": "auto",
+            "yBucketNumber": null,
+            "yBucketSize": null
+          }
+        ],
+        "title": "Scientific Analysis - Log Metrics",
+        "type": "row"
+      }
+    ],
+    "refresh": "30s",
+    "schemaVersion": 26,
+    "style": "dark",
+    "tags": [
+      "logs",
+      "loki",
+      "monitoring"
+    ],
+    "templating": {
+      "list": [
+        {
+          "current": {
+            "selected": false,
+            "text": "Loki",
+            "value": "Loki"
+          },
+          "error": null,
+          "hide": 0,
+          "includeAll": false,
+          "label": "datasource",
+          "multi": false,
+          "name": "DS_LOKI",
+          "options": [],
+          "query": "loki",
+          "refresh": 1,
+          "regex": "",
+          "skipUrlSync": false,
+          "type": "datasource"
+        }
+      ]
+    },
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": [
+        "5s",
+        "10s",
+        "30s",
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "1d"
+      ],
+      "time_options": [
+        "5m",
+        "15m",
+        "1h",
+        "6h",
+        "12h",
+        "24h",
+        "2d",
+        "7d",
+        "30d"
+      ]
+    },
+    "timezone": "browser",
+    "title": "Loki Log Monitoring",
+    "uid": "loki-log-monitoring",
+    "version": 1
+  }
+}

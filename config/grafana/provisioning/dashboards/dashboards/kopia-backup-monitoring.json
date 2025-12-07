@@ -1,0 +1,1520 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Kopia Backup Monitoring",
+    "tags": [
+      "backup",
+      "kopia",
+      "storage"
+    ],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "schemaVersion": 39,
+    "version": 20,
+    "links": [],
+    "panels": [
+      {
+        "collapsed": false,
+        "datasource": null,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        },
+        "id": 16,
+        "panels": [],
+        "title": "Kopia Overview",
+        "type": "row"
+      },
+       {
+         "datasource": "Prometheus",
+         "description": "Total number of snapshots across all repositories",
+         "fieldConfig": {
+           "defaults": {
+             "mappings": [
+               {
+                 "options": {
+                   "match": "null",
+                   "result": {
+                     "text": "N/A"
+                   }
+                 },
+                 "type": "special"
+               }
+             ],
+             "thresholds": {
+               "mode": "absolute",
+               "steps": [
+                 {
+                   "color": "green",
+                   "value": null
+                 }
+               ]
+             },
+             "unit": "short"
+           },
+           "overrides": []
+         },
+         "gridPos": {
+           "h": 3,
+           "w": 6,
+           "x": 0,
+           "y": 1
+         },
+         "id": 1,
+         "options": {
+           "colorMode": "value",
+           "graphMode": "none",
+           "justifyMode": "auto",
+           "orientation": "auto",
+           "reduceOptions": {
+             "values": false,
+             "calcs": [
+               "lastNotNull"
+             ],
+             "fields": ""
+           },
+           "textMode": "auto"
+         },
+         "pluginVersion": "11.0.0",
+         "targets": [
+           {
+             "expr": "count(kopia_snapshot_count)",
+             "format": "time_series",
+             "interval": "",
+             "intervalFactor": 1,
+             "legendFormat": "",
+             "refId": "A",
+             "step": 240
+           }
+         ],
+         "title": "Total Snapshots",
+         "type": "stat"
+       },
+       {
+         "datasource": "Prometheus",
+         "description": "Total size of all Kopia repositories",
+         "fieldConfig": {
+           "defaults": {
+             "mappings": [
+               {
+                 "options": {
+                   "match": "null",
+                   "result": {
+                     "text": "N/A"
+                   }
+                 },
+                 "type": "special"
+               }
+             ],
+             "thresholds": {
+               "mode": "absolute",
+               "steps": [
+                 {
+                   "color": "green",
+                   "value": null
+                 }
+               ]
+             },
+             "unit": "bytes"
+           },
+           "overrides": []
+         },
+         "gridPos": {
+           "h": 3,
+           "w": 6,
+           "x": 6,
+           "y": 1
+         },
+         "id": 2,
+         "options": {
+           "colorMode": "value",
+           "graphMode": "area",
+           "justifyMode": "auto",
+           "orientation": "auto",
+           "reduceOptions": {
+             "values": false,
+             "calcs": [
+               "lastNotNull"
+             ],
+             "fields": ""
+           },
+           "textMode": "auto"
+         },
+         "pluginVersion": "11.0.0",
+         "targets": [
+           {
+             "expr": "sum(kopia_repository_size_bytes)",
+             "format": "time_series",
+             "interval": "",
+             "intervalFactor": 1,
+             "legendFormat": "",
+             "refId": "A",
+             "step": 240
+           }
+         ],
+         "title": "Total Repository Size",
+         "type": "stat"
+       },
+       {
+         "datasource": "Prometheus",
+         "description": "Total deduplicated size after compression and deduplication",
+         "fieldConfig": {
+           "defaults": {
+             "mappings": [
+               {
+                 "options": {
+                   "match": "null",
+                   "result": {
+                     "text": "N/A"
+                   }
+                 },
+                 "type": "special"
+               }
+             ],
+             "thresholds": {
+               "mode": "absolute",
+               "steps": [
+                 {
+                   "color": "green",
+                   "value": null
+                 }
+               ]
+             },
+             "unit": "bytes"
+           },
+           "overrides": []
+         },
+         "gridPos": {
+           "h": 3,
+           "w": 6,
+           "x": 12,
+           "y": 1
+         },
+         "id": 3,
+         "options": {
+           "colorMode": "value",
+           "graphMode": "area",
+           "justifyMode": "auto",
+           "orientation": "auto",
+           "reduceOptions": {
+             "values": false,
+             "calcs": [
+               "lastNotNull"
+             ],
+             "fields": ""
+           },
+           "textMode": "auto"
+         },
+         "pluginVersion": "11.0.0",
+         "targets": [
+           {
+             "expr": "sum(kopia_repository_dedup_size_bytes)",
+             "format": "time_series",
+             "interval": "",
+             "intervalFactor": 1,
+             "legendFormat": "",
+             "refId": "A",
+             "step": 240
+           }
+         ],
+         "title": "Deduplicated Size",
+         "type": "stat"
+       },
+       {
+         "datasource": "Prometheus",
+         "description": "Compression ratio showing deduplication efficiency (higher is better)",
+         "fieldConfig": {
+           "defaults": {
+             "mappings": [
+               {
+                 "options": {
+                   "match": "null",
+                   "result": {
+                     "text": "N/A"
+                   }
+                 },
+                 "type": "special"
+               }
+             ],
+             "thresholds": {
+               "mode": "absolute",
+               "steps": [
+                 {
+                   "color": "red",
+                   "value": null
+                 },
+                 {
+                   "color": "orange",
+                   "value": 1.5
+                 },
+                 {
+                   "color": "green",
+                   "value": 2
+                 }
+               ]
+             },
+             "unit": "none"
+           },
+           "overrides": []
+         },
+         "gridPos": {
+           "h": 3,
+           "w": 6,
+           "x": 18,
+           "y": 1
+         },
+         "id": 4,
+         "options": {
+           "colorMode": "thresholds",
+           "graphMode": "area",
+           "justifyMode": "auto",
+           "orientation": "auto",
+           "reduceOptions": {
+             "values": false,
+             "calcs": [
+               "lastNotNull"
+             ],
+             "fields": ""
+           },
+           "textMode": "auto"
+         },
+         "pluginVersion": "11.0.0",
+         "targets": [
+           {
+             "expr": "sum(kopia_repository_size_bytes) / sum(kopia_repository_dedup_size_bytes)",
+             "format": "time_series",
+             "interval": "",
+             "intervalFactor": 1,
+             "legendFormat": "",
+             "refId": "A",
+             "step": 240
+           }
+         ],
+         "title": "Compression Ratio",
+         "type": "stat"
+       },
+      {
+        "collapsed": true,
+        "datasource": null,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 4
+        },
+        "id": 17,
+        "panels": [
+           {
+             "datasource": "Prometheus",
+             "description": "Repository size vs deduplicated size over time",
+             "fieldConfig": {
+               "defaults": {
+                 "color": {
+                   "mode": "palette-classic"
+                 },
+                 "custom": {
+                   "axisCenteredZero": false,
+                   "axisColorMode": "text",
+                   "axisLabel": "",
+                   "axisPlacement": "auto",
+                   "barAlignment": 0,
+                   "drawStyle": "line",
+                   "fillOpacity": 10,
+                   "gradientMode": "none",
+                   "hideFrom": {
+                     "legend": false,
+                     "tooltip": false,
+                     "vis": false
+                   },
+                   "lineInterpolation": "linear",
+                   "lineWidth": 1,
+                   "pointSize": 5,
+                   "scaleDistribution": {
+                     "type": "linear"
+                   },
+                   "showPoints": "never",
+                   "spanNulls": false,
+                   "stacking": {
+                     "group": "A",
+                     "mode": "none"
+                   },
+                   "thresholdsStyle": {
+                     "mode": "off"
+                   }
+                 },
+                 "mappings": [],
+                 "thresholds": {
+                   "mode": "absolute",
+                   "steps": [
+                     {
+                       "color": "green",
+                       "value": null
+                     }
+                   ]
+                 },
+                 "unit": "bytes"
+               },
+               "overrides": [
+                 {
+                   "matcher": {
+                     "id": "byName",
+                     "options": "Repository Size"
+                   },
+                   "properties": [
+                     {
+                       "id": "color",
+                       "value": {
+                         "mode": "fixed",
+                         "fixedColor": "#37872D"
+                       }
+                     }
+                   ]
+                 },
+                 {
+                   "matcher": {
+                     "id": "byName",
+                     "options": "Deduplicated Size"
+                   },
+                   "properties": [
+                     {
+                       "id": "color",
+                       "value": {
+                         "mode": "fixed",
+                         "fixedColor": "#E0B400"
+                       }
+                     }
+                   ]
+                 }
+               ]
+             },
+             "gridPos": {
+               "h": 8,
+               "w": 12,
+               "x": 0,
+               "y": 5
+             },
+             "id": 5,
+             "options": {
+               "legend": {
+                 "calcs": [
+                   "mean",
+                   "lastNotNull",
+                   "max",
+                   "min"
+                 ],
+                 "displayMode": "table",
+                 "placement": "bottom",
+                 "showLegend": true
+               },
+               "tooltip": {
+                 "mode": "single",
+                 "sort": "none"
+               }
+             },
+             "pluginVersion": "11.0.0",
+             "targets": [
+               {
+                 "expr": "kopia_repository_size_bytes",
+                 "format": "time_series",
+                 "intervalFactor": 1,
+                 "legendFormat": "Repository Size",
+                 "refId": "A",
+                 "step": 240
+               },
+               {
+                 "expr": "kopia_repository_dedup_size_bytes",
+                 "format": "time_series",
+                 "intervalFactor": 1,
+                 "legendFormat": "Deduplicated Size",
+                 "refId": "B",
+                 "step": 240
+               }
+             ],
+             "title": "Repository Size Over Time",
+             "type": "timeseries"
+           },
+           {
+             "datasource": "Prometheus",
+             "description": "Compression ratio trend over time",
+             "fieldConfig": {
+               "defaults": {
+                 "color": {
+                   "mode": "palette-classic"
+                 },
+                 "custom": {
+                   "axisCenteredZero": false,
+                   "axisColorMode": "text",
+                   "axisLabel": "",
+                   "axisPlacement": "auto",
+                   "barAlignment": 0,
+                   "drawStyle": "line",
+                   "fillOpacity": 10,
+                   "gradientMode": "none",
+                   "hideFrom": {
+                     "legend": false,
+                     "tooltip": false,
+                     "vis": false
+                   },
+                   "lineInterpolation": "linear",
+                   "lineWidth": 1,
+                   "pointSize": 5,
+                   "scaleDistribution": {
+                     "type": "linear"
+                   },
+                   "showPoints": "never",
+                   "spanNulls": false,
+                   "stacking": {
+                     "group": "A",
+                     "mode": "none"
+                   },
+                   "thresholdsStyle": {
+                     "mode": "line"
+                   }
+                 },
+                 "mappings": [],
+                 "thresholds": {
+                   "mode": "absolute",
+                   "steps": [
+                     {
+                       "color": "red",
+                       "value": null
+                     },
+                     {
+                       "color": "orange",
+                       "value": 1.5
+                     },
+                     {
+                       "color": "green",
+                       "value": 2
+                     }
+                   ]
+                 },
+                 "unit": "none"
+               },
+               "overrides": [
+                 {
+                   "matcher": {
+                     "id": "byName",
+                     "options": "Compression Ratio"
+                   },
+                   "properties": [
+                     {
+                       "id": "color",
+                       "value": {
+                         "mode": "fixed",
+                         "fixedColor": "#5794F2"
+                       }
+                     }
+                   ]
+                 }
+               ]
+             },
+             "gridPos": {
+               "h": 8,
+               "w": 12,
+               "x": 12,
+               "y": 5
+             },
+             "id": 6,
+             "options": {
+               "legend": {
+                 "calcs": [
+                   "mean",
+                   "lastNotNull",
+                   "max",
+                   "min"
+                 ],
+                 "displayMode": "table",
+                 "placement": "bottom",
+                 "showLegend": true
+               },
+               "tooltip": {
+                 "mode": "single",
+                 "sort": "none"
+               }
+             },
+             "pluginVersion": "11.0.0",
+             "targets": [
+               {
+                 "expr": "kopia_repository_size_bytes / kopia_repository_dedup_size_bytes",
+                 "format": "time_series",
+                 "intervalFactor": 1,
+                 "legendFormat": "Compression Ratio",
+                 "refId": "A",
+                 "step": 240
+               }
+             ],
+             "title": "Compression Ratio Over Time",
+             "type": "timeseries"
+           }
+        ],
+        "title": "Storage Metrics",
+        "type": "row"
+      },
+      {
+        "collapsed": true,
+        "datasource": null,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 5
+        },
+        "id": 18,
+        "panels": [
+           {
+             "datasource": "Prometheus",
+             "description": "Number of snapshots over time",
+             "fieldConfig": {
+               "defaults": {
+                 "color": {
+                   "mode": "palette-classic"
+                 },
+                 "custom": {
+                   "axisCenteredZero": false,
+                   "axisColorMode": "text",
+                   "axisLabel": "",
+                   "axisPlacement": "auto",
+                   "barAlignment": 0,
+                   "drawStyle": "line",
+                   "fillOpacity": 10,
+                   "gradientMode": "none",
+                   "hideFrom": {
+                     "legend": false,
+                     "tooltip": false,
+                     "vis": false
+                   },
+                   "lineInterpolation": "linear",
+                   "lineWidth": 1,
+                   "pointSize": 5,
+                   "scaleDistribution": {
+                     "type": "linear"
+                   },
+                   "showPoints": "never",
+                   "spanNulls": false,
+                   "stacking": {
+                     "group": "A",
+                     "mode": "none"
+                   },
+                   "thresholdsStyle": {
+                     "mode": "off"
+                   }
+                 },
+                 "mappings": [],
+                 "thresholds": {
+                   "mode": "absolute",
+                   "steps": [
+                     {
+                       "color": "green",
+                       "value": null
+                     }
+                   ]
+                 },
+                 "unit": "short"
+               },
+               "overrides": [
+                 {
+                   "matcher": {
+                     "id": "byName",
+                     "options": "Snapshot Count"
+                   },
+                   "properties": [
+                     {
+                       "id": "color",
+                       "value": {
+                         "mode": "fixed",
+                         "fixedColor": "#37872D"
+                       }
+                     }
+                   ]
+                 }
+               ]
+             },
+             "gridPos": {
+               "h": 8,
+               "w": 12,
+               "x": 0,
+               "y": 6
+             },
+             "id": 7,
+             "options": {
+               "legend": {
+                 "calcs": [
+                   "mean",
+                   "lastNotNull",
+                   "max",
+                   "min"
+                 ],
+                 "displayMode": "table",
+                 "placement": "bottom",
+                 "showLegend": true
+               },
+               "tooltip": {
+                 "mode": "single",
+                 "sort": "none"
+               }
+             },
+             "pluginVersion": "11.0.0",
+             "targets": [
+               {
+                 "expr": "kopia_snapshot_count",
+                 "format": "time_series",
+                 "intervalFactor": 1,
+                 "legendFormat": "Snapshot Count",
+                 "refId": "A",
+                 "step": 240
+               }
+             ],
+             "title": "Snapshot Count Over Time",
+             "type": "timeseries"
+           },
+           {
+             "datasource": "Prometheus",
+             "description": "Size of snapshots over time",
+             "fieldConfig": {
+               "defaults": {
+                 "color": {
+                   "mode": "palette-classic"
+                 },
+                 "custom": {
+                   "axisCenteredZero": false,
+                   "axisColorMode": "text",
+                   "axisLabel": "",
+                   "axisPlacement": "auto",
+                   "barAlignment": 0,
+                   "drawStyle": "line",
+                   "fillOpacity": 10,
+                   "gradientMode": "none",
+                   "hideFrom": {
+                     "legend": false,
+                     "tooltip": false,
+                     "vis": false
+                   },
+                   "lineInterpolation": "linear",
+                   "lineWidth": 1,
+                   "pointSize": 5,
+                   "scaleDistribution": {
+                     "type": "linear"
+                   },
+                   "showPoints": "never",
+                   "spanNulls": false,
+                   "stacking": {
+                     "group": "A",
+                     "mode": "none"
+                   },
+                   "thresholdsStyle": {
+                     "mode": "off"
+                   }
+                 },
+                 "mappings": [],
+                 "thresholds": {
+                   "mode": "absolute",
+                   "steps": [
+                     {
+                       "color": "green",
+                       "value": null
+                     }
+                   ]
+                 },
+                 "unit": "bytes"
+               },
+               "overrides": [
+                 {
+                   "matcher": {
+                     "id": "byName",
+                     "options": "Snapshot Size"
+                   },
+                   "properties": [
+                     {
+                       "id": "color",
+                       "value": {
+                         "mode": "fixed",
+                         "fixedColor": "#E0B400"
+                       }
+                     }
+                   ]
+                 }
+               ]
+             },
+             "gridPos": {
+               "h": 8,
+               "w": 12,
+               "x": 12,
+               "y": 6
+             },
+             "id": 8,
+             "options": {
+               "legend": {
+                 "calcs": [
+                   "mean",
+                   "lastNotNull",
+                   "max",
+                   "min"
+                 ],
+                 "displayMode": "table",
+                 "placement": "bottom",
+                 "showLegend": true
+               },
+               "tooltip": {
+                 "mode": "single",
+                 "sort": "none"
+               }
+             },
+             "pluginVersion": "11.0.0",
+             "targets": [
+               {
+                 "expr": "kopia_snapshot_size_bytes",
+                 "format": "time_series",
+                 "intervalFactor": 1,
+                 "legendFormat": "Snapshot Size",
+                 "refId": "A",
+                 "step": 240
+               }
+             ],
+             "title": "Snapshot Size Over Time",
+             "type": "timeseries"
+           }
+        ],
+        "title": "Snapshot Metrics",
+        "type": "row"
+      },
+      {
+        "collapsed": true,
+        "datasource": null,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 6
+        },
+        "id": 19,
+        "panels": [
+           {
+             "datasource": "Prometheus",
+             "description": "Number of connected Kopia clients",
+             "fieldConfig": {
+               "defaults": {
+                 "color": {
+                   "mode": "palette-classic"
+                 },
+                 "custom": {
+                   "axisCenteredZero": false,
+                   "axisColorMode": "text",
+                   "axisLabel": "",
+                   "axisPlacement": "auto",
+                   "barAlignment": 0,
+                   "drawStyle": "line",
+                   "fillOpacity": 10,
+                   "gradientMode": "none",
+                   "hideFrom": {
+                     "legend": false,
+                     "tooltip": false,
+                     "vis": false
+                   },
+                   "lineInterpolation": "linear",
+                   "lineWidth": 1,
+                   "pointSize": 5,
+                   "scaleDistribution": {
+                     "type": "linear"
+                   },
+                   "showPoints": "never",
+                   "spanNulls": false,
+                   "stacking": {
+                     "group": "A",
+                     "mode": "none"
+                   },
+                   "thresholdsStyle": {
+                     "mode": "off"
+                   }
+                 },
+                 "mappings": [],
+                 "thresholds": {
+                   "mode": "absolute",
+                   "steps": [
+                     {
+                       "color": "green",
+                       "value": null
+                     }
+                   ]
+                 },
+                 "unit": "short"
+               },
+               "overrides": [
+                 {
+                   "matcher": {
+                     "id": "byName",
+                     "options": "Connected Clients"
+                   },
+                   "properties": [
+                     {
+                       "id": "color",
+                       "value": {
+                         "mode": "fixed",
+                         "fixedColor": "#37872D"
+                       }
+                     }
+                   ]
+                 }
+               ]
+             },
+             "gridPos": {
+               "h": 8,
+               "w": 12,
+               "x": 0,
+               "y": 7
+             },
+             "id": 9,
+             "options": {
+               "legend": {
+                 "calcs": [
+                   "mean",
+                   "lastNotNull",
+                   "max",
+                   "min"
+                 ],
+                 "displayMode": "table",
+                 "placement": "bottom",
+                 "showLegend": true
+               },
+               "tooltip": {
+                 "mode": "single",
+                 "sort": "none"
+               }
+             },
+             "pluginVersion": "11.0.0",
+             "targets": [
+               {
+                 "expr": "kopia_connected_clients",
+                 "format": "time_series",
+                 "intervalFactor": 1,
+                 "legendFormat": "Connected Clients",
+                 "refId": "A",
+                 "step": 240
+               }
+             ],
+             "title": "Connected Clients",
+             "type": "timeseries"
+           },
+           {
+             "datasource": "Prometheus",
+             "description": "Duration of Kopia operations",
+             "fieldConfig": {
+               "defaults": {
+                 "color": {
+                   "mode": "palette-classic"
+                 },
+                 "custom": {
+                   "axisCenteredZero": false,
+                   "axisColorMode": "text",
+                   "axisLabel": "",
+                   "axisPlacement": "auto",
+                   "barAlignment": 0,
+                   "drawStyle": "line",
+                   "fillOpacity": 10,
+                   "gradientMode": "none",
+                   "hideFrom": {
+                     "legend": false,
+                     "tooltip": false,
+                     "vis": false
+                   },
+                   "lineInterpolation": "linear",
+                   "lineWidth": 1,
+                   "pointSize": 5,
+                   "scaleDistribution": {
+                     "type": "linear"
+                   },
+                   "showPoints": "never",
+                   "spanNulls": false,
+                   "stacking": {
+                     "group": "A",
+                     "mode": "none"
+                   },
+                   "thresholdsStyle": {
+                     "mode": "off"
+                   }
+                 },
+                 "mappings": [],
+                 "thresholds": {
+                   "mode": "absolute",
+                   "steps": [
+                     {
+                       "color": "green",
+                       "value": null
+                     }
+                   ]
+                 },
+                 "unit": "s"
+               },
+               "overrides": [
+                 {
+                   "matcher": {
+                     "id": "byName",
+                     "options": "Operation Duration"
+                   },
+                   "properties": [
+                     {
+                       "id": "color",
+                       "value": {
+                         "mode": "fixed",
+                         "fixedColor": "#E0B400"
+                       }
+                     }
+                   ]
+                 }
+               ]
+             },
+             "gridPos": {
+               "h": 8,
+               "w": 12,
+               "x": 12,
+               "y": 7
+             },
+             "id": 10,
+             "options": {
+               "legend": {
+                 "calcs": [
+                   "mean",
+                   "lastNotNull",
+                   "max",
+                   "min"
+                 ],
+                 "displayMode": "table",
+                 "placement": "bottom",
+                 "showLegend": true
+               },
+               "tooltip": {
+                 "mode": "single",
+                 "sort": "none"
+               }
+             },
+             "pluginVersion": "11.0.0",
+             "targets": [
+               {
+                 "expr": "kopia_operation_duration_seconds",
+                 "format": "time_series",
+                 "intervalFactor": 1,
+                 "legendFormat": "Operation Duration",
+                 "refId": "A",
+                 "step": 240
+               }
+             ],
+             "title": "Operation Duration",
+             "type": "timeseries"
+           }
+        ],
+        "title": "Connection and Operation Metrics",
+        "type": "row"
+      },
+      {
+        "collapsed": true,
+        "datasource": null,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 7
+        },
+        "id": 20,
+        "panels": [
+           {
+             "datasource": "Prometheus",
+             "description": "Cache hits and misses over time",
+             "fieldConfig": {
+               "defaults": {
+                 "color": {
+                   "mode": "palette-classic"
+                 },
+                 "custom": {
+                   "axisCenteredZero": false,
+                   "axisColorMode": "text",
+                   "axisLabel": "",
+                   "axisPlacement": "auto",
+                   "barAlignment": 0,
+                   "drawStyle": "line",
+                   "fillOpacity": 10,
+                   "gradientMode": "none",
+                   "hideFrom": {
+                     "legend": false,
+                     "tooltip": false,
+                     "vis": false
+                   },
+                   "lineInterpolation": "linear",
+                   "lineWidth": 1,
+                   "pointSize": 5,
+                   "scaleDistribution": {
+                     "type": "linear"
+                   },
+                   "showPoints": "never",
+                   "spanNulls": false,
+                   "stacking": {
+                     "group": "A",
+                     "mode": "none"
+                   },
+                   "thresholdsStyle": {
+                     "mode": "off"
+                   }
+                 },
+                 "mappings": [],
+                 "thresholds": {
+                   "mode": "absolute",
+                   "steps": [
+                     {
+                       "color": "green",
+                       "value": null
+                     }
+                   ]
+                 },
+                 "unit": "short"
+               },
+               "overrides": [
+                 {
+                   "matcher": {
+                     "id": "byName",
+                     "options": "Cache Hits"
+                   },
+                   "properties": [
+                     {
+                       "id": "color",
+                       "value": {
+                         "mode": "fixed",
+                         "fixedColor": "#37872D"
+                       }
+                     }
+                   ]
+                 },
+                 {
+                   "matcher": {
+                     "id": "byName",
+                     "options": "Cache Misses"
+                   },
+                   "properties": [
+                     {
+                       "id": "color",
+                       "value": {
+                         "mode": "fixed",
+                         "fixedColor": "#E0B400"
+                       }
+                     }
+                   ]
+                 }
+               ]
+             },
+             "gridPos": {
+               "h": 8,
+               "w": 12,
+               "x": 0,
+               "y": 8
+             },
+             "id": 11,
+             "options": {
+               "legend": {
+                 "calcs": [
+                   "mean",
+                   "lastNotNull",
+                   "max",
+                   "min"
+                 ],
+                 "displayMode": "table",
+                 "placement": "bottom",
+                 "showLegend": true
+               },
+               "tooltip": {
+                 "mode": "single",
+                 "sort": "none"
+               }
+             },
+             "pluginVersion": "11.0.0",
+             "targets": [
+               {
+                 "expr": "kopia_cache_hits_total",
+                 "format": "time_series",
+                 "intervalFactor": 1,
+                 "legendFormat": "Cache Hits",
+                 "refId": "A",
+                 "step": 240
+               },
+               {
+                 "expr": "kopia_cache_misses_total",
+                 "format": "time_series",
+                 "intervalFactor": 1,
+                 "legendFormat": "Cache Misses",
+                 "refId": "B",
+                 "step": 240
+               }
+             ],
+             "title": "Cache Performance",
+             "type": "timeseries"
+           },
+           {
+             "datasource": "Prometheus",
+             "description": "Cache hit ratio percentage",
+             "fieldConfig": {
+               "defaults": {
+                 "color": {
+                   "mode": "palette-classic"
+                 },
+                 "custom": {
+                   "axisCenteredZero": false,
+                   "axisColorMode": "text",
+                   "axisLabel": "",
+                   "axisPlacement": "auto",
+                   "barAlignment": 0,
+                   "drawStyle": "line",
+                   "fillOpacity": 10,
+                   "gradientMode": "none",
+                   "hideFrom": {
+                     "legend": false,
+                     "tooltip": false,
+                     "vis": false
+                   },
+                   "lineInterpolation": "linear",
+                   "lineWidth": 1,
+                   "pointSize": 5,
+                   "scaleDistribution": {
+                     "type": "linear"
+                   },
+                   "showPoints": "never",
+                   "spanNulls": false,
+                   "stacking": {
+                     "group": "A",
+                     "mode": "none"
+                   },
+                   "thresholdsStyle": {
+                     "mode": "line"
+                   }
+                 },
+                 "mappings": [],
+                 "thresholds": {
+                   "mode": "absolute",
+                   "steps": [
+                     {
+                       "color": "red",
+                       "value": null
+                     },
+                     {
+                       "color": "orange",
+                       "value": 0.7
+                     },
+                     {
+                       "color": "green",
+                       "value": 0.9
+                     }
+                   ]
+                 },
+                 "unit": "percentunit"
+               },
+               "overrides": [
+                 {
+                   "matcher": {
+                     "id": "byName",
+                     "options": "Cache Hit Ratio"
+                   },
+                   "properties": [
+                     {
+                       "id": "color",
+                       "value": {
+                         "mode": "fixed",
+                         "fixedColor": "#5794F2"
+                       }
+                     }
+                   ]
+                 }
+               ]
+             },
+             "gridPos": {
+               "h": 8,
+               "w": 12,
+               "x": 12,
+               "y": 8
+             },
+             "id": 12,
+             "options": {
+               "legend": {
+                 "calcs": [
+                   "mean",
+                   "lastNotNull",
+                   "max",
+                   "min"
+                 ],
+                 "displayMode": "table",
+                 "placement": "bottom",
+                 "showLegend": true
+               },
+               "tooltip": {
+                 "mode": "single",
+                 "sort": "none"
+               }
+             },
+             "pluginVersion": "11.0.0",
+             "targets": [
+               {
+                 "expr": "kopia_cache_hits_total / (kopia_cache_hits_total + kopia_cache_misses_total)",
+                 "format": "time_series",
+                 "intervalFactor": 1,
+                 "legendFormat": "Cache Hit Ratio",
+                 "refId": "A",
+                 "step": 240
+               }
+             ],
+             "title": "Cache Hit Ratio",
+             "type": "timeseries"
+           }
+        ],
+        "title": "Cache Metrics",
+        "type": "row"
+      },
+      {
+        "collapsed": true,
+        "datasource": null,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 19
+        },
+        "id": 21,
+        "panels": [
+           {
+             "datasource": "Prometheus",
+             "description": "Statistical process control chart for repository size with control limits",
+             "fieldConfig": {
+               "defaults": {
+                 "color": {
+                   "mode": "palette-classic"
+                 },
+                 "custom": {
+                   "axisCenteredZero": false,
+                   "axisColorMode": "text",
+                   "axisLabel": "",
+                   "axisPlacement": "auto",
+                   "barAlignment": 0,
+                   "drawStyle": "line",
+                   "fillOpacity": 10,
+                   "gradientMode": "none",
+                   "hideFrom": {
+                     "legend": false,
+                     "tooltip": false,
+                     "vis": false
+                   },
+                   "lineInterpolation": "linear",
+                   "lineWidth": 1,
+                   "pointSize": 5,
+                   "scaleDistribution": {
+                     "type": "linear"
+                   },
+                   "showPoints": "never",
+                   "spanNulls": false,
+                   "stacking": {
+                     "group": "A",
+                     "mode": "none"
+                   },
+                   "thresholdsStyle": {
+                     "mode": "off"
+                   }
+                 },
+                 "mappings": [],
+                 "thresholds": {
+                   "mode": "absolute",
+                   "steps": [
+                     {
+                       "color": "green",
+                       "value": null
+                     }
+                   ]
+                 },
+                 "unit": "bytes"
+               },
+               "overrides": []
+             },
+             "gridPos": {
+               "h": 8,
+               "w": 12,
+               "x": 0,
+               "y": 20
+             },
+             "id": 22,
+             "options": {
+               "legend": {
+                 "calcs": [
+                   "mean",
+                   "lastNotNull",
+                   "max",
+                   "min"
+                 ],
+                 "displayMode": "table",
+                 "placement": "bottom",
+                 "showLegend": true
+               },
+               "tooltip": {
+                 "mode": "single",
+                 "sort": "none"
+               }
+             },
+             "pluginVersion": "11.0.0",
+             "targets": [
+               {
+                 "expr": "avg(kopia_repository_size_bytes) by(job)",
+                 "format": "time_series",
+                 "intervalFactor": 1,
+                 "legendFormat": "Repository Size",
+                 "refId": "A"
+               },
+               {
+                 "expr": "avg(kopia_repository_size_bytes) + (2 * stddev(kopia_repository_size_bytes))",
+                 "format": "time_series",
+                 "hide": false,
+                 "intervalFactor": 1,
+                 "legendFormat": "Upper Control Limit (2σ)",
+                 "refId": "B"
+               },
+               {
+                 "expr": "avg(kopia_repository_size_bytes) - (2 * stddev(kopia_repository_size_bytes))",
+                 "format": "time_series",
+                 "hide": false,
+                 "intervalFactor": 1,
+                 "legendFormat": "Lower Control Limit (2σ)",
+                 "refId": "C"
+               }
+             ],
+             "title": "Statistical Process Control - Repository Size",
+             "type": "timeseries"
+           },
+           {
+             "datasource": "Prometheus",
+             "description": "Heatmap showing repository size distribution over time",
+             "fieldConfig": {
+               "defaults": {
+                 "custom": {}
+               },
+               "overrides": []
+             },
+             "gridPos": {
+               "h": 8,
+               "w": 12,
+               "x": 12,
+               "y": 20
+             },
+             "id": 23,
+             "options": {
+               "calculate": false,
+               "cellGap": 2,
+               "cellValues": {},
+               "color": {
+                 "exponent": 0.5,
+                 "fill": "dark-orange",
+                 "mode": "scheme",
+                 "reverse": false,
+                 "scale": "exponential",
+                 "scheme": "Oranges",
+                 "steps": 64
+               },
+               "exemplars": {
+                 "color": "rgba(255,0,255,0.7)"
+               },
+               "filterValues": {
+                 "le": 1e-9
+               },
+               "legend": {
+                 "show": true
+               },
+               "rowsFrame": {
+                 "layout": "auto"
+               },
+               "tooltip": {
+                 "mode": "single",
+                 "showColorScale": false,
+                 "yHistogram": false
+               },
+               "yAxis": {
+                 "axisPlacement": "left",
+                 "reverse": false,
+                 "unit": "bytes"
+               }
+             },
+             "pluginVersion": "11.0.0",
+             "targets": [
+               {
+                 "expr": "kopia_repository_size_bytes",
+                 "format": "time_series",
+                 "intervalFactor": 1,
+                 "legendFormat": "",
+                 "refId": "A"
+               }
+             ],
+             "title": "Time Series Heatmap - Repository Size Distribution",
+             "type": "heatmap"
+           }
+        ],
+        "title": "Scientific Analysis - Repository Metrics",
+        "type": "row"
+      }
+    ],
+    "refresh": "30s",
+    "schemaVersion": 26,
+    "style": "dark",
+    "tags": [
+      "backup",
+      "kopia",
+      "storage"
+    ],
+    "templating": {
+      "list": [
+        {
+          "current": {
+            "selected": false,
+            "text": "Prometheus",
+            "value": "Prometheus"
+          },
+          "error": null,
+          "hide": 0,
+          "includeAll": false,
+          "label": "datasource",
+          "multi": false,
+          "name": "DS_PROMETHEUS",
+          "options": [],
+          "query": "prometheus",
+          "refresh": 1,
+          "regex": "",
+          "skipUrlSync": false,
+          "type": "datasource"
+        }
+      ]
+    },
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": [
+        "5s",
+        "10s",
+        "30s",
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "1d"
+      ],
+      "time_options": [
+        "5m",
+        "15m",
+        "1h",
+        "6h",
+        "12h",
+        "24h",
+        "2d",
+        "7d",
+        "30d"
+      ]
+    },
+    "timezone": "browser",
+    "title": "Kopia Backup Monitoring",
+    "uid": "kopia-backup-monitoring",
+    "version": 2
+  }
+}
