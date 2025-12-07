@@ -1,0 +1,81 @@
+# Kopia Ignore Rules
+# This file is used by Kopia to exclude files and directories from snapshots.
+# The syntax is similar to .gitignore.
+
+# --- General & OS-specific ---
+# Windows system files and directories
+**/$RECYCLE.BIN/
+**/System Volume Information/
+**/Thumbs.db
+**/desktop.ini
+pagefile.sys
+swapfile.sys
+
+# macOS system files
+**/.DS_Store
+**/.Spotlight-V100/
+**/.Trashes
+
+# Linux/Unix system files
+**/.gvfs
+**/lost+found/
+
+# --- Development ---
+# Node.js
+**/node_modules/
+**/npm-debug.log
+**/yarn-error.log
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.eggs/
+**/dist/
+**/build/
+**/*.egg-info/
+**/.venv/
+**/venv/
+**/env/
+
+# Go
+**/vendor/
+
+# Docker
+**/Dockerfile
+**/.dockerignore
+
+# IDE & Editor specific
+**/.idea/
+**/.vscode/
+**/*.sublime-project
+**/*.sublime-workspace
+**/.history
+
+# --- Common Applications & Caches ---
+# General cache folders
+**/cache/
+**/caches/
+**/.cache/
+
+# Dropbox
+**/.dropbox
+**/.dropbox.cache/
+
+# Google Drive
+**/.drive/
+**/.drive. কয়েক সেকেন্ডের মধ্যে/
+
+# VirtualBox
+**/*.vbox
+**/*.vdi
+**/*.vmdk
+**/*.pvm
+
+# --- Temporary & Log Files ---
+**/*.tmp
+**/*.temp
+**/*.log
+**/*.bak
+**/*.swp
