@@ -1,39 +1,12 @@
 - Read kopia docs all and create .kopiaignore file in docker-compose or make sure reasobabnle defaults are set scan my device for typical  files and create g ood file
 • Here’s a quick readout of what you already have, then my prioritized gap analysis. If you’d like, I can run a focused
   web scan for comparable ARM64 homelab stacks and refine these findings.
-│ > can i make a vault for passwords on my root device not container like a vaulkt which paress these env variables automatically or is there even a container?      
-  What You Already Have
 
-  - Core: Surfshark VPN with killswitch, qBittorrent + slskd on the VPN (good use of network_mode: service:surfshark).
-  - Storage/Backup: Nextcloud + MariaDB (+ optional Redis profile), Kopia server with metrics and verification scripts.
-  - Observability: Prometheus, Grafana, Loki, Promtail, Alertmanager, Node Exporter, cAdvisor, SMART exporter, Netdata.
-  - Ops UX: Nginx Proxy Manager, Homepage, Uptime Kuma, Dozzle, Portainer, Gitea.
-  - Safety/Quality: OPA policy for compose, pre-commit, CI with Trivy and conftest, systemd helpers (auto‑swap,
-    autostart), thorough docs.
 
-  High‑Impact Gaps To Consider
-
-  - Identity & SSO: Add Authelia or Authentik SSO in front of Grafana, Nextcloud, Gitea, Portainer. Easiest path is NPM
-    + Authelia; more “infra as code” approach is Traefik + OAuth2-Proxy/Authelia. Improves LAN/WAN security and reduces
-    password sprawl.
-  - Remote Access (Zero‑trust): Add Tailscale (or Headscale) for admin access when off‑LAN. Alternative: Cloudflare
-    Tunnel for HTTPS ingress without port‑forwarding.
   - Database Backups: Add daily mysqldump and pg_dump to /mnt/seconddrive/backups/db/ (then Kopia snapshots those
     dumps). This avoids inconsistent backups of live DB volumes.
-  - Offsite Backups: Configure a remote Kopia repository (S3/Backblaze/Wasabi via repo connect) or a periodic rclone
-    sync of the on‑disk repo. Your verify-kopia-backups.sh already nudges for offsite—wire this in.
-  - Monitoring Completeness: Add blackbox-exporter (HTTP/HTTPS probes) and an internet speedtest-exporter (ISP health).
-    Optional: fritzbox_exporter since your docs assume a Fritz!Box.
-  - Ingress Policy Hardening: Add security_opt: no-new-privileges:true, read_only: true, and cap_drop: [ALL] to
-    non‑privileged services; mount tmpfs for /tmp where feasible. This is a simple but high‑value hardening pass.
-    metrics). Your current Surfshark image works, but Gluetun gives reliability + exporter‑friendly metrics.
 
-  - DNS & Ad‑block: Optional Pi‑hole/AdGuard Home + Unbound (SBC‑friendly if constrained).
-  - Grafana Dashboards: Add curated dashboards for blackbox, Netdata, UPS/NUT, and Gluetun if adopted.
-  - CI Polish: You already scan images with Trivy. Consider a scheduled “weekly” workflow to report drift and critical
-    CVEs.
 
-  - Add backup-cron container that runs nightly mysqldump/pg_dump into /mnt/seconddrive/backups/db/.
 
 🔴 CRITICAL GAPS (Implement First)
 1. Secrets Management 

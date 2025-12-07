@@ -3,7 +3,10 @@
     "allow": [
       "WebFetch(domain:github.com)",
       "Bash(ls:*)",
-      "Bash(docker compose config:*)"
+      "Bash(docker compose config:*)",
+      "WebFetch(domain:kopia.io)",
+      "Bash(mkdir:*)",
+      "Bash(chmod:*)"
     ],
     "deny": [],
     "ask": []

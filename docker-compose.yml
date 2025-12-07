@@ -678,6 +678,70 @@ services:
     labels:
       - "homepage.group=Monitoring"
       - "homepage.name=Blackbox Exporter"
+
+  ############################################################################
+  # SPEEDTEST EXPORTER - Internet Speed & ISP Health Monitoring
+  ############################################################################
+
+  speedtest-exporter:
+    image: miguelndecarvalho/speedtest-exporter:${SPEEDTEST_EXPORTER_TAG:-latest}
+    container_name: speedtest-exporter
+    hostname: speedtest-exporter
+    restart: unless-stopped
+    networks:
+      - monitoring
+    environment:
+      - SPEEDTEST_INTERVAL=3600  # Run speedtest every hour
+      - SPEEDTEST_HOST=  # Use closest server (default)
+      - SPEEDTEST_PORT=8080
+    ports:
+      - "${HOST_BIND:-0.0.0.0}:9798:9798"
+    mem_limit: 128m
+    mem_reservation: 64m
+    cpus: 0.5
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "homepage.group=Monitoring"
+      - "homepage.name=Speedtest Exporter"
+      - "homepage.href=http://speedtest-exporter:9798"
+      - "homepage.icon=speedtest.png"
+
+  ############################################################################
+  # FRITZBOX EXPORTER - Router Monitoring (Fritz!Box 7530 AX DSL)
+  ############################################################################
+
+  fritzbox-exporter:
+    image: pdreker/fritz_exporter:${FRITZBOX_EXPORTER_TAG:-latest}
+    container_name: fritzbox-exporter
+    hostname: fritzbox-exporter
+    restart: unless-stopped
+    networks:
+      - monitoring
+      - default
+    environment:
+      - FRITZ_USERNAME=${FRITZ_USERNAME:-}  # Fritz!Box username (usually empty for default)
+      - FRITZ_PASSWORD=${FRITZ_PASSWORD:-}  # Fritz!Box password
+      - FRITZ_HOSTNAME=${FRITZ_HOSTNAME:-fritz.box}  # Fritz!Box hostname/IP
+      - FRITZ_PORT=${FRITZ_PORT:-49000}  # TR-064 port (default)
+      - FRITZ_PROTOCOL=${FRITZ_PROTOCOL:-https}  # Protocol (http/https)
+      - FRITZ_DEVICE_NAME=${FRITZ_DEVICE_NAME:-fritzbox-7530}  # Device identifier
+    ports:
+      - "${HOST_BIND:-0.0.0.0}:9042:9042"
+    mem_limit: 128m
+    mem_reservation: 64m
+    cpus: 0.25
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "homepage.group=Monitoring"
+      - "homepage.name=Fritz!Box Exporter"
+      - "homepage.href=http://fritzbox-exporter:9042"
+      - "homepage.icon=router.png"
       - "homepage.icon=si-prometheus"
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:9115"
       - "homepage.description=HTTP/TCP probes"
