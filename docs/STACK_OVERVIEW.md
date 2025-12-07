@@ -12,7 +12,7 @@
 │   VPN NETWORK       │  │   PROXY NETWORK     │  │  MONITOR NETWORK │
 │                     │  │                     │  │                  │
 │ ┌─────────────────┐ │  │ ┌─────────────────┐ │  │ ┌──────────────┐ │
-│ │ Surfshark VPN   │ │  │ │ Nginx Proxy Mgr │ │  │ │ Prometheus   │ │
+│ │ Gluetun VPN     │ │  │ │ Nginx Proxy Mgr │ │  │ │ Prometheus   │ │
 │ │ (Killswitch)    │ │  │ │ (SSL/HTTPS)     │ │  │ │              │ │
 │ └─────────────────┘ │  │ └─────────────────┘ │  │ └──────────────┘ │
 │         │           │  │                     │  │        │         │
@@ -40,8 +40,8 @@
 ┌─────────────────────────────────────────────────────────────────────┐
 │                      MANAGEMENT LAYER                                │
 │  ┌──────────┐  ┌──────────┐  ┌───────────┐  ┌────────────────────┐ │
-│  │Portainer │  │Watchtower│  │Uptime Kuma│  │Dozzle (Logs)       │ │
-│  │(Docker)  │  │(Updates) │  │(Uptime)   │  │                    │ │
+│  │Portainer │  │  Diun    │  │Uptime Kuma│  │Dozzle (Logs)       │ │
+│  │(Docker)  │  │(Notify)  │  │(Uptime)   │  │                    │ │
 │  └──────────┘  └──────────┘  └───────────┘  └────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────┘
 
@@ -76,7 +76,7 @@
 
 | Service | Port | RAM | Purpose | URL |
 |---------|------|-----|---------|-----|
-| **Surfshark** | - | 256MB | VPN with killswitch | Internal only |
+| **Gluetun** | 8000 | 256MB | Universal VPN client with killswitch (Surfshark/Nord/Proton/60+ providers) | http://192.168.178.40:8000 |
 | **qBittorrent** | 8080 | 512MB | Torrent client via VPN | http://192.168.178.40:8080 |
 | **slskd (Soulseek)** | 2234 | 384MB | Soulseek P2P via VPN | http://192.168.178.40:2234 |
 
@@ -121,7 +121,7 @@
 | Service | Port | RAM | Purpose | URL |
 |---------|------|-----|---------|-----|
 | **Portainer** | 9000 | 128MB | Docker GUI | http://192.168.178.40:9000 |
-| **Watchtower** | - | 64MB | Auto-updates | Internal only |
+| **Diun** | - | 64MB | Update notifications | Internal only |
 | **Uptime Kuma** | 3002 | 256MB | Uptime monitoring | http://192.168.178.40:3002 |
 | **Dozzle** | 8083 | 64MB | Log viewer | http://192.168.178.40:8083 |
 
@@ -218,9 +218,9 @@ User → Homepage → Links to all services
 - ✅ Alerting (email, Telegram, Slack, Discord)
 
 ### Resilience
-- ✅ Auto-restart on failure
+- ✅ Auto-restart on failure (Autoheal for unhealthy containers)
 - ✅ Health checks on all services
-- ✅ Automatic updates (Watchtower)
+- ✅ Update notifications (Diun) + controlled updates (Renovate)
 - ✅ Uptime monitoring (Uptime Kuma)
 - ✅ Graceful degradation (service failures don't crash stack)
 - ✅ Data persistence (all state on HDDs)

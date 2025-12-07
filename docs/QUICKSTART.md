@@ -5,7 +5,7 @@
 - [ ] Le Potato SBC with Armbian installed
 - [ ] Two HDDs mounted at `/mnt/seconddrive` and `/mnt/cachehdd`
 - [ ] Docker and Docker Compose installed
-- [ ] Surfshark VPN account credentials
+- [ ] VPN account credentials (Surfshark, NordVPN, ProtonVPN, or any Gluetun-supported provider)
 - [ ] Email account for alerts (Gmail recommended)
 
 ## 5-Minute Setup
@@ -59,7 +59,7 @@ This is your central hub for all services.
 2. Login: admin / adminadmin
 3. **Change password**: Tools → Options → Web UI
 4. Test VPN: Tools → Execution Log
-   - Should show Surfshark IP, not your real IP
+   - Should show VPN provider's IP, not your real IP
 
 ### 5. Configure Nextcloud
 1. Go to http://192.168.178.40:8082
@@ -174,8 +174,12 @@ docker-compose restart kopia
 3. Or: Grafana → Loki dashboard → filter by container
 
 ### Update containers
-Watchtower does this automatically daily. Manual update:
+Diun notifies you of available updates. Review Renovate PRs or update manually:
 ```bash
+# Check Diun logs for available updates
+docker logs diun
+
+# Manual update (apply after reviewing changes)
 docker-compose pull
 docker-compose up -d
 ```

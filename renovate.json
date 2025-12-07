@@ -5,24 +5,340 @@
   "timezone": "Europe/Berlin",
   "dependencyDashboard": true,
   "labels": ["dependencies"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "schedule": ["every weekend"],
   "regexManagers": [
     {
-      "fileMatch": ["^\\.env(\\..*)?$", "^\\.env\\.example$"],
+      "fileMatch": ["^\\.env\\.example$"],
       "matchStrings": [
-        "(?<depName>[A-Z_]+)_TAG=(?<currentValue>[^\n]+)"
+        "#\\s*(?<depName>[^\\n]+)\\nGLUETUN_TAG=(?<currentValue>[^\\n]+)"
       ],
       "datasourceTemplate": "docker",
-      "depNameTemplate": "{{ depName | replace('_TAG','') | toLowerCase }}",
+      "depNameTemplate": "qmcgaw/gluetun",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "QBITTORRENT_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "lscr.io/linuxserver/qbittorrent",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "SLSKD_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "ghcr.io/slskd/slskd",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "KOPIA_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "kopia/kopia",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "NEXTCLOUD_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "nextcloud",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "MARIADB_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "mariadb",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "GITEA_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "gitea/gitea",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "POSTGRES_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "postgres",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "PROMETHEUS_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "prom/prometheus",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "GRAFANA_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "grafana/grafana",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "LOKI_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "grafana/loki",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "PROMTAIL_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "grafana/promtail",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "ALERTMANAGER_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "prom/alertmanager",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "NODE_EXPORTER_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "prom/node-exporter",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "CADVISOR_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "gcr.io/cadvisor/cadvisor",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "SMARTCTL_EXPORTER_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "prometheuscommunity/smartctl-exporter",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "NETDATA_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "netdata/netdata",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "BLACKBOX_EXPORTER_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "prom/blackbox-exporter",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "PORTAINER_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "portainer/portainer-ce",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "DIUN_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "crazymax/diun",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "UPTIME_KUMA_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "louislam/uptime-kuma",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "DOZZLE_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "amir20/dozzle",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "NPM_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "jc21/nginx-proxy-manager",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "HOMEPAGE_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "ghcr.io/gethomepage/homepage",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "AUTOHEAL_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "willfarrell/autoheal",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "REDIS_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "redis",
       "versioningTemplate": "docker"
     }
   ],
   "packageRules": [
     {
       "matchDatasources": ["docker"],
-      "groupName": "docker images",
+      "groupName": "monitoring stack",
+      "matchPackageNames": [
+        "prom/prometheus",
+        "grafana/grafana",
+        "grafana/loki",
+        "grafana/promtail",
+        "prom/alertmanager",
+        "prom/node-exporter",
+        "prom/blackbox-exporter",
+        "gcr.io/cadvisor/cadvisor",
+        "prometheuscommunity/smartctl-exporter",
+        "netdata/netdata"
+      ],
       "separateMajorMinor": true,
       "automerge": false
+    },
+    {
+      "matchDatasources": ["docker"],
+      "groupName": "storage and backup",
+      "matchPackageNames": [
+        "nextcloud",
+        "mariadb",
+        "postgres",
+        "kopia/kopia",
+        "redis"
+      ],
+      "separateMajorMinor": true,
+      "automerge": false
+    },
+    {
+      "matchDatasources": ["docker"],
+      "groupName": "networking",
+      "matchPackageNames": [
+        "qmcgaw/gluetun",
+        "lscr.io/linuxserver/qbittorrent",
+        "ghcr.io/slskd/slskd",
+        "jc21/nginx-proxy-manager"
+      ],
+      "separateMajorMinor": true,
+      "automerge": false
+    },
+    {
+      "matchDatasources": ["docker"],
+      "groupName": "management tools",
+      "matchPackageNames": [
+        "portainer/portainer-ce",
+        "crazymax/diun",
+        "louislam/uptime-kuma",
+        "amir20/dozzle",
+        "ghcr.io/gethomepage/homepage",
+        "willfarrell/autoheal"
+      ],
+      "separateMajorMinor": true,
+      "automerge": false
+    },
+    {
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["gitea/gitea"],
+      "groupName": "git server",
+      "separateMajorMinor": true,
+      "automerge": false
+    },
+    {
+      "matchDatasources": ["docker"],
+      "matchUpdateTypes": ["major"],
+      "labels": ["major-update"],
+      "automerge": false
+    },
+    {
+      "matchDatasources": ["docker"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "labels": ["minor-update"],
+      "automerge": false
+    },
+    {
+      "matchDatasources": ["docker"],
+      "matchPackageNames": [
+        "qmcgaw/gluetun",
+        "crazymax/diun",
+        "louislam/uptime-kuma",
+        "amir20/dozzle",
+        "ghcr.io/gethomepage/homepage",
+        "netdata/netdata",
+        "willfarrell/autoheal"
+      ],
+      "matchCurrentVersion": "latest",
+      "enabled": false,
+      "description": "Don't update packages pinned to 'latest' tag"
     }
-  ]
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"]
+  }
 }
-

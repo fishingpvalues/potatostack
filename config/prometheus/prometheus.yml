@@ -47,6 +47,66 @@ scrape_configs:
           service: 'backup'
           instance: 'lepotato'
 
+  # Blackbox Exporter - HTTP/HTTPS probes for service uptime monitoring
+  - job_name: 'blackbox-http'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - http://gluetun:8080                  # qBittorrent (via VPN)
+          - http://gluetun:2234                  # slskd (via VPN)
+          - http://gluetun:8000/v1/vpn/status    # Gluetun VPN status
+          - http://grafana:3000                  # Grafana
+          - http://prometheus:9090               # Prometheus
+          - http://nextcloud:80                  # Nextcloud
+          - http://gitea:3000                    # Gitea
+          - http://portainer:9000                # Portainer
+          - http://nginx-proxy-manager:81        # NPM Admin
+          - http://homepage:3000                 # Homepage
+          - http://uptime-kuma:3001              # Uptime Kuma
+          - http://dozzle:8080                   # Dozzle
+          - http://alertmanager:9093             # Alertmanager
+          - http://netdata:19999                 # Netdata
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  - job_name: 'blackbox-https'
+    metrics_path: /probe
+    params:
+      module: [https_2xx]
+    static_configs:
+      - targets:
+          - https://kopia:51515                  # Kopia Server (self-signed)
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  - job_name: 'blackbox-tcp'
+    metrics_path: /probe
+    params:
+      module: [tcp_connect]
+    static_configs:
+      - targets:
+          - nextcloud-db:3306                    # MariaDB
+          - gitea-db:5432                        # PostgreSQL
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
   # Nginx Proxy Manager does not expose Prometheus metrics by default; remove noisy scrape
 
   - job_name: 'docker-containers'

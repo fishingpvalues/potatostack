@@ -98,7 +98,7 @@ if $DC ps &> /dev/null; then
     echo -e "  ${GREEN}→${NC} Running services: $RUNNING_SERVICES / $TOTAL_SERVICES"
 
     # Check critical services
-    check "Surfshark VPN is running" "$DC ps surfshark | grep -q Up" true
+    check "Gluetun VPN is running" "$DC ps gluetun | grep -q Up" true
     check "Prometheus is running" "$DC ps prometheus | grep -q Up" false
     check "Grafana is running" "$DC ps grafana | grep -q Up" false
     check "Kopia is running" "$DC ps kopia | grep -q Up" false
@@ -110,20 +110,33 @@ echo ""
 
 # 4. VPN CHECKS
 echo -e "${BLUE}[4] VPN & NETWORK SECURITY${NC}"
-if docker ps --filter "name=surfshark" --filter "status=running" | grep -q surfshark; then
-    # Check VPN IP
-    VPN_IP=$(docker exec surfshark curl -s --max-time 10 ipinfo.io/ip 2>/dev/null || echo "FAILED")
+if docker ps --filter "name=gluetun" --filter "status=running" | grep -q gluetun; then
+    # Check VPN IP via Gluetun HTTP control server
+    VPN_IP_JSON=$(curl -s --max-time 5 http://localhost:8000/v1/publicip/ip 2>/dev/null || echo "FAILED")
+    if [ "$VPN_IP_JSON" != "FAILED" ]; then
+        VPN_IP=$(echo "$VPN_IP_JSON" | grep -o '"public_ip":"[^"]*"' | cut -d'"' -f4)
+    else
+        VPN_IP=$(docker exec gluetun wget -qO- https://ipinfo.io/ip 2>/dev/null || echo "FAILED")
+    fi
+
     LOCAL_IP=$(curl -s --max-time 10 ipinfo.io/ip 2>/dev/null || echo "FAILED")
 
     if [ "$VPN_IP" != "FAILED" ] && [ "$VPN_IP" != "$LOCAL_IP" ]; then
         echo -e "  ${GREEN}✓${NC} VPN IP: $VPN_IP"
-        check "qBittorrent using VPN" "docker exec surfshark curl -s --max-time 10 ipinfo.io/ip | grep -q $VPN_IP" true
+
+        # Check VPN status via HTTP API
+        VPN_STATUS=$(curl -s --max-time 5 http://localhost:8000/v1/vpn/status 2>/dev/null | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
+        if [ "$VPN_STATUS" = "running" ]; then
+            echo -e "  ${GREEN}✓${NC} VPN status: running"
+        fi
+
+        check "qBittorrent using VPN network" "docker exec gluetun wget -qO- --timeout=5 http://localhost:8080 2>/dev/null | grep -q 'qBittorrent'" true
     else
         echo -e "  ${RED}✗ VPN check failed or VPN IP matches local IP${NC}"
         FAILED_CHECKS=$((FAILED_CHECKS + 1))
     fi
 else
-    echo -e "${YELLOW}  Surfshark not running, skipping VPN checks${NC}"
+    echo -e "${YELLOW}  Gluetun not running, skipping VPN checks${NC}"
 fi
 echo ""
 

@@ -1,8 +1,7 @@
 - Read kopia docs all and create .kopiaignore file in docker-compose or make sure reasobabnle defaults are set scan my device for typical  files and create g ood file
-- should i compress my kopia snapshots? whjats tbe best algorithm?
 • Here’s a quick readout of what you already have, then my prioritized gap analysis. If you’d like, I can run a focused
   web scan for comparable ARM64 homelab stacks and refine these findings.
-
+│ > can i make a vault for passwords on my root device not container like a vaulkt which paress these env variables automatically or is there even a container?      
   What You Already Have
 
   - Core: Surfshark VPN with killswitch, qBittorrent + slskd on the VPN (good use of network_mode: service:surfshark).
@@ -27,21 +26,7 @@
     Optional: fritzbox_exporter since your docs assume a Fritz!Box.
   - Ingress Policy Hardening: Add security_opt: no-new-privileges:true, read_only: true, and cap_drop: [ALL] to
     non‑privileged services; mount tmpfs for /tmp where feasible. This is a simple but high‑value hardening pass.
-  - VPN Engine Choice: Consider qmcgaw/gluetun for the VPN base (supports Surfshark, robust firewall/killswitch, rich
     metrics). Your current Surfshark image works, but Gluetun gives reliability + exporter‑friendly metrics.
-  - Secrets Management: Move sensitive envs to Docker secrets or manage .env with sops+age and a short doc for key
-    rotation. CI already does secret scanning; this closes the loop operationally.
-  - UPS/NUT Support: Add a network-ups-tools container and a Prometheus NUT exporter to protect against power loss and
-    track battery health.
-  - Long‑Term Metrics: Your guidelines mention a longterm-metrics profile with Thanos, but it’s not in compose. If you
-    want extended retention off‑box, add Thanos sidecars/compactor as an optional profile.
-  - Compose Policy vs Bindings: OPA denies 0.0.0.0: bindings; many services default to HOST_BIND=0.0.0.0. Either
-    set HOST_BIND to your LAN IP (preferred) or relax the rule for explicitly LAN‑bound use. See policy/docker-
-    compose.rego:139 and your use of HOST_BIND in docker-compose.yml.
-  - Healthchecks: Add container healthchecks for qBittorrent, slskd, Nextcloud, Grafana, NPM (you already have
-    several). This tightens depends_on gating and improves kube‑like resilience.
-
-  Nice‑To‑Have Enhancements
 
   - DNS & Ad‑block: Optional Pi‑hole/AdGuard Home + Unbound (SBC‑friendly if constrained).
   - Nextcloud Performance: Switch to nextcloud:fpm + an nginx container when you have margin; keep the current image

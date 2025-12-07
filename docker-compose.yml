@@ -3,9 +3,9 @@ version: '3.8'
 ################################################################################
 # POTATOSTACK - Fully Integrated Stack for Le Potato SBC
 # Optimized for ARM64 with 2GB RAM
-# Includes: VPN (Surfshark), P2P (qBittorrent, slskd/Soulseek), Backups (Kopia),
+# Includes: VPN (Gluetun), P2P (qBittorrent, slskd/Soulseek), Backups (Kopia),
 #           Storage (Nextcloud), Monitoring (Prometheus, Grafana, Loki),
-#           Management (Portainer, Watchtower, Uptime Kuma, Dozzle),
+#           Management (Portainer, Diun, Uptime Kuma, Dozzle),
 #           Git (Gitea), Reverse Proxy (Nginx Proxy Manager), Dashboard (Homepage)
 ################################################################################
 
@@ -40,62 +40,114 @@ volumes:
 services:
 
   ############################################################################
-  # VPN STACK - Surfshark with killswitch for P2P traffic
+  # VPN STACK - Gluetun (Universal VPN Client) with Surfshark + Killswitch
+  # Replaces ilteoood/docker-surfshark for better reliability, metrics, and firewall
   ############################################################################
 
-  surfshark:
-    image: ilteoood/docker-surfshark:${SURFSHARK_TAG:-latest}
-    container_name: surfshark
-    hostname: surfshark
+  gluetun:
+    image: qmcgaw/gluetun:${GLUETUN_TAG:-latest}
+    container_name: gluetun
+    hostname: gluetun-vpn
     restart: unless-stopped
     cap_add:
       - NET_ADMIN
     devices:
-      - /dev/net/tun
+      - /dev/net/tun:/dev/net/tun
     environment:
-      - SURFSHARK_USER=${SURFSHARK_USER}  # Set in .env file
-      - SURFSHARK_PASSWORD=${SURFSHARK_PASSWORD}  # Set in .env file
-      - SURFSHARK_COUNTRY=${SURFSHARK_COUNTRY:-nl}  # e.g., nl
-      - SURFSHARK_CITY=${SURFSHARK_CITY:-ams}  # e.g., ams
-      - CONNECTION_TYPE=${SURFSHARK_CONNECTION_TYPE:-openvpn}  # openvpn or wireguard
-      - LAN_NETWORK=${LAN_NETWORK:-192.168.178.0/24}
-      - DNS=${VPN_DNS:-1.1.1.1,1.0.0.1}
+      # VPN Provider Configuration
+      - VPN_SERVICE_PROVIDER=surfshark
+      - VPN_TYPE=${SURFSHARK_CONNECTION_TYPE:-openvpn}  # openvpn or wireguard
+
+      # OpenVPN Credentials (from .env)
+      - OPENVPN_USER=${SURFSHARK_USER}
+      - OPENVPN_PASSWORD=${SURFSHARK_PASSWORD}
+
+      # Server Selection
+      - SERVER_COUNTRIES=${SURFSHARK_COUNTRY:-Netherlands}
+      - SERVER_CITIES=${SURFSHARK_CITY:-Amsterdam}
+
+      # Firewall & Killswitch (CRITICAL - enforces VPN-only traffic)
+      - FIREWALL_OUTBOUND_SUBNETS=${LAN_NETWORK:-192.168.178.0/24}  # Allow LAN access
+      - FIREWALL_VPN_INPUT_PORTS=6881  # Allow P2P incoming
+      - FIREWALL_INPUT_PORTS=  # Block all other incoming (security)
+      - FIREWALL=on  # Enable built-in killswitch firewall
+
+      # DNS Configuration
+      - DNS_ADDRESS=${VPN_DNS:-1.1.1.1}
+      - DOT=off  # Disable DNS-over-TLS (optional, enable for privacy)
+
+      # Health Check Server (HTTP API on port 8000)
+      - HTTPPROXY=off  # Disable HTTP proxy (not needed)
+      - SHADOWSOCKS=off  # Disable Shadowsocks proxy (not needed)
+      - HTTP_CONTROL_SERVER_ADDRESS=:8000
+      - HTTP_CONTROL_SERVER_LOG=on
+
+      # Timezone
+      - TZ=Europe/Berlin
+
+      # Advanced Settings
+      - HEALTH_VPN_DURATION_INITIAL=20s  # Initial VPN health check delay
+      - HEALTH_VPN_DURATION_ADDITION=5s  # Additional time per retry
+      - UPDATER_PERIOD=24h  # Update server list daily
+      - PUBLICIP_PERIOD=12h  # Check public IP every 12h
+      - LOG_LEVEL=info
+
+      # IPv6 (disable for compatibility)
+      - IPV6=off
+
     networks:
       - vpn
       - monitoring
+
     ports:
       # qBittorrent WebUI
       - "${HOST_BIND:-0.0.0.0}:8080:8080"
       # slskd WebUI
       - "${HOST_BIND:-0.0.0.0}:2234:2234"
-      # P2P ports
+      # P2P ports (BitTorrent, Soulseek)
       - "${HOST_BIND:-0.0.0.0}:6881:6881"
       - "${HOST_BIND:-0.0.0.0}:6881:6881/udp"
+      # Gluetun HTTP Control Server (health checks, metrics)
+      - "${HOST_BIND:-0.0.0.0}:8000:8000"
+
+    # Security: Mark source packets for VPN routing
     sysctls:
       - net.ipv4.conf.all.src_valid_mark=1
       - net.ipv6.conf.all.disable_ipv6=1
+
+    # Healthcheck: Use Gluetun's built-in HTTP control server
     healthcheck:
-      test: ["CMD", "curl", "--fail", "https://ipinfo.io/ip"]
-      interval: 5m
-      timeout: 20s
+      test: ["CMD", "wget", "--spider", "--quiet", "http://localhost:8000/v1/publicip/ip"]
+      interval: 1m
+      timeout: 10s
       retries: 3
       start_period: 30s
+
+    # Resource limits (ARM64 SBC-optimized)
     mem_limit: 256m
     mem_reservation: 128m
     cpus: 1
+
     logging:
       options:
         max-size: '10m'
         max-file: '3'
+
+    labels:
+      - "homepage.group=Infrastructure"
+      - "homepage.name=Gluetun VPN"
+      - "homepage.icon=si-wireguard"
+      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:8000"
+      - "homepage.description=VPN killswitch (Surfshark)"
 
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:${QBITTORRENT_TAG:-latest}
     container_name: qbittorrent
     hostname: qbittorrent
     restart: unless-stopped
-    network_mode: service:surfshark
+    network_mode: service:gluetun
     depends_on:
-      surfshark:
+      gluetun:
         condition: service_healthy
     environment:
       - PUID=1000
@@ -107,6 +159,12 @@ services:
       - /mnt/seconddrive/qbittorrent/config:/config
       - /mnt/cachehdd/torrents:/downloads
       - /mnt/cachehdd/torrents/incomplete:/incomplete
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     labels:
       - "homepage.group=Media & Downloads"
       - "homepage.name=qBittorrent"
@@ -114,10 +172,9 @@ services:
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:8080"
       - "homepage.description=Torrent client via VPN"
       - "homepage.widget.type=qbittorrent"
-      - "homepage.widget.url=http://surfshark:8080"
+      - "homepage.widget.url=http://gluetun:8080"
       - "homepage.widget.username=admin"
       - "homepage.widget.password={{HOMEPAGE_VAR_QBITTORRENT_PASSWORD}}"
-      - "com.centurylinklabs.watchtower.enable=true"
     mem_limit: 512m
     mem_reservation: 256m
     cpus: 1.5
@@ -131,9 +188,9 @@ services:
     container_name: slskd
     hostname: slskd
     restart: unless-stopped
-    network_mode: service:surfshark
+    network_mode: service:gluetun
     depends_on:
-      surfshark:
+      gluetun:
         condition: service_healthy
     environment:
       - PUID=1000
@@ -150,13 +207,18 @@ services:
       - /mnt/seconddrive/slskd/logs:/app/logs
       - /mnt/cachehdd/soulseek:/var/slskd/shared
       - /mnt/cachehdd/soulseek/incomplete:/var/slskd/incomplete
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:2234 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     labels:
       - "homepage.group=Media & Downloads"
       - "homepage.name=slskd (Soulseek)"
       - "homepage.icon=slskd.png"
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:2234"
       - "homepage.description=Soulseek P2P via VPN (slskd client)"
-      - "com.centurylinklabs.watchtower.enable=true"
     mem_limit: 384m
     mem_reservation: 192m
     cpus: 1
@@ -233,6 +295,66 @@ services:
       - "homepage.description=Encrypted backups"
 
   ############################################################################
+  # DATABASE BACKUPS - Daily mysqldump and pg_dump
+  ############################################################################
+
+  nextcloud-db-backup:
+    image: mariadb:${MARIADB_TAG:-10.11}
+    container_name: nextcloud_db_backup
+    hostname: nextcloud-db-backup
+    restart: unless-stopped
+    networks:
+      - default
+    environment:
+      - MYSQL_PASSWORD=${NEXTCLOUD_DB_PASSWORD}
+    volumes:
+      - /mnt/seconddrive/backups/db:/backups
+    depends_on:
+      nextcloud-db:
+        condition: service_healthy
+    command: >
+      sh -c "
+        set -o pipefail;
+        while true; do
+          echo 'Backing up Nextcloud database...';
+          mysqldump -h nextcloud-db -u nextcloud --password=$$MYSQL_PASSWORD nextcloud | gzip > /backups/nextcloud-db-$$(date +%Y-%m-%d-%H%M).sql.gz && echo 'Nextcloud backup complete.' || echo 'Nextcloud backup failed.';
+          sleep 1d;
+        done
+      "
+    logging:
+      options:
+        max-size: '2m'
+        max-file: '2'
+
+  gitea-db-backup:
+    image: postgres:${POSTGRES_TAG:-14-alpine}
+    container_name: gitea_db_backup
+    hostname: gitea-db-backup
+    restart: unless-stopped
+    networks:
+      - default
+    environment:
+      - PGPASSWORD=${GITEA_DB_PASSWORD}
+    volumes:
+      - /mnt/seconddrive/backups/db:/backups
+    depends_on:
+      gitea-db:
+        condition: service_healthy
+    command: >
+      sh -c "
+        set -o pipefail;
+        while true; do
+          echo 'Backing up Gitea database...';
+          pg_dump -h gitea-db -U gitea -d gitea | gzip > /backups/gitea-db-$$(date +%Y-%m-%d-%H%M).sql.gz && echo 'Gitea backup complete.' || echo 'Gitea backup failed.';
+          sleep 1d;
+        done
+      "
+    logging:
+      options:
+        max-size: '2m'
+        max-file: '2'
+
+  ############################################################################
   # MONITORING STACK - Prometheus, Grafana, Loki, Thanos, Alertmanager
   ############################################################################
 
@@ -297,6 +419,12 @@ services:
     depends_on:
       - prometheus
       - loki
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider --quiet http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     mem_limit: 384m
     mem_reservation: 192m
     cpus: 1
@@ -508,7 +636,6 @@ services:
       - "homepage.icon=netdata.png"
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:19999"
       - "homepage.description=Real-time system monitoring"
-      - "com.centurylinklabs.watchtower.enable=true"
     mem_limit: 256m
     mem_reservation: 128m
     cpus: 1
@@ -516,6 +643,35 @@ services:
       options:
         max-size: '10m'
         max-file: '3'
+
+  blackbox-exporter:
+    image: prom/blackbox-exporter:${BLACKBOX_EXPORTER_TAG:-latest}
+    container_name: blackbox-exporter
+    hostname: blackbox-exporter
+    restart: unless-stopped
+    networks:
+      - monitoring
+      - proxy
+      - default
+    ports:
+      - "${HOST_BIND:-0.0.0.0}:9115:9115"
+    volumes:
+      - ./config/blackbox:/config
+    command:
+      - '--config.file=/config/blackbox.yml'
+    mem_limit: 64m
+    mem_reservation: 32m
+    cpus: 0.25
+    logging:
+      options:
+        max-size: '5m'
+        max-file: '2'
+    labels:
+      - "homepage.group=Monitoring"
+      - "homepage.name=Blackbox Exporter"
+      - "homepage.icon=si-prometheus"
+      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:9115"
+      - "homepage.description=HTTP/TCP probes"
 
   ############################################################################
   # NEXTCLOUD - File sharing and sync
@@ -537,6 +693,11 @@ services:
       - nextcloud_db:/var/lib/mysql
       - ./config/mariadb/low-memory.cnf:/etc/mysql/conf.d/low-memory.cnf:ro
     command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW --innodb-file-per-table=1 --skip-innodb-read-only-compressed
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "--password=${NEXTCLOUD_DB_ROOT_PASSWORD}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
     mem_limit: 256m
     mem_reservation: 128m
     cpus: 0.5
@@ -574,7 +735,14 @@ services:
       - /mnt/cachehdd/torrents:/external/torrents:ro
       - /mnt/cachehdd/soulseek:/external/soulseek:ro
     depends_on:
-      - nextcloud-db
+      nextcloud-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80/status.php || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
     mem_limit: 512m
     mem_reservation: 256m
     cpus: 1.5
@@ -624,6 +792,11 @@ services:
       - POSTGRES_DB=gitea
     volumes:
       - gitea_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gitea -d gitea"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
     mem_limit: 128m
     mem_reservation: 64m
     cpus: 0.5
@@ -657,7 +830,8 @@ services:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     depends_on:
-      - gitea-db
+      gitea-db:
+        condition: service_healthy
     mem_limit: 384m
     mem_reservation: 192m
     cpus: 1
@@ -673,7 +847,7 @@ services:
       - "homepage.description=Git server"
 
   ############################################################################
-  # MANAGEMENT TOOLS - Portainer, Watchtower, Uptime Kuma, Dozzle
+  # MANAGEMENT TOOLS - Portainer, Diun, Uptime Kuma, Dozzle
   ############################################################################
 
   portainer:
@@ -698,32 +872,23 @@ services:
         max-size: '5m'
         max-file: '2'
     labels:
-      - "com.centurylinklabs.watchtower.enable=true"
-      - "homepage.group=Management"
-      - "homepage.name=Portainer"
-      - "homepage.icon=si-portainer"
-      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:9000"
-      - "homepage.description=Docker GUI"
 
-  watchtower:
-    image: containrrr/watchtower:${WATCHTOWER_TAG:-latest}
-    container_name: watchtower
-    hostname: watchtower
+  diun:
+    image: crazymax/diun:${DIUN_TAG:-latest}
+    container_name: diun
+    hostname: diun
     restart: unless-stopped
     networks:
       - monitoring
     environment:
-      - WATCHTOWER_CLEANUP=true
-      - WATCHTOWER_POLL_INTERVAL=86400  # Daily updates
-      - WATCHTOWER_INCLUDE_RESTARTING=true
-      - WATCHTOWER_INCLUDE_STOPPED=false
-      - WATCHTOWER_REVIVE_STOPPED=false
-      - WATCHTOWER_NOTIFICATIONS=shoutrrr
-      - WATCHTOWER_NOTIFICATION_URL=${WATCHTOWER_NOTIFICATION_URL}  # e.g., telegram://token@telegram?channels=channelid
       - TZ=Europe/Berlin
-      - WATCHTOWER_LABEL_ENABLE=true
+      - LOG_LEVEL=info
+      - LOG_JSON=false
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - ./config/diun:/etc/diun:ro
+      - ./data/diun:/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/localtime:/etc/localtime:ro
     mem_limit: 64m
     mem_reservation: 32m
     cpus: 0.25
@@ -731,6 +896,12 @@ services:
       options:
         max-size: '5m'
         max-file: '2'
+    labels:
+      - "homepage.group=Management"
+      - "homepage.name=Diun"
+      - "homepage.icon=mdi-bell-alert"
+      - "homepage.description=Docker image update notifications"
+      - "diun.enable=true"
 
   uptime-kuma:
     image: louislam/uptime-kuma:${UPTIME_KUMA_TAG:-latest}
@@ -754,7 +925,6 @@ services:
         max-size: '10m'
         max-file: '3'
     labels:
-      - "com.centurylinklabs.watchtower.enable=true"
 
   dozzle:
     image: amir20/dozzle:${DOZZLE_TAG:-latest}
@@ -779,7 +949,38 @@ services:
         max-size: '5m'
         max-file: '2'
     labels:
-      - "com.centurylinklabs.watchtower.enable=true"
+
+  ############################################################################
+  # AUTOHEAL - Automatically restart unhealthy containers
+  ############################################################################
+
+  autoheal:
+    image: willfarrell/autoheal:${AUTOHEAL_TAG:-latest}
+    container_name: autoheal
+    hostname: autoheal
+    restart: unless-stopped
+    networks:
+      - default
+    environment:
+      - AUTOHEAL_CONTAINER_LABEL=all  # Monitor all containers with healthchecks
+      - AUTOHEAL_INTERVAL=10  # Check every 10 seconds
+      - AUTOHEAL_START_PERIOD=300  # Wait 5 minutes after container start
+      - AUTOHEAL_DEFAULT_STOP_TIMEOUT=10  # Wait 10s before force-killing
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/localtime:/etc/localtime:ro
+    mem_limit: 64m
+    mem_reservation: 32m
+    cpus: 0.25
+    logging:
+      options:
+        max-size: '5m'
+        max-file: '2'
+    labels:
+      - "homepage.group=Management"
+      - "homepage.name=Autoheal"
+      - "homepage.icon=mdi-heart-pulse"
+      - "homepage.description=Auto-restart unhealthy containers"
 
   ############################################################################
   # REVERSE PROXY & DASHBOARD
@@ -803,6 +1004,12 @@ services:
     volumes:
       - npm_data:/data
       - npm_ssl:/etc/letsencrypt
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider --quiet http://localhost:81 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     mem_limit: 256m
     mem_reservation: 128m
     cpus: 1
@@ -844,4 +1051,3 @@ services:
         max-size: '5m'
         max-file: '2'
     labels:
-      - "com.centurylinklabs.watchtower.enable=true"
