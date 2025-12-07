@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 ################################################################################
 # POTATOSTACK - Fully Integrated Stack for Le Potato SBC
@@ -38,7 +38,6 @@ volumes:
   npm_db:
 
 services:
-
   ############################################################################
   # VPN STACK - Gluetun (Universal VPN Client) with Surfshark + Killswitch
   # Replaces ilteoood/docker-surfshark for better reliability, metrics, and firewall
@@ -56,7 +55,7 @@ services:
     environment:
       # VPN Provider Configuration
       - VPN_SERVICE_PROVIDER=surfshark
-      - VPN_TYPE=${SURFSHARK_CONNECTION_TYPE:-openvpn}  # openvpn or wireguard
+      - VPN_TYPE=${SURFSHARK_CONNECTION_TYPE:-openvpn} # openvpn or wireguard
 
       # OpenVPN Credentials (from .env)
       - OPENVPN_USER=${SURFSHARK_USER}
@@ -67,18 +66,18 @@ services:
       - SERVER_CITIES=${SURFSHARK_CITY:-Amsterdam}
 
       # Firewall & Killswitch (CRITICAL - enforces VPN-only traffic)
-      - FIREWALL_OUTBOUND_SUBNETS=${LAN_NETWORK:-192.168.178.0/24}  # Allow LAN access
-      - FIREWALL_VPN_INPUT_PORTS=6881  # Allow P2P incoming
-      - FIREWALL_INPUT_PORTS=  # Block all other incoming (security)
-      - FIREWALL=on  # Enable built-in killswitch firewall
+      - FIREWALL_OUTBOUND_SUBNETS=${LAN_NETWORK:-192.168.178.0/24} # Allow LAN access
+      - FIREWALL_VPN_INPUT_PORTS=6881 # Allow P2P incoming
+      - FIREWALL_INPUT_PORTS= # Block all other incoming (security)
+      - FIREWALL=on # Enable built-in killswitch firewall
 
       # DNS Configuration
       - DNS_ADDRESS=${VPN_DNS:-1.1.1.1}
-      - DOT=off  # Disable DNS-over-TLS (optional, enable for privacy)
+      - DOT=off # Disable DNS-over-TLS (optional, enable for privacy)
 
       # Health Check Server (HTTP API on port 8000)
-      - HTTPPROXY=off  # Disable HTTP proxy (not needed)
-      - SHADOWSOCKS=off  # Disable Shadowsocks proxy (not needed)
+      - HTTPPROXY=off # Disable HTTP proxy (not needed)
+      - SHADOWSOCKS=off # Disable Shadowsocks proxy (not needed)
       - HTTP_CONTROL_SERVER_ADDRESS=:8000
       - HTTP_CONTROL_SERVER_LOG=on
 
@@ -86,10 +85,10 @@ services:
       - TZ=Europe/Berlin
 
       # Advanced Settings
-      - HEALTH_VPN_DURATION_INITIAL=20s  # Initial VPN health check delay
-      - HEALTH_VPN_DURATION_ADDITION=5s  # Additional time per retry
-      - UPDATER_PERIOD=24h  # Update server list daily
-      - PUBLICIP_PERIOD=12h  # Check public IP every 12h
+      - HEALTH_VPN_DURATION_INITIAL=20s # Initial VPN health check delay
+      - HEALTH_VPN_DURATION_ADDITION=5s # Additional time per retry
+      - UPDATER_PERIOD=24h # Update server list daily
+      - PUBLICIP_PERIOD=12h # Check public IP every 12h
       - LOG_LEVEL=info
 
       # IPv6 (disable for compatibility)
@@ -117,7 +116,14 @@ services:
 
     # Healthcheck: Use Gluetun's built-in HTTP control server
     healthcheck:
-      test: ["CMD", "wget", "--spider", "--quiet", "http://localhost:8000/v1/publicip/ip"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--spider",
+          "--quiet",
+          "http://localhost:8000/v1/publicip/ip",
+        ]
       interval: 1m
       timeout: 10s
       retries: 3
@@ -130,8 +136,8 @@ services:
 
     logging:
       options:
-        max-size: '10m'
-        max-file: '3'
+        max-size: "10m"
+        max-file: "3"
 
     labels:
       - "homepage.group=Infrastructure"
@@ -180,11 +186,11 @@ services:
     cpus: 1.5
     logging:
       options:
-        max-size: '10m'
-        max-file: '3'
+        max-size: "10m"
+        max-file: "3"
 
   slskd:
-    image: ghcr.io/slskd/slskd:${SLSKD_TAG:-latest}  # slskd - Modern Soulseek daemon with web UI
+    image: ghcr.io/slskd/slskd:${SLSKD_TAG:-latest} # slskd - Modern Soulseek daemon with web UI
     container_name: slskd
     hostname: slskd
     restart: unless-stopped
@@ -224,8 +230,8 @@ services:
     cpus: 1
     logging:
       options:
-        max-size: '10m'
-        max-file: '3'
+        max-size: "10m"
+        max-file: "3"
 
   ############################################################################
   # BACKUP - Kopia Server (from existing config)
@@ -285,8 +291,8 @@ services:
     cpus: 2
     logging:
       options:
-        max-size: '10m'
-        max-file: '3'
+        max-size: "10m"
+        max-file: "3"
     labels:
       - "homepage.group=Storage & Backup"
       - "homepage.name=Kopia"
@@ -323,8 +329,8 @@ services:
       "
     logging:
       options:
-        max-size: '2m'
-        max-file: '2'
+        max-size: "2m"
+        max-file: "2"
 
   gitea-db-backup:
     image: postgres:${POSTGRES_TAG:-14-alpine}
@@ -351,8 +357,8 @@ services:
       "
     logging:
       options:
-        max-size: '2m'
-        max-file: '2'
+        max-size: "2m"
+        max-file: "2"
 
   ############################################################################
   # MONITORING STACK - Prometheus, Grafana, Loki, Thanos, Alertmanager
@@ -369,12 +375,12 @@ services:
     ports:
       - "${HOST_BIND:-0.0.0.0}:9090:9090"
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=${PROMETHEUS_RETENTION_DAYS:-14d}'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--web.enable-lifecycle'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=${PROMETHEUS_RETENTION_DAYS:-14d}"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--web.enable-lifecycle"
     volumes:
       - ./config/prometheus:/etc/prometheus
       - prometheus_data:/prometheus
@@ -388,8 +394,8 @@ services:
     cpus: 1
     logging:
       options:
-        max-size: '10m'
-        max-file: '3'
+        max-size: "10m"
+        max-file: "3"
     labels:
       - "homepage.group=Monitoring"
       - "homepage.name=Prometheus"
@@ -420,7 +426,11 @@ services:
       - prometheus
       - loki
     healthcheck:
-      test: ["CMD-SHELL", "wget --spider --quiet http://localhost:3000/api/health || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --spider --quiet http://localhost:3000/api/health || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -430,8 +440,8 @@ services:
     cpus: 1
     logging:
       options:
-        max-size: '10m'
-        max-file: '3'
+        max-size: "10m"
+        max-file: "3"
     labels:
       - "homepage.group=Monitoring"
       - "homepage.name=Grafana"
@@ -457,8 +467,8 @@ services:
     cpus: 0.5
     logging:
       options:
-        max-size: '10m'
-        max-file: '3'
+        max-size: "10m"
+        max-file: "3"
 
   promtail:
     image: grafana/promtail:${PROMTAIL_TAG:-latest}
@@ -483,8 +493,8 @@ services:
     cpus: 0.5
     logging:
       options:
-        max-size: '10m'
-        max-file: '3'
+        max-size: "10m"
+        max-file: "3"
 
   alertmanager:
     image: prom/alertmanager:${ALERTMANAGER_TAG:-latest}
@@ -504,22 +514,21 @@ services:
       - ./config/alertmanager:/etc/alertmanager
       - alertmanager_data:/alertmanager
     command:
-      - '--config.file=/etc/alertmanager/config.yml'
-      - '--storage.path=/alertmanager'
+      - "--config.file=/etc/alertmanager/config.yml"
+      - "--storage.path=/alertmanager"
     mem_limit: 128m
     mem_reservation: 64m
     cpus: 0.5
     logging:
       options:
-        max-size: '10m'
-        max-file: '3'
+        max-size: "10m"
+        max-file: "3"
     labels:
       - "homepage.group=Monitoring"
       - "homepage.name=Alertmanager"
       - "homepage.icon=si-prometheus"
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:9093"
       - "homepage.description=Alert routing"
-
 
   ############################################################################
   # SYSTEM MONITORING - Node Exporter, cAdvisor, SMART
@@ -535,10 +544,10 @@ services:
     ports:
       - "${HOST_BIND:-0.0.0.0}:9100:9100"
     command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--path.rootfs=/rootfs'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/rootfs"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -548,8 +557,8 @@ services:
     cpus: 0.25
     logging:
       options:
-        max-size: '5m'
-        max-file: '2'
+        max-size: "5m"
+        max-file: "2"
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:${CADVISOR_TAG:-latest}
@@ -574,8 +583,8 @@ services:
     cpus: 0.5
     logging:
       options:
-        max-size: '10m'
-        max-file: '3'
+        max-size: "10m"
+        max-file: "3"
     command:
       - "--docker_only=true"
       - "--housekeeping_interval=15s"
@@ -599,8 +608,8 @@ services:
     cpus: 0.25
     logging:
       options:
-        max-size: '5m'
-        max-file: '2'
+        max-size: "5m"
+        max-file: "2"
 
   netdata:
     image: netdata/netdata:${NETDATA_TAG:-latest}
@@ -641,8 +650,8 @@ services:
     cpus: 1
     logging:
       options:
-        max-size: '10m'
-        max-file: '3'
+        max-size: "10m"
+        max-file: "3"
 
   blackbox-exporter:
     image: prom/blackbox-exporter:${BLACKBOX_EXPORTER_TAG:-latest}
@@ -658,14 +667,14 @@ services:
     volumes:
       - ./config/blackbox:/config
     command:
-      - '--config.file=/config/blackbox.yml'
+      - "--config.file=/config/blackbox.yml"
     mem_limit: 64m
     mem_reservation: 32m
     cpus: 0.25
     logging:
       options:
-        max-size: '5m'
-        max-file: '2'
+        max-size: "5m"
+        max-file: "2"
     labels:
       - "homepage.group=Monitoring"
       - "homepage.name=Blackbox Exporter"
@@ -694,7 +703,17 @@ services:
       - ./config/mariadb/low-memory.cnf:/etc/mysql/conf.d/low-memory.cnf:ro
     command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW --innodb-file-per-table=1 --skip-innodb-read-only-compressed
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "--password=${NEXTCLOUD_DB_ROOT_PASSWORD}"]
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "--password=${NEXTCLOUD_DB_ROOT_PASSWORD}",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -703,8 +722,8 @@ services:
     cpus: 0.5
     logging:
       options:
-        max-size: '10m'
-        max-file: '3'
+        max-size: "10m"
+        max-file: "3"
 
   nextcloud:
     image: nextcloud:${NEXTCLOUD_TAG:-stable}
@@ -748,8 +767,8 @@ services:
     cpus: 1.5
     logging:
       options:
-        max-size: '10m'
-        max-file: '3'
+        max-size: "10m"
+        max-file: "3"
     labels:
       - "homepage.group=Storage & Backup"
       - "homepage.name=Nextcloud"
@@ -764,14 +783,25 @@ services:
     restart: unless-stopped
     networks:
       - default
-    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
+    command:
+      [
+        "redis-server",
+        "--save",
+        "",
+        "--appendonly",
+        "no",
+        "--maxmemory",
+        "64mb",
+        "--maxmemory-policy",
+        "allkeys-lru",
+      ]
     mem_limit: 96m
     mem_reservation: 48m
     cpus: 0.5
     logging:
       options:
-        max-size: '5m'
-        max-file: '2'
+        max-size: "5m"
+        max-file: "2"
 
   ############################################################################
   # GITEA - Git server
@@ -800,8 +830,8 @@ services:
     cpus: 0.5
     logging:
       options:
-        max-size: '10m'
-        max-file: '3'
+        max-size: "10m"
+        max-file: "3"
 
   gitea:
     image: gitea/gitea:${GITEA_TAG:-latest}
@@ -841,8 +871,8 @@ services:
     cpus: 1
     logging:
       options:
-        max-size: '10m'
-        max-file: '3'
+        max-size: "10m"
+        max-file: "3"
     labels:
       - "homepage.group=Infrastructure"
       - "homepage.name=Gitea"
@@ -873,9 +903,8 @@ services:
     cpus: 0.5
     logging:
       options:
-        max-size: '5m'
-        max-file: '2'
-    labels:
+        max-size: "5m"
+        max-file: "2"
 
   diun:
     image: crazymax/diun:${DIUN_TAG:-latest}
@@ -898,8 +927,8 @@ services:
     cpus: 0.25
     logging:
       options:
-        max-size: '5m'
-        max-file: '2'
+        max-size: "5m"
+        max-file: "2"
     labels:
       - "homepage.group=Management"
       - "homepage.name=Diun"
@@ -926,9 +955,8 @@ services:
     cpus: 0.5
     logging:
       options:
-        max-size: '10m'
-        max-file: '3'
-    labels:
+        max-size: "10m"
+        max-file: "3"
 
   dozzle:
     image: amir20/dozzle:${DOZZLE_TAG:-latest}
@@ -950,9 +978,8 @@ services:
     cpus: 0.25
     logging:
       options:
-        max-size: '5m'
-        max-file: '2'
-    labels:
+        max-size: "5m"
+        max-file: "2"
 
   ############################################################################
   # AUTOHEAL - Automatically restart unhealthy containers
@@ -966,10 +993,10 @@ services:
     networks:
       - default
     environment:
-      - AUTOHEAL_CONTAINER_LABEL=all  # Monitor all containers with healthchecks
-      - AUTOHEAL_INTERVAL=10  # Check every 10 seconds
-      - AUTOHEAL_START_PERIOD=300  # Wait 5 minutes after container start
-      - AUTOHEAL_DEFAULT_STOP_TIMEOUT=10  # Wait 10s before force-killing
+      - AUTOHEAL_CONTAINER_LABEL=all # Monitor all containers with healthchecks
+      - AUTOHEAL_INTERVAL=10 # Check every 10 seconds
+      - AUTOHEAL_START_PERIOD=300 # Wait 5 minutes after container start
+      - AUTOHEAL_DEFAULT_STOP_TIMEOUT=10 # Wait 10s before force-killing
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /etc/localtime:/etc/localtime:ro
@@ -978,8 +1005,8 @@ services:
     cpus: 0.25
     logging:
       options:
-        max-size: '5m'
-        max-file: '2'
+        max-size: "5m"
+        max-file: "2"
     labels:
       - "homepage.group=Management"
       - "homepage.name=Autoheal"
@@ -1019,8 +1046,8 @@ services:
     cpus: 1
     logging:
       options:
-        max-size: '10m'
-        max-file: '3'
+        max-size: "10m"
+        max-file: "3"
     labels:
       - "homepage.group=Infrastructure"
       - "homepage.name=Nginx Proxy Manager"
@@ -1052,6 +1079,5 @@ services:
     cpus: 0.5
     logging:
       options:
-        max-size: '5m'
-        max-file: '2'
-    labels:
+        max-size: "5m"
+        max-file: "2"
