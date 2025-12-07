@@ -34,3 +34,119 @@
     CVEs.
 
   - Add backup-cron container that runs nightly mysqldump/pg_dump into /mnt/seconddrive/backups/db/.
+
+🔴 CRITICAL GAPS (Implement First)
+1. Secrets Management 
+- Status: Not implemented
+- Impact: HIGH - Prevents credential leaks in git
+- Current Issue: .env file contains sensitive passwords that could be committed
+- Solution: Implement sops + age encryption for .env file
+- Effort: 30 minutes
+2. Offsite Backup Strategy
+- Status: Local Kopia backups only  
+- Impact: HIGH - No disaster recovery for drive failure/fire/theft
+- Missing: Cloud backup (S3/Backblaze B2/Wasabi) or external USB sync
+- Current: Only local /mnt/seconddrive/kopia/ repository
+3. Container Security Hardening
+- Status: Partially implemented
+- Impact: MEDIUM - Reduces container escape risk
+- Missing: security_opt, read_only, cap_drop for non-privileged services
+- Applied to: Only some services currently
+🟡 HIGH PRIORITY (Implement Soon)
+4. HTTP Service Monitoring (Blackbox Exporter)
+- Status: Container exists but not fully configured
+- Impact: MEDIUM - Proactive uptime detection
+- Missing: Prometheus scrape config for service health checks
+- Current: Blackbox exporter container present but unused
+5. Single Sign-On (SSO) with Authelia
+- Status: Not implemented
+- Impact: MEDIUM - Unified authentication
+- Missing: Authelia container + OAuth2 proxy configuration
+- Benefits: One login for Grafana, Nextcloud, Gitea, Portainer
+6. Zero-Trust Remote Access
+- Status: Not implemented
+- Impact: MEDIUM - Secure external access
+- Missing: Tailscale or Cloudflare Tunnel setup
+- Current: Only local LAN access
+7. Thanos for Long-Term Metrics
+- Status: Not implemented
+- Impact: LOW - Extended metric retention
+- Missing: Thanos sidecar/compactor for >14 day retention
+- Current: Prometheus limited to 14 days
+🟢 MEDIUM PRIORITY (Nice to Have)
+8. UPS Monitoring (NUT)
+- Status: Not implemented
+- Impact: LOW - Power failure protection
+- Missing: Network UPS Tools + nut-exporter
+- Prerequisite: Physical UPS connected to Le Potato
+9. Internet Speed Monitoring
+- Status: Not implemented  
+- Impact: LOW - ISP performance tracking
+- Missing: speedtest-exporter container
+- Benefits: Historical bandwidth monitoring
+10. DNS & Ad Blocking (Pi-hole)
+- Status: Not implemented
+- Impact: LOW - Network-wide ad blocking
+- Missing: Pi-hole + Unbound containers
+- Benefits: Faster browsing, privacy
+11. Advanced Grafana Dashboards
+- Status: Partially implemented
+- Impact: LOW - Better monitoring UX
+- Missing: Dashboards for Blackbox, Netdata, UPS monitoring
+- Current: Basic dashboards exist but could be enhanced
+12. Automated Renovate PR Processing
+- Status: renovate.json exists but not wired to Gitea
+- Impact: LOW - Automated dependency updates
+- Missing: Webhook integration with Gitea
+- Current: Renovate creates PRs but manual merging required
+🔵 OPTIONAL/ENHANCEMENT FEATURES
+13. Nextcloud Performance Optimization
+- Status: Basic setup only
+- Impact: LOW - Better file sync performance
+- Missing: Nextcloud FPM + Nginx (current Apache setup is fine)
+- Benefits: Faster uploads/downloads
+14. Advanced Kopia Features
+- Status: Basic server setup
+- Impact: LOW - Better backup management
+- Missing: 
+  - Kopia UI policies and scheduling
+  - Backup verification scripts (beyond current basic check)
+  - Multi-repository support
+15. Service Mesh/Istio
+- Status: Not implemented
+- Impact: LOW - Advanced networking
+- Missing: Service mesh for inter-service communication
+- Overkill: Too complex for homelab scale
+16. Advanced Alerting Channels
+- Status: Email only
+- Impact: LOW - Multiple notification methods
+- Missing: Telegram, Discord, Slack webhooks
+- Current: Alertmanager configured for email
+17. Log Rotation & Compression
+- Status: Basic limits only
+- Impact: LOW - Better log management
+- Missing: Automated log compression/archiving
+- Current: Docker log limits prevent runaway growth
+18. Backup Encryption Key Management
+- Status: Manual key management
+- Impact: LOW - Better key security
+- Missing: Hardware security key integration (YubiKey/PIV)
+- Current: Password-based Kopia encryption
+📊 IMPLEMENTATION PRIORITY MATRIX
+| Feature | Effort | Impact | Timeline |
+|---------|--------|--------|----------|
+| Secrets Management | 30min | HIGH | This Week |
+| Offsite Backups | 1hr | HIGH | This Week |
+| Container Hardening | 20min | MEDIUM | This Week |
+| Blackbox Monitoring | 30min | MEDIUM | This Week |
+| Authelia SSO | 2hrs | MEDIUM | This Month |
+| Tailscale Access | 15min | MEDIUM | This Month |
+| UPS Monitoring | 1hr | LOW | When UPS Available |
+| Speed Monitoring | 15min | LOW | This Month |
+| Pi-hole | 30min | LOW | Optional |
+🎯 RECOMMENDED NEXT STEPS
+1. Week 1: Secrets management + offsite backups + container hardening
+2. Week 2: Blackbox monitoring + Tailscale remote access  
+3. Month 1: Authelia SSO + speed monitoring
+4. Ongoing: Monitor Diun notifications and apply updates via Renovate PRs
+The stack is already impressively comprehensive and production-ready. These additions would primarily enhance security, reliability, and remote access capabilities. The current setup provides excellent monitoring, backup, and service integration for a homelab environment.
