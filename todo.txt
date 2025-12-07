@@ -29,10 +29,6 @@
     metrics). Your current Surfshark image works, but Gluetun gives reliability + exporter‑friendly metrics.
 
   - DNS & Ad‑block: Optional Pi‑hole/AdGuard Home + Unbound (SBC‑friendly if constrained).
-  - Nextcloud Performance: Switch to nextcloud:fpm + an nginx container when you have margin; keep the current image
-    for simplicity on Le Potato.
-  - Update Strategy: If you want less risk than auto‑updates, replace Watchtower with diun (notify‑only) and use
-    Renovate tags (you already have renovate.json).
   - Grafana Dashboards: Add curated dashboards for blackbox, Netdata, UPS/NUT, and Gluetun if adopted.
   - CI Polish: You already scan images with Trivy. Consider a scheduled “weekly” workflow to report drift and critical
     CVEs.
