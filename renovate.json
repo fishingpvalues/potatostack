@@ -162,15 +162,33 @@
       "depNameTemplate": "netdata/netdata",
       "versioningTemplate": "docker"
     },
-    {
-      "fileMatch": ["^\\.env\\.example$"],
-      "matchStrings": [
-        "BLACKBOX_EXPORTER_TAG=(?<currentValue>[^\\n]+)"
-      ],
-      "datasourceTemplate": "docker",
-      "depNameTemplate": "prom/blackbox-exporter",
-      "versioningTemplate": "docker"
-    },
+     {
+       "fileMatch": ["^\\.env\\.example$"],
+       "matchStrings": [
+         "BLACKBOX_EXPORTER_TAG=(?<currentValue>[^\\n]+)"
+       ],
+       "datasourceTemplate": "docker",
+       "depNameTemplate": "prom/blackbox-exporter",
+       "versioningTemplate": "docker"
+     },
+     {
+       "fileMatch": ["^\\.env\\.example$"],
+       "matchStrings": [
+         "SPEEDTEST_EXPORTER_TAG=(?<currentValue>[^\\n]+)"
+       ],
+       "datasourceTemplate": "docker",
+       "depNameTemplate": "miguelndecarvalho/speedtest-exporter",
+       "versioningTemplate": "docker"
+     },
+     {
+       "fileMatch": ["^\\.env\\.example$"],
+       "matchStrings": [
+         "FRITZBOX_EXPORTER_TAG=(?<currentValue>[^\\n]+)"
+       ],
+       "datasourceTemplate": "docker",
+       "depNameTemplate": "pdreker/fritz_exporter",
+       "versioningTemplate": "docker"
+     },
     {
       "fileMatch": ["^\\.env\\.example$"],
       "matchStrings": [
@@ -258,7 +276,9 @@
         "prom/blackbox-exporter",
         "gcr.io/cadvisor/cadvisor",
         "prometheuscommunity/smartctl-exporter",
-        "netdata/netdata"
+        "netdata/netdata",
+        "miguelndecarvalho/speedtest-exporter",
+        "pdreker/fritz_exporter"
       ],
       "separateMajorMinor": true,
       "automerge": false

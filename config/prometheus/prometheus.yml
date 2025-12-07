@@ -109,6 +109,20 @@ scrape_configs:
 
   # Nginx Proxy Manager does not expose Prometheus metrics by default; remove noisy scrape
 
+  - job_name: 'speedtest-exporter'
+    scrape_interval: 60s  # Speedtest runs every hour, but scrape metrics more frequently
+    static_configs:
+      - targets: ['speedtest-exporter:9798']
+        labels:
+          instance: 'lepotato'
+
+  - job_name: 'fritzbox-exporter'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['fritzbox-exporter:9042']
+        labels:
+          instance: 'fritzbox-7530'
+
   - job_name: 'slskd'
     scrape_interval: 30s
     static_configs:
