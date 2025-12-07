@@ -37,17 +37,4 @@
   - CI Polish: You already scan images with Trivy. Consider a scheduled “weekly” workflow to report drift and critical
     CVEs.
 
-  Concrete, Minimal Additions I Can Wire Up Quickly
-
-  - Add prom/blackbox-exporter + scrape + basic HTTP alerts.
-  - Add tailscale/tailscale container (or host install) with brief doc.
   - Add backup-cron container that runs nightly mysqldump/pg_dump into /mnt/seconddrive/backups/db/.
-  - Add no-new-privileges/read_only/cap_drop to non‑privileged services where safe.
-  - Optional: Introduce Authelia with NPM (login portal + basic rule set) and one example protected route.
-
-  Would you like me to:
-
-  - Run a quick web scan of comparable ARM64 homelab stacks (Traefik/Authelia, Gluetun VPN, Thanos, NUT) to cross‑check
-    and prioritize? I’ll need your approval to use network access.
-  - Implement 1–2 of the “Concrete Additions” above (starting with blackbox-exporter + DB dump cron), and update docs
-    accordingly?
