@@ -727,7 +727,7 @@ services:
       - OVERWRITEPROTOCOL=https
       - PHP_MEMORY_LIMIT=512M
       - PHP_UPLOAD_LIMIT=10G
-      - REDIS_HOST=${REDIS_HOST:-}
+      - REDIS_HOST=redis
       - REDIS_HOST_PASSWORD=${REDIS_PASSWORD:-}
     volumes:
       - nextcloud_data:/var/www/html
@@ -735,8 +735,8 @@ services:
       - /mnt/cachehdd/torrents:/external/torrents:ro
       - /mnt/cachehdd/soulseek:/external/soulseek:ro
     depends_on:
-      nextcloud-db:
-        condition: service_healthy
+      - redis
+      - nextcloud-db
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:80/status.php || exit 1"]
       interval: 30s
@@ -762,8 +762,6 @@ services:
     container_name: redis
     hostname: redis
     restart: unless-stopped
-    profiles:
-      - cache
     networks:
       - default
     command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
@@ -824,14 +822,20 @@ services:
       - GITEA__database__NAME=gitea
       - GITEA__database__USER=gitea
       - GITEA__database__PASSWD=${GITEA_DB_PASSWORD}
+      - GITEA__cache__ADAPTER=redis
+      - GITEA__cache__HOST=redis:6379
+      - GITEA__session__PROVIDER=redis
+      - GITEA__session__PROVIDER_CONFIG=redis:6379
+      - GITEA__queue__TYPE=redis
+      - GITEA__queue__CONN_STR=redis:6379
     volumes:
       - gitea_data:/data
       - /mnt/seconddrive/gitea:/data/gitea/repositories
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     depends_on:
-      gitea-db:
-        condition: service_healthy
+      - redis
+      - gitea-db
     mem_limit: 384m
     mem_reservation: 192m
     cpus: 1
