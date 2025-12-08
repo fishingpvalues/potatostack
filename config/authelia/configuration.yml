@@ -1,0 +1,210 @@
+################################################################################
+# Authelia Configuration
+# Single Sign-On (SSO) with 2FA for PotatoStack
+################################################################################
+
+theme: auto
+default_2fa_method: "totp"
+
+server:
+  host: 0.0.0.0
+  port: 9091
+  path: ""
+  enable_pprof: false
+  enable_expvars: false
+  disable_healthcheck: false
+  tls:
+    key: ""
+    certificate: ""
+  headers:
+    csp_template: ""
+
+log:
+  level: info
+  format: text
+  file_path: ""
+  keep_stdout: true
+
+totp:
+  disable: false
+  issuer: potatostack.local
+  algorithm: sha1
+  digits: 6
+  period: 30
+  skew: 1
+  secret_size: 32
+
+webauthn:
+  disable: false
+  timeout: 60s
+  display_name: PotatoStack
+  attestation_conveyance_preference: indirect
+  user_verification: preferred
+
+ntp:
+  address: "time.cloudflare.com:123"
+  version: 4
+  max_desync: 3s
+  disable_startup_check: false
+  disable_failure: false
+
+authentication_backend:
+  password_reset:
+    disable: false
+  refresh_interval: 5m
+  file:
+    path: /config/users_database.yml
+    password:
+      algorithm: argon2id
+      iterations: 3
+      key_length: 32
+      salt_length: 16
+      memory: 65536
+      parallelism: 4
+
+access_control:
+  default_policy: deny
+  rules:
+    # Public access (no auth required)
+    - domain: "public.lepotato.local"
+      policy: bypass
+
+    # Admin services - require authentication
+    - domain:
+        - "grafana.lepotato.local"
+        - "prometheus.lepotato.local"
+        - "portainer.lepotato.local"
+        - "npm.lepotato.local"
+        - "kopia.lepotato.local"
+        - "netdata.lepotato.local"
+      policy: two_factor
+      subject:
+        - ["group:admins"]
+
+    # User services - single factor auth
+    - domain:
+        - "nextcloud.lepotato.local"
+        - "gitea.lepotato.local"
+        - "homepage.lepotato.local"
+        - "uptime.lepotato.local"
+      policy: one_factor
+      subject:
+        - ["group:users"]
+        - ["group:admins"]
+
+    # P2P services - admin only
+    - domain:
+        - "qbittorrent.lepotato.local"
+        - "slskd.lepotato.local"
+      policy: two_factor
+      subject:
+        - ["group:admins"]
+
+session:
+  name: authelia_session
+  domain: lepotato.local
+  same_site: lax
+  secret: AUTHELIA_SESSION_SECRET_REPLACE_ME
+  expiration: 1h
+  inactivity: 5m
+  remember_me_duration: 1M
+  redis:
+    host: redis
+    port: 6379
+    username: ""
+    password: ""
+    database_index: 1
+    maximum_active_connections: 10
+    minimum_idle_connections: 0
+
+regulation:
+  max_retries: 5
+  find_time: 2m
+  ban_time: 10m
+
+storage:
+  encryption_key: AUTHELIA_STORAGE_ENCRYPTION_KEY_REPLACE_ME
+  local:
+    path: /config/db.sqlite3
+
+notifier:
+  disable_startup_check: false
+  smtp:
+    host: smtp.gmail.com
+    port: 587
+    timeout: 5s
+    username: SMTP_USERNAME_REPLACE_ME
+    password: SMTP_PASSWORD_REPLACE_ME
+    sender: "Authelia <authelia@lepotato.local>"
+    identifier: lepotato.local
+    subject: "[PotatoStack] {title}"
+    startup_check_address: test@authelia.com
+    disable_require_tls: false
+    disable_html_emails: false
+    tls:
+      server_name: smtp.gmail.com
+      skip_verify: false
+      minimum_version: TLS1.2
+
+identity_providers:
+  oidc:
+    hmac_secret: AUTHELIA_OIDC_HMAC_SECRET_REPLACE_ME
+    issuer_private_key: |
+      -----BEGIN PRIVATE KEY-----
+      REPLACE_WITH_GENERATED_PRIVATE_KEY
+      -----END PRIVATE KEY-----
+    access_token_lifespan: 1h
+    authorize_code_lifespan: 1m
+    id_token_lifespan: 1h
+    refresh_token_lifespan: 90m
+    enable_client_debug_messages: false
+    enforce_pkce: public_clients_only
+    cors:
+      endpoints:
+        - authorization
+        - token
+        - revocation
+        - introspection
+      allowed_origins_from_client_redirect_uris: true
+    clients:
+      - id: grafana
+        description: Grafana Monitoring Dashboard
+        secret: GRAFANA_OIDC_SECRET_REPLACE_ME
+        public: false
+        authorization_policy: two_factor
+        redirect_uris:
+          - https://grafana.lepotato.local/login/generic_oauth
+        scopes:
+          - openid
+          - profile
+          - groups
+          - email
+        userinfo_signing_algorithm: none
+
+      - id: portainer
+        description: Portainer Docker Management
+        secret: PORTAINER_OIDC_SECRET_REPLACE_ME
+        public: false
+        authorization_policy: two_factor
+        redirect_uris:
+          - https://portainer.lepotato.local
+        scopes:
+          - openid
+          - profile
+          - groups
+          - email
+        userinfo_signing_algorithm: none
+
+      - id: nextcloud
+        description: Nextcloud File Storage
+        secret: NEXTCLOUD_OIDC_SECRET_REPLACE_ME
+        public: false
+        authorization_policy: one_factor
+        redirect_uris:
+          - https://nextcloud.lepotato.local/apps/user_oidc/code
+        scopes:
+          - openid
+          - profile
+          - groups
+          - email
+        userinfo_signing_algorithm: none

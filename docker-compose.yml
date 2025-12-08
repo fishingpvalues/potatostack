@@ -445,6 +445,17 @@ services:
       - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-clock-panel
       - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:%(http_port)s/grafana/
       - GF_ANALYTICS_REPORTING_ENABLED=false
+      # OAuth2 via Authelia
+      - GF_AUTH_GENERIC_OAUTH_ENABLED=true
+      - GF_AUTH_GENERIC_OAUTH_NAME=Authelia
+      - GF_AUTH_GENERIC_OAUTH_CLIENT_ID=grafana
+      - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=${GRAFANA_OIDC_SECRET}
+      - GF_AUTH_GENERIC_OAUTH_SCOPES=openid profile email groups
+      - GF_AUTH_GENERIC_OAUTH_AUTH_URL=https://authelia.lepotato.local/api/oidc/authorization
+      - GF_AUTH_GENERIC_OAUTH_TOKEN_URL=https://authelia.lepotato.local/api/oidc/token
+      - GF_AUTH_GENERIC_OAUTH_API_URL=https://authelia.lepotato.local/api/oidc/userinfo
+      - GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP=true
+      - GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH=contains(groups[*], 'admins') && 'Admin' || 'Viewer'
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -1193,6 +1204,58 @@ services:
       - "homepage.name=Autoheal"
       - "homepage.icon=mdi-heart-pulse"
       - "homepage.description=Auto-restart unhealthy containers"
+
+  ############################################################################
+  # SINGLE SIGN-ON (SSO) - Authelia with OAuth2/OIDC
+  ############################################################################
+
+  authelia:
+    image: authelia/authelia:${AUTHELIA_TAG:-latest}
+    container_name: authelia
+    hostname: authelia
+    restart: unless-stopped
+    networks:
+      - proxy
+      - default
+      - monitoring
+    ports:
+      - "${HOST_BIND:-0.0.0.0}:9091:9091"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      - TZ=Europe/Berlin
+      - AUTHELIA_JWT_SECRET=${AUTHELIA_JWT_SECRET}
+      - AUTHELIA_SESSION_SECRET=${AUTHELIA_SESSION_SECRET}
+      - AUTHELIA_STORAGE_ENCRYPTION_KEY=${AUTHELIA_STORAGE_ENCRYPTION_KEY}
+      - AUTHELIA_IDENTITY_PROVIDERS_OIDC_HMAC_SECRET=${AUTHELIA_OIDC_HMAC_SECRET}
+      - AUTHELIA_IDENTITY_PROVIDERS_OIDC_ISSUER_PRIVATE_KEY=${AUTHELIA_OIDC_PRIVATE_KEY}
+      - AUTHELIA_NOTIFIER_SMTP_USERNAME=${ALERT_EMAIL_USER}
+      - AUTHELIA_NOTIFIER_SMTP_PASSWORD=${ALERT_EMAIL_PASSWORD}
+    volumes:
+      - ./config/authelia:/config
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9091/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    mem_limit: 128m
+    mem_reservation: 64m
+    cpus: 0.5
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "homepage.group=Infrastructure"
+      - "homepage.name=Authelia SSO"
+      - "homepage.icon=si-auth0"
+      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:9091"
+      - "homepage.description=Single Sign-On & 2FA"
 
   ############################################################################
   # REVERSE PROXY & DASHBOARD
