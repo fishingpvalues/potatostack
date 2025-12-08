@@ -7,7 +7,9 @@
       "WebFetch(domain:kopia.io)",
       "Bash(mkdir:*)",
       "Bash(chmod:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(find:*)",
+      "Bash(wc:*)"
     ],
     "deny": [],
     "ask": []

@@ -87,7 +87,43 @@ groups:
           severity: warning
         annotations:
           summary: "No recent Kopia snapshots"
-          description: "Last snapshot was {{ $value | humanizeDuration }} ago"
+          description: "Last snapshot was {{ $value | humanizeDuration }} ago (expected: daily)"
+
+      - alert: KopiaServerDown
+        expr: up{job="kopia"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kopia backup server is down"
+          description: "Kopia server on {{ $labels.instance }} is not responding"
+
+      - alert: KopiaHighMemoryUsage
+        expr: kopia_server_memory_bytes / (2 * 1024 * 1024 * 1024) > 0.6
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kopia server high memory usage"
+          description: "Kopia is using {{ $value | humanizePercentage }} of allocated 768MB (Le Potato constrained)"
+
+      - alert: KopiaRepositorySpaceLow
+        expr: (kopia_repository_size_bytes{location=~"/repository"} / (500 * 1024 * 1024 * 1024)) > 0.9
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kopia repository approaching storage limit"
+          description: "Kopia repository is at {{ $value | humanizePercentage }} capacity"
+
+      - alert: KopiaSnapshotDuration
+        expr: kopia_snapshot_duration_seconds > 3600
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kopia snapshot taking too long"
+          description: "Snapshot has been running for {{ $value | humanizeDuration }} (expected: <1h on Le Potato)"
 
   - name: vpn_alerts
     interval: 30s
