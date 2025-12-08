@@ -68,6 +68,10 @@ scrape_configs:
           - http://dozzle:8080                   # Dozzle
           - http://alertmanager:9093             # Alertmanager
           - http://netdata:19999                 # Netdata
+          - http://node-exporter:9100            # Node Exporter
+          - http://speedtest-exporter:9798       # Speedtest Exporter
+          - http://fritzbox-exporter:9042        # Fritzbox Exporter
+          - http://loki:3100                     # Loki
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
@@ -99,6 +103,52 @@ scrape_configs:
       - targets:
           - nextcloud-db:3306                    # MariaDB
           - gitea-db:5432                        # PostgreSQL
+          - redis:6379                           # Redis
+          - nginx-proxy-manager:80               # NPM HTTP
+          - nginx-proxy-manager:443              # NPM HTTPS
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # Blackbox HTTP strict monitoring (only 200 responses)
+  - job_name: 'blackbox-http-strict'
+    metrics_path: /probe
+    params:
+      module: [http_2xx_strict]
+    static_configs:
+      - targets:
+          - http://nextcloud:80                  # Nextcloud (strict check)
+          - http://gitea:3000                    # Gitea (strict check)
+          - http://grafana:3000                  # Grafana (strict check)
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # Blackbox monitoring for externally accessible services
+  - job_name: 'blackbox-external'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - http://${HOST_ADDR:-192.168.178.40}:8080    # qBittorrent external
+          - http://${HOST_ADDR:-192.168.178.40}:2234    # slskd external
+          - http://${HOST_ADDR:-192.168.178.40}:3000    # Grafana external
+          - http://${HOST_ADDR:-192.168.178.40}:8082    # Nextcloud external
+          - http://${HOST_ADDR:-192.168.178.40}:3001    # Gitea external
+          - http://${HOST_ADDR:-192.168.178.40}:9000    # Portainer external
+          - http://${HOST_ADDR:-192.168.178.40}:3002    # Uptime Kuma external
+          - http://${HOST_ADDR:-192.168.178.40}:8083    # Dozzle external
+          - http://${HOST_ADDR:-192.168.178.40}:81      # Nginx Proxy Manager external
+          - http://${HOST_ADDR:-192.168.178.40}:3003    # Homepage external
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
