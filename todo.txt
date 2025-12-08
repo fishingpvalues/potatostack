@@ -1,24 +1,4 @@
 
-
-
-🔴 CRITICAL GAPS (Implement First)
-1. Secrets Management 
-- Status: Not implemented
-- Impact: HIGH - Prevents credential leaks in git
-- Current Issue: .env file contains sensitive passwords that could be committed
-- Solution: Implement sops + age encryption for .env file
-- Effort: 30 minutes
-5. Single Sign-On (SSO) with Authelia
-- Status: Not implemented
-- Impact: MEDIUM - Unified authentication
-- Missing: Authelia container + OAuth2 proxy configuration
-- Benefits: One login for Grafana, Nextcloud, Gitea, Portaine
-7. Thanos for Long-Term Metrics
-- Status: Not implemented
-- Impact: LOW - Extended metric retention
-- Missing: Thanos sidecar/compactor for >14 day retention
-- Current: Prometheus limited to 14 days
-🔵 OPTIONAL/ENHANCEMENT FEATURES
 13. Nextcloud Performance Optimization
 - Status: Basic setup only
 - Impact: LOW - Better file sync performance

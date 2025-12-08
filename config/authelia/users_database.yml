@@ -1,0 +1,38 @@
+################################################################################
+# Authelia Users Database
+# Define users and their groups here
+# Generate passwords with: docker run --rm authelia/authelia:latest authelia crypto hash generate argon2 --password 'yourpassword'
+################################################################################
+
+users:
+  admin:
+    displayname: "Administrator"
+    password: "$argon2id$v=19$m=65536,t=3,p=4$REPLACE_WITH_HASHED_PASSWORD"
+    email: admin@lepotato.local
+    groups:
+      - admins
+      - users
+      - dev
+
+  # Example additional user (uncomment and configure)
+  # user1:
+  #   displayname: "User One"
+  #   password: "$argon2id$v=19$m=65536,t=3,p=4$REPLACE_WITH_HASHED_PASSWORD"
+  #   email: user1@lepotato.local
+  #   groups:
+  #     - users
+
+################################################################################
+# Password Generation Instructions:
+# 1. Run: docker run --rm authelia/authelia:latest authelia crypto hash generate argon2 --password 'YourSecurePassword123!'
+# 2. Copy the generated hash starting with $argon2id$...
+# 3. Replace REPLACE_WITH_HASHED_PASSWORD above with the hash
+#
+# Example command:
+#   docker run --rm authelia/authelia:latest authelia crypto hash generate argon2 --password 'admin123'
+#
+# Groups:
+# - admins: Full access to all services with 2FA
+# - users: Access to user services (Nextcloud, Gitea, Homepage)
+# - dev: Development access (optional)
+################################################################################
