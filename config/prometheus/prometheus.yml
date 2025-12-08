@@ -105,13 +105,10 @@ scrape_configs:
       module: [tcp_connect]
     static_configs:
       - targets:
-          - nextcloud-db:3306                    # MariaDB
-          - gitea-db:5432                        # PostgreSQL
-          - firefly-db:3306                      # Firefly MariaDB
+          - mariadb:3306                         # MariaDB (Nextcloud & Firefly)
+          - gitea-db:5432                        # PostgreSQL (Gitea)
           - immich-db:5432                       # Immich PostgreSQL
-          - redis:6379                           # Redis
-          - firefly-redis-worker:6379            # Firefly Redis
-          - immich-redis:6379                    # Immich Redis
+          - redis:6379                           # Redis (Shared)
           - nginx-proxy-manager:80               # NPM HTTP
           - nginx-proxy-manager:443              # NPM HTTPS
     relabel_configs:

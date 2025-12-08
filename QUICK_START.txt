@@ -1,0 +1,139 @@
+╔══════════════════════════════════════════════════════════════════╗
+║  POTATOSTACK - QUICK START FOR LE POTATO (2GB RAM)              ║
+╚══════════════════════════════════════════════════════════════════╝
+
+✅ OPTIMIZED: Database consolidation + 40-60% memory reduction applied!
+
+📋 READ FIRST: DEPLOYMENT_GUIDE.md (full phased deployment)
+📊 DETAILS: OPTIMIZATION_SUMMARY.md (all changes explained)
+
+═══════════════════════════════════════════════════════════════════
+ STEP 1: SETUP SWAP (CRITICAL!)
+═══════════════════════════════════════════════════════════════════
+
+sudo bash setup-swap.sh
+free -h   # Verify 2GB swap
+
+═══════════════════════════════════════════════════════════════════
+ STEP 2: CONFIGURE ENVIRONMENT
+═══════════════════════════════════════════════════════════════════
+
+cp .env.example .env
+nano .env   # Fill in passwords!
+
+Required variables:
+- MARIADB_ROOT_PASSWORD (NEW! for consolidated DB)
+- NEXTCLOUD_DB_PASSWORD
+- FIREFLY_DB_PASSWORD (only if using --profile heavy)
+- GITEA_DB_PASSWORD
+- GRAFANA_PASSWORD
+- KOPIA_PASSWORD
+- SURFSHARK_USER/PASSWORD
+- ALERT_EMAIL_USER/PASSWORD
+
+═══════════════════════════════════════════════════════════════════
+ STEP 3: CHOOSE DEPLOYMENT PROFILE
+═══════════════════════════════════════════════════════════════════
+
+Option A: Core Services (~1.6GB RAM) - RECOMMENDED
+    docker compose up -d
+
+Option B: Core + Password Manager (~1.7GB RAM)
+    docker compose --profile apps up -d
+
+Option C: Core + Apps + Extended Monitoring (~2GB RAM) - TIGHT FIT!
+    docker compose --profile apps --profile monitoring-extra up -d
+
+Option D: Everything (~3GB+ RAM) - WILL FAIL ON 2GB!
+    docker compose --profile apps --profile monitoring-extra --profile heavy up -d
+
+═══════════════════════════════════════════════════════════════════
+ STEP 4: VERIFY DEPLOYMENT
+═══════════════════════════════════════════════════════════════════
+
+docker compose ps        # All services should be "healthy" or "running"
+docker stats --no-stream # Check memory usage
+free -h                  # Swap should be <1GB
+
+Expected RAM after core deployment: ~1.6GB used, ~400MB free
+
+═══════════════════════════════════════════════════════════════════
+ KEY SERVICES & PORTS
+═══════════════════════════════════════════════════════════════════
+
+Grafana:        http://YOUR_IP:3000 (monitoring dashboards)
+Prometheus:     http://YOUR_IP:9090 (metrics)
+Nextcloud:      http://YOUR_IP:8082 (cloud storage)
+Gitea:          http://YOUR_IP:3001 (git server)
+qBittorrent:    http://YOUR_IP:8080 (torrents)
+Portainer:      http://YOUR_IP:9000 (docker management)
+Homepage:       http://YOUR_IP:3003 (dashboard)
+Kopia:          https://YOUR_IP:51515 (backups)
+
+Vaultwarden:    http://YOUR_IP:8084 (if --profile apps)
+Netdata:        http://YOUR_IP:19999 (if --profile monitoring-extra)
+Immich:         http://YOUR_IP:2283 (if --profile heavy)
+
+═══════════════════════════════════════════════════════════════════
+ MONITORING YOUR SYSTEM
+═══════════════════════════════════════════════════════════════════
+
+Real-time stats:
+    watch -n 5 'free -h && echo && docker stats --no-stream'
+
+Check alerts:
+    Open Grafana → Alerting → Alert Rules
+    Configured: >80% RAM, >80% CPU, service down
+
+Logs:
+    docker compose logs -f <service_name>
+
+═══════════════════════════════════════════════════════════════════
+ ⚠️ WARNING SIGNS (SCALE BACK IF YOU SEE THESE!)
+═══════════════════════════════════════════════════════════════════
+
+🔴 Swap usage >1.5GB sustained
+🔴 Load average >6 for >10 minutes
+🔴 SSH lag >5 seconds
+🔴 Services randomly restarting (check with: docker compose ps)
+🔴 Web UIs timing out (504 errors)
+
+If any occur:
+1. Stop optional services: docker compose --profile monitoring-extra down
+2. Check: docker stats --no-stream
+3. Review: DEPLOYMENT_GUIDE.md troubleshooting section
+
+═══════════════════════════════════════════════════════════════════
+ DATABASE CONSOLIDATION SUMMARY
+═══════════════════════════════════════════════════════════════════
+
+✅ Redis: 3 instances → 1 (saves ~256MB)
+   - DB 0: Nextcloud & Gitea
+   - DB 1: Firefly III  
+   - DB 2: Immich
+
+✅ MariaDB: 2 instances → 1 (saves ~256MB)
+   - Database: nextcloud
+   - Database: firefly
+
+Total savings: ~512MB!
+
+═══════════════════════════════════════════════════════════════════
+ NEW FEATURES
+═══════════════════════════════════════════════════════════════════
+
+✅ Grafana Dashboard: Speedtest Internet Monitoring
+✅ Grafana Dashboard: Fritz!Box Router Monitoring  
+✅ Prometheus Alerts: RAM/CPU >80%, service down
+✅ Docker Compose Profiles: apps, monitoring-extra, heavy
+✅ qBittorrent tuning: Connection limits for 2GB RAM
+
+═══════════════════════════════════════════════════════════════════
+ NEED HELP?
+═══════════════════════════════════════════════════════════════════
+
+📖 Read: DEPLOYMENT_GUIDE.md (phased deployment steps)
+📖 Read: OPTIMIZATION_SUMMARY.md (all changes explained)
+📖 Read: README_CONSOLIDATED.md (consolidation details)
+
+Good luck! 🥔🚀

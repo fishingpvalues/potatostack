@@ -9,7 +9,8 @@
       "Bash(chmod:*)",
       "WebSearch",
       "Bash(find:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(paste:*)"
     ],
     "deny": [],
     "ask": []
