@@ -52,6 +52,8 @@ declare -A BACKUP_TARGETS=(
     ["/host/mnt/seconddrive/qbittorrent/config"]="qBittorrent configuration"
     ["/host/mnt/seconddrive/slskd/config"]="slskd configuration"
     ["/host/mnt/seconddrive/uptime-kuma"]="Uptime Kuma data"
+    ["/host/mnt/seconddrive/immich/upload"]="Immich photos and videos"
+    ["/host/mnt/seconddrive/immich/library"]="Immich library metadata"
 
     # Database backups (already dumped by backup containers)
     ["/host/mnt/seconddrive/backups/db"]="Database dumps"

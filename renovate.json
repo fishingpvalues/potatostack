@@ -260,6 +260,60 @@
       "datasourceTemplate": "docker",
       "depNameTemplate": "redis",
       "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "AUTHELIA_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "authelia/authelia",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "VAULTWARDEN_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "vaultwarden/server",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "FIREFLY_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "fireflyiii/core",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "FINTS_IMPORTER_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "benkl/firefly-iii-fints-importer",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "IMMICH_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "ghcr.io/immich-app/immich-server",
+      "versioningTemplate": "docker"
+    },
+    {
+      "fileMatch": ["^\\.env\\.example$"],
+      "matchStrings": [
+        "ALPINE_TAG=(?<currentValue>[^\\n]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "alpine",
+      "versioningTemplate": "docker"
     }
   ],
   "packageRules": [
@@ -291,7 +345,8 @@
         "mariadb",
         "postgres",
         "kopia/kopia",
-        "redis"
+        "redis",
+        "ghcr.io/immich-app/immich-server"
       ],
       "separateMajorMinor": true,
       "automerge": false
@@ -331,6 +386,26 @@
     },
     {
       "matchDatasources": ["docker"],
+      "groupName": "security",
+      "matchPackageNames": [
+        "authelia/authelia",
+        "vaultwarden/server"
+      ],
+      "separateMajorMinor": true,
+      "automerge": false
+    },
+    {
+      "matchDatasources": ["docker"],
+      "groupName": "finance",
+      "matchPackageNames": [
+        "fireflyiii/core",
+        "benkl/firefly-iii-fints-importer"
+      ],
+      "separateMajorMinor": true,
+      "automerge": false
+    },
+    {
+      "matchDatasources": ["docker"],
       "matchUpdateTypes": ["major"],
       "labels": ["major-update"],
       "automerge": false
@@ -350,11 +425,25 @@
         "amir20/dozzle",
         "ghcr.io/gethomepage/homepage",
         "netdata/netdata",
-        "willfarrell/autoheal"
+        "willfarrell/autoheal",
+        "authelia/authelia",
+        "vaultwarden/server",
+        "fireflyiii/core",
+        "benkl/firefly-iii-fints-importer",
+        "alpine"
       ],
       "matchCurrentVersion": "latest",
       "enabled": false,
       "description": "Don't update packages pinned to 'latest' tag"
+    },
+    {
+      "matchDatasources": ["docker"],
+      "matchPackageNames": [
+        "ghcr.io/immich-app/immich-server"
+      ],
+      "matchCurrentVersion": "release",
+      "enabled": true,
+      "description": "Track Immich 'release' channel for stable updates"
     }
   ],
   "vulnerabilityAlerts": {

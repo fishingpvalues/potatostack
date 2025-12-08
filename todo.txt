@@ -1,3 +1,7 @@
+- consolidate dbs make mariadb postgres etc together also use same redis db for all etc.
+- check resource constraints and favor most important stuff adapt it to le Potato
+- check all prometheus and for missing dashboards create ones 
+
 
 13. Nextcloud Performance Optimization
 - Status: Basic setup only

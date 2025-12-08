@@ -7,7 +7,8 @@ version: "3.8"
 #           Storage (Nextcloud), Monitoring (Prometheus, Grafana, Loki),
 #           Management (Portainer, Diun, Uptime Kuma, Dozzle),
 #           Git (Gitea), Reverse Proxy (Nginx Proxy Manager), Dashboard (Homepage),
-#           Security (Vaultwarden, Authelia SSO), Finance (Firefly III + FinTS)
+#           Security (Vaultwarden, Authelia SSO), Finance (Firefly III + FinTS),
+#           Photos (Immich - self-hosted Google Photos alternative)
 ################################################################################
 
 networks:
@@ -42,6 +43,8 @@ volumes:
   firefly_data:
   firefly_upload:
   fints_importer_data:
+  immich_db:
+  immich_model_cache:
 
 services:
   ############################################################################
@@ -1793,4 +1796,206 @@ services:
     logging:
       options:
         max-size: "5m"
+        max-file: "2"
+
+  ############################################################################
+  # IMMICH - Self-hosted Google Photos Alternative
+  # Mobile app support for Android and iOS/iPad
+  ############################################################################
+
+  immich-db:
+    image: tensorchord/pgvecto-rs:pg14-v0.2.0
+    container_name: immich-db
+    hostname: immich-db
+    restart: unless-stopped
+    networks:
+      - default
+    environment:
+      - POSTGRES_USER=immich
+      - POSTGRES_PASSWORD=${IMMICH_DB_PASSWORD}
+      - POSTGRES_DB=immich
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    volumes:
+      - immich_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U immich -d immich"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    mem_limit: 256m
+    mem_reservation: 128m
+    cpus: 0.5
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  immich-redis:
+    image: redis:${REDIS_TAG:-7-alpine}
+    container_name: immich-redis
+    hostname: immich-redis
+    restart: unless-stopped
+    networks:
+      - default
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    command:
+      [
+        "redis-server",
+        "--save",
+        "",
+        "--appendonly",
+        "no",
+        "--maxmemory",
+        "128mb",
+        "--maxmemory-policy",
+        "allkeys-lru",
+      ]
+    mem_limit: 160m
+    mem_reservation: 80m
+    cpus: 0.5
+    logging:
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  immich-server:
+    image: ghcr.io/immich-app/immich-server:${IMMICH_TAG:-release}
+    container_name: immich-server
+    hostname: immich-server
+    restart: unless-stopped
+    networks:
+      - default
+      - proxy
+      - monitoring
+    ports:
+      - "${HOST_BIND:-0.0.0.0}:2283:3001"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      - TZ=Europe/Berlin
+      - DB_HOSTNAME=immich-db
+      - DB_DATABASE_NAME=immich
+      - DB_USERNAME=immich
+      - DB_PASSWORD=${IMMICH_DB_PASSWORD}
+      - REDIS_HOSTNAME=immich-redis
+      - REDIS_PORT=6379
+      - REDIS_DBINDEX=0
+      # Upload size limits
+      - UPLOAD_LOCATION=/usr/src/app/upload
+      # Machine learning (disabled on Le Potato - too heavy)
+      - IMMICH_MACHINE_LEARNING_ENABLED=false
+      # Reverse proxy
+      - IMMICH_SERVER_URL=http://${HOST_ADDR:-192.168.178.40}:2283
+    volumes:
+      - /mnt/seconddrive/immich/upload:/usr/src/app/upload
+      - /mnt/seconddrive/immich/library:/usr/src/app/library
+      - /etc/localtime:/etc/localtime:ro
+    depends_on:
+      immich-db:
+        condition: service_healthy
+      immich-redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider --quiet http://localhost:3001/api/server-info/ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    mem_limit: 512m
+    mem_reservation: 256m
+    cpus: 1.5
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "homepage.group=Media & Storage"
+      - "homepage.name=Immich"
+      - "homepage.icon=immich.png"
+      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:2283"
+      - "homepage.description=Photo & video management"
+
+  immich-microservices:
+    image: ghcr.io/immich-app/immich-server:${IMMICH_TAG:-release}
+    container_name: immich-microservices
+    hostname: immich-microservices
+    restart: unless-stopped
+    networks:
+      - default
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      - TZ=Europe/Berlin
+      - DB_HOSTNAME=immich-db
+      - DB_DATABASE_NAME=immich
+      - DB_USERNAME=immich
+      - DB_PASSWORD=${IMMICH_DB_PASSWORD}
+      - REDIS_HOSTNAME=immich-redis
+      - REDIS_PORT=6379
+      - REDIS_DBINDEX=0
+      - IMMICH_MACHINE_LEARNING_ENABLED=false
+    volumes:
+      - /mnt/seconddrive/immich/upload:/usr/src/app/upload
+      - /mnt/seconddrive/immich/library:/usr/src/app/library
+      - /etc/localtime:/etc/localtime:ro
+    depends_on:
+      - immich-db
+      - immich-redis
+    command: ["start.sh", "microservices"]
+    mem_limit: 384m
+    mem_reservation: 192m
+    cpus: 1
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  ############################################################################
+  # IMMICH DATABASE BACKUP - Daily pg_dump
+  ############################################################################
+
+  immich-db-backup:
+    image: postgres:${POSTGRES_TAG:-14-alpine}
+    container_name: immich-db-backup
+    hostname: immich-db-backup
+    restart: unless-stopped
+    networks:
+      - default
+    environment:
+      - PGPASSWORD=${IMMICH_DB_PASSWORD}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    volumes:
+      - /mnt/seconddrive/backups/db:/backups
+    depends_on:
+      immich-db:
+        condition: service_healthy
+    command: >
+      sh -c "
+        set -o pipefail;
+        while true; do
+          echo 'Backing up Immich database...';
+          pg_dump -h immich-db -U immich -d immich | gzip > /backups/immich-db-$$(date +%Y-%m-%d-%H%M).sql.gz && echo 'Immich backup complete.' || echo 'Immich backup failed.';
+          sleep 1d;
+        done
+      "
+    mem_limit: 128m
+    mem_reservation: 64m
+    cpus: 0.25
+    logging:
+      options:
+        max-size: "2m"
         max-file: "2"
