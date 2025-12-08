@@ -171,6 +171,10 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     labels:
       - "homepage.group=Media & Downloads"
       - "homepage.name=qBittorrent"
@@ -219,6 +223,10 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     labels:
       - "homepage.group=Media & Downloads"
       - "homepage.name=slskd (Soulseek)"
@@ -267,6 +275,11 @@ services:
       - /:/host:ro
     cap_add:
       - SYS_ADMIN
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+      - SYS_ADMIN  # Keep only the required cap_add
     devices:
       - /dev/fuse:/dev/fuse
     healthcheck:
@@ -318,6 +331,10 @@ services:
     depends_on:
       nextcloud-db:
         condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     command: >
       sh -c "
         set -o pipefail;
@@ -346,6 +363,10 @@ services:
     depends_on:
       gitea-db:
         condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     command: >
       sh -c "
         set -o pipefail;
@@ -374,6 +395,11 @@ services:
       - proxy
     ports:
       - "${HOST_BIND:-0.0.0.0}:9090:9090"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
@@ -419,6 +445,10 @@ services:
       - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-clock-panel
       - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:%(http_port)s/grafana/
       - GF_ANALYTICS_REPORTING_ENABLED=false
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     volumes:
       - grafana_data:/var/lib/grafana
       - ./config/grafana/provisioning:/etc/grafana/provisioning
@@ -458,6 +488,11 @@ services:
       - monitoring
     ports:
       - "${HOST_BIND:-0.0.0.0}:3100:3100"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
     command: -config.file=/etc/loki/local-config.yaml
     volumes:
       - ./config/loki:/etc/loki
@@ -477,6 +512,10 @@ services:
     restart: unless-stopped
     networks:
       - monitoring
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     volumes:
       - /var/log:/var/log:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
@@ -510,6 +549,11 @@ services:
       - ALERT_EMAIL_USER=${ALERT_EMAIL_USER}
       - ALERT_EMAIL_PASSWORD=${ALERT_EMAIL_PASSWORD}
       - ALERT_EMAIL_TO=${ALERT_EMAIL_TO}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
     volumes:
       - ./config/alertmanager:/etc/alertmanager
       - alertmanager_data:/alertmanager
@@ -543,6 +587,10 @@ services:
       - monitoring
     ports:
       - "${HOST_BIND:-0.0.0.0}:9100:9100"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     command:
       - "--path.procfs=/host/proc"
       - "--path.sysfs=/host/sys"
@@ -625,7 +673,12 @@ services:
       - SYS_PTRACE
       - SYS_ADMIN
     security_opt:
+      - no-new-privileges:true
       - apparmor:unconfined
+    cap_drop:
+      - ALL
+      - SYS_PTRACE  # Keep only the required cap_add
+      - SYS_ADMIN
     environment:
       - NETDATA_CLAIM_TOKEN=${NETDATA_CLAIM_TOKEN}
       - NETDATA_CLAIM_URL=https://app.netdata.cloud
@@ -664,10 +717,15 @@ services:
       - default
     ports:
       - "${HOST_BIND:-0.0.0.0}:9115:9115"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     volumes:
       - ./config/blackbox:/config
     command:
       - "--config.file=/config/blackbox.yml"
+      - "--web.listen-address=:9115"
     mem_limit: 64m
     mem_reservation: 32m
     cpus: 0.25
@@ -675,9 +733,19 @@ services:
       options:
         max-size: "5m"
         max-file: "2"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9115"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      - prometheus
     labels:
       - "homepage.group=Monitoring"
       - "homepage.name=Blackbox Exporter"
+      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:9115"
+      - "homepage.description=HTTP/TCP service monitoring"
 
   ############################################################################
   # SPEEDTEST EXPORTER - Internet Speed & ISP Health Monitoring
@@ -696,6 +764,10 @@ services:
       - SPEEDTEST_PORT=8080
     ports:
       - "${HOST_BIND:-0.0.0.0}:9798:9798"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     mem_limit: 128m
     mem_reservation: 64m
     cpus: 0.5
@@ -730,6 +802,10 @@ services:
       - FRITZ_DEVICE_NAME=${FRITZ_DEVICE_NAME:-fritzbox-7530}  # Device identifier
     ports:
       - "${HOST_BIND:-0.0.0.0}:9042:9042"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     mem_limit: 128m
     mem_reservation: 64m
     cpus: 0.25
@@ -762,6 +838,10 @@ services:
       - MYSQL_DATABASE=nextcloud
       - MYSQL_USER=nextcloud
       - MYSQL_PASSWORD=${NEXTCLOUD_DB_PASSWORD}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     volumes:
       - nextcloud_db:/var/lib/mysql
       - ./config/mariadb/low-memory.cnf:/etc/mysql/conf.d/low-memory.cnf:ro
@@ -799,6 +879,10 @@ services:
       - proxy
     ports:
       - "${HOST_BIND:-0.0.0.0}:8082:80"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     environment:
       - MYSQL_HOST=nextcloud-db
       - MYSQL_DATABASE=nextcloud
@@ -847,6 +931,11 @@ services:
     restart: unless-stopped
     networks:
       - default
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
     command:
       [
         "redis-server",
@@ -878,6 +967,10 @@ services:
     restart: unless-stopped
     networks:
       - default
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     environment:
       - POSTGRES_USER=gitea
       - POSTGRES_PASSWORD=${GITEA_DB_PASSWORD}
@@ -908,6 +1001,10 @@ services:
     ports:
       - "${HOST_BIND:-0.0.0.0}:3001:3000"
       - "${HOST_BIND:-0.0.0.0}:2222:22"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     environment:
       - USER_UID=1000
       - USER_GID=1000
@@ -959,6 +1056,10 @@ services:
     ports:
       - "${HOST_BIND:-0.0.0.0}:9000:9000"
       - "${HOST_BIND:-0.0.0.0}:9443:9443"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - portainer_data:/data
@@ -977,6 +1078,10 @@ services:
     restart: unless-stopped
     networks:
       - monitoring
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     environment:
       - TZ=Europe/Berlin
       - LOG_LEVEL=info
@@ -1011,6 +1116,10 @@ services:
       - monitoring
     ports:
       - "${HOST_BIND:-0.0.0.0}:3002:3001"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     volumes:
       - /mnt/seconddrive/uptime-kuma:/app/data
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -1031,6 +1140,10 @@ services:
       - proxy
     ports:
       - "${HOST_BIND:-0.0.0.0}:8083:8080"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
@@ -1056,6 +1169,10 @@ services:
     restart: unless-stopped
     networks:
       - default
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     environment:
       - AUTOHEAL_CONTAINER_LABEL=all # Monitor all containers with healthchecks
       - AUTOHEAL_INTERVAL=10 # Check every 10 seconds
@@ -1093,6 +1210,10 @@ services:
       - "${HOST_BIND:-0.0.0.0}:80:80"
       - "${HOST_BIND:-0.0.0.0}:443:443"
       - "${HOST_BIND:-0.0.0.0}:81:81"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     environment:
       - DB_SQLITE_FILE=/data/database.sqlite
       - DISABLE_IPV6=true
@@ -1130,6 +1251,10 @@ services:
       - default
     ports:
       - "${HOST_BIND:-0.0.0.0}:3003:3000"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     environment:
       - PUID=1000
       - PGID=1000
