@@ -4,8 +4,8 @@
 
 ✅ OPTIMIZED: Database consolidation + 40-60% memory reduction applied!
 
-📋 READ FIRST: DEPLOYMENT_GUIDE.md (full phased deployment)
-📊 DETAILS: OPTIMIZATION_SUMMARY.md (all changes explained)
+📋 READ FIRST: docs/LE_POTATO_DEPLOYMENT.md (full phased deployment)
+📊 DETAILS: docs/LE_POTATO_OPTIMIZATION.md (all changes explained)
 
 ═══════════════════════════════════════════════════════════════════
  STEP 1: SETUP SWAP (CRITICAL!)
@@ -132,8 +132,8 @@ Total savings: ~512MB!
  NEED HELP?
 ═══════════════════════════════════════════════════════════════════
 
-📖 Read: DEPLOYMENT_GUIDE.md (phased deployment steps)
-📖 Read: OPTIMIZATION_SUMMARY.md (all changes explained)
-📖 Read: README_CONSOLIDATED.md (consolidation details)
+📖 Read: docs/LE_POTATO_DEPLOYMENT.md (phased deployment steps)
+📖 Read: docs/LE_POTATO_OPTIMIZATION.md (all changes explained)
+📖 Read: docs/QUICKSTART.md (general quickstart guide)
 
 Good luck! 🥔🚀
