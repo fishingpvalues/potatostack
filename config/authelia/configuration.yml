@@ -107,6 +107,15 @@ access_control:
         - ["group:users"]
         - ["group:admins"]
 
+    # Financial planning - require two-factor auth (sensitive financial data)
+    - domain:
+        - "firefly.lepotato.local"
+        - "fints.lepotato.local"
+      policy: two_factor
+      subject:
+        - ["group:users"]
+        - ["group:admins"]
+
 session:
   name: authelia_session
   domain: lepotato.local

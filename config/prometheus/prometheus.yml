@@ -73,6 +73,8 @@ scrape_configs:
           - http://fritzbox-exporter:9042        # Fritzbox Exporter
           - http://loki:3100                     # Loki
           - http://vaultwarden:80                # Vaultwarden
+          - http://firefly-iii:8080              # Firefly III
+          - http://fints-importer:8080           # FinTS Importer
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
@@ -104,7 +106,9 @@ scrape_configs:
       - targets:
           - nextcloud-db:3306                    # MariaDB
           - gitea-db:5432                        # PostgreSQL
+          - firefly-db:3306                      # Firefly MariaDB
           - redis:6379                           # Redis
+          - firefly-redis-worker:6379            # Firefly Redis
           - nginx-proxy-manager:80               # NPM HTTP
           - nginx-proxy-manager:443              # NPM HTTPS
     relabel_configs:
@@ -126,6 +130,7 @@ scrape_configs:
           - http://gitea:3000                    # Gitea (strict check)
           - http://grafana:3000                  # Grafana (strict check)
           - http://vaultwarden:80                # Vaultwarden (strict check)
+          - http://firefly-iii:8080              # Firefly III (strict check)
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
@@ -152,6 +157,8 @@ scrape_configs:
           - http://${HOST_ADDR:-192.168.178.40}:81      # Nginx Proxy Manager external
           - http://${HOST_ADDR:-192.168.178.40}:3003    # Homepage external
           - http://${HOST_ADDR:-192.168.178.40}:8084    # Vaultwarden external
+          - http://${HOST_ADDR:-192.168.178.40}:8085    # Firefly III external
+          - http://${HOST_ADDR:-192.168.178.40}:8086    # FinTS Importer external
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target

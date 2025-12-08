@@ -64,8 +64,6 @@ Potential Missing Components
 - Thanos for long-term Prometheus storage
 - VictoriaMetrics as Prometheus alternative (more efficient)
 - Grafana Loki you have, but consider Promtail enhancements
-- Node Exporter you have, but add SMART exporter (you have this)
-- Actual Budget for financial tracking
 6. Network & DNS
 - CloudFlare DDNS (you have similar functionality)
 - Pi-hole or AdGuard Home for DNS filtering
@@ -75,14 +73,6 @@ Potential Missing Components
 - Flame dashboard
 - Organizr for organization
 What You're Doing Well
-✅ VPN Integration - Gluetun with killswitch is excellent  
-✅ Resource Optimization - Proper limits for 2GB RAM  
-✅ Monitoring Stack - Comprehensive Prometheus/Grafana/Loki  
-✅ Backup Strategy - Kopia with database backups  
-✅ Security - Nginx Proxy Manager with SSL  
-✅ Health Checks - Good coverage across services  
-Recommendations Priority
-High Priority:
 1. Immich for photo management (more efficient than Nextcloud for photos)
 2. Vaultwarden for password management
 3. AdGuard Home for network-wide ad blocking
