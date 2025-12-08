@@ -100,6 +100,13 @@ access_control:
       subject:
         - ["group:admins"]
 
+    # Password manager - require two-factor auth
+    - domain: "vaultwarden.lepotato.local"
+      policy: two_factor
+      subject:
+        - ["group:users"]
+        - ["group:admins"]
+
 session:
   name: authelia_session
   domain: lepotato.local
@@ -206,5 +213,19 @@ identity_providers:
           - openid
           - profile
           - groups
+          - email
+        userinfo_signing_algorithm: none
+
+      - id: vaultwarden
+        description: Vaultwarden Password Manager
+        secret: VAULTWARDEN_OIDC_SECRET_REPLACE_ME
+        public: false
+        authorization_policy: two_factor
+        redirect_uris:
+          - https://vaultwarden.lepotato.local/identity/connect/oidc-signin
+          - http://${HOST_ADDR:-192.168.178.40}:8084/identity/connect/oidc-signin
+        scopes:
+          - openid
+          - profile
           - email
         userinfo_signing_algorithm: none

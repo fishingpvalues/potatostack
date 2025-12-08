@@ -72,6 +72,7 @@ scrape_configs:
           - http://speedtest-exporter:9798       # Speedtest Exporter
           - http://fritzbox-exporter:9042        # Fritzbox Exporter
           - http://loki:3100                     # Loki
+          - http://vaultwarden:80                # Vaultwarden
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
@@ -124,6 +125,7 @@ scrape_configs:
           - http://nextcloud:80                  # Nextcloud (strict check)
           - http://gitea:3000                    # Gitea (strict check)
           - http://grafana:3000                  # Grafana (strict check)
+          - http://vaultwarden:80                # Vaultwarden (strict check)
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
@@ -149,6 +151,7 @@ scrape_configs:
           - http://${HOST_ADDR:-192.168.178.40}:8083    # Dozzle external
           - http://${HOST_ADDR:-192.168.178.40}:81      # Nginx Proxy Manager external
           - http://${HOST_ADDR:-192.168.178.40}:3003    # Homepage external
+          - http://${HOST_ADDR:-192.168.178.40}:8084    # Vaultwarden external
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
