@@ -31,7 +31,7 @@ volumes:
   grafana_data:
   loki_data:
   alertmanager_data:
-  nextcloud_db:
+  mariadb_data:
   nextcloud_data:
   gitea_data:
   gitea_db:
@@ -39,7 +39,6 @@ volumes:
   npm_ssl:
   npm_db:
   vaultwarden_data:
-  firefly_db:
   firefly_data:
   firefly_upload:
   fints_importer_data:
@@ -138,9 +137,9 @@ services:
       retries: 3
       start_period: 30s
 
-    # Resource limits (ARM64 SBC-optimized)
-    mem_limit: 256m
-    mem_reservation: 128m
+    # Resource limits (Le Potato 2GB optimized)
+    mem_limit: 128m
+    mem_reservation: 64m
     cpus: 1
 
     logging:
@@ -170,6 +169,10 @@ services:
       - TZ=Europe/Berlin
       - WEBUI_PORT=8080
       - TORRENTING_PORT=6881
+      # Resource tuning for 2GB RAM
+      - BT_MAX_OPEN_FILES=100
+      - BT_MAX_CONNECTIONS_GLOBAL=200
+      - BT_MAX_UPLOADS_GLOBAL=20
     volumes:
       - /mnt/seconddrive/qbittorrent/config:/config
       - /mnt/cachehdd/torrents:/downloads
@@ -308,9 +311,9 @@ services:
       - --log-level=info
       - --file-log-level=debug
       - --metrics-listen-addr=:51516
-    mem_limit: 768m
-    mem_reservation: 384m
-    cpus: 2
+    mem_limit: 384m
+    mem_reservation: 192m
+    cpus: 1.5
     logging:
       options:
         max-size: "10m"
@@ -338,7 +341,7 @@ services:
     volumes:
       - /mnt/seconddrive/backups/db:/backups
     depends_on:
-      nextcloud-db:
+      mariadb:
         condition: service_healthy
     security_opt:
       - no-new-privileges:true
@@ -349,7 +352,7 @@ services:
         set -o pipefail;
         while true; do
           echo 'Backing up Nextcloud database...';
-          mysqldump -h nextcloud-db -u nextcloud --password=$$MYSQL_PASSWORD nextcloud | gzip > /backups/nextcloud-db-$$(date +%Y-%m-%d-%H%M).sql.gz && echo 'Nextcloud backup complete.' || echo 'Nextcloud backup failed.';
+          mysqldump -h mariadb -u nextcloud --password=$$MYSQL_PASSWORD nextcloud | gzip > /backups/nextcloud-db-$$(date +%Y-%m-%d-%H%M).sql.gz && echo 'Nextcloud backup complete.' || echo 'Nextcloud backup failed.';
           sleep 1d;
         done
       "
@@ -391,6 +394,7 @@ services:
         max-file: "2"
 
   vaultwarden-backup:
+    profiles: ["apps"]  # OPTIONAL: Enable with --profile apps
     image: alpine:${ALPINE_TAG:-latest}
     container_name: vaultwarden_backup
     hostname: vaultwarden-backup
@@ -435,6 +439,7 @@ services:
         max-file: "2"
 
   firefly-db-backup:
+    profiles: ["heavy"]  # OPTIONAL: Enable with --profile heavy
     image: mariadb:${MARIADB_TAG:-10.11}
     container_name: firefly_db_backup
     hostname: firefly-db-backup
@@ -446,7 +451,7 @@ services:
     volumes:
       - /mnt/seconddrive/backups/db:/backups
     depends_on:
-      firefly-db:
+      mariadb:
         condition: service_healthy
     security_opt:
       - no-new-privileges:true
@@ -457,7 +462,7 @@ services:
         set -o pipefail;
         while true; do
           echo 'Backing up Firefly III database...';
-          mysqldump -h firefly-db -u firefly --password=$$MYSQL_PASSWORD firefly | gzip > /backups/firefly-db-$$(date +%Y-%m-%d-%H%M).sql.gz && echo 'Firefly backup complete.' || echo 'Firefly backup failed.';
+          mysqldump -h mariadb -u firefly --password=$$MYSQL_PASSWORD firefly | gzip > /backups/firefly-db-$$(date +%Y-%m-%d-%H%M).sql.gz && echo 'Firefly backup complete.' || echo 'Firefly backup failed.';
           sleep 1d;
         done
       "
@@ -503,9 +508,9 @@ services:
       - node-exporter
       - cadvisor
       - smartctl-exporter
-    mem_limit: 512m
-    mem_reservation: 256m
-    cpus: 1
+    mem_limit: 192m
+    mem_reservation: 96m
+    cpus: 0.5
     logging:
       options:
         max-size: "10m"
@@ -564,9 +569,9 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-    mem_limit: 384m
-    mem_reservation: 192m
-    cpus: 1
+    mem_limit: 192m
+    mem_reservation: 96m
+    cpus: 0.5
     logging:
       options:
         max-size: "10m"
@@ -725,8 +730,8 @@ services:
     devices:
       - /dev/kmsg
     privileged: true
-    mem_limit: 128m
-    mem_reservation: 64m
+    mem_limit: 64m
+    mem_reservation: 32m
     cpus: 0.5
     logging:
       options:
@@ -759,6 +764,7 @@ services:
         max-file: "2"
 
   netdata:
+    profiles: ["monitoring-extra"]  # OPTIONAL: Redundant with Prometheus/Grafana
     image: netdata/netdata:${NETDATA_TAG:-latest}
     container_name: netdata
     hostname: lepotato-netdata
@@ -806,6 +812,7 @@ services:
         max-file: "3"
 
   blackbox-exporter:
+    profiles: ["monitoring-extra"]  # OPTIONAL: Can disable if memory-constrained
     image: prom/blackbox-exporter:${BLACKBOX_EXPORTER_TAG:-latest}
     container_name: blackbox-exporter
     hostname: blackbox-exporter
@@ -851,6 +858,7 @@ services:
   ############################################################################
 
   speedtest-exporter:
+    profiles: ["monitoring-extra"]  # OPTIONAL: Nice to have
     image: miguelndecarvalho/speedtest-exporter:${SPEEDTEST_EXPORTER_TAG:-latest}
     container_name: speedtest-exporter
     hostname: speedtest-exporter
@@ -885,6 +893,7 @@ services:
   ############################################################################
 
   fritzbox-exporter:
+    profiles: ["monitoring-extra"]  # OPTIONAL: Nice to have
     image: pdreker/fritz_exporter:${FRITZBOX_EXPORTER_TAG:-latest}
     container_name: fritzbox-exporter
     hostname: fritzbox-exporter
@@ -925,24 +934,22 @@ services:
   # NEXTCLOUD - File sharing and sync
   ############################################################################
 
-  nextcloud-db:
+  mariadb:
     image: mariadb:${MARIADB_TAG:-10.11}
-    container_name: nextcloud-db
-    hostname: nextcloud-db
+    container_name: mariadb
+    hostname: mariadb
     restart: unless-stopped
     networks:
       - default
     environment:
-      - MYSQL_ROOT_PASSWORD=${NEXTCLOUD_DB_ROOT_PASSWORD}
-      - MYSQL_DATABASE=nextcloud
-      - MYSQL_USER=nextcloud
-      - MYSQL_PASSWORD=${NEXTCLOUD_DB_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
     volumes:
-      - nextcloud_db:/var/lib/mysql
+      - ./config/mariadb/init:/docker-entrypoint-initdb.d:ro
+      - mariadb_data:/var/lib/mysql
       - ./config/mariadb/low-memory.cnf:/etc/mysql/conf.d/low-memory.cnf:ro
     command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW --innodb-file-per-table=1 --skip-innodb-read-only-compressed
     healthcheck:
@@ -955,18 +962,23 @@ services:
           "localhost",
           "-u",
           "root",
-          "--password=${NEXTCLOUD_DB_ROOT_PASSWORD}",
+          "--password=${MARIADB_ROOT_PASSWORD}",
         ]
       interval: 30s
       timeout: 10s
       retries: 5
-    mem_limit: 256m
-    mem_reservation: 128m
+    mem_limit: 192m
+    mem_reservation: 96m
     cpus: 0.5
     logging:
       options:
         max-size: "10m"
         max-file: "3"
+    labels:
+      - "homepage.group=Infrastructure"
+      - "homepage.name=MariaDB (Shared)"
+      - "homepage.icon=si-mariadb"
+      - "homepage.description=Shared database for Nextcloud & Firefly"
 
   nextcloud:
     image: nextcloud:${NEXTCLOUD_TAG:-stable}
@@ -983,7 +995,7 @@ services:
     cap_drop:
       - ALL
     environment:
-      - MYSQL_HOST=nextcloud-db
+      - MYSQL_HOST=mariadb
       - MYSQL_DATABASE=nextcloud
       - MYSQL_USER=nextcloud
       - MYSQL_PASSWORD=${NEXTCLOUD_DB_PASSWORD}
@@ -995,6 +1007,7 @@ services:
       - PHP_UPLOAD_LIMIT=10G
       - REDIS_HOST=redis
       - REDIS_HOST_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_HOST_DB=0
     volumes:
       - nextcloud_data:/var/www/html
       - /mnt/seconddrive/nextcloud:/data
@@ -1002,16 +1015,16 @@ services:
       - /mnt/cachehdd/soulseek:/external/soulseek:ro
     depends_on:
       - redis
-      - nextcloud-db
+      - mariadb
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:80/status.php || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 90s
-    mem_limit: 512m
-    mem_reservation: 256m
-    cpus: 1.5
+    mem_limit: 256m
+    mem_reservation: 128m
+    cpus: 1
     logging:
       options:
         max-size: "10m"
@@ -1043,17 +1056,24 @@ services:
         "--appendonly",
         "no",
         "--maxmemory",
-        "64mb",
+        "128mb",
         "--maxmemory-policy",
         "allkeys-lru",
+        "--databases",
+        "16",
       ]
-    mem_limit: 96m
-    mem_reservation: 48m
+    mem_limit: 128m
+    mem_reservation: 64m
     cpus: 0.5
     logging:
       options:
         max-size: "5m"
         max-file: "2"
+    labels:
+      - "homepage.group=Infrastructure"
+      - "homepage.name=Redis (Shared)"
+      - "homepage.icon=si-redis"
+      - "homepage.description=Shared cache for all services"
 
   ############################################################################
   # GITEA - Git server
@@ -1113,11 +1133,11 @@ services:
       - GITEA__database__USER=gitea
       - GITEA__database__PASSWD=${GITEA_DB_PASSWORD}
       - GITEA__cache__ADAPTER=redis
-      - GITEA__cache__HOST=redis:6379
+      - GITEA__cache__HOST=redis:6379/0
       - GITEA__session__PROVIDER=redis
-      - GITEA__session__PROVIDER_CONFIG=redis:6379
+      - GITEA__session__PROVIDER_CONFIG=redis:6379/0
       - GITEA__queue__TYPE=redis
-      - GITEA__queue__CONN_STR=redis:6379
+      - GITEA__queue__CONN_STR=redis:6379/0
     volumes:
       - gitea_data:/data
       - /mnt/seconddrive/gitea:/data/gitea/repositories
@@ -1126,9 +1146,9 @@ services:
     depends_on:
       - redis
       - gitea-db
-    mem_limit: 384m
-    mem_reservation: 192m
-    cpus: 1
+    mem_limit: 192m
+    mem_reservation: 96m
+    cpus: 0.5
     logging:
       options:
         max-size: "10m"
@@ -1205,6 +1225,7 @@ services:
       - "diun.enable=true"
 
   uptime-kuma:
+    profiles: ["monitoring-extra"]  # OPTIONAL: Redundant with Blackbox Exporter
     image: louislam/uptime-kuma:${UPTIME_KUMA_TAG:-latest}
     container_name: uptime-kuma
     hostname: uptime-kuma
@@ -1298,6 +1319,7 @@ services:
   ############################################################################
 
   vaultwarden:
+    profiles: ["apps"]  # OPTIONAL: Enable with --profile apps (important but can use cloud alternative)
     image: vaultwarden/server:${VAULTWARDEN_TAG:-latest}
     container_name: vaultwarden
     hostname: vaultwarden
@@ -1355,8 +1377,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 20s
-    mem_limit: 256m
-    mem_reservation: 128m
+    mem_limit: 128m
+    mem_reservation: 64m
     cpus: 0.5
     logging:
       options:
@@ -1374,6 +1396,7 @@ services:
   ############################################################################
 
   authelia:
+    profiles: ["heavy"]  # OPTIONAL: Enable with --profile heavy (uses ~64MB)
     image: authelia/authelia:${AUTHELIA_TAG:-latest}
     container_name: authelia
     hostname: authelia
@@ -1453,9 +1476,9 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-    mem_limit: 256m
-    mem_reservation: 128m
-    cpus: 1
+    mem_limit: 128m
+    mem_reservation: 64m
+    cpus: 0.5
     logging:
       options:
         max-size: "10m"
@@ -1502,82 +1525,8 @@ services:
   # FINANCIAL PLANNING - Firefly III + FinTS Importer (Deutsche Bank)
   ############################################################################
 
-  firefly-db:
-    image: mariadb:${MARIADB_TAG:-10.11}
-    container_name: firefly-db
-    hostname: firefly-db
-    restart: unless-stopped
-    networks:
-      - default
-    environment:
-      - MYSQL_ROOT_PASSWORD=${FIREFLY_DB_ROOT_PASSWORD}
-      - MYSQL_DATABASE=firefly
-      - MYSQL_USER=firefly
-      - MYSQL_PASSWORD=${FIREFLY_DB_PASSWORD}
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    volumes:
-      - firefly_db:/var/lib/mysql
-      - ./config/mariadb/low-memory.cnf:/etc/mysql/conf.d/low-memory.cnf:ro
-    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW --innodb-file-per-table=1 --skip-innodb-read-only-compressed
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "mysqladmin",
-          "ping",
-          "-h",
-          "localhost",
-          "-u",
-          "root",
-          "--password=${FIREFLY_DB_ROOT_PASSWORD}",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    mem_limit: 256m
-    mem_reservation: 128m
-    cpus: 0.5
-    logging:
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  firefly-redis-worker:
-    image: redis:${REDIS_TAG:-7-alpine}
-    container_name: firefly-redis-worker
-    hostname: firefly-redis-worker
-    restart: unless-stopped
-    networks:
-      - default
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    command:
-      [
-        "redis-server",
-        "--save",
-        "",
-        "--appendonly",
-        "no",
-        "--maxmemory",
-        "64mb",
-        "--maxmemory-policy",
-        "allkeys-lru",
-      ]
-    mem_limit: 96m
-    mem_reservation: 48m
-    cpus: 0.5
-    logging:
-      options:
-        max-size: "5m"
-        max-file: "2"
-
   firefly-iii:
+    profiles: ["heavy"]  # OPTIONAL: Enable with --profile heavy (uses ~192MB)
     image: fireflyiii/core:${FIREFLY_TAG:-latest}
     container_name: firefly-iii
     hostname: firefly-iii
@@ -1594,12 +1543,12 @@ services:
       - ALL
     environment:
       - APP_KEY=${FIREFLY_APP_KEY}
-      - DB_HOST=firefly-db
+      - DB_HOST=mariadb
       - DB_PORT=3306
       - DB_DATABASE=firefly
       - DB_USERNAME=firefly
       - DB_PASSWORD=${FIREFLY_DB_PASSWORD}
-      - REDIS_HOST=firefly-redis-worker
+      - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_DB=0
       - TRUSTED_PROXIES=**
@@ -1616,9 +1565,9 @@ services:
       - firefly_upload:/var/www/html/storage/upload
       - firefly_data:/var/www/html/storage/app
     depends_on:
-      firefly-db:
+      mariadb:
         condition: service_healthy
-      firefly-redis-worker:
+      redis:
         condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080 || exit 1"]
@@ -1641,6 +1590,7 @@ services:
       - "homepage.description=Household finance & budgeting"
 
   firefly-worker:
+    profiles: ["heavy"]  # OPTIONAL: Enable with --profile heavy
     image: fireflyiii/core:${FIREFLY_TAG:-latest}
     container_name: firefly-worker
     hostname: firefly-worker
@@ -1653,14 +1603,14 @@ services:
       - ALL
     environment:
       - APP_KEY=${FIREFLY_APP_KEY}
-      - DB_HOST=firefly-db
+      - DB_HOST=mariadb
       - DB_PORT=3306
       - DB_DATABASE=firefly
       - DB_USERNAME=firefly
       - DB_PASSWORD=${FIREFLY_DB_PASSWORD}
-      - REDIS_HOST=firefly-redis-worker
+      - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - REDIS_DB=0
+      - REDIS_DB=1
       - TZ=Europe/Berlin
       - APP_ENV=production
       - CACHE_DRIVER=redis
@@ -1680,6 +1630,7 @@ services:
         max-file: "2"
 
   firefly-cron:
+    profiles: ["heavy"]  # OPTIONAL: Enable with --profile heavy
     image: fireflyiii/core:${FIREFLY_TAG:-latest}
     container_name: firefly-cron
     hostname: firefly-cron
@@ -1692,14 +1643,14 @@ services:
       - ALL
     environment:
       - APP_KEY=${FIREFLY_APP_KEY}
-      - DB_HOST=firefly-db
+      - DB_HOST=mariadb
       - DB_PORT=3306
       - DB_DATABASE=firefly
       - DB_USERNAME=firefly
       - DB_PASSWORD=${FIREFLY_DB_PASSWORD}
-      - REDIS_HOST=firefly-redis-worker
+      - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - REDIS_DB=0
+      - REDIS_DB=1
       - TZ=Europe/Berlin
       - APP_ENV=production
       - CACHE_DRIVER=redis
@@ -1719,6 +1670,7 @@ services:
         max-file: "2"
 
   fints-importer:
+    profiles: ["heavy"]  # OPTIONAL: Enable with --profile heavy
     image: benkl/firefly-iii-fints-importer:${FINTS_IMPORTER_TAG:-latest}
     container_name: fints-importer
     hostname: fints-importer
@@ -1764,6 +1716,7 @@ services:
       - "homepage.description=Deutsche Bank auto-import"
 
   fints-cron:
+    profiles: ["heavy"]  # OPTIONAL: Enable with --profile heavy
     image: alpine:${ALPINE_TAG:-latest}
     container_name: fints-cron
     hostname: fints-cron
@@ -1804,6 +1757,7 @@ services:
   ############################################################################
 
   immich-db:
+    profiles: ["heavy"]  # OPTIONAL: Enable with --profile heavy (uses ~192MB)
     image: tensorchord/pgvecto-rs:pg14-v0.2.0
     container_name: immich-db
     hostname: immich-db
@@ -1833,39 +1787,8 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  immich-redis:
-    image: redis:${REDIS_TAG:-7-alpine}
-    container_name: immich-redis
-    hostname: immich-redis
-    restart: unless-stopped
-    networks:
-      - default
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    command:
-      [
-        "redis-server",
-        "--save",
-        "",
-        "--appendonly",
-        "no",
-        "--maxmemory",
-        "128mb",
-        "--maxmemory-policy",
-        "allkeys-lru",
-      ]
-    mem_limit: 160m
-    mem_reservation: 80m
-    cpus: 0.5
-    logging:
-      options:
-        max-size: "5m"
-        max-file: "2"
-
   immich-server:
+    profiles: ["heavy"]  # OPTIONAL: Enable with --profile heavy (uses ~384MB)
     image: ghcr.io/immich-app/immich-server:${IMMICH_TAG:-release}
     container_name: immich-server
     hostname: immich-server
@@ -1886,9 +1809,9 @@ services:
       - DB_DATABASE_NAME=immich
       - DB_USERNAME=immich
       - DB_PASSWORD=${IMMICH_DB_PASSWORD}
-      - REDIS_HOSTNAME=immich-redis
+      - REDIS_HOSTNAME=redis
       - REDIS_PORT=6379
-      - REDIS_DBINDEX=0
+      - REDIS_DBINDEX=2
       # Upload size limits
       - UPLOAD_LOCATION=/usr/src/app/upload
       # Machine learning (disabled on Le Potato - too heavy)
@@ -1902,7 +1825,7 @@ services:
     depends_on:
       immich-db:
         condition: service_healthy
-      immich-redis:
+      redis:
         condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "wget --spider --quiet http://localhost:3001/api/server-info/ping || exit 1"]
@@ -1925,6 +1848,7 @@ services:
       - "homepage.description=Photo & video management"
 
   immich-microservices:
+    profiles: ["heavy"]  # OPTIONAL: Enable with --profile heavy (uses ~192MB)
     image: ghcr.io/immich-app/immich-server:${IMMICH_TAG:-release}
     container_name: immich-microservices
     hostname: immich-microservices
@@ -1941,9 +1865,9 @@ services:
       - DB_DATABASE_NAME=immich
       - DB_USERNAME=immich
       - DB_PASSWORD=${IMMICH_DB_PASSWORD}
-      - REDIS_HOSTNAME=immich-redis
+      - REDIS_HOSTNAME=redis
       - REDIS_PORT=6379
-      - REDIS_DBINDEX=0
+      - REDIS_DBINDEX=2
       - IMMICH_MACHINE_LEARNING_ENABLED=false
     volumes:
       - /mnt/seconddrive/immich/upload:/usr/src/app/upload
@@ -1951,7 +1875,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
     depends_on:
       - immich-db
-      - immich-redis
+      - redis
     command: ["start.sh", "microservices"]
     mem_limit: 384m
     mem_reservation: 192m
@@ -1966,6 +1890,7 @@ services:
   ############################################################################
 
   immich-db-backup:
+    profiles: ["heavy"]  # OPTIONAL: Enable with --profile heavy
     image: postgres:${POSTGRES_TAG:-14-alpine}
     container_name: immich-db-backup
     hostname: immich-db-backup

@@ -1,294 +1,80 @@
 groups:
-  - name: system_alerts
+  - name: lepotato_resource_alerts
     interval: 30s
     rules:
+      # High memory usage alert (>80% for 5 minutes)
       - alert: HighMemoryUsage
-        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        expr: (1 - (node_memory_MemAvailable_bytes{instance="lepotato"} / node_memory_MemTotal_bytes{instance="lepotato"})) * 100 > 80
         for: 5m
         labels:
           severity: warning
+          component: system
         annotations:
-          summary: "High memory usage on {{ $labels.instance }}"
-          description: "Memory usage is above 85% (current: {{ $value }}%)"
+          summary: "High memory usage on Le Potato"
+          description: "Memory usage is {{ $value | humanize }}% (threshold: 80%)"
 
+      # Critical memory usage alert (>90% for 2 minutes)
+      - alert: CriticalMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes{instance="lepotato"} / node_memory_MemTotal_bytes{instance="lepotato"})) * 100 > 90
+        for: 2m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "CRITICAL: Memory nearly exhausted on Le Potato"
+          description: "Memory usage is {{ $value | humanize }}% - OOM kill risk!"
+
+      # High CPU usage alert (>80% for 10 minutes)
       - alert: HighCPUUsage
-        expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "High CPU usage on {{ $labels.instance }}"
-          description: "CPU usage is above 80% (current: {{ $value }}%)"
-
-      - alert: DiskSpaceLow
-        expr: (node_filesystem_avail_bytes{mountpoint=~"/mnt/.*"} / node_filesystem_size_bytes{mountpoint=~"/mnt/.*"}) * 100 < 10
-        for: 5m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Low disk space on {{ $labels.mountpoint }}"
-          description: "Disk space is below 10% (current: {{ $value }}%)"
-
-      - alert: HighDiskIO
-        expr: rate(node_disk_io_time_seconds_total[5m]) > 0.8
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle",instance="lepotato"}[5m])) * 100) > 80
         for: 10m
         labels:
           severity: warning
+          component: system
         annotations:
-          summary: "High disk I/O on {{ $labels.device }}"
-          description: "Disk I/O utilization is above 80%"
+          summary: "High CPU usage on Le Potato"
+          description: "CPU usage is {{ $value | humanize }}% (threshold: 80%)"
 
-  - name: smart_alerts
-    interval: 1m
-    rules:
-      - alert: SMARTFailure
-        expr: smartctl_device_smart_status != 1
-        for: 1m
-        labels:
-          severity: critical
-        annotations:
-          summary: "SMART failure detected on {{ $labels.device }}"
-          description: "Drive {{ $labels.device }} has SMART status FAILED - immediate action required!"
-
-      - alert: HighDiskTemperature
-        expr: smartctl_device_temperature_celsius > 45
-        for: 15m
-        labels:
-          severity: warning
-        annotations:
-          summary: "High disk temperature on {{ $labels.device }}"
-          description: "Disk temperature is {{ $value }}°C (threshold: 45°C)"
-
-      - alert: ReallocatedSectors
-        expr: smartctl_ata_smart_attributes_reallocated_sector_ct_raw_value > 0
-        for: 1m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Reallocated sectors detected on {{ $labels.device }}"
-          description: "{{ $value }} reallocated sectors detected - potential drive failure"
-
-  - name: kopia_alerts
-    interval: 1m
-    rules:
-      - alert: KopiaBackupFailed
-        expr: increase(kopia_snapshot_manager_errors_total[1h]) > 0
+      # Critical CPU usage alert (>95% for 5 minutes)
+      - alert: CriticalCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle",instance="lepotato"}[5m])) * 100) > 95
         for: 5m
         labels:
           severity: critical
+          component: system
         annotations:
-          summary: "Kopia backup errors detected"
-          description: "Kopia has encountered {{ $value }} errors in the last hour"
+          summary: "CRITICAL: CPU pegged at maximum"
+          description: "CPU usage is {{ $value | humanize }}% - service degradation likely"
 
-      - alert: KopiaNoRecentSnapshot
-        expr: (time() - kopia_snapshot_manager_last_snapshot_time_seconds) > 86400
-        for: 1h
-        labels:
-          severity: warning
-        annotations:
-          summary: "No recent Kopia snapshots"
-          description: "Last snapshot was {{ $value | humanizeDuration }} ago (expected: daily)"
-
-      - alert: KopiaServerDown
-        expr: up{job="kopia"} == 0
-        for: 2m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Kopia backup server is down"
-          description: "Kopia server on {{ $labels.instance }} is not responding"
-
-      - alert: KopiaHighMemoryUsage
-        expr: kopia_server_memory_bytes / (2 * 1024 * 1024 * 1024) > 0.6
-        for: 10m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Kopia server high memory usage"
-          description: "Kopia is using {{ $value | humanizePercentage }} of allocated 768MB (Le Potato constrained)"
-
-      - alert: KopiaRepositorySpaceLow
-        expr: (kopia_repository_size_bytes{location=~"/repository"} / (500 * 1024 * 1024 * 1024)) > 0.9
-        for: 30m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Kopia repository approaching storage limit"
-          description: "Kopia repository is at {{ $value | humanizePercentage }} capacity"
-
-      - alert: KopiaSnapshotDuration
-        expr: kopia_snapshot_duration_seconds > 3600
+      # High load average (>3 on quad-core for 5 minutes)
+      - alert: HighLoadAverage
+        expr: node_load5{instance="lepotato"} > 3
         for: 5m
         labels:
           severity: warning
+          component: system
         annotations:
-          summary: "Kopia snapshot taking too long"
-          description: "Snapshot has been running for {{ $value | humanizeDuration }} (expected: <1h on Le Potato)"
+          summary: "High system load on Le Potato"
+          description: "5-minute load average is {{ $value }} (threshold: 3 on 4 cores)"
 
-  - name: vpn_alerts
-    interval: 30s
-    rules:
-      - alert: GluetunVPNDown
-        expr: probe_success{instance="http://gluetun:8000/v1/vpn/status"} == 0
-        for: 2m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Gluetun VPN is down"
-          description: "VPN connection lost - P2P traffic may be exposed!"
-
-      - alert: VPNPublicIPLeaked
-        expr: probe_success{instance="http://gluetun:8000/v1/publicip/ip"} == 0
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "VPN public IP check failed"
-          description: "Cannot verify VPN public IP - potential connection issue"
-
-  - name: container_alerts
-    interval: 30s
-    rules:
-      - alert: ContainerDown
-        expr: up == 0
-        for: 2m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Container {{ $labels.job }} is down"
-          description: "Container has been down for more than 2 minutes"
-
+      # Container high memory
       - alert: ContainerHighMemory
-        expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) * 100 > 90
+        expr: (container_memory_usage_bytes{instance="lepotato"} / container_spec_memory_limit_bytes{instance="lepotato"}) * 100 > 90
         for: 5m
         labels:
           severity: warning
+          component: docker
         annotations:
           summary: "Container {{ $labels.name }} high memory usage"
-          description: "Memory usage is {{ $value }}% of limit"
+          description: "Container using {{ $value | humanize }}% of its memory limit"
 
-  - name: swap_alerts
-    interval: 30s
-    rules:
-      - alert: SwapUsageCritical
-        expr: ((node_memory_SwapTotal_bytes - node_memory_SwapFree_bytes) / node_memory_SwapTotal_bytes) * 100 > 80
-        for: 5m
-        labels:
-          severity: critical
-        annotations:
-          summary: "CRITICAL: Swap usage above 80% on Le Potato"
-          description: "Swap usage is {{ $value | humanizePercentage }} - system will slow down significantly. Consider cleaning old logs or restarting heavy services."
-
-      - alert: SwapUsageHigh
-        expr: ((node_memory_SwapTotal_bytes - node_memory_SwapFree_bytes) / node_memory_SwapTotal_bytes) * 100 > 60
-        for: 10m
-        labels:
-          severity: warning
-        annotations:
-          summary: "High swap usage on Le Potato"
-          description: "Swap usage is {{ $value | humanizePercentage }}. Monitor closely."
-
-      - alert: HighSwapIO
-        expr: rate(node_vmstat_pswpin[5m]) + rate(node_vmstat_pswpout[5m]) > 100
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "High swap I/O activity"
-          description: "System is thrashing (heavy swap in/out). Performance will be degraded."
-
-      - alert: SwapNotAvailable
-        expr: node_memory_SwapTotal_bytes == 0
-        for: 1m
-        labels:
-          severity: critical
-        annotations:
-          summary: "CRITICAL: No swap configured on Le Potato"
-          description: "Le Potato requires swap for 2GB RAM. Run systemctl start potatostack-swap.service immediately."
-
-  - name: lepotato_specific_alerts
-    interval: 1m
-    rules:
-      - alert: MemoryPressureHigh
-        expr: rate(node_vmstat_pgmajfault[5m]) > 10
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "High memory pressure detected"
-          description: "Page major faults: {{ $value }}/sec. System experiencing memory pressure."
-
-      - alert: SystemLoadHigh
-        expr: node_load5 / count(node_cpu_seconds_total{mode="idle"}) > 2
-        for: 10m
-        labels:
-          severity: warning
-        annotations:
-          summary: "System load is high for Le Potato"
-          description: "5-minute load average ({{ $value }}) exceeds 2x CPU cores. Check running services."
-
-      - alert: DiskIOSaturation
-        expr: rate(node_disk_io_time_weighted_seconds_total[5m]) > 1
-        for: 10m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Disk I/O saturation on single-bus system"
-          description: "I/O wait time is high. Le Potato's single storage controller is saturated."
-
-      - alert: CPUThrottling
-        expr: rate(node_cpu_frequency_min_hertz[5m]) < rate(node_cpu_frequency_max_hertz[5m]) * 0.8
-        for: 5m
-        labels:
-          severity: info
-        annotations:
-          summary: "CPU frequency scaling detected"
-          description: "CPU may be throttling due to thermals or power management."
-
-  - name: blackbox_alerts
-    interval: 30s
-    rules:
+      # Service down
       - alert: ServiceDown
-        expr: probe_success == 0
+        expr: up{job!~"blackbox.*"} == 0
         for: 2m
         labels:
           severity: critical
+          component: service
         annotations:
-          summary: "Service {{ $labels.instance }} is down"
-          description: "HTTP/HTTPS probe failed for {{ $labels.instance }} for more than 2 minutes"
-
-      - alert: SlowHTTPResponse
-        expr: probe_http_duration_seconds > 5
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Slow HTTP response for {{ $labels.instance }}"
-          description: "HTTP response time is {{ $value }}s (threshold: 5s)"
-
-      - alert: SSLCertificateExpiringSoon
-        expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 < 30
-        for: 1h
-        labels:
-          severity: warning
-        annotations:
-          summary: "SSL certificate expiring soon for {{ $labels.instance }}"
-          description: "Certificate expires in {{ $value }} days"
-
-      - alert: SSLCertificateExpired
-        expr: (probe_ssl_earliest_cert_expiry - time()) < 0
-        for: 5m
-        labels:
-          severity: critical
-        annotations:
-          summary: "SSL certificate expired for {{ $labels.instance }}"
-          description: "Certificate has expired!"
-
-      - alert: HTTPStatusCodeError
-        expr: probe_http_status_code >= 400
-        for: 2m
-        labels:
-          severity: warning
-        annotations:
-          summary: "HTTP error code for {{ $labels.instance }}"
-          description: "HTTP status code is {{ $value }}"
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.instance }} has been down for >2 minutes"
