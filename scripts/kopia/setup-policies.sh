@@ -42,17 +42,16 @@ log_success "Retention: 7 latest, 24 hourly, 14 daily, 8 weekly, 12 monthly, 3 a
 
 ################################################################################
 # 2. COMPRESSION SETTINGS
-# Use efficient compression for storage optimization
+# NO COMPRESSION for Le Potato - saves CPU cycles on ARM64 SBC with 2GB RAM
+# Storage is cheap, CPU time is precious on embedded hardware
 ################################################################################
-log_info "Configuring compression settings..."
+log_info "Configuring compression settings (NO COMPRESSION for Le Potato)..."
 
 docker exec "$KOPIA_CONTAINER" kopia policy set --global \
-  --compression=zstd \
-  --compression-min-size=1048576 \
-  --compression-max-size=134217728 \
+  --compression=none \
   || log_warn "Failed to set compression policy"
 
-log_success "Compression: zstd (files 1MB-128MB)"
+log_success "Compression: DISABLED (optimized for Le Potato ARM64 SBC)"
 
 ################################################################################
 # 3. SNAPSHOT SCHEDULING
@@ -68,15 +67,18 @@ log_success "Schedule: Daily at 3:00 AM"
 
 ################################################################################
 # 4. PERFORMANCE OPTIMIZATION
-# Tuned for SBC with limited RAM (2GB)
+# Tuned for Le Potato SBC (ARM64, 2GB RAM, USB 3.0 storage)
+# Conservative settings to prevent OOM and USB bottlenecks
 ################################################################################
-log_info "Configuring performance settings..."
+log_info "Configuring performance settings (Le Potato optimized)..."
 
 docker exec "$KOPIA_CONTAINER" kopia policy set --global \
-  --parallel-upload-above-size-mib=16 \
+  --parallel-upload-above-size-mib=32 \
+  --max-parallel-snapshots=1 \
+  --max-parallel-file-reads=2 \
   || log_warn "Failed to set performance policy"
 
-log_success "Performance: Parallel uploads for files >16MB"
+log_success "Performance: Conservative parallel settings for 2GB RAM + USB 3.0"
 
 ################################################################################
 # 5. ERROR HANDLING & SAFETY
@@ -89,6 +91,30 @@ docker exec "$KOPIA_CONTAINER" kopia policy set --global \
   || log_warn "Failed to set error handling policy"
 
 log_success "Error handling: Ignore inaccessible files/dirs (continue on errors)"
+
+################################################################################
+# 6. SPLITTER & DEDUPLICATION
+# Optimized for typical homelab data (databases, configs, media)
+################################################################################
+log_info "Configuring deduplication settings..."
+
+docker exec "$KOPIA_CONTAINER" kopia policy set --global \
+  --splitter=FIXED-4M \
+  || log_warn "Failed to set splitter policy"
+
+log_success "Splitter: FIXED-4M (good balance for mixed content without compression)"
+
+################################################################################
+# 7. UPLOAD LIMITS
+# Prevent overwhelming USB 3.0 or network bandwidth
+################################################################################
+log_info "Configuring upload limits..."
+
+docker exec "$KOPIA_CONTAINER" kopia policy set --global \
+  --upload-max-megabytes-per-sec=50 \
+  || log_warn "Failed to set upload limits"
+
+log_success "Upload limit: 50 MB/s (USB 3.0 safe with overhead)"
 
 ################################################################################
 # DISPLAY CURRENT POLICY
