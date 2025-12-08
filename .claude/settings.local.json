@@ -6,7 +6,8 @@
       "Bash(docker compose config:*)",
       "WebFetch(domain:kopia.io)",
       "Bash(mkdir:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

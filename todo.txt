@@ -8,52 +8,16 @@
 - Current Issue: .env file contains sensitive passwords that could be committed
 - Solution: Implement sops + age encryption for .env file
 - Effort: 30 minutes
-4. HTTP Service Monitoring (Blackbox Exporter)
-- Status: Container exists but not fully configured
-- Impact: MEDIUM - Proactive uptime detection
-- Missing: Prometheus scrape config for service health checks
-- Current: Blackbox exporter container present but unused
 5. Single Sign-On (SSO) with Authelia
 - Status: Not implemented
 - Impact: MEDIUM - Unified authentication
 - Missing: Authelia container + OAuth2 proxy configuration
-- Benefits: One login for Grafana, Nextcloud, Gitea, Portainer
-6. Zero-Trust Remote Access
-- Status: Not implemented
-- Impact: MEDIUM - Secure external access
-- Missing: Tailscale or Cloudflare Tunnel setup
-- Current: Only local LAN access
+- Benefits: One login for Grafana, Nextcloud, Gitea, Portaine
 7. Thanos for Long-Term Metrics
 - Status: Not implemented
 - Impact: LOW - Extended metric retention
 - Missing: Thanos sidecar/compactor for >14 day retention
 - Current: Prometheus limited to 14 days
-🟢 MEDIUM PRIORITY (Nice to Have)
-8. UPS Monitoring (NUT)
-- Status: Not implemented
-- Impact: LOW - Power failure protection
-- Missing: Network UPS Tools + nut-exporter
-- Prerequisite: Physical UPS connected to Le Potato
-9. Internet Speed Monitoring
-- Status: Not implemented  
-- Impact: LOW - ISP performance tracking
-- Missing: speedtest-exporter container
-- Benefits: Historical bandwidth monitoring
-10. DNS & Ad Blocking (Pi-hole)
-- Status: Not implemented
-- Impact: LOW - Network-wide ad blocking
-- Missing: Pi-hole + Unbound containers
-- Benefits: Faster browsing, privacy
-11. Advanced Grafana Dashboards
-- Status: Partially implemented
-- Impact: LOW - Better monitoring UX
-- Missing: Dashboards for Blackbox, Netdata, UPS monitoring
-- Current: Basic dashboards exist but could be enhanced
-12. Automated Renovate PR Processing
-- Status: renovate.json exists but not wired to Gitea
-- Impact: LOW - Automated dependency updates
-- Missing: Webhook integration with Gitea
-- Current: Renovate creates PRs but manual merging required
 🔵 OPTIONAL/ENHANCEMENT FEATURES
 13. Nextcloud Performance Optimization
 - Status: Basic setup only
