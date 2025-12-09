@@ -10,7 +10,16 @@
       "WebSearch",
       "Bash(find:*)",
       "Bash(wc:*)",
-      "Bash(paste:*)"
+      "Bash(paste:*)",
+      "Bash(./tests/test-stack.sh:*)",
+      "Bash(tee:*)",
+      "Bash(docker compose:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker volume:*)",
+      "Bash(xargs:*)",
+      "Bash(docker system prune:*)",
+      "Bash(docker system:*)"
     ],
     "deny": [],
     "ask": []
