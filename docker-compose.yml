@@ -34,7 +34,7 @@ volumes:
   mariadb_data:
   nextcloud_data:
   gitea_data:
-  gitea_db:
+  postgres_data:
   npm_data:
   npm_ssl:
   npm_db:
@@ -42,7 +42,6 @@ volumes:
   firefly_data:
   firefly_upload:
   fints_importer_data:
-  immich_db:
   immich_model_cache:
 
 services:
@@ -373,7 +372,7 @@ services:
     volumes:
       - /mnt/seconddrive/backups/db:/backups
     depends_on:
-      gitea-db:
+      postgres:
         condition: service_healthy
     security_opt:
       - no-new-privileges:true
@@ -384,7 +383,7 @@ services:
         set -o pipefail;
         while true; do
           echo 'Backing up Gitea database...';
-          pg_dump -h gitea-db -U gitea -d gitea | gzip > /backups/gitea-db-$$(date +%Y-%m-%d-%H%M).sql.gz && echo 'Gitea backup complete.' || echo 'Gitea backup failed.';
+          pg_dump -h postgres -U gitea -d gitea | gzip > /backups/gitea-db-$$(date +%Y-%m-%d-%H%M).sql.gz && echo 'Gitea backup complete.' || echo 'Gitea backup failed.';
           sleep 1d;
         done
       "
@@ -1079,10 +1078,11 @@ services:
   # GITEA - Git server
   ############################################################################
 
-  gitea-db:
-    image: postgres:${POSTGRES_TAG:-14-alpine}
-    container_name: gitea-db
-    hostname: gitea-db
+  postgres:
+    # Unified Postgres for Gitea + Immich (includes vector extension)
+    image: tensorchord/pgvecto-rs:pg14-v0.2.0
+    container_name: postgres
+    hostname: postgres
     restart: unless-stopped
     networks:
       - default
@@ -1091,19 +1091,34 @@ services:
     cap_drop:
       - ALL
     environment:
-      - POSTGRES_USER=gitea
-      - POSTGRES_PASSWORD=${GITEA_DB_PASSWORD}
-      - POSTGRES_DB=gitea
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_SUPER_PASSWORD}
+      - POSTGRES_DB=postgres
+      # Pass app DB passwords for init script
+      - GITEA_DB_PASSWORD=${GITEA_DB_PASSWORD}
+      - IMMICH_DB_PASSWORD=${IMMICH_DB_PASSWORD}
     volumes:
-      - gitea_db:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+      - ./config/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U gitea -d gitea"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
       interval: 30s
       timeout: 10s
       retries: 5
-    mem_limit: 128m
-    mem_reservation: 64m
-    cpus: 0.5
+    # Conservative Postgres tuning for 2GB RAM SBC
+    command: [
+      "postgres",
+      "-c", "shared_buffers=64MB",
+      "-c", "work_mem=4MB",
+      "-c", "maintenance_work_mem=64MB",
+      "-c", "effective_cache_size=256MB",
+      "-c", "max_connections=60",
+      "-c", "random_page_cost=2.0",
+      "-c", "jit=off"
+    ]
+    mem_limit: 256m
+    mem_reservation: 128m
+    cpus: 1
     logging:
       options:
         max-size: "10m"
@@ -1128,7 +1143,7 @@ services:
       - USER_UID=1000
       - USER_GID=1000
       - GITEA__database__DB_TYPE=postgres
-      - GITEA__database__HOST=gitea-db:5432
+      - GITEA__database__HOST=postgres:5432
       - GITEA__database__NAME=gitea
       - GITEA__database__USER=gitea
       - GITEA__database__PASSWD=${GITEA_DB_PASSWORD}
@@ -1145,7 +1160,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
     depends_on:
       - redis
-      - gitea-db
+      - postgres
     mem_limit: 192m
     mem_reservation: 96m
     cpus: 0.5
@@ -1756,36 +1771,7 @@ services:
   # Mobile app support for Android and iOS/iPad
   ############################################################################
 
-  immich-db:
-    profiles: ["heavy"]  # OPTIONAL: Enable with --profile heavy (uses ~192MB)
-    image: tensorchord/pgvecto-rs:pg14-v0.2.0
-    container_name: immich-db
-    hostname: immich-db
-    restart: unless-stopped
-    networks:
-      - default
-    environment:
-      - POSTGRES_USER=immich
-      - POSTGRES_PASSWORD=${IMMICH_DB_PASSWORD}
-      - POSTGRES_DB=immich
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    volumes:
-      - immich_db:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U immich -d immich"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    mem_limit: 256m
-    mem_reservation: 128m
-    cpus: 0.5
-    logging:
-      options:
-        max-size: "10m"
-        max-file: "3"
+  # immich-db removed; unified under 'postgres'
 
   immich-server:
     profiles: ["heavy"]  # OPTIONAL: Enable with --profile heavy (uses ~384MB)
@@ -1805,7 +1791,7 @@ services:
       - ALL
     environment:
       - TZ=Europe/Berlin
-      - DB_HOSTNAME=immich-db
+      - DB_HOSTNAME=postgres
       - DB_DATABASE_NAME=immich
       - DB_USERNAME=immich
       - DB_PASSWORD=${IMMICH_DB_PASSWORD}
@@ -1823,7 +1809,7 @@ services:
       - /mnt/seconddrive/immich/library:/usr/src/app/library
       - /etc/localtime:/etc/localtime:ro
     depends_on:
-      immich-db:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_started
@@ -1861,7 +1847,7 @@ services:
       - ALL
     environment:
       - TZ=Europe/Berlin
-      - DB_HOSTNAME=immich-db
+      - DB_HOSTNAME=postgres
       - DB_DATABASE_NAME=immich
       - DB_USERNAME=immich
       - DB_PASSWORD=${IMMICH_DB_PASSWORD}
@@ -1874,7 +1860,7 @@ services:
       - /mnt/seconddrive/immich/library:/usr/src/app/library
       - /etc/localtime:/etc/localtime:ro
     depends_on:
-      - immich-db
+      - postgres
       - redis
     command: ["start.sh", "microservices"]
     mem_limit: 384m
@@ -1906,14 +1892,14 @@ services:
     volumes:
       - /mnt/seconddrive/backups/db:/backups
     depends_on:
-      immich-db:
+      postgres:
         condition: service_healthy
     command: >
       sh -c "
         set -o pipefail;
         while true; do
           echo 'Backing up Immich database...';
-          pg_dump -h immich-db -U immich -d immich | gzip > /backups/immich-db-$$(date +%Y-%m-%d-%H%M).sql.gz && echo 'Immich backup complete.' || echo 'Immich backup failed.';
+          pg_dump -h postgres -U immich -d immich | gzip > /backups/immich-db-$$(date +%Y-%m-%d-%H%M).sql.gz && echo 'Immich backup complete.' || echo 'Immich backup failed.';
           sleep 1d;
         done
       "

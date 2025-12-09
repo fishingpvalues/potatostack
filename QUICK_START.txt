@@ -107,19 +107,22 @@ If any occur:
  DATABASE CONSOLIDATION SUMMARY
 ═══════════════════════════════════════════════════════════════════
 
-✅ Redis: 3 instances → 1 (saves ~256MB)
+✅ Redis: Shared single instance
    - DB 0: Nextcloud & Gitea
-   - DB 1: Firefly III  
+   - DB 1: Firefly III
    - DB 2: Immich
 
-✅ MariaDB: 2 instances → 1 (saves ~256MB)
-   - Database: nextcloud
-   - Database: firefly
+✅ MariaDB: Single shared instance
+   - Databases: nextcloud, firefly
+
+✅ Postgres: 2 instances → 1 (saves ~128–256MB)
+   - Databases: gitea, immich
+   - Image: tensorchord/pgvecto-rs (Postgres 14 + vector ext)
 
 Total savings: ~512MB!
 
 ═══════════════════════════════════════════════════════════════════
- NEW FEATURES
+NEW FEATURES
 ═══════════════════════════════════════════════════════════════════
 
 ✅ Grafana Dashboard: Speedtest Internet Monitoring
@@ -127,6 +130,27 @@ Total savings: ~512MB!
 ✅ Prometheus Alerts: RAM/CPU >80%, service down
 ✅ Docker Compose Profiles: apps, monitoring-extra, heavy
 ✅ qBittorrent tuning: Connection limits for 2GB RAM
+
+═══════════════════════════════════════════════════════════════════
+ UNIFIED POSTGRES – FIRST RUN & MIGRATION
+═══════════════════════════════════════════════════════════════════
+
+First run (fresh install):
+- Set POSTGRES_SUPER_PASSWORD in .env
+- docker compose up -d postgres
+- Init script auto-creates DBs/users: gitea, immich
+
+Migrate from old split DBs (existing data):
+1) Before updating compose, dump from old DBs:
+   - pg_dump -h gitea-db -U gitea -d gitea > gitea.sql
+   - pg_dump -h immich-db -U immich -d immich > immich.sql
+2) Update compose (this repo) and start unified DB:
+   - docker compose up -d postgres
+3) Restore into unified Postgres:
+   - docker compose exec -T postgres psql -U postgres -d gitea < gitea.sql
+   - docker compose exec -T postgres psql -U postgres -d immich < immich.sql
+4) Start apps:
+   - docker compose up -d gitea immich-server immich-microservices
 
 ═══════════════════════════════════════════════════════════════════
  NEED HELP?
