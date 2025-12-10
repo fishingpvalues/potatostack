@@ -255,12 +255,13 @@ mode_full() {
     echo ""
 
     # 1. SYSTEM CHECKS
-    echo -e "${BLUE}[1] SYSTEM HEALTH${NC}"
-    check "Swap is configured" "swapon --show | grep -q swap" true
-    check "Swap usage < 80%" "awk '\$1==\"Swap:\" && (\$3/\$2)*100 < 80 {exit 0} \$1==\"Swap:\" {exit 1}' <(free)" false
-    check "Memory usage < 90%" "awk '\$1==\"Mem:\" && (\$3/\$2)*100 < 90 {exit 0} \$1==\"Mem:\" {exit 1}' <(free)" false
-    check "CPU load < 4 (cores)" "awk '{if (\$1 < 4) exit 0; else exit 1}' /proc/loadavg" false
-    check "Root partition > 10% free" "df / | awk 'NR==2 {if (substr(\$5,1,length(\$5)-1) < 90) exit 0; else exit 1}'" true
+        echo -e "${BLUE}[1] SYSTEM HEALTH${NC}"
+        check "Swap is configured" "swapon --show | grep -q swap" true
+        check "Swap usage < 80%" "awk '\$1==\"Swap:\" && (\$3/\$2)*100 < 80 {exit 0} \$1==\"Swap:\" {exit 1}' <(free)" false
+        check "Memory usage < 90%" "awk '\$1==\"Mem:\" && (\$3/\$2)*100 < 90 {exit 0} \$1==\"Mem:\" {exit 1}' <(free)" false
+        check "CPU load < 4 (cores)" "awk '{if (\$1 < 4) exit 0; else exit 1}' /proc/loadavg" false
+        check "Root partition > 10% free" "df / | awk 'NR==2 {if (substr(\$5,1,length(\$5)-1) < 90) exit 0; else exit 1}'" true
+        check "vm.swappiness is optimized (10)" "sysctl vm.swappiness | grep -q 'vm.swappiness = 10'" false
     echo ""
 
     # 2. ZFS CHECKS

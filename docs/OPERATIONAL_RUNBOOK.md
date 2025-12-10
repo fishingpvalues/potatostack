@@ -85,10 +85,10 @@ echo -e "\n=== EMERGENCY CHECK COMPLETE ==="
    docker-compose restart [failed-service]
    
    # If VPN issues:
-   docker-compose restart surfshark qbittorrent slskd
+   docker-compose restart gluetun qbittorrent slskd
    
    # If database issues:
-   docker-compose restart nextcloud-db gitea-db
+   docker-compose restart mariadb postgres
    ```
 
 3. **Emergency Stop (if needed)**
@@ -107,7 +107,7 @@ echo -e "\n=== EMERGENCY CHECK COMPLETE ==="
 
    ```bash
    # Start critical services first
-   docker-compose up -d surfshark
+   docker-compose up -d gluetun
    sleep 30
    
    docker-compose up -d nginx-proxy-manager
@@ -116,7 +116,7 @@ echo -e "\n=== EMERGENCY CHECK COMPLETE ==="
    docker-compose up -d prometheus grafana
    sleep 15
    
-   docker-compose up -d nextcloud nextcloud-db
+   docker-compose up -d nextcloud mariadb postgres
    sleep 30
    
    # Start remaining services
@@ -206,7 +206,7 @@ mkdir -p /var/log/potatostack
   fi
   
   # VPN check
-  VPN_IP=$(docker exec surfshark curl -s https://ipinfo.io/ip 2>/dev/null || echo "FAILED")
+  VPN_IP=$(docker exec gluetun curl -s https://ipinfo.io/ip 2>/dev/null || echo "FAILED")
   echo "VPN IP: $VPN_IP"
   
   # Storage check
@@ -480,9 +480,9 @@ sar -b 1 12  # Disk I/O over 12 minutes
 # 2. Database performance
 echo -e "\n=== DATABASE PERFORMANCE ==="
 # Nextcloud database
-docker exec nextcloud-db mysql -e "SHOW STATUS LIKE 'Slow_queries';"
+docker exec mariadb mysql -e "SHOW STATUS LIKE 'Slow_queries';"
 # Gitea database
-docker exec gitea-db psql -U gitea -d gitea -c "SELECT * FROM pg_stat_activity;"
+docker exec postgres psql -U postgres -d postgres -c "SELECT * FROM pg_stat_activity;"
 
 # 3. Container resource usage
 echo -e "\n=== CONTAINER RESOURCE ANALYSIS ==="
@@ -556,7 +556,7 @@ find /mnt/seconddrive -type f -exec stat -c "%Y %s %n" {} \; | \
 # 2. Database growth
 echo -e "\n=== DATABASE GROWTH ==="
 # Nextcloud database size
-docker exec nextcloud-db du -sh /var/lib/mysql/
+docker exec mariadb du -sh /var/lib/mysql/
 
 # 3. Resource predictions
 echo -e "\n=== RESOURCE PREDICTIONS ==="
@@ -656,7 +656,7 @@ docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsa
 # 5. Database performance
 echo -e "\nDatabase performance:"
 # Check slow queries
-docker exec nextcloud-db mysql -e "SHOW PROCESSLIST;"
+docker exec mariadb mysql -e "SHOW PROCESSLIST;"
 
 # 6. Network performance
 echo -e "\nNetwork performance:"
@@ -680,15 +680,15 @@ echo "=== VPN TROUBLESHOOTING ==="
 
 # 1. Check VPN container status
 echo "VPN container status:"
-docker-compose ps surfshark
+docker-compose ps gluetun
 
 # 2. Check VPN logs
 echo -e "\nVPN logs:"
-docker-compose logs --since 1h surfshark
+docker-compose logs --since 1h gluetun
 
 # 3. Test VPN connectivity
 echo -e "\nVPN connectivity test:"
-VPN_IP=$(docker exec surfshark curl -s --max-time 10 https://ipinfo.io/ip 2>/dev/null || echo "FAILED")
+VPN_IP=$(docker exec gluetun curl -s --max-time 10 https://ipinfo.io/ip 2>/dev/null || echo "FAILED")
 echo "VPN IP: $VPN_IP"
 
 # 4. Check P2P service VPN routing
@@ -705,7 +705,7 @@ if [ "$VPN_IP" != "FAILED" ] && [ "$VPN_IP" = "$QBT_IP" ] && [ "$VPN_IP" = "$SLS
 else
   echo "✗ VPN routing issue detected!"
   echo "Restarting VPN..."
-  docker-compose restart surfshark qbittorrent slskd
+  docker-compose restart gluetun qbittorrent slskd
 fi
 
 echo "=== VPN TROUBLESHOOTING COMPLETE ==="
@@ -793,7 +793,7 @@ echo "=== PERFORMANCE OPTIMIZATION ==="
 echo "Optimizing databases..."
 
 # Nextcloud database
-docker exec nextcloud-db mysql -e "
+docker exec mariadb mysql -e "
   OPTIMIZE TABLE oc_filecache;
   OPTIMIZE TABLE oc_activity;
   OPTIMIZE TABLE oc_comments;
@@ -861,10 +861,10 @@ tar -tzf /tmp/latest-backup.tar.gz | head -20
 # 3. Database backup verification
 echo "Database backup verification..."
 # Nextcloud DB
-docker exec nextcloud-db mysqldump -u root -p$MYSQL_ROOT_PASSWORD nextcloud | \
+docker exec mariadb mysqldump -u root -p$MYSQL_ROOT_PASSWORD nextcloud | \
   mysql -u root -p$MYSQL_ROOT_PASSWORD nextcloud_test 2>/dev/null
 # Gitea DB  
-docker exec gitea-db pg_dump -U gitea gitea > /tmp/gitea-backup.sql
+docker exec postgres pg_dump -U postgres -d gitea > /tmp/gitea-backup.sql
 
 # 4. Configuration backup verification
 echo "Configuration backup verification..."

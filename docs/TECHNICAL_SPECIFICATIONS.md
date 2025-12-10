@@ -140,29 +140,31 @@ Mounts:
   - npm_ssl:/etc/letsencrypt
 ```
 
-#### 3. Surfshark VPN
+#### 3. Gluetun VPN
 
 ```yaml
-Service: surfshark
-Image: ilteoood/docker-surfshark:latest
+Service: gluetun
+Image: qmcgaw/gluetun:latest
 Network: potatostack_vpn
 Memory: 256MB limit, 128MB reservation
 CPU: 1 core
 
 Configuration:
-  Provider: Surfshark
+  Provider: Surfshark (configurable)
   Protocol: OpenVPN/WireGuard
   Country: Netherlands (AMS)
   Killswitch: Enabled
   DNS: 1.1.1.1, 1.0.0.1
   
 Environment Variables:
-  - SURFSHARK_USER: ${SURFSHARK_USER}
-  - SURFSHARK_PASSWORD: ${SURFSHARK_PASSWORD}
-  - SURFSHARK_COUNTRY: nl
-  - SURFSHARK_CITY: ams
-  - CONNECTION_TYPE: openvpn
-  - LAN_NETWORK: 192.168.178.0/24
+  - VPN_SERVICE_PROVIDER: surfshark
+  - VPN_TYPE: openvpn
+  - OPENVPN_USER: ${SURFSHARK_USER}
+  - OPENVPN_PASSWORD: ${SURFSHARK_PASSWORD}
+  - SERVER_COUNTRIES: Netherlands
+  - SERVER_CITIES: Amsterdam
+  - FIREWALL: on
+  - FIREWALL_OUTBOUND_SUBNETS: ${LAN_NETWORK:-192.168.178.0/24}
   
 Capabilities:
   - NET_ADMIN
@@ -173,7 +175,7 @@ Devices:
   
 Health Check:
   - Type: HTTP GET
-  - URL: https://ipinfo.io/ip
+  - URL: http://localhost:8000/v1/publicip/ip
   - Interval: 5 minutes
 ```
 
@@ -328,7 +330,7 @@ Mounts:
 ```yaml
 Service: qbittorrent
 Image: lscr.io/linuxserver/qbittorrent:latest
-Network: service:surfshark
+Network: service:gluetun
 Ports:
   - 8080:8080 (Web UI)
   - 6881:6881 (TCP/UDP)
@@ -342,7 +344,7 @@ Configuration:
   Default Password: adminadmin
   
 Dependencies:
-  - surfshark (must be healthy)
+  - gluetun (must be healthy)
   
 Environment Variables:
   - PUID: 1000
@@ -359,7 +361,7 @@ Mounts:
 Homepage Integration:
   - Group: Media & Downloads
   - Widget: qbittorrent
-  - URL: http://surfshark:8080
+  - URL: http://gluetun:8080
 ```
 
 #### 9. slskd (Soulseek Client)
@@ -367,7 +369,7 @@ Homepage Integration:
 ```yaml
 Service: slskd
 Image: ghcr.io/slskd/slskd:latest
-Network: service:surfshark
+Network: service:gluetun
 Ports:
   - 2234:2234 (HTTP API)
   - 50000:50000 (Soulseek Protocol)
@@ -381,7 +383,7 @@ Configuration:
   Metrics: Enabled
   
 Dependencies:
-  - surfshark (must be healthy)
+  - gluetun (must be healthy)
   
 Environment Variables:
   - PUID: 1000
@@ -403,15 +405,15 @@ Mounts:
 Homepage Integration:
   - Group: Media & Downloads
   - Widget: generic
-  - URL: http://surfshark:2234
+  - URL: http://gluetun:2234
 ```
 
 ### Database Services
 
-#### Nextcloud Database (MariaDB)
+#### MariaDB (Consolidated Database)
 
 ```yaml
-Service: nextcloud-db
+Service: mariadb
 Image: mariadb:10.11
 Memory: 256MB limit, 128MB reservation
 CPU: 0.5 cores
@@ -430,38 +432,40 @@ Dependencies:
   - None
   
 Environment Variables:
-  - MYSQL_ROOT_PASSWORD: ${NEXTCLOUD_DB_ROOT_PASSWORD}
-  - MYSQL_DATABASE: nextcloud
-  - MYSQL_USER: nextcloud
-  - MYSQL_PASSWORD: ${NEXTCLOUD_DB_PASSWORD}
+  - MYSQL_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
   
 Mounts:
-  - nextcloud_db:/var/lib/mysql
+  - mariadb_data:/var/lib/mysql
+   - ./config/mariadb/init:/docker-entrypoint-initdb.d:ro
+   - ./config/mariadb/low-memory.cnf:/etc/mysql/conf.d/low-memory.cnf:ro
 ```
 
-#### Gitea Database (PostgreSQL)
+#### PostgreSQL (Consolidated Database)
 
 ```yaml
-Service: gitea-db
-Image: postgres:14-alpine
-Memory: 128MB limit, 64MB reservation
-CPU: 0.5 cores
+Service: postgres
+Image: tensorchord/pgvecto-rs:pg14-v0.2.0
+Memory: 256MB limit, 128MB reservation
+CPU: 1 core
 
 Configuration:
-  Version: PostgreSQL 14
+  Version: PostgreSQL 14 with pgvecto-rs extension
   Character Set: UTF8
-  Extensions: Enabled
+  Extensions: pgvecto-rs for vector search
   
 Dependencies:
   - None
   
 Environment Variables:
-  - POSTGRES_USER: gitea
-  - POSTGRES_PASSWORD: ${GITEA_DB_PASSWORD}
-  - POSTGRES_DB: gitea
+  - POSTGRES_USER: postgres
+  - POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+  - POSTGRES_DB: postgres
+  - GITEA_DB_PASSWORD: ${GITEA_DB_PASSWORD}
+  - IMMICH_DB_PASSWORD: ${IMMICH_DB_PASSWORD}
   
 Mounts:
-  - gitea_db:/var/lib/postgresql/data
+  - postgres_data:/var/lib/postgresql/data
+  - ./config/postgres/init:/docker-entrypoint-initdb.d:ro
 ```
 
 ---
@@ -492,7 +496,7 @@ Response:
     "qbittorrent": {
       "status": "online",
       "response_time": 28,
-      "url": "http://surfshark:8080"
+      "url": "http://gluetun:8080"
     }
   },
   "timestamp": "2025-12-06T22:07:00Z"
@@ -930,7 +934,7 @@ services:
         icon: mdi:torrent
         widget:
           type: "qbittorrent"
-          url: "http://surfshark:8080"
+          url: "http://gluetun:8080"
           username: "admin"
           password: "{{HOMEPAGE_VAR_QBITTORRENT_PASSWORD}}"
       
@@ -939,7 +943,7 @@ services:
         icon: mdi:music
         widget:
           type: "generic"
-          url: "http://surfshark:2234"
+          url: "http://gluetun:2234"
 
   - group: "Storage & Sync"
     icon: mdi:cloud
@@ -1142,13 +1146,13 @@ groups:
           description: "The last successful Kopia backup was more than 24 hours ago."
 
       - alert: VPNConnectionDown
-        expr: up{job="surfshark"} == 0
+        expr: up{job="gluetun"} == 0
         for: 2m
         labels:
           severity: critical
         annotations:
           summary: "VPN connection is down"
-          description: "The Surfshark VPN connection has been down for more than 2 minutes."
+          description: "The Gluetun VPN connection has been down for more than 2 minutes."
 
       - alert: SMARTDiskFailure
         expr: smartctl_health_status{status="FAILED"} == 1
@@ -1514,7 +1518,7 @@ func main() {
 
 | Service | Idle (%) | Active (%) | Peak (%) | Cores |
 |---------|----------|------------|----------|-------|
-| surfshark | 2-5 | 5-15 | 25 | 1.0 |
+| gluetun | 2-5 | 5-15 | 25 | 1.0 |
 | qbittorrent | 3-8 | 10-30 | 40 | 1.5 |
 | slskd | 2-5 | 8-20 | 30 | 1.0 |
 | nextcloud | 5-10 | 15-35 | 50 | 1.5 |
@@ -1527,7 +1531,7 @@ func main() {
 
 | Service | Idle (MB) | Active (MB) | Peak (MB) | Limit (MB) |
 |---------|-----------|-------------|-----------|------------|
-| surfshark | 50-80 | 80-150 | 200 | 256 |
+| gluetun | 50-80 | 80-150 | 200 | 256 |
 | qbittorrent | 100-150 | 200-400 | 500 | 512 |
 | slskd | 80-120 | 150-300 | 380 | 384 |
 | nextcloud | 200-300 | 300-450 | 512 | 512 |

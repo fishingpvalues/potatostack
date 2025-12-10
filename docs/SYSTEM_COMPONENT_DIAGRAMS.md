@@ -174,13 +174,13 @@ classDiagram
     class QBitTorrent {
         +web_ui_port: 8080
         +torrent_port: 6881
-        +network_mode: "service:surfshark"
+        +network_mode: "service:gluetun"
     }
     
     class SLSKD {
         +http_port: 2234
         +slsk_port: 50000
-        +network_mode: "service:surfshark"
+        +network_mode: "service:gluetun"
     }
     
     class NextcloudDB {
@@ -769,9 +769,9 @@ graph TB
 
 | Service | Depends On | Required By | Network | Ports |
 |---------|------------|-------------|---------|-------|
-| **surfshark** | None | qbittorrent, slskd | vpn | - |
-| **qbittorrent** | surfshark | homepage | vpn | 8080, 6881 |
-| **slskd** | surfshark | homepage | vpn | 2234, 50000 |
+| **gluetun** | None | qbittorrent, slskd | vpn | - |
+| **qbittorrent** | gluetun | homepage | vpn | 8080, 6881 |
+| **slskd** | gluetun | homepage | vpn | 2234, 50000 |
 | **kopia** | None | homepage, prometheus | proxy, monitoring | 51515, 51516 |
 | **nextcloud** | nextcloud-db | homepage, prometheus | default, proxy | 8082 |
 | **nextcloud-db** | None | nextcloud | default | - |
