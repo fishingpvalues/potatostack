@@ -87,7 +87,7 @@ graph TB
     end
     
     subgraph "Network Layer"
-        VPN[Surfshark VPN]
+        VPN[gluetun VPN]
         NET[Docker Networks]
     end
     
@@ -197,7 +197,7 @@ graph TB
     end
     
     subgraph "VPN Network"
-        VPN[surfshark-vpn]
+        VPN[gluetun-vpn]
     end
     
     USR --> FB
@@ -236,7 +236,7 @@ graph TB
 ```mermaid
 classDiagram
     class VPNNetwork {
-        +surfshark-vpn
+        +gluetun-vpn
         +qbittorrent
         +slskd
         +network_mode: service
@@ -407,24 +407,23 @@ graph TB
         end
         
         subgraph "potatostack_vpn"
-            VPN[surfshark]
+            VPN[gluetun]
             QBT[qbittorrent]
             SLSK[slskd]
         end
     end
     
     WAN --> ROUTER
-    ROUTER --> NPM
-    ROUTER --> HP
+    ROUTER --> FW
+    FW --> WG
+    WG --> ETH0
     
-    NPM --> NC
-    NPM --> GT
-    NPM --> KOP
-    NPM --> PE
-    NPM --> UK
+    ETH0 --> VPN
+    ETH0 --> NPM
+    ETH0 --> HP
     
-    VPN --> QBT
-    VPN --> SLSK
+    QBT --> VPN
+    SLSK --> VPN
     
     PM --> GF
     LK --> GF

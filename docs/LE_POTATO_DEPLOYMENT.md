@@ -16,7 +16,7 @@ Your Le Potato has **2GB RAM + recommended 2GB swap = 4GB total**. This guide us
 
 ### 1. Setup Swap (CRITICAL!)
 ```bash
-sudo bash setup-swap.sh
+sudo bash scripts/setup-swap.sh
 ```
 
 Verify:
@@ -27,8 +27,8 @@ free -h
 
 ### 2. Verify External Storage
 ```bash
-df -h | grep -E "seconddrive|cachehdd"
-# Should show your mounted HDDs
+df -h | grep -E "potatostack"
+# Should show your mounted ZFS dataset
 ```
 
 ### 3. Create .env File
