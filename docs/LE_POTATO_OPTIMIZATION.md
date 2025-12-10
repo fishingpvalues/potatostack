@@ -24,9 +24,10 @@
 
 **After**:
 - `redis` (shared): 128m limit, 16 databases
-  - DB 0: Nextcloud & Gitea
+  - DB 0: Nextcloud
   - DB 1: Firefly III
   - DB 2: Immich
+  - DB 3/4/5: Gitea (cache/session/queue)
 - **Total**: 128MB limit
 - **Savings**: 224MB in limits, ~150MB actual usage
 
@@ -34,7 +35,7 @@
 - `docker-compose.yml`: Removed `firefly-redis-worker` and `immich-redis` services
 - Updated all service configs to use `redis` with specific DB indices:
   - Nextcloud: `REDIS_HOST_DB=0`
-  - Gitea: `/0` suffix in connection strings
+  - Gitea: `/3`, `/4`, `/5` for cache/session/queue
   - Firefly: `REDIS_DB=1`
   - Immich: `REDIS_DBINDEX=2`
 - Increased maxmemory to 128MB (as recommended in assessment)
@@ -59,9 +60,8 @@
 - Updated backup scripts to use consolidated instance
 - Updated Prometheus scrape targets
 
-**PostgreSQL** (kept separate - no changes):
-- `gitea-db`: Standard PostgreSQL
-- `immich-db`: Requires pgvecto-rs extension (can't share)
+**PostgreSQL**:
+- Unified `postgres` for Gitea + Immich (with pgvecto-rs extension)
 
 ---
 
@@ -100,7 +100,7 @@ Implemented profiles to make heavy services optional:
 **Services**:
 - Core: VPN (Gluetun), P2P (qBittorrent, slskd)
 - Storage: Nextcloud, MariaDB, Redis
-- Code: Gitea, gitea-db
+- Code: Gitea, Postgres
 - Backup: Kopia, database backup scripts
 - Monitoring: Prometheus, Grafana, Loki, Promtail, Node Exporter, cAdvisor, SMART
 - Management: Portainer, NPM, Homepage, Dozzle, Diun, Autoheal
@@ -223,8 +223,8 @@ Created `config/prometheus/alerts.yml`:
    # Backup databases
    docker compose exec nextcloud-db mysqldump -u root -p --all-databases > backup_nextcloud_db.sql
    docker compose exec firefly-db mysqldump -u root -p --all-databases > backup_firefly_db.sql
-   docker compose exec gitea-db pg_dumpall -U gitea > backup_gitea_db.sql
-   docker compose exec immich-db pg_dumpall -U immich > backup_immich_db.sql
+   docker compose exec -T postgres pg_dump -U gitea -d gitea > backup_gitea_db.sql
+   docker compose exec -T postgres pg_dump -U immich -d immich > backup_immich_db.sql
 
    # Backup volumes
    docker run --rm -v potatostack_nextcloud_data:/data -v $(pwd):/backup alpine tar czf /backup/nextcloud_data.tar.gz /data
@@ -278,7 +278,7 @@ Created `config/prometheus/alerts.yml`:
 6. **Start Remaining Services**
    ```bash
    # Phase 1
-   docker compose up -d mariadb redis gitea-db nginx-proxy-manager portainer
+   docker compose up -d mariadb redis postgres nginx-proxy-manager portainer
 
    # Phase 2
    docker compose up -d nextcloud gitea kopia

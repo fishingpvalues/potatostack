@@ -63,7 +63,7 @@ sudo apt install docker-compose-plugin -y
 mkdir -p config/{mariadb/init,prometheus,grafana,nginx-proxy-manager}
 
 # Start core services
-docker compose up -d mariadb redis gitea-db nginx-proxy-manager portainer homepage
+docker compose up -d mariadb redis postgres nginx-proxy-manager portainer homepage
 
 # Wait 2 minutes for initialization
 sleep 120

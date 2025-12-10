@@ -135,8 +135,8 @@ services:
       start_period: 30s
 
     # Resource limits (Le Potato 2GB optimized)
-    mem_limit: 256m
-    mem_reservation: 128m
+    mem_limit: 128m
+    mem_reservation: 96m
     cpus: 1
 
     logging:
@@ -193,8 +193,8 @@ services:
       - "homepage.widget.url=http://gluetun:8080"
       - "homepage.widget.username=admin"
       - "homepage.widget.password={{HOMEPAGE_VAR_QBITTORRENT_PASSWORD}}"
-    mem_limit: 768m
-    mem_reservation: 384m
+    mem_limit: 384m
+    mem_reservation: 256m
     cpus: 1.5
     logging:
       options:
@@ -240,8 +240,8 @@ services:
       - "homepage.icon=slskd.png"
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:2234"
       - "homepage.description=Soulseek P2P via VPN (slskd client)"
-    mem_limit: 512m
-    mem_reservation: 256m
+    mem_limit: 256m
+    mem_reservation: 128m
     cpus: 1
     logging:
       options:
@@ -306,8 +306,8 @@ services:
       - --log-level=info
       - --file-log-level=debug
       - --metrics-listen-addr=:51516
-    mem_limit: 1024m
-    mem_reservation: 512m
+    mem_limit: 384m
+    mem_reservation: 256m
     cpus: 1.5
     logging:
       options:
@@ -326,63 +326,51 @@ services:
   # DATABASE BACKUPS - Daily mysqldump and pg_dump
   ############################################################################
 
-  nextcloud-db-backup:
-    image: mariadb:${MARIADB_TAG:-10.11}
-    container_name: nextcloud_db_backup
-    hostname: nextcloud-db-backup
+  db-backups:
+    image: alpine:${ALPINE_TAG:-latest}
+    container_name: db_backups
+    hostname: db-backups
     restart: unless-stopped
     networks:
       - default
     environment:
-      - MYSQL_PASSWORD=${NEXTCLOUD_DB_PASSWORD}
+      - NEXTCLOUD_DB_PASSWORD=${NEXTCLOUD_DB_PASSWORD}
+      - FIREFLY_DB_PASSWORD=${FIREFLY_DB_PASSWORD}
+      - GITEA_DB_PASSWORD=${GITEA_DB_PASSWORD}
+      - IMMICH_DB_PASSWORD=${IMMICH_DB_PASSWORD}
     volumes:
       - /mnt/seconddrive/backups/db:/backups
     depends_on:
       mariadb:
         condition: service_healthy
-    security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
-    command: >
-      sh -c "
-        set -o pipefail;
-        while true; do
-          echo 'Backing up Nextcloud database...';
-          mysqldump -h mariadb -u nextcloud --password=$$MYSQL_PASSWORD nextcloud | gzip > /backups/nextcloud-db-$$(date +%Y-%m-%d-%H%M).sql.gz && echo 'Nextcloud backup complete.' || echo 'Nextcloud backup failed.';
-          sleep 1d;
-        done
-      "
-    logging:
-      options:
-        max-size: "2m"
-        max-file: "2"
-
-  gitea-db-backup:
-    image: postgres:${POSTGRES_TAG:-14-alpine}
-    container_name: gitea_db_backup
-    hostname: gitea-db-backup
-    restart: unless-stopped
-    networks:
-      - default
-    environment:
-      - PGPASSWORD=${GITEA_DB_PASSWORD}
-    volumes:
-      - /mnt/seconddrive/backups/db:/backups
-    depends_on:
       postgres:
         condition: service_healthy
     security_opt:
       - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
     command: >
       sh -c "
         set -o pipefail;
+        apk add --no-cache mariadb-client postgresql-client gzip;
         while true; do
-          echo 'Backing up Gitea database...';
-          pg_dump -h postgres -U gitea -d gitea | gzip > /backups/gitea-db-$$(date +%Y-%m-%d-%H%M).sql.gz && echo 'Gitea backup complete.' || echo 'Gitea backup failed.';
+          BACKUP_DATE=$$(date +%Y-%m-%d-%H%M);
+          echo 'Backing up Nextcloud (MariaDB)...';
+          mysqldump -h mariadb -u nextcloud -p$$NEXTCLOUD_DB_PASSWORD nextcloud | gzip > /backups/nextcloud-db-$$BACKUP_DATE.sql.gz \
+            && echo 'Nextcloud backup complete.' || echo 'Nextcloud backup failed.';
+          echo 'Backing up Firefly III (MariaDB)...';
+          mysqldump -h mariadb -u firefly -p$$FIREFLY_DB_PASSWORD firefly | gzip > /backups/firefly-db-$$BACKUP_DATE.sql.gz \
+            && echo 'Firefly backup complete.' || echo 'Firefly backup failed.';
+          echo 'Backing up Gitea (Postgres)...';
+          PGPASSWORD=$$GITEA_DB_PASSWORD pg_dump -h postgres -U gitea -d gitea | gzip > /backups/gitea-db-$$BACKUP_DATE.sql.gz \
+            && echo 'Gitea backup complete.' || echo 'Gitea backup failed.';
+          echo 'Backing up Immich (Postgres)...';
+          PGPASSWORD=$$IMMICH_DB_PASSWORD pg_dump -h postgres -U immich -d immich | gzip > /backups/immich-db-$$BACKUP_DATE.sql.gz \
+            && echo 'Immich backup complete.' || echo 'Immich backup failed.';
           sleep 1d;
         done
       "
+    mem_limit: 128m
+    mem_reservation: 64m
+    cpus: 0.25
     logging:
       options:
         max-size: "2m"
@@ -432,40 +420,7 @@ services:
         max-size: "2m"
         max-file: "2"
 
-  firefly-db-backup:
-    profiles: ["heavy"]  # OPTIONAL: Enable with --profile heavy
-    image: mariadb:${MARIADB_TAG:-10.11}
-    container_name: firefly_db_backup
-    hostname: firefly-db-backup
-    restart: unless-stopped
-    networks:
-      - default
-    environment:
-      - MYSQL_PASSWORD=${FIREFLY_DB_PASSWORD}
-    volumes:
-      - /mnt/seconddrive/backups/db:/backups
-    depends_on:
-      mariadb:
-        condition: service_healthy
-    security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
-    command: >
-      sh -c "
-        set -o pipefail;
-        while true; do
-          echo 'Backing up Firefly III database...';
-          mysqldump -h mariadb -u firefly --password=$$MYSQL_PASSWORD firefly | gzip > /backups/firefly-db-$$(date +%Y-%m-%d-%H%M).sql.gz && echo 'Firefly backup complete.' || echo 'Firefly backup failed.';
-          sleep 1d;
-        done
-      "
-    mem_limit: 128m
-    mem_reservation: 64m
-    cpus: 0.25
-    logging:
-      options:
-        max-size: "2m"
-        max-file: "2"
+  # firefly-db-backup removed; consolidated under 'db-backups'
 
   ############################################################################
   # MONITORING STACK - Prometheus, Grafana, Loki, Thanos, Alertmanager
@@ -488,7 +443,7 @@ services:
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
-      - "--storage.tsdb.retention.time=${PROMETHEUS_RETENTION_DAYS:-14d}"
+      - "--storage.tsdb.retention.time=${PROMETHEUS_RETENTION_DAYS:-7d}"
       - "--web.console.libraries=/etc/prometheus/console_libraries"
       - "--web.console.templates=/etc/prometheus/consoles"
       - "--web.enable-lifecycle"
@@ -500,8 +455,8 @@ services:
       - node-exporter
       - cadvisor
       - smartctl-exporter
-    mem_limit: 512m
-    mem_reservation: 256m
+    mem_limit: 192m
+    mem_reservation: 128m
     cpus: 0.75
     logging:
       options:
@@ -562,8 +517,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-    mem_limit: 384m
-    mem_reservation: 192m
+    mem_limit: 192m
+    mem_reservation: 128m
     cpus: 0.75
     logging:
       options:
@@ -597,13 +552,21 @@ services:
     volumes:
       - ./config/loki:/etc/loki
       - loki_data:/loki
-    mem_limit: 256m
-    mem_reservation: 128m
+    mem_limit: 128m
+    mem_reservation: 64m
     cpus: 0.5
     logging:
       options:
         max-size: "10m"
         max-file: "3"
+    labels:
+      - "homepage.group=Monitoring"
+      - "homepage.name=Loki"
+      - "homepage.icon=si-grafana"
+      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:3100"
+      - "homepage.description=Log store (Loki)"
+      - "homepage.widget.type=generic"
+      - "homepage.widget.url=http://loki:3100/ready"
 
   promtail:
     image: grafana/promtail:${PROMTAIL_TAG:-latest}
@@ -671,6 +634,8 @@ services:
       - "homepage.icon=si-prometheus"
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:9093"
       - "homepage.description=Alert routing"
+      - "homepage.widget.type=generic"
+      - "homepage.widget.url=http://alertmanager:9093/api/v2/status"
 
   ############################################################################
   # SYSTEM MONITORING - Node Exporter, cAdvisor, SMART
@@ -697,13 +662,19 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
-    mem_limit: 64m
-    mem_reservation: 32m
+    mem_limit: 32m
+    mem_reservation: 16m
     cpus: 0.25
     logging:
       options:
         max-size: "5m"
         max-file: "2"
+    labels:
+      - "homepage.group=Monitoring"
+      - "homepage.name=Node Exporter"
+      - "homepage.icon=si-prometheus"
+      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:9100"
+      - "homepage.description=Linux host metrics"
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:${CADVISOR_TAG:-latest}
@@ -730,6 +701,14 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    labels:
+      - "homepage.group=Monitoring"
+      - "homepage.name=cAdvisor"
+      - "homepage.icon=si-docker"
+      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:8081"
+      - "homepage.description=Container metrics"
+      - "homepage.widget.type=generic"
+      - "homepage.widget.url=http://cadvisor:8080/healthz"
     command:
       - "--docker_only=true"
       - "--housekeeping_interval=15s"
@@ -755,6 +734,12 @@ services:
       options:
         max-size: "5m"
         max-file: "2"
+    labels:
+      - "homepage.group=Monitoring"
+      - "homepage.name=SMART Exporter"
+      - "homepage.icon=si-prometheus"
+      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:9633"
+      - "homepage.description=Disk health metrics"
 
   netdata:
     profiles: ["monitoring-extra"]  # OPTIONAL: Redundant with Prometheus/Grafana
@@ -917,9 +902,7 @@ services:
       - "homepage.name=Fritz!Box Exporter"
       - "homepage.href=http://fritzbox-exporter:9042"
       - "homepage.icon=router.png"
-      - "homepage.icon=si-prometheus"
-      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:9115"
-      - "homepage.description=HTTP/TCP probes"
+      - "homepage.description=Router metrics"
 
   ############################################################################
   # NEXTCLOUD - File sharing and sync
@@ -992,7 +975,7 @@ services:
       - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
       - NEXTCLOUD_TRUSTED_DOMAINS=${HOST_ADDR:-192.168.178.40} lepotato.local
       - OVERWRITEPROTOCOL=https
-      - PHP_MEMORY_LIMIT=512M
+      - PHP_MEMORY_LIMIT=256M
       - PHP_UPLOAD_LIMIT=10G
       - REDIS_HOST=redis
       - REDIS_HOST_PASSWORD=${REDIS_PASSWORD:-}
@@ -1011,8 +994,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 90s
-    mem_limit: 512m
-    mem_reservation: 256m
+    mem_limit: 256m
+    mem_reservation: 128m
     cpus: 1
     logging:
       options:
@@ -1139,11 +1122,11 @@ services:
       - GITEA__database__USER=gitea
       - GITEA__database__PASSWD=${GITEA_DB_PASSWORD}
       - GITEA__cache__ADAPTER=redis
-      - GITEA__cache__HOST=redis:6379/0
+      - GITEA__cache__HOST=redis:6379/3
       - GITEA__session__PROVIDER=redis
-      - GITEA__session__PROVIDER_CONFIG=redis:6379/0
+      - GITEA__session__PROVIDER_CONFIG=redis:6379/4
       - GITEA__queue__TYPE=redis
-      - GITEA__queue__CONN_STR=redis:6379/0
+      - GITEA__queue__CONN_STR=redis:6379/5
     volumes:
       - gitea_data:/data
       - /mnt/seconddrive/gitea:/data/gitea/repositories
@@ -1595,7 +1578,7 @@ services:
       - DB_PASSWORD=${FIREFLY_DB_PASSWORD}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - REDIS_DB=0
+      - REDIS_DB=1
       - TRUSTED_PROXIES=**
       - APP_URL=https://firefly.${HOST_DOMAIN:-lepotato.local}
       - TZ=Europe/Berlin
@@ -1901,37 +1884,4 @@ services:
   # IMMICH DATABASE BACKUP - Daily pg_dump
   ############################################################################
 
-  immich-db-backup:
-    profiles: ["heavy"]  # OPTIONAL: Enable with --profile heavy
-    image: postgres:${POSTGRES_TAG:-14-alpine}
-    container_name: immich-db-backup
-    hostname: immich-db-backup
-    restart: unless-stopped
-    networks:
-      - default
-    environment:
-      - PGPASSWORD=${IMMICH_DB_PASSWORD}
-    security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
-    volumes:
-      - /mnt/seconddrive/backups/db:/backups
-    depends_on:
-      postgres:
-        condition: service_healthy
-    command: >
-      sh -c "
-        set -o pipefail;
-        while true; do
-          echo 'Backing up Immich database...';
-          pg_dump -h postgres -U immich -d immich | gzip > /backups/immich-db-$$(date +%Y-%m-%d-%H%M).sql.gz && echo 'Immich backup complete.' || echo 'Immich backup failed.';
-          sleep 1d;
-        done
-      "
-    mem_limit: 128m
-    mem_reservation: 64m
-    cpus: 0.25
-    logging:
-      options:
-        max-size: "2m"
-        max-file: "2"
+  # immich-db-backup removed; consolidated under 'db-backups'

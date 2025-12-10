@@ -603,7 +603,7 @@ docker-compose config --quiet || echo "Configuration error found"
 
 # 4. Check dependencies
 echo -e "\nDependency check:"
-docker-compose ps | grep -E "(nextcloud-db|gitea-db)"
+docker-compose ps | grep -E "(mariadb|postgres)"
 
 # 5. Check resource limits
 echo -e "\nResource check:"

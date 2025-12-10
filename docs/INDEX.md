@@ -30,9 +30,11 @@
 - **[FIREFLY-SETUP.md](FIREFLY-SETUP.md)** - Firefly III finance app setup
 
 ### Architecture & Technical Details
-- **[ENTERPRISE_ARCHITECTURE.md](ENTERPRISE_ARCHITECTURE.md)** - Architecture overview
+- **[ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md)** - Enterprise architecture overview
+- **[ENTERPRISE_ARCHITECTURE.md](ENTERPRISE_ARCHITECTURE.md)** - Detailed architecture documentation
 - **[TECHNICAL_SPECIFICATIONS.md](TECHNICAL_SPECIFICATIONS.md)** - Technical specifications
 - **[SYSTEM_COMPONENT_DIAGRAMS.md](SYSTEM_COMPONENT_DIAGRAMS.md)** - System diagrams
+- **[CLASS_DIAGRAMS.md](CLASS_DIAGRAMS.md)** - Class diagrams and architecture models
 - **[RENOVATE_SETUP.md](RENOVATE_SETUP.md)** - Automated dependency updates
 
 ## 🆕 What's New (Le Potato Optimization)
