@@ -1717,24 +1717,7 @@ services:
         max-size: "5m"
         max-file: "2"
 
-  ############################################################################
-  # FINANCIAL PLANNING - Firefly III + FinTS Importer (Deutsche Bank)
-  ############################################################################
-
-  # Firefly III and FinTS Importer removed per user request
-    cpus: 0.5
-    logging:
-      options:
-        max-size: "10m"
-        max-file: "3"
-    labels:
-      - "homepage.group=Finance"
-      - "homepage.name=FinTS Importer"
-      - "homepage.icon=mdi-bank-transfer"
-      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:8086"
-      - "homepage.description=Deutsche Bank auto-import"
-
-  # fints-cron removed per user request
+ 
 
   ############################################################################
   # IMMICH - Self-hosted Google Photos Alternative
