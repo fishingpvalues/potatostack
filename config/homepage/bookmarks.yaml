@@ -13,14 +13,14 @@
         
     - Nextcloud Docs:
         href: https://docs.nextcloud.com/
-        icon: nextcloud.png
+        icon: si-nextcloud
         description: "Comprehensive cloud storage and collaboration guide"
         category: "cloud"
         tags: ["documentation", "cloud", "nextcloud"]
         
     - Grafana Dashboards:
         href: https://grafana.com/grafana/dashboards/
-        icon: grafana.png
+        icon: si-grafana
         description: "Official dashboard templates and examples"
         category: "monitoring"
         tags: ["dashboard", "monitoring", "grafana"]
@@ -34,21 +34,21 @@
         
     - Docker Docs:
         href: https://docs.docker.com/
-        icon: docker.png
+        icon: si-docker
         description: "Official Docker documentation and guides"
         category: "containers"
         tags: ["documentation", "docker", "containers"]
         
     - Kubernetes Docs:
         href: https://kubernetes.io/docs/
-        icon: kubernetes.png
+        icon: si-kubernetes
         description: "Kubernetes official documentation"
         category: "orchestration"
         tags: ["documentation", "kubernetes", "orchestration"]
         
     - Prometheus Docs:
         href: https://prometheus.io/docs/
-        icon: prometheus.png
+        icon: si-prometheus
         description: "Time-series monitoring system documentation"
         category: "monitoring"
         tags: ["documentation", "prometheus", "monitoring"]
@@ -71,7 +71,7 @@
         
     - Netdata Cloud:
         href: https://app.netdata.cloud
-        icon: netdata.png
+        icon: si-netdata
         description: "Cloud-based infrastructure monitoring"
         category: "monitoring"
         tags: ["monitoring", "netdata", "cloud"]
@@ -85,14 +85,14 @@
         
     - Google Drive:
         href: https://drive.google.com
-        icon: google-drive.png
+        icon: si-googledrive
         description: "Cloud storage and file synchronization"
         category: "cloud"
         tags: ["cloud", "storage", "google"]
         
     - GitHub:
         href: https://github.com
-        icon: github.png
+        icon: si-github
         description: "Code repository hosting and collaboration"
         category: "development"
         tags: ["development", "git", "github"]
@@ -108,21 +108,21 @@
 - Monitoring & Observability:
     - Prometheus Targets:
         href: http://192.168.178.40:9090/targets
-        icon: prometheus.png
+        icon: si-prometheus
         description: "Monitored targets and endpoints"
         category: "monitoring"
         tags: ["prometheus", "targets", "monitoring"]
         
     - Alertmanager:
         href: http://192.168.178.40:9093
-        icon: prometheus.png
+        icon: si-prometheus
         description: "Alert management and routing"
         category: "monitoring"
         tags: ["alertmanager", "alerts", "monitoring"]
         
     - Loki:
         href: http://192.168.178.40:3100
-        icon: grafana.png
+        icon: si-grafana
         description: "Log aggregation system"
         category: "logs"
         tags: ["loki", "logs", "aggregation"]
@@ -131,7 +131,7 @@
         
     - Grafana Explore:
         href: http://192.168.178.40:3000/explore
-        icon: grafana.png
+        icon: si-grafana
         description: "Data exploration and querying"
         category: "visualization"
         tags: ["grafana", "explore", "query"]
@@ -140,7 +140,7 @@
 - Development Tools:
     - GitLab:
         href: https://gitlab.com
-        icon: gitlab.png
+        icon: si-gitlab
         description: "Git repository management and CI/CD"
         category: "development"
         tags: ["gitlab", "git", "cicd"]
@@ -154,7 +154,7 @@
         
     - Docker Hub:
         href: https://hub.docker.com
-        icon: docker.png
+        icon: si-docker
         description: "Container image registry"
         category: "containers"
         tags: ["docker", "registry", "images"]
