@@ -19,7 +19,8 @@
       "Bash(docker volume:*)",
       "Bash(xargs:*)",
       "Bash(docker system prune:*)",
-      "Bash(docker system:*)"
+      "Bash(docker system:*)",
+      "Bash(lsof:*)"
     ],
     "deny": [],
     "ask": []

@@ -195,6 +195,55 @@ location /authelia {
 
 Repeat this for all services you want to protect with Authelia.
 
+#### Example: Homepage with Authelia Forward Auth
+
+Proxy Host Settings:
+- Domain: `homepage.lepotato.local`
+- Scheme: `http`
+- Forward Hostname: `homepage`
+- Forward Port: `3000`
+- Enable: Cache Assets, Block Common Exploits, Websockets Support
+
+Advanced Tab (paste):
+```nginx
+location / {
+    # Forward auth to Authelia
+    auth_request /authelia;
+    auth_request_set $user $upstream_http_remote_user;
+    auth_request_set $groups $upstream_http_remote_groups;
+    auth_request_set $name $upstream_http_remote_name;
+    auth_request_set $email $upstream_http_remote_email;
+
+    proxy_set_header Remote-User $user;
+    proxy_set_header Remote-Groups $groups;
+    proxy_set_header Remote-Name $name;
+    proxy_set_header Remote-Email $email;
+
+    error_page 401 =302 https://authelia.lepotato.local/?rd=$scheme://$http_host$request_uri;
+
+    proxy_pass http://homepage:3000;
+}
+
+location /authelia {
+    internal;
+    proxy_pass http://authelia:9091/api/verify;
+
+    proxy_set_header X-Original-URL $scheme://$http_host$request_uri;
+    proxy_set_header X-Forwarded-Method $request_method;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $http_host;
+    proxy_set_header X-Forwarded-Uri $request_uri;
+    proxy_set_header X-Forwarded-For $remote_addr;
+
+    proxy_pass_request_body off;
+    proxy_set_header Content-Length "";
+}
+```
+
+Notes:
+- Authelia service must be on the `proxy` network so NPM can reach `authelia:9091` (already configured).
+- Access control for `homepage.lepotato.local` is set to one_factor in `config/authelia/configuration.yml`.
+
 ### Step 6: Start Authelia
 
 ```bash

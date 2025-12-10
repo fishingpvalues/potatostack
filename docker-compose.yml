@@ -319,6 +319,8 @@ services:
       - "homepage.icon=kopia.png"
       - "homepage.href=https://${HOST_ADDR:-192.168.178.40}:51515"
       - "homepage.description=Encrypted backups"
+      - "homepage.widget.type=generic"
+      - "homepage.widget.url=http://kopia:51515/health"
 
   ############################################################################
   # DATABASE BACKUPS - Daily mysqldump and pg_dump
@@ -511,6 +513,8 @@ services:
       - "homepage.icon=si-prometheus"
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:9090"
       - "homepage.description=Metrics collection"
+      - "homepage.widget.type=generic"
+      - "homepage.widget.url=http://prometheus:9090/-/healthy"
 
   grafana:
     image: grafana/grafana:${GRAFANA_TAG:-latest}
@@ -571,6 +575,10 @@ services:
       - "homepage.icon=si-grafana"
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:3000"
       - "homepage.description=Dashboards"
+      - "homepage.widget.type=grafana"
+      - "homepage.widget.url=http://grafana:3000"
+      - "homepage.widget.username={{HOMEPAGE_VAR_GRAFANA_USER}}"
+      - "homepage.widget.password={{HOMEPAGE_VAR_GRAFANA_PASSWORD}}"
 
   loki:
     image: grafana/loki:${LOKI_TAG:-latest}
@@ -585,7 +593,7 @@ services:
       - no-new-privileges:false
     # cap_drop: ALL removed - was too restrictive
     read_only: false
-    command: -config.file=/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/local-config.yaml -config.expand-env=true
     volumes:
       - ./config/loki:/etc/loki
       - loki_data:/loki
@@ -787,6 +795,8 @@ services:
       - "homepage.icon=netdata.png"
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:19999"
       - "homepage.description=Real-time system monitoring"
+      - "homepage.widget.type=generic"
+      - "homepage.widget.url=http://netdata:19999/api/v1/info"
     mem_limit: 256m
     mem_reservation: 128m
     cpus: 1
@@ -1014,6 +1024,10 @@ services:
       - "homepage.icon=si-nextcloud"
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:8082"
       - "homepage.description=Cloud storage"
+      - "homepage.widget.type=nextcloud"
+      - "homepage.widget.url=http://nextcloud:80"
+      - "homepage.widget.username={{HOMEPAGE_VAR_NEXTCLOUD_USER}}"
+      - "homepage.widget.password={{HOMEPAGE_VAR_NEXTCLOUD_PASSWORD}}"
 
   redis:
     image: redis:${REDIS_TAG:-7-alpine}
@@ -1151,6 +1165,9 @@ services:
       - "homepage.icon=si-gitea"
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:3001"
       - "homepage.description=Git server"
+      - "homepage.widget.type=gitea"
+      - "homepage.widget.url=http://gitea:3000"
+      - "homepage.widget.token={{HOMEPAGE_VAR_GITEA_TOKEN}}"
 
   ############################################################################
   # MANAGEMENT TOOLS - Portainer, Diun, Uptime Kuma, Dozzle
@@ -1180,6 +1197,15 @@ services:
       options:
         max-size: "5m"
         max-file: "2"
+    labels:
+      - "homepage.group=Management"
+      - "homepage.name=Portainer"
+      - "homepage.icon=si-portainer"
+      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:9000"
+      - "homepage.description=Docker management"
+      - "homepage.widget.type=portainer"
+      - "homepage.widget.url=http://portainer:9000"
+      - "homepage.widget.key={{HOMEPAGE_VAR_PORTAINER_KEY}}"
 
   diun:
     image: crazymax/diun:${DIUN_TAG:-latest}
@@ -1239,6 +1265,14 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    labels:
+      - "homepage.group=Monitoring"
+      - "homepage.name=Uptime Kuma"
+      - "homepage.icon=si-uptimekuma"
+      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:3002"
+      - "homepage.description=Status monitoring"
+      - "homepage.widget.type=uptimekuma"
+      - "homepage.widget.url=http://uptime-kuma:3001"
 
   dozzle:
     image: amir20/dozzle:${DOZZLE_TAG:-latest}
@@ -1265,6 +1299,14 @@ services:
       options:
         max-size: "5m"
         max-file: "2"
+    labels:
+      - "homepage.group=Management"
+      - "homepage.name=Dozzle"
+      - "homepage.icon=si-docker"
+      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:8083"
+      - "homepage.description=Live container logs"
+      - "homepage.widget.type=dozzle"
+      - "homepage.widget.url=http://dozzle:8080"
 
   ############################################################################
   # AUTOHEAL - Automatically restart unhealthy containers
@@ -1376,6 +1418,8 @@ services:
       - "homepage.icon=bitwarden.png"
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:8084"
       - "homepage.description=Password manager (Bitwarden)"
+      - "homepage.widget.type=generic"
+      - "homepage.widget.url=http://vaultwarden:80/alive"
 
   ############################################################################
   # SINGLE SIGN-ON (SSO) - Authelia with OAuth2/OIDC
@@ -1473,6 +1517,10 @@ services:
       - "homepage.icon=si-nginx"
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:81"
       - "homepage.description=Reverse proxy & SSL"
+      - "homepage.widget.type=npm"
+      - "homepage.widget.url=http://nginx-proxy-manager:81"
+      - "homepage.widget.username={{HOMEPAGE_VAR_NPM_USER}}"
+      - "homepage.widget.password={{HOMEPAGE_VAR_NPM_PASSWORD}}"
 
   homepage:
     image: ghcr.io/gethomepage/homepage:${HOMEPAGE_TAG:-latest}
@@ -1491,14 +1539,29 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
+      - HOMEPAGE_VAR_QBITTORRENT_PASSWORD=${HOMEPAGE_VAR_QBITTORRENT_PASSWORD}
+      - HOMEPAGE_VAR_PORTAINER_KEY=${HOMEPAGE_VAR_PORTAINER_KEY}
+      - HOMEPAGE_VAR_GITEA_TOKEN=${HOMEPAGE_VAR_GITEA_TOKEN}
+      - HOMEPAGE_VAR_GRAFANA_USER=${HOMEPAGE_VAR_GRAFANA_USER}
+      - HOMEPAGE_VAR_GRAFANA_PASSWORD=${HOMEPAGE_VAR_GRAFANA_PASSWORD}
+      - HOMEPAGE_VAR_NEXTCLOUD_USER=${HOMEPAGE_VAR_NEXTCLOUD_USER}
+      - HOMEPAGE_VAR_NEXTCLOUD_PASSWORD=${HOMEPAGE_VAR_NEXTCLOUD_PASSWORD}
+      - HOMEPAGE_VAR_NPM_USER=${HOMEPAGE_VAR_NPM_USER}
+      - HOMEPAGE_VAR_NPM_PASSWORD=${HOMEPAGE_VAR_NPM_PASSWORD}
     volumes:
       - ./config/homepage:/app/config
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /mnt/seconddrive:/mnt/seconddrive:ro
       - /mnt/cachehdd:/mnt/cachehdd:ro
-    mem_limit: 128m
-    mem_reservation: 64m
-    cpus: 0.5
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider --quiet http://localhost:3000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    mem_limit: 192m
+    mem_reservation: 96m
+    cpus: 0.75
     logging:
       options:
         max-size: "5m"
@@ -1570,6 +1633,8 @@ services:
       - "homepage.icon=firefly.png"
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:8085"
       - "homepage.description=Household finance & budgeting"
+      - "homepage.widget.type=generic"
+      - "homepage.widget.url=http://firefly-iii:8080"
 
   firefly-worker:
     profiles: ["heavy"]  # OPTIONAL: Enable with --profile heavy
