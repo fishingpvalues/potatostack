@@ -77,7 +77,8 @@ docker compose --profile heavy up -d
 
 - **Grafana**: http://YOUR_IP:3000 (monitoring dashboards)
 - **Prometheus**: http://YOUR_IP:9090 (metrics)
-- **Nextcloud**: http://YOUR_IP:8082 (cloud storage)
+- **Filebrowser**: http://YOUR_IP:8087 (web file manager)
+- **Seafile**: http://YOUR_IP:8001 (file sync & share)
 - **Gitea**: http://YOUR_IP:3001 (git server)
 - **qBittorrent**: http://YOUR_IP:8080 (torrents)
 - **Portainer**: http://YOUR_IP:9000 (docker management)

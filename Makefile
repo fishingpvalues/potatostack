@@ -46,7 +46,7 @@ help:
 	@echo "  make fmt              Format markdown and YAML"
 	@echo ""
 	@echo "Profiles:"
-	@echo "  make up-cache         Start with Redis cache for Nextcloud"
+	@echo "  make up-cache         Start with Redis cache profile"
 
 env:
 	@test -f .env || cp .env.example .env

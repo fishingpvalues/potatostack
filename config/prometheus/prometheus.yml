@@ -1,6 +1,6 @@
 global:
-  scrape_interval: 60s
-  evaluation_interval: 60s
+  scrape_interval: 120s
+  evaluation_interval: 120s
   external_labels:
     cluster: 'potatostack'
     instance: 'lepotato'
@@ -59,7 +59,9 @@ scrape_configs:
           - http://gluetun:8000/v1/vpn/status    # Gluetun VPN status
           - http://grafana:3000                  # Grafana
           - http://prometheus:9090               # Prometheus
-          - http://nextcloud:80                  # Nextcloud
+          # - http://nextcloud:80                # Nextcloud (disabled)
+          - http://filebrowser:80                # Filebrowser
+          - http://seafile:80                    # Seafile
           - http://gitea:3000                    # Gitea
           - http://portainer:9000                # Portainer
           - http://nginx-proxy-manager:81        # NPM Admin
@@ -73,8 +75,6 @@ scrape_configs:
           - http://fritzbox-exporter:9042        # Fritzbox Exporter
           - http://loki:3100                     # Loki
           - http://vaultwarden:80                # Vaultwarden
-          - http://firefly-iii:8080              # Firefly III
-          - http://fints-importer:8080           # FinTS Importer
           - http://immich-server:3001            # Immich
     relabel_configs:
       - source_labels: [__address__]
@@ -105,7 +105,7 @@ scrape_configs:
       module: [tcp_connect]
     static_configs:
       - targets:
-          - mariadb:3306                         # MariaDB (Nextcloud & Firefly)
+          - seafile-db:3306                      # MariaDB (Seafile)
           - postgres:5432                        # Unified PostgreSQL (Gitea & Immich)
           - redis:6379                           # Redis (Shared)
           - nginx-proxy-manager:80               # NPM HTTP
@@ -125,11 +125,9 @@ scrape_configs:
       module: [http_2xx_strict]
     static_configs:
       - targets:
-          - http://nextcloud:80                  # Nextcloud (strict check)
           - http://gitea:3000                    # Gitea (strict check)
           - http://grafana:3000                  # Grafana (strict check)
           - http://vaultwarden:80                # Vaultwarden (strict check)
-          - http://firefly-iii:8080              # Firefly III (strict check)
           - http://immich-server:3001            # Immich (strict check)
     relabel_configs:
       - source_labels: [__address__]
@@ -149,7 +147,9 @@ scrape_configs:
           - http://${HOST_ADDR:-192.168.178.40}:8080    # qBittorrent external
           - http://${HOST_ADDR:-192.168.178.40}:2234    # slskd external
           - http://${HOST_ADDR:-192.168.178.40}:3000    # Grafana external
-          - http://${HOST_ADDR:-192.168.178.40}:8082    # Nextcloud external
+          # - http://${HOST_ADDR:-192.168.178.40}:8082  # Nextcloud external (disabled)
+          - http://${HOST_ADDR:-192.168.178.40}:8087    # Filebrowser external
+          - http://${HOST_ADDR:-192.168.178.40}:8001    # Seafile external
           - http://${HOST_ADDR:-192.168.178.40}:3001    # Gitea external
           - http://${HOST_ADDR:-192.168.178.40}:9000    # Portainer external
           - http://${HOST_ADDR:-192.168.178.40}:3002    # Uptime Kuma external
@@ -157,8 +157,6 @@ scrape_configs:
           - http://${HOST_ADDR:-192.168.178.40}:81      # Nginx Proxy Manager external
           - http://${HOST_ADDR:-192.168.178.40}:3003    # Homepage external
           - http://${HOST_ADDR:-192.168.178.40}:8084    # Vaultwarden external
-          - http://${HOST_ADDR:-192.168.178.40}:8085    # Firefly III external
-          - http://${HOST_ADDR:-192.168.178.40}:8086    # FinTS Importer external
           - http://${HOST_ADDR:-192.168.178.40}:2283    # Immich external
     relabel_configs:
       - source_labels: [__address__]

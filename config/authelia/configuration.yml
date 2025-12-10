@@ -83,7 +83,6 @@ access_control:
 
     # User services - single factor auth
     - domain:
-        - "nextcloud.lepotato.local"
         - "gitea.lepotato.local"
         - "homepage.lepotato.local"
         - "uptime.lepotato.local"
@@ -107,14 +106,7 @@ access_control:
         - ["group:users"]
         - ["group:admins"]
 
-    # Financial planning - require two-factor auth (sensitive financial data)
-    - domain:
-        - "firefly.lepotato.local"
-        - "fints.lepotato.local"
-      policy: two_factor
-      subject:
-        - ["group:users"]
-        - ["group:admins"]
+    # Financial planning removed
 
 session:
   name: authelia_session
@@ -211,19 +203,7 @@ identity_providers:
           - email
         userinfo_signing_algorithm: none
 
-      - id: nextcloud
-        description: Nextcloud File Storage
-        secret: NEXTCLOUD_OIDC_SECRET_REPLACE_ME
-        public: false
-        authorization_policy: one_factor
-        redirect_uris:
-          - https://nextcloud.lepotato.local/apps/user_oidc/code
-        scopes:
-          - openid
-          - profile
-          - groups
-          - email
-        userinfo_signing_algorithm: none
+      # Nextcloud removed
 
       - id: vaultwarden
         description: Vaultwarden Password Manager

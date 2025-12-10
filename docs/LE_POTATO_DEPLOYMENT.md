@@ -84,31 +84,31 @@ free -h
 
 ---
 
-## Phase 2: Storage & Productivity (~1.2GB total)
+## Phase 2: Storage & Productivity (~0.9GB total)
 
-**Services**: Nextcloud, Gitea, Kopia
+**Services**: Filebrowser, Gitea, Kopia
 
 ```bash
 # Start storage services
-docker compose up -d nextcloud gitea kopia
+docker compose up -d filebrowser gitea kopia
 
-# Wait for Nextcloud to initialize (5 minutes)
-sleep 300
+# Wait for Filebrowser to start (10-20s)
+sleep 20
 
 # Check status
 docker compose ps
 free -h
 
-# Access Nextcloud
-echo "Nextcloud: http://$(hostname -I | awk '{print $1}'):8082"
+# Access Filebrowser
+echo "Filebrowser: http://$(hostname -I | awk '{print $1}'):8087"
 ```
 
 **Expected**: ~1.2GB used, <500MB swap
 
 **Test**:
-- Login to Nextcloud (admin credentials from .env)
+- Login to Filebrowser (default admin/admin; change immediately)
 - Upload a test file
-- Check `docker stats nextcloud` - should be <300MB
+- Check `docker stats filebrowser` - should be <100MB
 
 ---
 
@@ -186,7 +186,7 @@ docker compose --profile monitoring-extra up -d \
     netdata uptime-kuma speedtest-exporter fritzbox-exporter blackbox-exporter
 ```
 
-**⚠️ WARNING**: Do NOT enable `--profile heavy` (Immich/Firefly/Authelia) without 4GB+ RAM!
+**⚠️ WARNING**: Heavy profile previously included Immich/Firefly/Authelia; Immich and Authelia now run by default. Avoid enabling extra heavy services on 2GB RAM.
 
 ---
 
@@ -267,7 +267,7 @@ After full deployment:
 - [ ] RAM usage <2GB (check `free -h`)
 - [ ] Swap usage <1GB
 - [ ] Load average <3 (check `uptime`)
-- [ ] Can access Nextcloud, Grafana, qBittorrent via web UI
+- [ ] Can access Filebrowser, Grafana, qBittorrent via web UI
 - [ ] VPN shows external IP via `docker compose exec gluetun curl ifconfig.me`
 
 **If any fails, stop at that phase and debug before continuing!**

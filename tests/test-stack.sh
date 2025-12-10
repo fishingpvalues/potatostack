@@ -233,7 +233,8 @@ if [ "$CLEANUP" = false ]; then
     echo -e "  Portainer:       ${GREEN}http://${HOST_ADDR}:9000${NC}"
     echo -e "  Nginx PM:        ${GREEN}http://${HOST_ADDR}:81${NC}"
     echo -e "  qBittorrent:     ${GREEN}http://${HOST_ADDR}:8080${NC}"
-    echo -e "  Nextcloud:       ${GREEN}http://${HOST_ADDR}:8082${NC}"
+echo -e "  Filebrowser:     ${GREEN}http://${HOST_ADDR}:8087${NC}"
+echo -e "  Seafile:         ${GREEN}http://${HOST_ADDR}:8001${NC}"
     echo -e "  Dozzle (Logs):   ${GREEN}http://${HOST_ADDR}:8083${NC}"
     echo
     echo -e "${CYAN}Useful commands:${NC}"

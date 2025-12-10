@@ -60,7 +60,7 @@ curl -I --connect-timeout 10 https://google.com
 # Check critical services
 echo -e "\n=== CRITICAL SERVICE CHECK ==="
 curl -f --connect-timeout 5 http://localhost:3003 > /dev/null && echo "✓ Homepage: OK" || echo "✗ Homepage: FAILED"
-curl -f --connect-timeout 5 http://localhost:8082 > /dev/null && echo "✓ Nextcloud: OK" || echo "✗ Nextcloud: FAILED"
+## Nextcloud removed
 curl -f --connect-timeout 5 http://localhost:51515 > /dev/null && echo "✓ Kopia: OK" || echo "✗ Kopia: FAILED"
 
 echo -e "\n=== EMERGENCY CHECK COMPLETE ==="

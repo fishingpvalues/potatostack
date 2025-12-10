@@ -456,14 +456,14 @@ fi
 
 log_step "Creating Directory Structure"
 
-mkdir -p "$SCRIPT_DIR/config/"{prometheus,grafana/provisioning/{datasources,dashboards},loki,promtail,alertmanager,homepage,fints-importer}
+mkdir -p "$SCRIPT_DIR/config/"{prometheus,grafana/provisioning/{datasources,dashboards},loki,promtail,alertmanager,homepage}
 mkdir -p "$SCRIPT_DIR/logs"
 mkdir -p "$SCRIPT_DIR/scripts"
 mkdir -p "$SCRIPT_DIR/docs"
 
 # Create data directories on mounted drives
 if [ -d "/mnt/seconddrive" ]; then
-    mkdir -p /mnt/seconddrive/{kopia/{repository,config,cache,logs,tmp},qbittorrent/{config,logs},slskd/{config,logs},nextcloud,gitea,uptime-kuma,backups/{db,vaultwarden}}
+    mkdir -p /mnt/seconddrive/{kopia/{repository,config,cache,logs,tmp},qbittorrent/{config,logs},slskd/{config,logs},gitea,uptime-kuma,backups/{db,vaultwarden}}
     chown -R 1000:1000 /mnt/seconddrive 2>/dev/null || true
 fi
 
@@ -641,7 +641,7 @@ echo "  Homepage:         http://$IP:3003"
 echo "  Portainer:        http://$IP:9000"
 echo "  Grafana:          http://$IP:3000"
 echo "  Prometheus:       http://$IP:9090"
-echo "  Firefly III:      http://$IP:8085"
+echo "  Seafile:          http://$IP:8001"
 echo "  Vaultwarden:      http://$IP:8084"
 echo "  qBittorrent:      http://$IP:8080"
 echo "  Kopia:            https://$IP:51515"
@@ -654,7 +654,7 @@ echo ""
 echo -e "${YELLOW}Remember to:${NC}"
 echo "  - Configure Nginx Proxy Manager for HTTPS"
 echo "  - Set up Authelia 2FA"
-echo "  - Configure Firefly III and FinTS importer"
+echo "  - Configure Seafile (admin account, reverse proxy)"
 echo "  - Test all services"
 echo ""
 
