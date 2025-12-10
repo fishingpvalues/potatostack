@@ -160,8 +160,7 @@ check_http "Homepage" "http://${HOST_ADDR}:3003" 200 || true
 
 echo
 echo -e "${MAGENTA}[Database Backups]${NC}"
-check_container "nextcloud-db-backup"
-check_container "gitea-db-backup"
+check_container "db-backups"
 
 echo
 echo -e "${MAGENTA}[Optional Services (may not be running)]${NC}"
@@ -179,9 +178,9 @@ check_container "fints-importer" || true
 check_container "fints-cron" || true
 check_container "immich-server" || true
 check_container "immich-microservices" || true
-check_container "immich-db-backup" || true
+## consolidated under db-backups
 check_container "vaultwarden-backup" || true
-check_container "firefly-db-backup" || true
+## consolidated under db-backups
 
 # Summary
 echo

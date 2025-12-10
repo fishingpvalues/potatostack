@@ -109,11 +109,7 @@ services:
       - ./test-mounts/seconddrive/kopia/tmp:/tmp
       - /:/host:ro
 
-  nextcloud-db-backup:
-    volumes:
-      - ./test-mounts/seconddrive/backups/db:/backups
-
-  gitea-db-backup:
+  db-backups:
     volumes:
       - ./test-mounts/seconddrive/backups/db:/backups
 
@@ -122,9 +118,7 @@ services:
       - vaultwarden_data:/vaultwarden:ro
       - ./test-mounts/seconddrive/backups/vaultwarden:/backups
 
-  firefly-db-backup:
-    volumes:
-      - ./test-mounts/seconddrive/backups/db:/backups
+  # consolidated under db-backups
 
   qbittorrent:
     volumes:
@@ -156,9 +150,7 @@ services:
       - ./test-mounts/seconddrive/immich/library:/usr/src/app/library
       - /etc/localtime:/etc/localtime:ro
 
-  immich-db-backup:
-    volumes:
-      - ./test-mounts/seconddrive/backups/db:/backups
+  # consolidated under db-backups
 
   netdata:
     volumes:

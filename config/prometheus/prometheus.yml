@@ -1,6 +1,6 @@
 global:
-  scrape_interval: 30s
-  evaluation_interval: 30s
+  scrape_interval: 60s
+  evaluation_interval: 60s
   external_labels:
     cluster: 'potatostack'
     instance: 'lepotato'
@@ -106,8 +106,7 @@ scrape_configs:
     static_configs:
       - targets:
           - mariadb:3306                         # MariaDB (Nextcloud & Firefly)
-          - gitea-db:5432                        # PostgreSQL (Gitea)
-          - immich-db:5432                       # Immich PostgreSQL
+          - postgres:5432                        # Unified PostgreSQL (Gitea & Immich)
           - redis:6379                           # Redis (Shared)
           - nginx-proxy-manager:80               # NPM HTTP
           - nginx-proxy-manager:443              # NPM HTTPS
