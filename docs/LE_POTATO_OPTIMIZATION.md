@@ -16,13 +16,16 @@
 ### 1. Database Consolidation ✅
 
 #### Redis: 3 instances → 1 shared instance (saves ~256MB)
+
 **Before**:
+
 - `redis` (Nextcloud/Gitea): 96m limit
 - `firefly-redis-worker`: 96m limit
 - `immich-redis`: 160m limit
 - **Total**: 352MB limits
 
 **After**:
+
 - `redis` (shared): 128m limit, 16 databases
   - DB 0: (free)
   - DB 1: Firefly III
@@ -32,6 +35,7 @@
 - **Savings**: 224MB in limits, ~150MB actual usage
 
 **Changes Made**:
+
 - `docker-compose.yml`: Removed `firefly-redis-worker` and `immich-redis` services
 - Updated all service configs to use `redis` with specific DB indices:
   - Gitea: `/3`, `/4`, `/5` for cache/session/queue
@@ -40,12 +44,15 @@
 - Increased maxmemory to 128MB (as recommended in assessment)
 
 #### MariaDB: 2 instances → 1 shared instance (saves ~256MB)
+
 **Before**:
+
 - `nextcloud-db`: 256m limit
 - `firefly-db`: 256m limit
 - **Total**: 512MB limits
 
 **After**:
+
 - `mariadb` (shared): 192m limit
   - Database: `nextcloud`
   - Database: `firefly`
@@ -53,6 +60,7 @@
 - **Savings**: 320MB in limits, ~180MB actual usage
 
 **Changes Made**:
+
 - `docker-compose.yml`: Removed `firefly-db`, renamed `nextcloud-db` to `mariadb`
 - Created `config/mariadb/init/01-init-databases.sql` - auto-creates databases on first run
 - Updated all references: `nextcloud-db` → `mariadb`, `firefly-db` → `mariadb`
@@ -60,6 +68,7 @@
 - Updated Prometheus scrape targets
 
 **PostgreSQL**:
+
 - Unified `postgres` for Gitea + Immich (with pgvecto-rs extension)
 
 ---
@@ -95,8 +104,10 @@ Applied aggressive memory reductions across ALL services:
 Implemented profiles to make heavy services optional:
 
 #### `default` profile (no flag needed)
+
 **RAM Target**: ~1.5–1.8GB (with Immich + Authelia)
 **Services**:
+
 - Core: VPN (Gluetun), P2P (qBittorrent, slskd)
 - Storage: Filebrowser, SFTP, Samba, Seafile
 - Identity: Authelia (SSO)
@@ -109,14 +120,17 @@ Implemented profiles to make heavy services optional:
 **Deploy**: `docker compose up -d`
 
 #### `apps` profile
+
 **RAM Target**: +100MB (~1.7GB total)
 **Adds**: Vaultwarden (password manager), vaultwarden-backup
 
 **Deploy**: `docker compose --profile apps up -d`
 
 #### `monitoring-extra` profile
+
 **RAM Target**: +300-400MB (~2GB total)
 **Adds**:
+
 - Netdata (redundant with Prometheus but has nice UI)
 - Uptime Kuma (redundant with Blackbox Exporter)
 - Speedtest Exporter
@@ -126,8 +140,10 @@ Implemented profiles to make heavy services optional:
 **Deploy**: `docker compose --profile monitoring-extra up -d`
 
 #### `heavy` profile ⚠️ NOT RECOMMENDED FOR 2GB
+
 **RAM Target**: +1.3GB (~3GB+ total - EXCEEDS 2GB!)
 **Adds**:
+
 - Immich (photos): immich-db, immich-server, immich-microservices
 - Firefly III (finance): firefly-iii, firefly-worker, firefly-cron, fints-importer
 - Authelia (SSO)
@@ -139,7 +155,9 @@ Implemented profiles to make heavy services optional:
 ### 4. Additional Optimizations ✅
 
 #### qBittorrent Resource Tuning
+
 Added connection limits to prevent RAM/CPU spikes:
+
 ```yaml
 environment:
   - BT_MAX_OPEN_FILES=100
@@ -148,12 +166,15 @@ environment:
 ```
 
 #### Redis Tuning
+
 - Increased maxmemory to 128MB (from assessment recommendation)
 - Enabled 16 databases for proper isolation
 - LRU eviction policy
 
 #### Swap Setup
+
 Created `setup-swap.sh` script:
+
 - Creates 2GB swap file
 - Sets swappiness=10 (prefer RAM, use swap as last resort)
 - Auto-persists in /etc/fstab
@@ -163,7 +184,9 @@ Created `setup-swap.sh` script:
 ### 5. Monitoring & Alerts ✅
 
 #### Prometheus Alert Rules
+
 Created `config/prometheus/alerts.yml`:
+
 - **HighMemoryUsage**: >80% for 5 minutes (warning)
 - **CriticalMemoryUsage**: >90% for 2 minutes (critical)
 - **HighCPUUsage**: >80% for 10 minutes (warning)
@@ -173,7 +196,9 @@ Created `config/prometheus/alerts.yml`:
 - **ServiceDown**: Service unreachable for 2 minutes (critical)
 
 #### Grafana Dashboards
+
 **Existing**:
+
 - POTATOSTACK Overview
 - Node Exporter (USE method)
 - Container Monitoring (RED)
@@ -185,6 +210,7 @@ Created `config/prometheus/alerts.yml`:
 - Network Performance
 
 **New**:
+
 - ✅ **Speedtest Internet Monitoring** - Download/upload/ping/jitter over time
 - ✅ **Fritz!Box 7530 Router Monitoring** - WAN traffic, DSL SNR, line attenuation, uptime
 
@@ -192,7 +218,8 @@ Created `config/prometheus/alerts.yml`:
 
 ### 6. Documentation ✅
 
-#### Files Created/Updated:
+#### Files Created/Updated
+
 1. **DEPLOYMENT_GUIDE.md** - Phased deployment strategy
    - Pre-deployment checklist
    - Phase 1-5 deployment steps
@@ -220,6 +247,7 @@ Created `config/prometheus/alerts.yml`:
 ### Step-by-Step Migration
 
 1. **Backup Everything** (CRITICAL!)
+
    ```bash
    # Backup databases
    docker compose exec nextcloud-db mysqldump -u root -p --all-databases > backup_nextcloud_db.sql
@@ -233,6 +261,7 @@ Created `config/prometheus/alerts.yml`:
    ```
 
 2. **Stop All Services**
+
    ```bash
    docker compose down
    ```
@@ -240,6 +269,7 @@ Created `config/prometheus/alerts.yml`:
 3. **Update Environment Variables**
 
    Add to `.env`:
+
    ```bash
    # New consolidated database root password
    MARIADB_ROOT_PASSWORD=your_secure_password_here
@@ -250,6 +280,7 @@ Created `config/prometheus/alerts.yml`:
    ```
 
 4. **Option A: Fresh Start (Recommended)**
+
    ```bash
    # Remove old volumes (DATA IS DELETED!)
    docker volume rm potatostack_nextcloud_db potatostack_firefly_db
@@ -265,6 +296,7 @@ Created `config/prometheus/alerts.yml`:
    ```
 
 5. **Option B: In-Place Migration (Advanced)**
+
    ```bash
    # Start only MariaDB with old volume
    docker compose up -d mariadb
@@ -277,6 +309,7 @@ Created `config/prometheus/alerts.yml`:
    ```
 
 6. **Start Remaining Services**
+
    ```bash
    # Phase 1
    docker compose up -d mariadb redis postgres nginx-proxy-manager portainer
@@ -292,6 +325,7 @@ Created `config/prometheus/alerts.yml`:
    ```
 
 7. **Verify Everything Works**
+
    ```bash
    docker compose ps
    docker stats --no-stream
@@ -321,6 +355,7 @@ Based on phased deployment:
 ## Performance Expectations (Realistic)
 
 ### Acceptable Performance
+
 - ✅ Nextcloud: 2-5s page loads, smooth file uploads (<500MB files)
 - ✅ Gitea: Fast code browsing, git push/pull works well
 - ✅ Grafana: Dashboards load in 2-3s
@@ -330,6 +365,7 @@ Based on phased deployment:
 - ✅ SSH: Responsive (1-2s login)
 
 ### Concerning Signs (Scale Back!)
+
 - ⚠️ SSH lag >5 seconds
 - ⚠️ Swap usage >1.5GB sustained
 - ⚠️ Load average >6 for >10 minutes
@@ -337,6 +373,7 @@ Based on phased deployment:
 - ⚠️ Web UIs timing out (504 errors)
 
 ### CPU Limitations (Expected)
+
 - **Immich photo scans**: Hours for 1000+ photos (A53 cores are old)
 - **qBittorrent swarms**: Can peg CPU at 100% temporarily
 - **Kopia deduplication**: Slow but functional
@@ -347,11 +384,13 @@ Based on phased deployment:
 ## Files Changed Summary
 
 ### Modified Files
+
 - ✅ `docker-compose.yml` - Consolidated databases, reduced limits, added profiles
 - ✅ `config/prometheus/prometheus.yml` - Updated scrape targets
 - ✅ `.env.example` - Added new variables
 
 ### New Files
+
 - ✅ `config/mariadb/init/01-init-databases.sql`
 - ✅ `config/prometheus/alerts.yml`
 - ✅ `config/grafana/provisioning/dashboards/dashboards/speedtest-internet-monitoring.json`
@@ -362,6 +401,7 @@ Based on phased deployment:
 - ✅ `README_CONSOLIDATED.md`
 
 ### Removed Services (Consolidated)
+
 - ❌ `nextcloud-db` → merged into `mariadb`
 - ❌ `firefly-db` → merged into `mariadb`
 - ❌ `firefly-redis-worker` → merged into `redis` (DB 1)
@@ -372,6 +412,7 @@ Based on phased deployment:
 ## Quick Command Reference
 
 ### Deployment
+
 ```bash
 # Setup swap first!
 sudo bash setup-swap.sh
@@ -390,6 +431,7 @@ docker compose --profile heavy up -d
 ```
 
 ### Monitoring
+
 ```bash
 # Real-time stats
 docker stats
@@ -409,6 +451,7 @@ docker compose logs -f <service>
 ```
 
 ### Maintenance
+
 ```bash
 # Restart service
 docker compose restart <service>
@@ -429,6 +472,7 @@ docker compose exec mariadb mysqldump -u root -p --all-databases > backup.sql
 ## Conclusion
 
 POTATOSTACK is now **optimized for Le Potato (2GB RAM)** with:
+
 - ✅ 512MB memory savings from database consolidation
 - ✅ 40-60% reduction in memory limits across all services
 - ✅ Phased deployment strategy to avoid overwhelming the system
