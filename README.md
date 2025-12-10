@@ -17,8 +17,9 @@ PotatoStack is designed specifically for the Le Potato (AML-S905X-CC) with its l
 
 #### 💾 Storage & Backup
 - **Kopia** - Encrypted, deduplicated backups with web UI
-- **Nextcloud** - Self-hosted cloud storage with sync clients
-- Integrated access to shared media folders
+- **Seafile** - Lightweight file sync & share (Nextcloud alternative)
+- **Filebrowser** - Web file manager
+- **SFTP + Samba** - Remote file access and LAN streaming
 
 #### 📊 Monitoring Stack
 - **Prometheus** - Metrics collection
@@ -52,7 +53,7 @@ PotatoStack is designed specifically for the Le Potato (AML-S905X-CC) with its l
 ### Storage Requirements
 1. **Main HDD** (mounted at `/mnt/seconddrive`):
    - Sized for long‑term data: 14TB in the reference setup
-   - Stores: Kopia backups, Nextcloud data, configs, Gitea repos
+   - Stores: Kopia backups, shared files, configs, Gitea repos
 
 2. **Cache HDD** (mounted at `/mnt/cachehdd`):
    - High‑IO cache disk: 500GB in the reference setup
@@ -143,7 +144,10 @@ COMPOSE_PROFILES=cache docker compose up -d
 | qBittorrent | http://192.168.178.40:8080 | 8080 |
 | slskd (Soulseek) | http://192.168.178.40:2234 | 2234 |
 | Kopia | https://192.168.178.40:51515 | 51515 |
-| Nextcloud | http://192.168.178.40:8082 | 8082 |
+| Filebrowser | http://192.168.178.40:8087 | 8087 |
+| Seafile | http://192.168.178.40:8001 | 8001 |
+| SFTP (SSH) | sftp://192.168.178.40:2223 | 2223 |
+| Samba (SMB) | smb://192.168.178.40 | 445 |
 | Gitea | http://192.168.178.40:3001 | 3001 |
 | Uptime Kuma | http://192.168.178.40:3002 | 3002 |
 | Dozzle | http://192.168.178.40:8083 | 8083 |
@@ -158,7 +162,7 @@ COMPOSE_PROFILES=cache docker compose up -d
 - **Grafana**: admin / (from your .env GRAFANA_PASSWORD)
 - **qBittorrent**: admin / adminadmin
 - **Kopia**: admin / (from your .env KOPIA_SERVER_PASSWORD)
-- **Nextcloud**: admin / (from your .env NEXTCLOUD_ADMIN_PASSWORD)
+  (Filebrowser/SFTP/Samba set per your configuration)
 
 ## Post-Installation Configuration
 
@@ -172,7 +176,7 @@ COMPOSE_PROFILES=cache docker compose up -d
 
 ### Security Notes
 
-- Change all default passwords (NPM, Grafana, qBittorrent, slskd, Nextcloud) and enable 2FA where available.
+- Change all default passwords (NPM, Grafana, qBittorrent, slskd) and enable 2FA where available.
 - Keep Prometheus and other admin UIs accessible only on LAN or behind NPM auth.
 - Consider setting `HOST_BIND` in `.env` to your LAN IP to avoid binding to all interfaces.
 
@@ -186,15 +190,11 @@ COMPOSE_PROFILES=cache docker compose up -d
 - Optional: USB I/O tuning:
   - `sudo ./scripts/usb-io-tuning.sh` (temporary) or `sudo ./scripts/usb-io-tuning.sh --persist` (udev rule)
 
-### Nextcloud Optimization
+### File Access
 
-- After first login/setup, optimize caching:
-
-```bash
-./scripts/nextcloud-optimize.sh
-```
-
-- This enables APCu local cache and Redis file locking (if `REDIS_HOST` is set in `.env`).
+- Web: Filebrowser (`http://<ip>:8087`)
+- SFTP: `sftp -P 2223 files@<ip>` (add your public key to `config/ssh/authorized_keys`)
+- SMB: `\\\\<ip>\\seconddrive` (use your Samba user/password)
 
 ### 2. Set Up Monitoring Dashboards
 

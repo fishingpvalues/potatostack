@@ -4,7 +4,7 @@
 
 Authelia provides Single Sign-On (SSO) with Two-Factor Authentication (2FA) for PotatoStack services. This implementation supports:
 
-- **OAuth2/OIDC** integration with Grafana, Portainer, Nextcloud, and Gitea
+- **OAuth2/OIDC** integration with Grafana, Portainer, and Gitea
 - **Two-Factor Authentication** via TOTP (Time-based One-Time Password) and WebAuthn
 - **Access Control Lists** with fine-grained permissions per service
 - **Session Management** using Redis for high performance
@@ -60,7 +60,6 @@ openssl rand -base64 64
 # Generate OAuth2 client secrets for each service
 openssl rand -base64 32  # GRAFANA_OIDC_SECRET
 openssl rand -base64 32  # PORTAINER_OIDC_SECRET
-openssl rand -base64 32  # NEXTCLOUD_OIDC_SECRET
 openssl rand -base64 32  # GITEA_OIDC_SECRET
 
 # Generate RSA key pair for OIDC
@@ -86,7 +85,6 @@ AUTHELIA_OIDC_PRIVATE_KEY=|
   -----END PRIVATE KEY-----
 GRAFANA_OIDC_SECRET=your_generated_grafana_secret
 PORTAINER_OIDC_SECRET=your_generated_portainer_secret
-NEXTCLOUD_OIDC_SECRET=your_generated_nextcloud_secret
 GITEA_OIDC_SECRET=your_generated_gitea_secret
 ```
 
@@ -119,7 +117,7 @@ Add the following entries to your `/etc/hosts` (or configure in your DNS server)
 192.168.178.40  authelia.lepotato.local
 192.168.178.40  grafana.lepotato.local
 192.168.178.40  portainer.lepotato.local
-192.168.178.40  nextcloud.lepotato.local
+## Nextcloud removed
 192.168.178.40  gitea.lepotato.local
 192.168.178.40  qbittorrent.lepotato.local
 192.168.178.40  slskd.lepotato.local
@@ -158,6 +156,41 @@ location /api/oidc/ {
     proxy_pass http://authelia:9091;
     include /etc/nginx/snippets/authelia-location.conf;
 }
+
+#### Example: Seafile with Authelia Forward Auth
+
+Use the same forward auth pattern in the Advanced tab of your Seafile proxy host:
+
+```
+location /authelia-authz {
+    internal;
+    set $upstream_authelia http://authelia:9091;
+    proxy_pass_request_body off;
+    proxy_set_header Content-Length "";
+    proxy_set_header X-Original-URL $scheme://$http_host$request_uri;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Method $request_method;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $http_host;
+    proxy_set_header X-Forwarded-Uri $request_uri;
+    proxy_pass $upstream_authelia/api/verify;
+}
+
+auth_request /authelia-authz;
+auth_request_set $user   $upstream_http_remote_user;
+auth_request_set $groups $upstream_http_remote_groups;
+auth_request_set $name   $upstream_http_remote_name;
+auth_request_set $email  $upstream_http_remote_email;
+
+proxy_set_header Remote-User  $user;
+proxy_set_header Remote-Groups $groups;
+proxy_set_header Remote-Name  $name;
+proxy_set_header Remote-Email $email;
+
+error_page 401 =302 https://authelia.lepotato.local/?rd=$scheme://$http_host$request_uri;
+
+proxy_pass http://seafile;
+```
 
 location / {
     # Forward auth to Authelia
@@ -279,22 +312,8 @@ Portainer CE has limited OAuth support. For best results, protect it with Nginx 
 
 **Access:** `https://portainer.lepotato.local`
 
-### Nextcloud
-
-Nextcloud requires the OIDC Login app. Install it:
-
-```bash
-docker exec -u www-data nextcloud php occ app:install user_oidc
-docker exec -u www-data nextcloud php occ app:enable user_oidc
-```
-
-Configure in Nextcloud admin settings:
-- Identifier: `nextcloud`
-- Client ID: `nextcloud`
-- Client Secret: `${NEXTCLOUD_OIDC_SECRET}`
-- Discovery endpoint: `https://authelia.lepotato.local/.well-known/openid-configuration`
-
-**Access:** `https://nextcloud.lepotato.local`
+### Note on File Access
+This stack uses Filebrowser/SFTP/Samba for file access instead of Nextcloud.
 
 ### Gitea
 
@@ -326,7 +345,6 @@ The default configuration includes three policy levels:
 **Required:** User must be in `admins` group + TOTP/WebAuthn
 
 ### 2. One-Factor (User Services)
-- Nextcloud
 - Gitea
 - Homepage
 - Uptime Kuma

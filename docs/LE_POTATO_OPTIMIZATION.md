@@ -24,7 +24,7 @@
 
 **After**:
 - `redis` (shared): 128m limit, 16 databases
-  - DB 0: Nextcloud
+  - DB 0: (free)
   - DB 1: Firefly III
   - DB 2: Immich
   - DB 3/4/5: Gitea (cache/session/queue)
@@ -34,7 +34,6 @@
 **Changes Made**:
 - `docker-compose.yml`: Removed `firefly-redis-worker` and `immich-redis` services
 - Updated all service configs to use `redis` with specific DB indices:
-  - Nextcloud: `REDIS_HOST_DB=0`
   - Gitea: `/3`, `/4`, `/5` for cache/session/queue
   - Firefly: `REDIS_DB=1`
   - Immich: `REDIS_DBINDEX=2`
@@ -75,7 +74,7 @@ Applied aggressive memory reductions across ALL services:
 | qBittorrent | 512m | 384m | -25% |
 | Prometheus | 512m | 192m | -62% |
 | Grafana | 384m | 192m | -50% |
-| Nextcloud | 512m | 256m | -50% |
+| Filebrowser | 96m | 64m | -33% |
 | Kopia | 768m | 384m | -50% |
 | Gitea | 384m | 192m | -50% |
 | MariaDB (shared) | 512m (combined) | 192m | -62% |
@@ -96,10 +95,12 @@ Applied aggressive memory reductions across ALL services:
 Implemented profiles to make heavy services optional:
 
 #### `default` profile (no flag needed)
-**RAM Target**: ~1.6GB
+**RAM Target**: ~1.5–1.8GB (with Immich + Authelia)
 **Services**:
 - Core: VPN (Gluetun), P2P (qBittorrent, slskd)
-- Storage: Nextcloud, MariaDB, Redis
+- Storage: Filebrowser, SFTP, Samba, Seafile
+- Identity: Authelia (SSO)
+- Media: Immich (server + microservices)
 - Code: Gitea, Postgres
 - Backup: Kopia, database backup scripts
 - Monitoring: Prometheus, Grafana, Loki, Promtail, Node Exporter, cAdvisor, SMART

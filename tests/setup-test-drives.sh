@@ -34,7 +34,7 @@ mkdir -p "${TEST_MOUNTS_DIR}"
 # Emulate /mnt/seconddrive (main HDD)
 SECONDDRIVE="${TEST_MOUNTS_DIR}/seconddrive"
 echo -e "${GREEN}[1/2] Creating seconddrive emulation...${NC}"
-mkdir -p "${SECONDDRIVE}"/{kopia/{repository,config,cache,logs,tmp},nextcloud,gitea,backups/{db,vaultwarden},uptime-kuma,immich/{upload,library},qbittorrent/config,slskd/{config,logs}}
+mkdir -p "${SECONDDRIVE}"/{kopia/{repository,config,cache,logs,tmp},gitea,backups/{db,vaultwarden},uptime-kuma,immich/{upload,library},qbittorrent/config,slskd/{config,logs}}
 
 # Emulate /mnt/cachehdd (cache HDD)
 CACHEHDD="${TEST_MOUNTS_DIR}/cachehdd"

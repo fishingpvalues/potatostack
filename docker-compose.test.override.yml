@@ -18,14 +18,7 @@ services:
     security_opt: []
     read_only: false
 
-  nextcloud:
-    cap_drop: []
-    security_opt: []
-    volumes:
-      - nextcloud_data:/var/www/html
-      - ./test-mounts/seconddrive/nextcloud:/data
-      - ./test-mounts/cachehdd/torrents:/external/torrents:ro
-      - ./test-mounts/cachehdd/soulseek:/external/soulseek:ro
+  # nextcloud removed
 
   gitea:
     cap_drop: []
@@ -62,6 +55,22 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./test-mounts/seconddrive:/mnt/seconddrive:ro
       - ./test-mounts/cachehdd:/mnt/cachehdd:ro
+
+  filebrowser:
+    volumes:
+      - ./test-mounts/seconddrive:/srv
+
+  sftp:
+    volumes:
+      - ./test-mounts/seconddrive:/data
+
+  samba:
+    volumes:
+      - ./test-mounts/seconddrive:/data
+
+  seafile:
+    volumes:
+      - ./test-mounts/seconddrive/seafile:/shared
 
   portainer:
     cap_drop: []

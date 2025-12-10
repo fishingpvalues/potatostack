@@ -16,7 +16,6 @@ allowed_vpn_services = {
 required_env_vars = {
     "surfshark": {"SURFSHARK_USER", "SURFSHARK_PASSWORD"},
     "kopia": {"KOPIA_PASSWORD", "KOPIA_SERVER_PASSWORD"},
-    "nextcloud": {"NEXTCLOUD_ADMIN_USER", "NEXTCLOUD_ADMIN_PASSWORD", "NEXTCLOUD_DB_PASSWORD"},
     "gitea": {"GITEA_DB_PASSWORD"},
     "grafana": {"GF_SECURITY_ADMIN_PASSWORD"},
     "alertmanager": {"ALERT_EMAIL_USER", "ALERT_EMAIL_PASSWORD", "ALERT_EMAIL_TO"},
@@ -127,7 +126,7 @@ warn[msg] {
 # Deny if critical services lack memory limits (Le Potato requires strict limits)
 deny[msg] {
     some service
-    critical_services := {"surfshark", "kopia", "prometheus", "qbittorrent", "nextcloud"}
+    critical_services := {"surfshark", "kopia", "prometheus", "qbittorrent"}
     critical_services[service]
     not input.services[service].mem_limit
     msg = sprintf("CRITICAL: Service '%s' must have mem_limit for Le Potato (2GB RAM)", [service])
@@ -145,7 +144,7 @@ deny[msg] {
 # Deny if services with heavy I/O don't have explicit CPU limits
 deny[msg] {
     some service
-    heavy_io_services := {"kopia", "nextcloud", "qbittorrent", "prometheus"}
+    heavy_io_services := {"kopia", "qbittorrent", "prometheus"}
     heavy_io_services[service]
     not input.services[service].cpus
     msg = sprintf("Service '%s' needs CPU limit for Le Potato's single storage bus", [service])
@@ -183,7 +182,7 @@ warn[msg] {
     some service
     some vol
     input.services[service].volumes[_] = vol
-    data_services := {"kopia", "nextcloud", "qbittorrent", "slskd", "gitea"}
+    data_services := {"kopia", "qbittorrent", "slskd", "gitea"}
     data_services[service]
     not startswith(vol, "/mnt/")
     not endswith(vol, ":ro")
@@ -220,7 +219,7 @@ info[msg] {
 # Warn if qBittorrent or heavy services lack memory reservation
 warn[msg] {
     some service
-    heavy_services := {"qbittorrent", "kopia", "nextcloud", "prometheus"}
+    heavy_services := {"qbittorrent", "kopia", "prometheus"}
     heavy_services[service]
     input.services[service].mem_limit
     not input.services[service].mem_reservation

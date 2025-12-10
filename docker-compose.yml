@@ -2,10 +2,10 @@
 # POTATOSTACK - Fully Integrated Stack for Le Potato SBC
 # Optimized for ARM64 with 2GB RAM
 # Includes: VPN (Gluetun), P2P (qBittorrent, slskd/Soulseek), Backups (Kopia),
-#           Storage (Nextcloud), Monitoring (Prometheus, Grafana, Loki),
+#           Storage (Filebrowser/Samba), Monitoring (Prometheus, Grafana, Loki),
 #           Management (Portainer, Diun, Uptime Kuma, Dozzle),
 #           Git (Gitea), Reverse Proxy (Nginx Proxy Manager), Dashboard (Homepage),
-#           Security (Vaultwarden, Authelia SSO), Finance (Firefly III + FinTS),
+#           Security (Vaultwarden, Authelia SSO),
 #           Photos (Immich - self-hosted Google Photos alternative)
 ################################################################################
 
@@ -30,16 +30,13 @@ volumes:
   loki_data:
   alertmanager_data:
   mariadb_data:
-  nextcloud_data:
   gitea_data:
   postgres_data:
   npm_data:
   npm_ssl:
   npm_db:
   vaultwarden_data:
-  firefly_data:
-  firefly_upload:
-  fints_importer_data:
+  seafile_db_data:
   immich_model_cache:
 
 services:
@@ -334,14 +331,13 @@ services:
     networks:
       - default
     environment:
-      - NEXTCLOUD_DB_PASSWORD=${NEXTCLOUD_DB_PASSWORD}
-      - FIREFLY_DB_PASSWORD=${FIREFLY_DB_PASSWORD}
+      - SEAFILE_DB_PASSWORD=${SEAFILE_DB_PASSWORD}
       - GITEA_DB_PASSWORD=${GITEA_DB_PASSWORD}
       - IMMICH_DB_PASSWORD=${IMMICH_DB_PASSWORD}
     volumes:
       - /mnt/seconddrive/backups/db:/backups
     depends_on:
-      mariadb:
+      seafile-db:
         condition: service_healthy
       postgres:
         condition: service_healthy
@@ -350,21 +346,26 @@ services:
     command: >
       sh -c "
         set -o pipefail;
-        apk add --no-cache mariadb-client postgresql-client gzip;
+        apk add --no-cache mariadb-client postgresql-client gzip busybox-extras;
         while true; do
           BACKUP_DATE=$$(date +%Y-%m-%d-%H%M);
-          echo 'Backing up Nextcloud (MariaDB)...';
-          mysqldump -h mariadb -u nextcloud -p$$NEXTCLOUD_DB_PASSWORD nextcloud | gzip > /backups/nextcloud-db-$$BACKUP_DATE.sql.gz \
-            && echo 'Nextcloud backup complete.' || echo 'Nextcloud backup failed.';
-          echo 'Backing up Firefly III (MariaDB)...';
-          mysqldump -h mariadb -u firefly -p$$FIREFLY_DB_PASSWORD firefly | gzip > /backups/firefly-db-$$BACKUP_DATE.sql.gz \
-            && echo 'Firefly backup complete.' || echo 'Firefly backup failed.';
-          echo 'Backing up Gitea (Postgres)...';
-          PGPASSWORD=$$GITEA_DB_PASSWORD pg_dump -h postgres -U gitea -d gitea | gzip > /backups/gitea-db-$$BACKUP_DATE.sql.gz \
-            && echo 'Gitea backup complete.' || echo 'Gitea backup failed.';
-          echo 'Backing up Immich (Postgres)...';
-          PGPASSWORD=$$IMMICH_DB_PASSWORD pg_dump -h postgres -U immich -d immich | gzip > /backups/immich-db-$$BACKUP_DATE.sql.gz \
-            && echo 'Immich backup complete.' || echo 'Immich backup failed.';
+          if nc -z seafile-db 3306; then
+            echo 'Backing up Seafile (MariaDB)...';
+            mysqldump -h seafile-db -u seafile -p$$SEAFILE_DB_PASSWORD seafile | gzip > /backups/seafile-db-$$BACKUP_DATE.sql.gz \
+              && echo 'Seafile backup complete.' || echo 'Seafile backup failed.';
+          else
+            echo 'Seafile DB not running, skipping Seafile backup.';
+          fi;
+          if nc -z postgres 5432; then
+            echo 'Backing up Gitea (Postgres)...';
+            PGPASSWORD=$$GITEA_DB_PASSWORD pg_dump -h postgres -U gitea -d gitea | gzip > /backups/gitea-db-$$BACKUP_DATE.sql.gz \
+              && echo 'Gitea backup complete.' || echo 'Gitea backup failed.';
+            echo 'Backing up Immich (Postgres)...';
+            PGPASSWORD=$$IMMICH_DB_PASSWORD pg_dump -h postgres -U immich -d immich | gzip > /backups/immich-db-$$BACKUP_DATE.sql.gz \
+              && echo 'Immich backup complete.' || echo 'Immich backup failed.';
+          else
+            echo 'Postgres not running, skipping Gitea/Immich backups.';
+          fi;
           sleep 1d;
         done
       "
@@ -443,7 +444,7 @@ services:
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
-      - "--storage.tsdb.retention.time=${PROMETHEUS_RETENTION_DAYS:-7d}"
+      - "--storage.tsdb.retention.time=${PROMETHEUS_RETENTION_DAYS:-3d}"
       - "--web.console.libraries=/etc/prometheus/console_libraries"
       - "--web.console.templates=/etc/prometheus/consoles"
       - "--web.enable-lifecycle"
@@ -517,8 +518,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-    mem_limit: 192m
-    mem_reservation: 128m
+    mem_limit: 128m
+    mem_reservation: 96m
     cpus: 0.75
     logging:
       options:
@@ -536,6 +537,7 @@ services:
       - "homepage.widget.password={{HOMEPAGE_VAR_GRAFANA_PASSWORD}}"
 
   loki:
+    profiles: ["monitoring-extra"]
     image: grafana/loki:${LOKI_TAG:-latest}
     container_name: loki
     hostname: loki
@@ -569,6 +571,7 @@ services:
       - "homepage.widget.url=http://loki:3100/ready"
 
   promtail:
+    profiles: ["monitoring-extra"]
     image: grafana/promtail:${PROMTAIL_TAG:-latest}
     container_name: promtail
     hostname: promtail
@@ -677,6 +680,7 @@ services:
       - "homepage.description=Linux host metrics"
 
   cadvisor:
+    profiles: ["monitoring-extra"]
     image: gcr.io/cadvisor/cadvisor:${CADVISOR_TAG:-latest}
     container_name: cadvisor
     hostname: cadvisor
@@ -905,10 +909,11 @@ services:
       - "homepage.description=Router metrics"
 
   ############################################################################
-  # NEXTCLOUD - File sharing and sync
+  # DATABASE - MariaDB (optional, for Firefly)
   ############################################################################
 
   mariadb:
+    profiles: ["heavy"]
     image: mariadb:${MARIADB_TAG:-10.11}
     container_name: mariadb
     hostname: mariadb
@@ -951,66 +956,8 @@ services:
       - "homepage.group=Infrastructure"
       - "homepage.name=MariaDB (Shared)"
       - "homepage.icon=si-mariadb"
-      - "homepage.description=Shared database for Nextcloud & Firefly"
+      - "homepage.description=MariaDB (unused by default)"
 
-  nextcloud:
-    image: nextcloud:${NEXTCLOUD_TAG:-stable}
-    container_name: nextcloud
-    hostname: nextcloud
-    restart: unless-stopped
-    networks:
-      - default
-      - proxy
-    ports:
-      - "${HOST_BIND:-0.0.0.0}:8082:80"
-    security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
-    environment:
-      - MYSQL_HOST=mariadb
-      - MYSQL_DATABASE=nextcloud
-      - MYSQL_USER=nextcloud
-      - MYSQL_PASSWORD=${NEXTCLOUD_DB_PASSWORD}
-      - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER:-admin}
-      - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
-      - NEXTCLOUD_TRUSTED_DOMAINS=${HOST_ADDR:-192.168.178.40} lepotato.local
-      - OVERWRITEPROTOCOL=https
-      - PHP_MEMORY_LIMIT=256M
-      - PHP_UPLOAD_LIMIT=10G
-      - REDIS_HOST=redis
-      - REDIS_HOST_PASSWORD=${REDIS_PASSWORD:-}
-      - REDIS_HOST_DB=0
-    volumes:
-      - nextcloud_data:/var/www/html
-      - /mnt/seconddrive/nextcloud:/data
-      - /mnt/cachehdd/torrents:/external/torrents:ro
-      - /mnt/cachehdd/soulseek:/external/soulseek:ro
-    depends_on:
-      - redis
-      - mariadb
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:80/status.php || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 90s
-    mem_limit: 256m
-    mem_reservation: 128m
-    cpus: 1
-    logging:
-      options:
-        max-size: "10m"
-        max-file: "3"
-    labels:
-      - "homepage.group=Storage & Backup"
-      - "homepage.name=Nextcloud"
-      - "homepage.icon=si-nextcloud"
-      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:8082"
-      - "homepage.description=Cloud storage"
-      - "homepage.widget.type=nextcloud"
-      - "homepage.widget.url=http://nextcloud:80"
-      - "homepage.widget.username={{HOMEPAGE_VAR_NEXTCLOUD_USER}}"
-      - "homepage.widget.password={{HOMEPAGE_VAR_NEXTCLOUD_PASSWORD}}"
 
   redis:
     image: redis:${REDIS_TAG:-7-alpine}
@@ -1031,14 +978,14 @@ services:
         "--appendonly",
         "no",
         "--maxmemory",
-        "128mb",
+        "96mb",
         "--maxmemory-policy",
         "allkeys-lru",
         "--databases",
         "16",
       ]
-    mem_limit: 128m
-    mem_reservation: 64m
+    mem_limit: 96m
+    mem_reservation: 48m
     cpus: 0.5
     logging:
       options:
@@ -1049,6 +996,200 @@ services:
       - "homepage.name=Redis (Shared)"
       - "homepage.icon=si-redis"
       - "homepage.description=Shared cache for all services"
+
+  ############################################################################
+  # LIGHT FILE ACCESS - Filebrowser (web UI) and SFTP (SSH)
+  ############################################################################
+
+  filebrowser:
+    image: filebrowser/filebrowser:${FILEBROWSER_TAG:-latest}
+    container_name: filebrowser
+    hostname: filebrowser
+    restart: unless-stopped
+    networks:
+      - default
+      - proxy
+    ports:
+      - "${HOST_BIND:-0.0.0.0}:8087:80"
+    user: "1000:1000"
+    volumes:
+      - /mnt/seconddrive:/srv
+      - ./config/filebrowser:/database
+      - ./config/filebrowser:/config
+    mem_limit: 96m
+    mem_reservation: 64m
+    cpus: 0.5
+    logging:
+      options:
+        max-size: "5m"
+        max-file: "2"
+    labels:
+      - "homepage.group=Storage & Backup"
+      - "homepage.name=Filebrowser"
+      - "homepage.icon=si-folder"
+      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:8087"
+      - "homepage.description=Lightweight web file manager"
+
+  sftp:
+    image: lscr.io/linuxserver/openssh-server:${OPENSSH_TAG:-latest}
+    container_name: sftp
+    hostname: sftp
+    restart: unless-stopped
+    networks:
+      - default
+    ports:
+      - "${HOST_BIND:-0.0.0.0}:2223:2222"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Berlin
+      - PUBLIC_KEY_FILE=/config/ssh/authorized_keys
+      - SUDO_ACCESS=false
+      - PASSWORD_ACCESS=false
+      - USER_NAME=${SFTP_USER:-files}
+    volumes:
+      - /mnt/seconddrive:/data
+      - ./config/ssh:/config/ssh
+    mem_limit: 96m
+    mem_reservation: 48m
+    cpus: 0.5
+    logging:
+      options:
+        max-size: "5m"
+        max-file: "2"
+    labels:
+      - "homepage.group=Storage & Backup"
+      - "homepage.name=SFTP (SSH)"
+      - "homepage.icon=si-ssh"
+      - "homepage.href=ssh://${HOST_ADDR:-192.168.178.40}:2223"
+      - "homepage.description=SFTP access to files"
+
+  ############################################################################
+  # SEAFILE - Lightweight File Sync & Share (Nextcloud alternative)
+  ############################################################################
+
+  seafile-db:
+    image: mariadb:${MARIADB_TAG:-10.11}
+    container_name: seafile-db
+    hostname: seafile-db
+    restart: unless-stopped
+    networks:
+      - default
+    environment:
+      - MYSQL_ROOT_PASSWORD=${SEAFILE_DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=seafile
+      - MYSQL_USER=seafile
+      - MYSQL_PASSWORD=${SEAFILE_DB_PASSWORD}
+    volumes:
+      - seafile_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "--password=${SEAFILE_DB_ROOT_PASSWORD}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    mem_limit: 128m
+    mem_reservation: 96m
+    cpus: 0.5
+    logging:
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  seafile-memcached:
+    image: memcached:alpine
+    container_name: seafile-memcached
+    hostname: seafile-memcached
+    restart: unless-stopped
+    networks:
+      - default
+    entrypoint: ["memcached", "-m", "128"]
+    mem_limit: 128m
+    mem_reservation: 64m
+    cpus: 0.25
+    logging:
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  seafile:
+    image: seafileltd/seafile-mc:latest
+    container_name: seafile
+    hostname: seafile
+    restart: unless-stopped
+    networks:
+      - default
+      - proxy
+      - monitoring
+    ports:
+      - "${HOST_BIND:-0.0.0.0}:8001:80"
+    environment:
+      - DB_HOST=seafile-db
+      - DB_ROOT_PASSWD=${SEAFILE_DB_ROOT_PASSWORD}
+      - SEAFILE_ADMIN_EMAIL=${SEAFILE_ADMIN_EMAIL}
+      - SEAFILE_ADMIN_PASSWORD=${SEAFILE_ADMIN_PASSWORD}
+      - SEAFILE_SERVER_LETSENCRYPT=false
+      - SEAFILE_SERVER_HOSTNAME=seafile.${HOST_DOMAIN:-lepotato.local}
+      - TIME_ZONE=Europe/Berlin
+      - MEMCACHED_LOCATION=seafile-memcached:11211
+    volumes:
+      - /mnt/seconddrive/seafile:/shared
+    depends_on:
+      seafile-db:
+        condition: service_healthy
+      seafile-memcached:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider --quiet http://localhost/seafile || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    mem_limit: 384m
+    mem_reservation: 256m
+    cpus: 1
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "homepage.group=Storage & Backup"
+      - "homepage.name=Seafile"
+      - "homepage.icon=seafile.png"
+      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:8001"
+      - "homepage.description=Lightweight file sync & share"
+
+  samba:
+    image: dperson/samba
+    container_name: samba
+    hostname: samba
+    restart: unless-stopped
+    networks:
+      - default
+    ports:
+      - "${HOST_BIND:-0.0.0.0}:445:445"
+      - "${HOST_BIND:-0.0.0.0}:139:139"
+    environment:
+      - TZ=Europe/Berlin
+    volumes:
+      - /mnt/seconddrive:/data
+    command: >
+      -S \
+      -u "${SAMBA_USER:-files};${SAMBA_PASSWORD:-changeme}" \
+      -s "seconddrive;/data;yes;no;yes;all;${SAMBA_USER:-files}" \
+      -g "map to guest = Bad User"
+    mem_limit: 96m
+    mem_reservation: 48m
+    cpus: 0.5
+    logging:
+      options:
+        max-size: "5m"
+        max-file: "2"
+    labels:
+      - "homepage.group=Storage & Backup"
+      - "homepage.name=Samba (SMB)"
+      - "homepage.icon=si-samba"
+      - "homepage.href=smb://${HOST_ADDR:-192.168.178.40}"
+      - "homepage.description=Windows file sharing"
 
   ############################################################################
   # GITEA - Git server
@@ -1135,8 +1276,8 @@ services:
     depends_on:
       - redis
       - postgres
-    mem_limit: 192m
-    mem_reservation: 96m
+    mem_limit: 128m
+    mem_reservation: 64m
     cpus: 0.5
     logging:
       options:
@@ -1409,7 +1550,7 @@ services:
   ############################################################################
 
   authelia:
-    profiles: ["heavy"]  # OPTIONAL: Enable with --profile heavy (uses ~64MB)
+    # Always enabled per user preference
     image: authelia/authelia:${AUTHELIA_TAG:-latest}
     container_name: authelia
     hostname: authelia
@@ -1527,8 +1668,6 @@ services:
       - HOMEPAGE_VAR_GITEA_TOKEN=${HOMEPAGE_VAR_GITEA_TOKEN}
       - HOMEPAGE_VAR_GRAFANA_USER=${HOMEPAGE_VAR_GRAFANA_USER}
       - HOMEPAGE_VAR_GRAFANA_PASSWORD=${HOMEPAGE_VAR_GRAFANA_PASSWORD}
-      - HOMEPAGE_VAR_NEXTCLOUD_USER=${HOMEPAGE_VAR_NEXTCLOUD_USER}
-      - HOMEPAGE_VAR_NEXTCLOUD_PASSWORD=${HOMEPAGE_VAR_NEXTCLOUD_PASSWORD}
       - HOMEPAGE_VAR_NPM_USER=${HOMEPAGE_VAR_NPM_USER}
       - HOMEPAGE_VAR_NPM_PASSWORD=${HOMEPAGE_VAR_NPM_PASSWORD}
     volumes:
@@ -1554,182 +1693,7 @@ services:
   # FINANCIAL PLANNING - Firefly III + FinTS Importer (Deutsche Bank)
   ############################################################################
 
-  firefly-iii:
-    profiles: ["heavy"]  # OPTIONAL: Enable with --profile heavy (uses ~192MB)
-    image: fireflyiii/core:${FIREFLY_TAG:-latest}
-    container_name: firefly-iii
-    hostname: firefly-iii
-    restart: unless-stopped
-    networks:
-      - default
-      - proxy
-      - monitoring
-    ports:
-      - "${HOST_BIND:-0.0.0.0}:8085:8080"
-    security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
-    environment:
-      - APP_KEY=${FIREFLY_APP_KEY}
-      - DB_HOST=mariadb
-      - DB_PORT=3306
-      - DB_DATABASE=firefly
-      - DB_USERNAME=firefly
-      - DB_PASSWORD=${FIREFLY_DB_PASSWORD}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_DB=1
-      - TRUSTED_PROXIES=**
-      - APP_URL=https://firefly.${HOST_DOMAIN:-lepotato.local}
-      - TZ=Europe/Berlin
-      - SITE_OWNER=${FIREFLY_SITE_OWNER:-admin@lepotato.local}
-      - APP_ENV=production
-      - APP_DEBUG=false
-      - LOG_CHANNEL=stack
-      - CACHE_DRIVER=redis
-      - SESSION_DRIVER=redis
-      - QUEUE_CONNECTION=redis
-    volumes:
-      - firefly_upload:/var/www/html/storage/upload
-      - firefly_data:/var/www/html/storage/app
-    depends_on:
-      mariadb:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080 || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 90s
-    mem_limit: 256m
-    mem_reservation: 128m
-    cpus: 1
-    logging:
-      options:
-        max-size: "10m"
-        max-file: "3"
-    labels:
-      - "homepage.group=Finance"
-      - "homepage.name=Firefly III"
-      - "homepage.icon=firefly.png"
-      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:8085"
-      - "homepage.description=Household finance & budgeting"
-      - "homepage.widget.type=generic"
-      - "homepage.widget.url=http://firefly-iii:8080"
-
-  firefly-worker:
-    profiles: ["heavy"]  # OPTIONAL: Enable with --profile heavy
-    image: fireflyiii/core:${FIREFLY_TAG:-latest}
-    container_name: firefly-worker
-    hostname: firefly-worker
-    restart: unless-stopped
-    networks:
-      - default
-    security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
-    environment:
-      - APP_KEY=${FIREFLY_APP_KEY}
-      - DB_HOST=mariadb
-      - DB_PORT=3306
-      - DB_DATABASE=firefly
-      - DB_USERNAME=firefly
-      - DB_PASSWORD=${FIREFLY_DB_PASSWORD}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_DB=1
-      - TZ=Europe/Berlin
-      - APP_ENV=production
-      - CACHE_DRIVER=redis
-      - SESSION_DRIVER=redis
-      - QUEUE_CONNECTION=redis
-    volumes:
-      - firefly_data:/var/www/html/storage/app
-    depends_on:
-      - firefly-iii
-    command: php artisan queue:work --sleep=3 --tries=3 --max-time=60
-    mem_limit: 128m
-    mem_reservation: 64m
-    cpus: 0.5
-    logging:
-      options:
-        max-size: "5m"
-        max-file: "2"
-
-  firefly-cron:
-    profiles: ["heavy"]  # OPTIONAL: Enable with --profile heavy
-    image: fireflyiii/core:${FIREFLY_TAG:-latest}
-    container_name: firefly-cron
-    hostname: firefly-cron
-    restart: unless-stopped
-    networks:
-      - default
-    security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
-    environment:
-      - APP_KEY=${FIREFLY_APP_KEY}
-      - DB_HOST=mariadb
-      - DB_PORT=3306
-      - DB_DATABASE=firefly
-      - DB_USERNAME=firefly
-      - DB_PASSWORD=${FIREFLY_DB_PASSWORD}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_DB=1
-      - TZ=Europe/Berlin
-      - APP_ENV=production
-      - CACHE_DRIVER=redis
-      - SESSION_DRIVER=redis
-      - QUEUE_CONNECTION=redis
-    volumes:
-      - firefly_data:/var/www/html/storage/app
-    depends_on:
-      - firefly-iii
-    command: /entrypoint.sh
-    mem_limit: 64m
-    mem_reservation: 32m
-    cpus: 0.25
-    logging:
-      options:
-        max-size: "5m"
-        max-file: "2"
-
-  fints-importer:
-    profiles: ["heavy"]  # OPTIONAL: Enable with --profile heavy
-    image: benkl/firefly-iii-fints-importer:${FINTS_IMPORTER_TAG:-latest}
-    container_name: fints-importer
-    hostname: fints-importer
-    restart: unless-stopped
-    networks:
-      - default
-      - proxy
-    security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
-    environment:
-      - TZ=Europe/Berlin
-      - FIREFLY_III_URL=http://firefly-iii:8080
-      - FIREFLY_III_ACCESS_TOKEN=${FIREFLY_ACCESS_TOKEN}
-      - IMPORT_DIR_ALLOWLIST=/data
-    volumes:
-      - fints_importer_data:/data
-      - ./config/fints-importer:/import-configurations:ro
-    ports:
-      - "${HOST_BIND:-0.0.0.0}:8086:8080"
-    depends_on:
-      firefly-iii:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080 || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
-    mem_limit: 128m
-    mem_reservation: 64m
+  # Firefly III and FinTS Importer removed per user request
     cpus: 0.5
     logging:
       options:
@@ -1742,40 +1706,7 @@ services:
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:8086"
       - "homepage.description=Deutsche Bank auto-import"
 
-  fints-cron:
-    profiles: ["heavy"]  # OPTIONAL: Enable with --profile heavy
-    image: alpine:${ALPINE_TAG:-latest}
-    container_name: fints-cron
-    hostname: fints-cron
-    restart: unless-stopped
-    networks:
-      - default
-    security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
-    volumes:
-      - fints_importer_data:/data:ro
-      - ./config/fints-importer:/import-configurations:ro
-    depends_on:
-      - fints-importer
-      - firefly-iii
-    command: >
-      sh -c "
-        apk add --no-cache curl;
-        while true; do
-          echo 'Running FinTS import at $(date)...';
-          curl -f -X POST 'http://fints-importer:8080/autoimport' || echo 'Import failed or no configuration found.';
-          echo 'Next import in 24 hours...';
-          sleep 86400;
-        done
-      "
-    mem_limit: 64m
-    mem_reservation: 32m
-    cpus: 0.25
-    logging:
-      options:
-        max-size: "5m"
-        max-file: "2"
+  # fints-cron removed per user request
 
   ############################################################################
   # IMMICH - Self-hosted Google Photos Alternative
@@ -1785,7 +1716,7 @@ services:
   # immich-db removed; unified under 'postgres'
 
   immich-server:
-    profiles: ["heavy"]  # OPTIONAL: Enable with --profile heavy (uses ~384MB)
+    # Always enabled per user preference
     image: ghcr.io/immich-app/immich-server:${IMMICH_TAG:-release}
     container_name: immich-server
     hostname: immich-server
@@ -1844,7 +1775,7 @@ services:
       - "homepage.description=Photo & video management"
 
   immich-microservices:
-    profiles: ["heavy"]  # OPTIONAL: Enable with --profile heavy (uses ~192MB)
+    # Always enabled per user preference
     image: ghcr.io/immich-app/immich-server:${IMMICH_TAG:-release}
     container_name: immich-microservices
     hostname: immich-microservices

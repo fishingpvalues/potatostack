@@ -113,8 +113,14 @@ echo
 echo -e "${MAGENTA}[Storage & Backup]${NC}"
 check_container "kopia_server"
 check_http "Kopia WebUI" "http://${HOST_ADDR}:51515/health" 200 || true
-check_container "nextcloud"
-check_http "Nextcloud" "http://${HOST_ADDR}:8082/status.php" 200 || true
+check_container "filebrowser"
+check_http "Filebrowser" "http://${HOST_ADDR}:8087" 200 || true
+check_container "sftp"
+check_container "samba"
+check_container "seafile-db"
+check_container "seafile-memcached"
+check_container "seafile"
+check_http "Seafile" "http://${HOST_ADDR}:8001" 200 || true
 
 echo
 echo -e "${MAGENTA}[Git Services]${NC}"
@@ -171,11 +177,7 @@ check_container "fritzbox-exporter" || true
 check_container "uptime-kuma" || true
 check_container "vaultwarden" || true
 check_container "authelia" || true
-check_container "firefly-iii" || true
-check_container "firefly-worker" || true
-check_container "firefly-cron" || true
-check_container "fints-importer" || true
-check_container "fints-cron" || true
+## Firefly and FinTS removed
 check_container "immich-server" || true
 check_container "immich-microservices" || true
 ## consolidated under db-backups

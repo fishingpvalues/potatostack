@@ -11,12 +11,7 @@
         category: "backup"
         tags: ["documentation", "backup", "kopia"]
         
-    - Nextcloud Docs:
-        href: https://docs.nextcloud.com/
-        icon: si-nextcloud
-        description: "Comprehensive cloud storage and collaboration guide"
-        category: "cloud"
-        tags: ["documentation", "cloud", "nextcloud"]
+    # Nextcloud removed
         
     - Grafana Dashboards:
         href: https://grafana.com/grafana/dashboards/
