@@ -140,6 +140,9 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    volumes:
+      - /mnt/seconddrive:/mnt/seconddrive:ro
+      - /mnt/cachehdd:/mnt/cachehdd:ro
 
     labels:
       - "homepage.group=Infrastructure"
@@ -452,6 +455,8 @@ services:
       - ./config/prometheus:/etc/prometheus
       - prometheus_data:/prometheus
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /mnt/seconddrive:/mnt/seconddrive:ro
+      - /mnt/cachehdd:/mnt/cachehdd:ro
     depends_on:
       - node-exporter
       - cadvisor
@@ -505,6 +510,8 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
       - ./config/grafana/provisioning:/etc/grafana/provisioning
+      - /mnt/seconddrive:/mnt/seconddrive:ro
+      - /mnt/cachehdd:/mnt/cachehdd:ro
     depends_on:
       - prometheus
       - loki
@@ -554,6 +561,8 @@ services:
     volumes:
       - ./config/loki:/etc/loki
       - loki_data:/loki
+      - /mnt/seconddrive:/mnt/seconddrive:ro
+      - /mnt/cachehdd:/mnt/cachehdd:ro
     mem_limit: 128m
     mem_reservation: 64m
     cpus: 0.5
@@ -589,6 +598,8 @@ services:
       - /mnt/seconddrive/slskd/logs:/slskd-logs:ro
       - ./config/promtail:/etc/promtail
       - /var/lib/promtail:/var/lib/promtail
+      - /mnt/seconddrive:/mnt/seconddrive:ro
+      - /mnt/cachehdd:/mnt/cachehdd:ro
     command: -config.file=/etc/promtail/config.yml
     depends_on:
       - loki
@@ -621,6 +632,8 @@ services:
     volumes:
       - ./config/alertmanager:/etc/alertmanager
       - alertmanager_data:/alertmanager
+      - /mnt/seconddrive:/mnt/seconddrive:ro
+      - /mnt/cachehdd:/mnt/cachehdd:ro
     command:
       - "--config.file=/etc/alertmanager/config.yml"
       - "--storage.path=/alertmanager"
@@ -970,6 +983,9 @@ services:
       - no-new-privileges:false
     # cap_drop: ALL removed - was too restrictive
     read_only: false
+    volumes:
+      - /mnt/seconddrive:/mnt/seconddrive:ro
+      - /mnt/cachehdd:/mnt/cachehdd:ro
     command:
       [
         "redis-server",
@@ -1216,6 +1232,8 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./config/postgres/init:/docker-entrypoint-initdb.d:ro
+      - /mnt/seconddrive:/mnt/seconddrive:ro
+      - /mnt/cachehdd:/mnt/cachehdd:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
       interval: 30s
@@ -1273,6 +1291,8 @@ services:
       - /mnt/seconddrive/gitea:/data/gitea/repositories
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
+      - /mnt/seconddrive:/mnt/seconddrive:ro
+      - /mnt/cachehdd:/mnt/cachehdd:ro
     depends_on:
       - redis
       - postgres
@@ -1314,6 +1334,8 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - portainer_data:/data
+      - /mnt/seconddrive:/mnt/seconddrive:ro
+      - /mnt/cachehdd:/mnt/cachehdd:ro
     mem_limit: 128m
     mem_reservation: 64m
     cpus: 0.5
@@ -1350,6 +1372,8 @@ services:
       - ./data/diun:/data
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /etc/localtime:/etc/localtime:ro
+      - /mnt/seconddrive:/mnt/seconddrive:ro
+      - /mnt/cachehdd:/mnt/cachehdd:ro
     mem_limit: 64m
     mem_reservation: 32m
     cpus: 0.25
@@ -1412,6 +1436,8 @@ services:
     # cap_drop: ALL removed - was too restrictive
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /mnt/seconddrive:/mnt/seconddrive:ro
+      - /mnt/cachehdd:/mnt/cachehdd:ro
     environment:
       - DOZZLE_LEVEL=info
       - DOZZLE_TAILSIZE=300
@@ -1575,6 +1601,8 @@ services:
       - AUTHELIA_NOTIFIER_SMTP_PASSWORD=${ALERT_EMAIL_PASSWORD}
     volumes:
       - ./config/authelia:/config
+      - /mnt/seconddrive:/mnt/seconddrive:ro
+      - /mnt/cachehdd:/mnt/cachehdd:ro
     depends_on:
       - redis
     healthcheck:
@@ -1622,6 +1650,8 @@ services:
     volumes:
       - npm_data:/data
       - npm_ssl:/etc/letsencrypt
+      - /mnt/seconddrive:/mnt/seconddrive:ro
+      - /mnt/cachehdd:/mnt/cachehdd:ro
     healthcheck:
       test: ["CMD-SHELL", "wget --spider --quiet http://localhost:81 || exit 1"]
       interval: 30s
@@ -1749,6 +1779,8 @@ services:
       - /mnt/seconddrive/immich/upload:/usr/src/app/upload
       - /mnt/seconddrive/immich/library:/usr/src/app/library
       - /etc/localtime:/etc/localtime:ro
+      - /mnt/seconddrive:/mnt/seconddrive:ro
+      - /mnt/cachehdd:/mnt/cachehdd:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -1799,6 +1831,8 @@ services:
       - /mnt/seconddrive/immich/upload:/usr/src/app/upload
       - /mnt/seconddrive/immich/library:/usr/src/app/library
       - /etc/localtime:/etc/localtime:ro
+      - /mnt/seconddrive:/mnt/seconddrive:ro
+      - /mnt/cachehdd:/mnt/cachehdd:ro
     depends_on:
       - postgres
       - redis
@@ -1810,9 +1844,3 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-
-  ############################################################################
-  # IMMICH DATABASE BACKUP - Daily pg_dump
-  ############################################################################
-
-  # immich-db-backup removed; consolidated under 'db-backups'
