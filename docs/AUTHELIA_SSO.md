@@ -117,7 +117,7 @@ Add the following entries to your `/etc/hosts` (or configure in your DNS server)
 192.168.178.40  authelia.lepotato.local
 192.168.178.40  grafana.lepotato.local
 192.168.178.40  portainer.lepotato.local
-## Nextcloud removed
+192.168.178.40  seafile.lepotato.local
 192.168.178.40  gitea.lepotato.local
 192.168.178.40  qbittorrent.lepotato.local
 192.168.178.40  slskd.lepotato.local
