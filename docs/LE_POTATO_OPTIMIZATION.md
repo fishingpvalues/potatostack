@@ -180,7 +180,7 @@ Created `config/prometheus/alerts.yml`:
 - Kopia Backup Monitoring
 - slskd Service Monitoring
 - Blackbox Availability
-- Loki Log Monitoring
+- Loki Log Monitoring (available when monitoring-extra profile is enabled)
 - SMART Disk Health
 - Network Performance
 
