@@ -2,7 +2,7 @@
 # POTATOSTACK - Fully Integrated Stack for Le Potato SBC
 # Optimized for ARM64 with 2GB RAM
 # Includes: VPN (Gluetun), P2P (qBittorrent, slskd/Soulseek), Backups (Kopia),
-#           Storage (Filebrowser/Samba), Monitoring (Prometheus, Grafana, Loki),
+#           Storage (Filebrowser/Samba/Seafile), Monitoring (Prometheus, Grafana, Loki),
 #           Management (Portainer, Diun, Uptime Kuma, Dozzle),
 #           Git (Gitea), Reverse Proxy (Nginx Proxy Manager), Dashboard (Homepage),
 #           Security (Vaultwarden, Authelia SSO),
@@ -334,7 +334,7 @@ services:
     networks:
       - default
     environment:
-      - SEAFILE_DB_PASSWORD=${SEAFILE_DB_PASSWORD}
+      - SEAFILE_DB_ROOT_PASSWORD=${SEAFILE_DB_ROOT_PASSWORD}
       - GITEA_DB_PASSWORD=${GITEA_DB_PASSWORD}
       - IMMICH_DB_PASSWORD=${IMMICH_DB_PASSWORD}
     volumes:
@@ -353,8 +353,8 @@ services:
         while true; do
           BACKUP_DATE=$$(date +%Y-%m-%d-%H%M);
           if nc -z seafile-db 3306; then
-            echo 'Backing up Seafile (MariaDB)...';
-            mysqldump -h seafile-db -u seafile -p$$SEAFILE_DB_PASSWORD seafile | gzip > /backups/seafile-db-$$BACKUP_DATE.sql.gz \
+            echo 'Backing up Seafile databases (MariaDB)...';
+            mysqldump -h seafile-db -u root -p$$SEAFILE_DB_ROOT_PASSWORD --databases ccnet-db seafile-db seahub-db | gzip > /backups/seafile-dbs-$$BACKUP_DATE.sql.gz \
               && echo 'Seafile backup complete.' || echo 'Seafile backup failed.';
           else
             echo 'Seafile DB not running, skipping Seafile backup.';
@@ -459,7 +459,6 @@ services:
       - /mnt/cachehdd:/mnt/cachehdd:ro
     depends_on:
       - node-exporter
-      - cadvisor
       - smartctl-exporter
     mem_limit: 192m
     mem_reservation: 128m
@@ -514,7 +513,6 @@ services:
       - /mnt/cachehdd:/mnt/cachehdd:ro
     depends_on:
       - prometheus
-      - loki
     healthcheck:
       test:
         [
