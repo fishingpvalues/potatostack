@@ -1,7 +1,7 @@
-# PotatoStack v2.1 - Current Status
+# PotatoStack v2.3 - Current Status
 
 **Last Updated:** 2025-12-12
-**Status:** Production Ready | Optimized for 2GB RAM
+**Status:** Production Ready | Maximum Consolidation Achieved for 2GB RAM
 
 ---
 
@@ -9,12 +9,13 @@
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| **Version** | 2.1 | Database consolidation release |
-| **Total Services** | 30+ | Core + optional services |
+| **Version** | 2.3 | Extreme unification - multi-service containers |
+| **Total Services** | 22 | Core services (-8 containers from v2.1!) |
 | **Database Memory** | 256MB | PostgreSQL + Redis (down from 608MB) |
-| **Total RAM Usage** | ~1.4GB | Default profile (500MB free) |
-| **Memory Savings** | -352MB | From database consolidation (-58%) |
-| **Containers** | 15-25 | Depending on profiles |
+| **Total RAM Usage** | ~1.1GB | Default profile (900MB free!) |
+| **Memory Savings** | -550MB | From all consolidations (-68%) |
+| **Containers** | 10-18 | Depending on profiles |
+| **Networks** | 2 | down from 4 (vpn + backend only) |
 
 ---
 
@@ -92,19 +93,30 @@ docker compose --profile apps --profile monitoring-extra up -d
 
 ## Recent Changes
 
-### 2025-12-12: Database Consolidation
+### 2025-12-12: v2.3 - EXTREME CONSOLIDATION (Multi-Service Containers)
+- ✅ **unified-exporters**: node-exporter + smartctl-exporter → 1 container (-1, -32MB)
+- ✅ **unified-fileserver**: Samba + SFTP + Filebrowser → 1 container (-2, -48MB)
+- ✅ **unified-management**: autoheal + diun → 1 container (-1, -32MB)
+- ✅ **Network Unification**: monitoring + proxy + default → `backend` network (-2 networks)
+- ✅ **Container Count**: 28 → 22 services (-6 more containers!)
+- ✅ **Total Reduction**: 30+ → 22 containers (-8 total, -27%)
+- ✅ **Memory Estimate**: ~1.3GB → ~1.1GB (-200MB from v2.2)
+
+### 2025-12-12: v2.2 - Unified Services & Infrastructure Consolidation
+- ✅ **Unified Backups**: Merged `db-backups` + `vaultwarden-backup` → single `unified-backups` container
+- ✅ **Compose Defaults**: Added global defaults for TZ, logging, and security settings
+- ✅ **Volume Cleanup**: Removed 60+ unnecessary volume mounts (reduced inode pressure)
+- ✅ **Environment Variables**: Standardized env format across all services (YAML syntax)
+- ✅ **Security Hardening**: Applied `no-new-privileges: true` to all services
+- ✅ **Backup Cleanup**: Added 7-day retention policy for backups
+- ✅ **Container Count**: Reduced from 30+ to 28 services (-2 backup containers)
+
+### 2025-12-12: v2.1 - Database Consolidation
 - ✅ Migrated Seafile to PostgreSQL
 - ✅ Replaced memcached with Redis
 - ✅ Optimized database memory limits
 - ✅ Updated backup scripts
 - ✅ Removed obsolete services
-
-### Documentation Cleanup
-- ✅ Removed Firefly III documentation
-- ✅ Removed all Nextcloud references
-- ✅ Updated README to v2.1
-- ✅ Standardized service labels
-- ✅ Updated INDEX.md with current stats
 
 ---
 

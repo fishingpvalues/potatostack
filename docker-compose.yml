@@ -9,16 +9,27 @@
 #           Photos (Immich - self-hosted Google Photos alternative)
 ################################################################################
 
+# Global defaults for all services
+x-default-env: &default-env
+  TZ: Europe/Berlin
+
+x-default-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-default-security: &default-security
+  no-new-privileges: true
+
 networks:
   vpn:
     driver: bridge
     name: potatostack_vpn
-  monitoring:
+  backend:
+    # Unified network for monitoring + proxy + default services
     driver: bridge
-    name: potatostack_monitoring
-  proxy:
-    driver: bridge
-    name: potatostack_proxy
+    name: potatostack_backend
   default:
     driver: bridge
     name: potatostack_default
@@ -54,50 +65,48 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     environment:
+      <<: *default-env
       # VPN Provider Configuration
-      - VPN_SERVICE_PROVIDER=surfshark
-      - VPN_TYPE=${SURFSHARK_CONNECTION_TYPE:-openvpn} # openvpn or wireguard
+      VPN_SERVICE_PROVIDER: surfshark
+      VPN_TYPE: ${SURFSHARK_CONNECTION_TYPE:-openvpn}
 
       # OpenVPN Credentials (from .env)
-      - OPENVPN_USER=${SURFSHARK_USER}
-      - OPENVPN_PASSWORD=${SURFSHARK_PASSWORD}
+      OPENVPN_USER: ${SURFSHARK_USER}
+      OPENVPN_PASSWORD: ${SURFSHARK_PASSWORD}
 
       # Server Selection
-      - SERVER_COUNTRIES=${SURFSHARK_COUNTRY:-Netherlands}
-      - SERVER_CITIES=${SURFSHARK_CITY:-Amsterdam}
+      SERVER_COUNTRIES: ${SURFSHARK_COUNTRY:-Netherlands}
+      SERVER_CITIES: ${SURFSHARK_CITY:-Amsterdam}
 
       # Firewall & Killswitch (CRITICAL - enforces VPN-only traffic)
-      - FIREWALL_OUTBOUND_SUBNETS=${LAN_NETWORK:-192.168.178.0/24} # Allow LAN access
-      - FIREWALL_VPN_INPUT_PORTS=6881 # Allow P2P incoming
-      - FIREWALL_INPUT_PORTS= # Block all other incoming (security)
-      - FIREWALL=on # Enable built-in killswitch firewall
+      FIREWALL_OUTBOUND_SUBNETS: ${LAN_NETWORK:-192.168.178.0/24}
+      FIREWALL_VPN_INPUT_PORTS: 6881
+      FIREWALL_INPUT_PORTS: ""
+      FIREWALL: "on"
 
       # DNS Configuration
-      - DNS_ADDRESS=${VPN_DNS:-1.1.1.1}
-      - DOT=off # Disable DNS-over-TLS (optional, enable for privacy)
+      DNS_ADDRESS: ${VPN_DNS:-1.1.1.1}
+      DOT: "off"
 
       # Health Check Server (HTTP API on port 8000)
-      - HTTPPROXY=off # Disable HTTP proxy (not needed)
-      - SHADOWSOCKS=off # Disable Shadowsocks proxy (not needed)
-      - HTTP_CONTROL_SERVER_ADDRESS=:8000
-      - HTTP_CONTROL_SERVER_LOG=on
-
-      # Timezone
-      - TZ=Europe/Berlin
+      HTTPPROXY: "off"
+      SHADOWSOCKS: "off"
+      HTTP_CONTROL_SERVER_ADDRESS: ":8000"
+      HTTP_CONTROL_SERVER_LOG: "on"
 
       # Advanced Settings
-      - HEALTH_VPN_DURATION_INITIAL=20s # Initial VPN health check delay
-      - HEALTH_VPN_DURATION_ADDITION=5s # Additional time per retry
-      - UPDATER_PERIOD=24h # Update server list daily
-      - PUBLICIP_PERIOD=12h # Check public IP every 12h
-      - LOG_LEVEL=info
+      HEALTH_VPN_DURATION_INITIAL: 20s
+      HEALTH_VPN_DURATION_ADDITION: 5s
+      UPDATER_PERIOD: 24h
+      PUBLICIP_PERIOD: 12h
+      LOG_LEVEL: info
 
       # IPv6 (disable for compatibility)
-      - IPV6=off
+      IPV6: "off"
 
     networks:
       - vpn
-      - monitoring
+      - backend
 
     ports:
       # qBittorrent WebUI
@@ -136,12 +145,7 @@ services:
     cpus: 1
 
     logging:
-      options:
-        max-size: "10m"
-        max-file: "3"
-    volumes:
-      - /mnt/seconddrive:/mnt/seconddrive:ro
-      - /mnt/cachehdd:/mnt/cachehdd:ro
+      <<: *default-logging
 
     labels:
       - "homepage.group=Infrastructure"
@@ -258,7 +262,7 @@ services:
     restart: unless-stopped
     networks:
       - monitoring
-      - proxy
+      - backend
     ports:
       - "${HOST_BIND:-0.0.0.0}:51515:51515"
       - "${HOST_BIND:-0.0.0.0}:51516:51516"
@@ -322,52 +326,79 @@ services:
       - "homepage.widget.url=http://kopia:51515/health"
 
   ############################################################################
-  # DATABASE BACKUPS - Daily mysqldump and pg_dump
+  # UNIFIED BACKUPS - PostgreSQL databases + Vaultwarden (single container)
   ############################################################################
 
-  db-backups:
+  unified-backups:
     image: alpine:${ALPINE_TAG:-latest}
-    container_name: db_backups
-    hostname: db-backups
+    container_name: unified_backups
+    hostname: unified-backups
     restart: unless-stopped
     networks:
       - default
     environment:
-      - GITEA_DB_PASSWORD=${GITEA_DB_PASSWORD}
-      - IMMICH_DB_PASSWORD=${IMMICH_DB_PASSWORD}
-      - SEAFILE_DB_PASSWORD=${SEAFILE_DB_PASSWORD}
+      <<: *default-env
+      GITEA_DB_PASSWORD: ${GITEA_DB_PASSWORD}
+      IMMICH_DB_PASSWORD: ${IMMICH_DB_PASSWORD}
+      SEAFILE_DB_PASSWORD: ${SEAFILE_DB_PASSWORD}
+      BACKUP_VAULTWARDEN: ${BACKUP_VAULTWARDEN:-false}
     volumes:
-      - /mnt/seconddrive/backups/db:/backups
+      - /mnt/seconddrive/backups:/backups
+      - vaultwarden_data:/vaultwarden:ro
     depends_on:
       postgres:
         condition: service_healthy
     security_opt:
-      - no-new-privileges:false
+      - *default-security
     command: >
       sh -c "
         set -o pipefail;
-        apk add --no-cache postgresql-client gzip busybox-extras;
+        apk add --no-cache postgresql-client sqlite gzip tar busybox-extras;
         while true; do
           BACKUP_DATE=$$(date +%Y-%m-%d-%H%M);
+
           if nc -z postgres 5432; then
-            echo 'Backing up Gitea (Postgres)...';
-            PGPASSWORD=$$GITEA_DB_PASSWORD pg_dump -h postgres -U gitea -d gitea | gzip > /backups/gitea-db-$$BACKUP_DATE.sql.gz \
-              && echo 'Gitea backup complete.' || echo 'Gitea backup failed.';
-            echo 'Backing up Immich (Postgres)...';
-            PGPASSWORD=$$IMMICH_DB_PASSWORD pg_dump -h postgres -U immich -d immich | gzip > /backups/immich-db-$$BACKUP_DATE.sql.gz \
-              && echo 'Immich backup complete.' || echo 'Immich backup failed.';
-            echo 'Backing up Seafile ccnet_db (Postgres)...';
-            PGPASSWORD=$$SEAFILE_DB_PASSWORD pg_dump -h postgres -U seafile -d ccnet_db | gzip > /backups/seafile-ccnet-db-$$BACKUP_DATE.sql.gz \
-              && echo 'Seafile ccnet_db backup complete.' || echo 'Seafile ccnet_db backup failed.';
-            echo 'Backing up Seafile seafile_db (Postgres)...';
-            PGPASSWORD=$$SEAFILE_DB_PASSWORD pg_dump -h postgres -U seafile -d seafile_db | gzip > /backups/seafile-seafile-db-$$BACKUP_DATE.sql.gz \
-              && echo 'Seafile seafile_db backup complete.' || echo 'Seafile seafile_db backup failed.';
-            echo 'Backing up Seafile seahub_db (Postgres)...';
-            PGPASSWORD=$$SEAFILE_DB_PASSWORD pg_dump -h postgres -U seafile -d seahub_db | gzip > /backups/seafile-seahub-db-$$BACKUP_DATE.sql.gz \
-              && echo 'Seafile seahub_db backup complete.' || echo 'Seafile seahub_db backup failed.';
+            echo '[DB Backup] Starting PostgreSQL backups...';
+            mkdir -p /backups/db;
+
+            PGPASSWORD=$$GITEA_DB_PASSWORD pg_dump -h postgres -U gitea -d gitea | gzip > /backups/db/gitea-$$BACKUP_DATE.sql.gz \
+              && echo '[DB Backup] Gitea: OK' || echo '[DB Backup] Gitea: FAILED';
+
+            PGPASSWORD=$$IMMICH_DB_PASSWORD pg_dump -h postgres -U immich -d immich | gzip > /backups/db/immich-$$BACKUP_DATE.sql.gz \
+              && echo '[DB Backup] Immich: OK' || echo '[DB Backup] Immich: FAILED';
+
+            PGPASSWORD=$$SEAFILE_DB_PASSWORD pg_dump -h postgres -U seafile -d ccnet_db | gzip > /backups/db/seafile-ccnet-$$BACKUP_DATE.sql.gz \
+              && echo '[DB Backup] Seafile ccnet: OK' || echo '[DB Backup] Seafile ccnet: FAILED';
+
+            PGPASSWORD=$$SEAFILE_DB_PASSWORD pg_dump -h postgres -U seafile -d seafile_db | gzip > /backups/db/seafile-db-$$BACKUP_DATE.sql.gz \
+              && echo '[DB Backup] Seafile db: OK' || echo '[DB Backup] Seafile db: FAILED';
+
+            PGPASSWORD=$$SEAFILE_DB_PASSWORD pg_dump -h postgres -U seafile -d seahub_db | gzip > /backups/db/seafile-seahub-$$BACKUP_DATE.sql.gz \
+              && echo '[DB Backup] Seafile seahub: OK' || echo '[DB Backup] Seafile seahub: FAILED';
+
+            find /backups/db -name '*.sql.gz' -mtime +7 -delete && echo '[DB Backup] Cleanup: Removed backups older than 7 days';
           else
-            echo 'Postgres not running, skipping all backups.';
+            echo '[DB Backup] Postgres not running, skipping database backups.';
           fi;
+
+          if [ \"$$BACKUP_VAULTWARDEN\" = \"true\" ] && [ -f /vaultwarden/db.sqlite3 ]; then
+            echo '[VW Backup] Starting Vaultwarden backup...';
+            mkdir -p /backups/vaultwarden /tmp/vw-backup;
+
+            sqlite3 /vaultwarden/db.sqlite3 '.backup /tmp/vw-backup/db.sqlite3' &&
+            cp -r /vaultwarden/attachments /tmp/vw-backup/ 2>/dev/null || true;
+            cp -r /vaultwarden/sends /tmp/vw-backup/ 2>/dev/null || true;
+            cp -r /vaultwarden/icon_cache /tmp/vw-backup/ 2>/dev/null || true;
+            cp /vaultwarden/rsa_key* /tmp/vw-backup/ 2>/dev/null || true;
+
+            tar -czf /backups/vaultwarden/vaultwarden-$$BACKUP_DATE.tar.gz -C /tmp/vw-backup . \
+              && echo '[VW Backup] OK' || echo '[VW Backup] FAILED';
+
+            rm -rf /tmp/vw-backup;
+            find /backups/vaultwarden -name '*.tar.gz' -mtime +7 -delete && echo '[VW Backup] Cleanup: Removed backups older than 7 days';
+          fi;
+
+          echo '[Backup] Cycle complete. Sleeping 24h...';
           sleep 1d;
         done
       "
@@ -375,55 +406,10 @@ services:
     mem_reservation: 64m
     cpus: 0.25
     logging:
+      <<: *default-logging
       options:
-        max-size: "2m"
+        max-size: "5m"
         max-file: "2"
-
-  vaultwarden-backup:
-    profiles: ["apps"]  # OPTIONAL: Enable with --profile apps
-    image: alpine:${ALPINE_TAG:-latest}
-    container_name: vaultwarden_backup
-    hostname: vaultwarden-backup
-    restart: unless-stopped
-    networks:
-      - default
-    volumes:
-      - vaultwarden_data:/vaultwarden:ro
-      - /mnt/seconddrive/backups/vaultwarden:/backups
-    depends_on:
-      vaultwarden:
-        condition: service_healthy
-    security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
-    command: >
-      sh -c "
-        set -o pipefail;
-        apk add --no-cache sqlite gzip tar;
-        while true; do
-          echo 'Backing up Vaultwarden data...';
-          BACKUP_DATE=$$(date +%Y-%m-%d-%H%M);
-          mkdir -p /tmp/vw-backup;
-          sqlite3 /vaultwarden/db.sqlite3 '.backup /tmp/vw-backup/db.sqlite3' &&
-          cp -r /vaultwarden/attachments /tmp/vw-backup/ 2>/dev/null || true;
-          cp -r /vaultwarden/sends /tmp/vw-backup/ 2>/dev/null || true;
-          cp -r /vaultwarden/icon_cache /tmp/vw-backup/ 2>/dev/null || true;
-          cp /vaultwarden/rsa_key* /tmp/vw-backup/ 2>/dev/null || true;
-          tar -czf /backups/vaultwarden-$$BACKUP_DATE.tar.gz -C /tmp/vw-backup . &&
-          echo 'Vaultwarden backup complete.' || echo 'Vaultwarden backup failed.';
-          rm -rf /tmp/vw-backup;
-          sleep 1d;
-        done
-      "
-    mem_limit: 128m
-    mem_reservation: 64m
-    cpus: 0.25
-    logging:
-      options:
-        max-size: "2m"
-        max-file: "2"
-
-  # firefly-db-backup removed; consolidated under 'db-backups'
 
   ############################################################################
   # MONITORING STACK - Prometheus, Grafana, Loki, Thanos, Alertmanager
@@ -435,14 +421,14 @@ services:
     hostname: prometheus
     restart: unless-stopped
     networks:
-      - monitoring
-      - proxy
+      - backend
     ports:
       - "${HOST_BIND:-0.0.0.0}:9090:9090"
     security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
+      - *default-security
     read_only: false
+    environment:
+      <<: *default-env
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
@@ -454,18 +440,13 @@ services:
       - ./config/prometheus:/etc/prometheus
       - prometheus_data:/prometheus
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /mnt/seconddrive:/mnt/seconddrive:ro
-      - /mnt/cachehdd:/mnt/cachehdd:ro
     depends_on:
-      - node-exporter
-      - smartctl-exporter
+      - unified-exporters
     mem_limit: 192m
     mem_reservation: 128m
     cpus: 0.75
     logging:
-      options:
-        max-size: "10m"
-        max-file: "3"
+      <<: *default-logging
     labels:
       - "homepage.group=Monitoring"
       - "homepage.name=Prometheus"
@@ -481,35 +462,32 @@ services:
     hostname: grafana
     restart: unless-stopped
     networks:
-      - monitoring
-      - proxy
+      - backend
     ports:
       - "${HOST_BIND:-0.0.0.0}:3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
-      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-clock-panel
-      - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:%(http_port)s/grafana/
-      - GF_ANALYTICS_REPORTING_ENABLED=false
+      <<: *default-env
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_INSTALL_PLUGINS: grafana-piechart-panel,grafana-clock-panel
+      GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s:%(http_port)s/grafana/"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
       # OAuth2 via Authelia
-      - GF_AUTH_GENERIC_OAUTH_ENABLED=true
-      - GF_AUTH_GENERIC_OAUTH_NAME=Authelia
-      - GF_AUTH_GENERIC_OAUTH_CLIENT_ID=grafana
-      - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=${GRAFANA_OIDC_SECRET}
-      - GF_AUTH_GENERIC_OAUTH_SCOPES=openid profile email groups
-      - GF_AUTH_GENERIC_OAUTH_AUTH_URL=https://authelia.lepotato.local/api/oidc/authorization
-      - GF_AUTH_GENERIC_OAUTH_TOKEN_URL=https://authelia.lepotato.local/api/oidc/token
-      - GF_AUTH_GENERIC_OAUTH_API_URL=https://authelia.lepotato.local/api/oidc/userinfo
-      - GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP=true
-      - GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH=contains(groups[*], 'admins') && 'Admin' || 'Viewer'
+      GF_AUTH_GENERIC_OAUTH_ENABLED: "true"
+      GF_AUTH_GENERIC_OAUTH_NAME: Authelia
+      GF_AUTH_GENERIC_OAUTH_CLIENT_ID: grafana
+      GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: ${GRAFANA_OIDC_SECRET}
+      GF_AUTH_GENERIC_OAUTH_SCOPES: openid profile email groups
+      GF_AUTH_GENERIC_OAUTH_AUTH_URL: https://authelia.lepotato.local/api/oidc/authorization
+      GF_AUTH_GENERIC_OAUTH_TOKEN_URL: https://authelia.lepotato.local/api/oidc/token
+      GF_AUTH_GENERIC_OAUTH_API_URL: https://authelia.lepotato.local/api/oidc/userinfo
+      GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP: "true"
+      GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: contains(groups[*], 'admins') && 'Admin' || 'Viewer'
     security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
+      - *default-security
     volumes:
       - grafana_data:/var/lib/grafana
       - ./config/grafana/provisioning:/etc/grafana/provisioning
-      - /mnt/seconddrive:/mnt/seconddrive:ro
-      - /mnt/cachehdd:/mnt/cachehdd:ro
     depends_on:
       - prometheus
     healthcheck:
@@ -526,9 +504,7 @@ services:
     mem_reservation: 96m
     cpus: 0.75
     logging:
-      options:
-        max-size: "10m"
-        max-file: "3"
+      <<: *default-logging
     labels:
       - "homepage.group=Monitoring"
       - "homepage.name=Grafana"
@@ -547,7 +523,7 @@ services:
     hostname: loki
     restart: unless-stopped
     networks:
-      - monitoring
+      - backend
     ports:
       - "${HOST_BIND:-0.0.0.0}:3100:3100"
     security_opt:
@@ -583,7 +559,7 @@ services:
     hostname: promtail
     restart: unless-stopped
     networks:
-      - monitoring
+      - backend
     security_opt:
       - no-new-privileges:false
     # cap_drop: ALL removed - was too restrictive
@@ -614,8 +590,7 @@ services:
     hostname: alertmanager
     restart: unless-stopped
     networks:
-      - monitoring
-      - proxy
+      - backend
     ports:
       - "${HOST_BIND:-0.0.0.0}:9093:9093"
     environment:
@@ -651,43 +626,53 @@ services:
       - "homepage.widget.url=http://alertmanager:9093/api/v2/status"
 
   ############################################################################
-  # SYSTEM MONITORING - Node Exporter, cAdvisor, SMART
+  # UNIFIED SYSTEM MONITORING - Node + SMART + Process metrics in one container
   ############################################################################
 
-  node-exporter:
-    image: prom/node-exporter:${NODE_EXPORTER_TAG:-latest}
-    container_name: node-exporter
-    hostname: node-exporter
+  unified-exporters:
+    # Multi-exporter container running node-exporter + smartctl-exporter via supervisord
+    image: alpine:${ALPINE_TAG:-latest}
+    container_name: unified-exporters
+    hostname: unified-exporters
     restart: unless-stopped
     networks:
-      - monitoring
+      - backend
     ports:
-      - "${HOST_BIND:-0.0.0.0}:9100:9100"
-    security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
-    command:
-      - "--path.procfs=/host/proc"
-      - "--path.sysfs=/host/sys"
-      - "--path.rootfs=/rootfs"
-      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+      - "${HOST_BIND:-0.0.0.0}:9100:9100"  # node-exporter
+      - "${HOST_BIND:-0.0.0.0}:9633:9633"  # smartctl-exporter
+    privileged: true  # Required for SMART access
+    environment:
+      <<: *default-env
+    command: >
+      sh -c "
+        apk add --no-cache wget curl smartmontools;
+        wget -qO /usr/local/bin/node_exporter https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-arm64.tar.gz &&
+        tar -xzf /usr/local/bin/node_exporter -C /usr/local/bin --strip-components=1 node_exporter-1.7.0.linux-arm64/node_exporter 2>/dev/null || wget -qO- https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-arm64.tar.gz | tar xzf - -C /tmp && mv /tmp/node_exporter*/node_exporter /usr/local/bin/;
+        wget -qO /usr/local/bin/smartctl_exporter https://github.com/prometheus-community/smartctl_exporter/releases/download/v0.12.0/smartctl_exporter-0.12.0.linux-arm64.tar.gz &&
+        tar -xzf /usr/local/bin/smartctl_exporter -C /usr/local/bin --strip-components=1 smartctl_exporter-0.12.0.linux-arm64/smartctl_exporter 2>/dev/null || wget -qO- https://github.com/prometheus-community/smartctl_exporter/releases/download/v0.12.0/smartctl_exporter-0.12.0.linux-arm64.tar.gz | tar xzf - -C /tmp && mv /tmp/smartctl_exporter*/smartctl_exporter /usr/local/bin/;
+        chmod +x /usr/local/bin/node_exporter /usr/local/bin/smartctl_exporter;
+        /usr/local/bin/node_exporter --path.procfs=/host/proc --path.sysfs=/host/sys --path.rootfs=/rootfs --collector.filesystem.mount-points-exclude='^/(sys|proc|dev|host|etc)($$|/)' &
+        /usr/local/bin/smartctl_exporter --web.listen-address=:9633 &
+        wait
+      "
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
-    mem_limit: 32m
-    mem_reservation: 16m
-    cpus: 0.25
+    mem_limit: 64m
+    mem_reservation: 32m
+    cpus: 0.5
     logging:
+      <<: *default-logging
       options:
         max-size: "5m"
         max-file: "2"
     labels:
       - "homepage.group=Monitoring"
-      - "homepage.name=Node Exporter"
+      - "homepage.name=System Exporters"
       - "homepage.icon=si-prometheus"
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:9100"
-      - "homepage.description=Linux host metrics"
+      - "homepage.description=Node + SMART metrics"
 
   cadvisor:
     profiles: ["monitoring-extra"]
@@ -730,30 +715,6 @@ services:
       - "--store_container_labels=false"
       - "--disable_metrics=advtcp,sched,hugetlb,percpu,process"
 
-  smartctl-exporter:
-    image: prometheuscommunity/smartctl-exporter:${SMARTCTL_EXPORTER_TAG:-latest}
-    container_name: smartctl-exporter
-    hostname: smartctl-exporter
-    restart: unless-stopped
-    networks:
-      - monitoring
-    ports:
-      - "${HOST_BIND:-0.0.0.0}:9633:9633"
-    privileged: true
-    user: root
-    mem_limit: 64m
-    mem_reservation: 32m
-    cpus: 0.25
-    logging:
-      options:
-        max-size: "5m"
-        max-file: "2"
-    labels:
-      - "homepage.group=Monitoring"
-      - "homepage.name=SMART Exporter"
-      - "homepage.icon=si-prometheus"
-      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:9633"
-      - "homepage.description=Disk health metrics"
 
   netdata:
     profiles: ["monitoring-extra"]  # OPTIONAL: Redundant with Prometheus/Grafana
@@ -763,7 +724,7 @@ services:
     restart: unless-stopped
     networks:
       - monitoring
-      - proxy
+      - backend
     ports:
       - "${HOST_BIND:-0.0.0.0}:19999:19999"
     cap_add:
@@ -812,7 +773,7 @@ services:
     restart: unless-stopped
     networks:
       - monitoring
-      - proxy
+      - backend
       - default
     ports:
       - "${HOST_BIND:-0.0.0.0}:9115:9115"
@@ -976,13 +937,11 @@ services:
     restart: unless-stopped
     networks:
       - default
+    environment:
+      <<: *default-env
     security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
+      - *default-security
     read_only: false
-    volumes:
-      - /mnt/seconddrive:/mnt/seconddrive:ro
-      - /mnt/cachehdd:/mnt/cachehdd:ro
     command:
       [
         "redis-server",
@@ -1001,6 +960,7 @@ services:
     mem_reservation: 48m
     cpus: 0.5
     logging:
+      <<: *default-logging
       options:
         max-size: "5m"
         max-file: "2"
@@ -1011,71 +971,96 @@ services:
       - "homepage.description=Shared cache (Gitea, Immich, Seafile, Authelia)"
 
   ############################################################################
-  # LIGHT FILE ACCESS - Filebrowser (web UI) and SFTP (SSH)
+  # UNIFIED FILE SERVER - Samba + SFTP + Filebrowser in one container
   ############################################################################
 
-  filebrowser:
-    image: filebrowser/filebrowser:${FILEBROWSER_TAG:-latest}
-    container_name: filebrowser
-    hostname: filebrowser
+  unified-fileserver:
+    image: alpine:${ALPINE_TAG:-latest}
+    container_name: unified-fileserver
+    hostname: fileserver
     restart: unless-stopped
     networks:
       - default
-      - proxy
+      - backend
     ports:
-      - "${HOST_BIND:-0.0.0.0}:8087:80"
-    user: "1000:1000"
-    volumes:
-      - /mnt/seconddrive:/srv
-      - ./config/filebrowser:/database
-      - ./config/filebrowser:/config
-    mem_limit: 96m
-    mem_reservation: 64m
-    cpus: 0.5
-    logging:
-      options:
-        max-size: "5m"
-        max-file: "2"
-    labels:
-      - "homepage.group=Storage & Backup"
-      - "homepage.name=Filebrowser"
-      - "homepage.icon=si-folder"
-      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:8087"
-      - "homepage.description=Lightweight web file manager"
-
-  sftp:
-    image: lscr.io/linuxserver/openssh-server:${OPENSSH_TAG:-latest}
-    container_name: sftp
-    hostname: sftp
-    restart: unless-stopped
-    networks:
-      - default
-    ports:
-      - "${HOST_BIND:-0.0.0.0}:2223:2222"
+      - "${HOST_BIND:-0.0.0.0}:445:445"    # Samba
+      - "${HOST_BIND:-0.0.0.0}:139:139"    # Samba
+      - "${HOST_BIND:-0.0.0.0}:2223:22"    # SFTP
+      - "${HOST_BIND:-0.0.0.0}:8087:8087"  # Filebrowser
     environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/Berlin
-      - PUBLIC_KEY_FILE=/config/ssh/authorized_keys
-      - SUDO_ACCESS=false
-      - PASSWORD_ACCESS=false
-      - USER_NAME=${SFTP_USER:-files}
+      <<: *default-env
+      SAMBA_USER: ${SAMBA_USER:-files}
+      SAMBA_PASSWORD: ${SAMBA_PASSWORD:-changeme}
+      SFTP_USER: ${SFTP_USER:-files}
     volumes:
       - /mnt/seconddrive:/data
-      - ./config/ssh:/config/ssh
-    mem_limit: 96m
-    mem_reservation: 48m
-    cpus: 0.5
+      - ./config/ssh:/config/ssh:ro
+      - ./config/filebrowser:/filebrowser-db
+    command: >
+      sh -c "
+        set -e;
+        echo '[FileServer] Installing packages...';
+        apk add --no-cache samba samba-common-tools openssh-server wget;
+
+        echo '[FileServer] Configuring Samba...';
+        mkdir -p /var/lib/samba /run/samba;
+        (echo \"$$SAMBA_PASSWORD\"; echo \"$$SAMBA_PASSWORD\") | smbpasswd -a -s $$SAMBA_USER 2>/dev/null || adduser -D $$SAMBA_USER && (echo \"$$SAMBA_PASSWORD\"; echo \"$$SAMBA_PASSWORD\") | smbpasswd -a -s $$SAMBA_USER;
+        cat > /etc/samba/smb.conf <<'SMBEOF'
+        [global]
+        workgroup = WORKGROUP
+        server string = PotatoStack FileServer
+        security = user
+        map to guest = Bad User
+        log level = 1
+
+        [seconddrive]
+        path = /data
+        browseable = yes
+        writable = yes
+        valid users = files
+        create mask = 0644
+        directory mask = 0755
+        SMBEOF
+
+        echo '[FileServer] Configuring SFTP...';
+        ssh-keygen -A;
+        mkdir -p /config/ssh;
+        if [ -f /config/ssh/authorized_keys ]; then
+          mkdir -p /home/$$SFTP_USER/.ssh;
+          cp /config/ssh/authorized_keys /home/$$SFTP_USER/.ssh/;
+          chown -R $$SFTP_USER:$$SFTP_USER /home/$$SFTP_USER/.ssh;
+          chmod 700 /home/$$SFTP_USER/.ssh;
+          chmod 600 /home/$$SFTP_USER/.ssh/authorized_keys;
+        fi;
+
+        echo '[FileServer] Downloading Filebrowser...';
+        wget -qO /tmp/filebrowser.tar.gz https://github.com/filebrowser/filebrowser/releases/download/v2.27.0/linux-arm64-filebrowser.tar.gz;
+        tar -xzf /tmp/filebrowser.tar.gz -C /usr/local/bin;
+        chmod +x /usr/local/bin/filebrowser;
+
+        echo '[FileServer] Starting services...';
+        smbd -D --no-process-group;
+        nmbd -D;
+        /usr/sbin/sshd -D -e -p 22 &
+        /usr/local/bin/filebrowser --address 0.0.0.0 --port 8087 --database /filebrowser-db/filebrowser.db --root /data &
+
+        echo '[FileServer] All services running';
+        wait
+      "
+    mem_limit: 192m
+    mem_reservation: 128m
+    cpus: 0.75
     logging:
+      <<: *default-logging
       options:
         max-size: "5m"
         max-file: "2"
     labels:
       - "homepage.group=Storage & Backup"
-      - "homepage.name=SFTP (SSH)"
-      - "homepage.icon=si-ssh"
-      - "homepage.href=ssh://${HOST_ADDR:-192.168.178.40}:2223"
-      - "homepage.description=SFTP access to files"
+      - "homepage.name=File Server"
+      - "homepage.icon=si-folder"
+      - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:8087"
+      - "homepage.description=Unified SMB + SFTP + Web access"
 
   ############################################################################
   # SEAFILE - Lightweight File Sync & Share (Nextcloud alternative)
@@ -1089,7 +1074,7 @@ services:
     restart: unless-stopped
     networks:
       - default
-      - proxy
+      - backend
       - monitoring
     ports:
       - "${HOST_BIND:-0.0.0.0}:8001:80"
@@ -1137,38 +1122,6 @@ services:
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:8001"
       - "homepage.description=Lightweight file sync & share"
 
-  samba:
-    image: dperson/samba
-    container_name: samba
-    hostname: samba
-    restart: unless-stopped
-    networks:
-      - default
-    ports:
-      - "${HOST_BIND:-0.0.0.0}:445:445"
-      - "${HOST_BIND:-0.0.0.0}:139:139"
-    environment:
-      - TZ=Europe/Berlin
-    volumes:
-      - /mnt/seconddrive:/data
-    command: >
-      -S \
-      -u "${SAMBA_USER:-files};${SAMBA_PASSWORD:-changeme}" \
-      -s "seconddrive;/data;yes;no;yes;all;${SAMBA_USER:-files}" \
-      -g "map to guest = Bad User"
-    mem_limit: 96m
-    mem_reservation: 48m
-    cpus: 0.5
-    logging:
-      options:
-        max-size: "5m"
-        max-file: "2"
-    labels:
-      - "homepage.group=Storage & Backup"
-      - "homepage.name=Samba (SMB)"
-      - "homepage.icon=si-samba"
-      - "homepage.href=smb://${HOST_ADDR:-192.168.178.40}"
-      - "homepage.description=Windows file sharing"
 
   ############################################################################
   # GITEA - Git server
@@ -1183,21 +1136,19 @@ services:
     networks:
       - default
     security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
+      - *default-security
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=${POSTGRES_SUPER_PASSWORD}
-      - POSTGRES_DB=postgres
+      <<: *default-env
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+      POSTGRES_DB: postgres
       # Pass app DB passwords for init script
-      - GITEA_DB_PASSWORD=${GITEA_DB_PASSWORD}
-      - IMMICH_DB_PASSWORD=${IMMICH_DB_PASSWORD}
-      - SEAFILE_DB_PASSWORD=${SEAFILE_DB_PASSWORD}
+      GITEA_DB_PASSWORD: ${GITEA_DB_PASSWORD}
+      IMMICH_DB_PASSWORD: ${IMMICH_DB_PASSWORD}
+      SEAFILE_DB_PASSWORD: ${SEAFILE_DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./config/postgres/init:/docker-entrypoint-initdb.d:ro
-      - /mnt/seconddrive:/mnt/seconddrive:ro
-      - /mnt/cachehdd:/mnt/cachehdd:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
       interval: 30s
@@ -1220,9 +1171,7 @@ services:
     mem_reservation: 96m
     cpus: 1
     logging:
-      options:
-        max-size: "10m"
-        max-file: "3"
+      <<: *default-logging
 
   gitea:
     image: gitea/gitea:${GITEA_TAG:-latest}
@@ -1231,34 +1180,32 @@ services:
     restart: unless-stopped
     networks:
       - default
-      - proxy
+      - backend
     ports:
       - "${HOST_BIND:-0.0.0.0}:3001:3000"
       - "${HOST_BIND:-0.0.0.0}:2222:22"
     security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
+      - *default-security
     environment:
-      - USER_UID=1000
-      - USER_GID=1000
-      - GITEA__database__DB_TYPE=postgres
-      - GITEA__database__HOST=postgres:5432
-      - GITEA__database__NAME=gitea
-      - GITEA__database__USER=gitea
-      - GITEA__database__PASSWD=${GITEA_DB_PASSWORD}
-      - GITEA__cache__ADAPTER=redis
-      - GITEA__cache__HOST=redis:6379/3
-      - GITEA__session__PROVIDER=redis
-      - GITEA__session__PROVIDER_CONFIG=redis:6379/4
-      - GITEA__queue__TYPE=redis
-      - GITEA__queue__CONN_STR=redis:6379/5
+      <<: *default-env
+      USER_UID: 1000
+      USER_GID: 1000
+      GITEA__database__DB_TYPE: postgres
+      GITEA__database__HOST: postgres:5432
+      GITEA__database__NAME: gitea
+      GITEA__database__USER: gitea
+      GITEA__database__PASSWD: ${GITEA_DB_PASSWORD}
+      GITEA__cache__ADAPTER: redis
+      GITEA__cache__HOST: redis:6379/3
+      GITEA__session__PROVIDER: redis
+      GITEA__session__PROVIDER_CONFIG: redis:6379/4
+      GITEA__queue__TYPE: redis
+      GITEA__queue__CONN_STR: redis:6379/5
     volumes:
       - gitea_data:/data
       - /mnt/seconddrive/gitea:/data/gitea/repositories
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
-      - /mnt/seconddrive:/mnt/seconddrive:ro
-      - /mnt/cachehdd:/mnt/cachehdd:ro
     depends_on:
       - redis
       - postgres
@@ -1266,9 +1213,7 @@ services:
     mem_reservation: 64m
     cpus: 0.5
     logging:
-      options:
-        max-size: "10m"
-        max-file: "3"
+      <<: *default-logging
     labels:
       - "homepage.group=Infrastructure"
       - "homepage.name=Gitea"
@@ -1290,22 +1235,22 @@ services:
     restart: unless-stopped
     networks:
       - default
-      - proxy
+      - backend
     ports:
       - "${HOST_BIND:-0.0.0.0}:9000:9000"
       - "${HOST_BIND:-0.0.0.0}:9443:9443"
+    environment:
+      <<: *default-env
     security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
+      - *default-security
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - portainer_data:/data
-      - /mnt/seconddrive:/mnt/seconddrive:ro
-      - /mnt/cachehdd:/mnt/cachehdd:ro
     mem_limit: 128m
     mem_reservation: 64m
     cpus: 0.5
     logging:
+      <<: *default-logging
       options:
         max-size: "5m"
         max-file: "2"
@@ -1319,39 +1264,69 @@ services:
       - "homepage.widget.url=http://portainer:9000"
       - "homepage.widget.key={{HOMEPAGE_VAR_PORTAINER_KEY}}"
 
-  diun:
-    image: crazymax/diun:${DIUN_TAG:-latest}
-    container_name: diun
-    hostname: diun
+  unified-management:
+    # Combined autoheal + diun - monitors container health and image updates
+    image: alpine:${ALPINE_TAG:-latest}
+    container_name: unified-management
+    hostname: management
     restart: unless-stopped
     networks:
-      - monitoring
+      - backend
     security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
+      - *default-security
     environment:
-      - TZ=Europe/Berlin
-      - LOG_LEVEL=info
-      - LOG_JSON=false
+      <<: *default-env
+      AUTOHEAL_INTERVAL: 30
+      AUTOHEAL_START_PERIOD: 300
+      DIUN_CHECK_INTERVAL: 12h
     volumes:
       - ./config/diun:/etc/diun:ro
       - ./data/diun:/data
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /etc/localtime:/etc/localtime:ro
-      - /mnt/seconddrive:/mnt/seconddrive:ro
-      - /mnt/cachehdd:/mnt/cachehdd:ro
-    mem_limit: 64m
-    mem_reservation: 32m
-    cpus: 0.25
+    command: >
+      sh -c "
+        set -e;
+        echo '[Management] Installing packages...';
+        apk add --no-cache docker-cli curl jq wget;
+
+        wget -qO /usr/local/bin/diun https://github.com/crazy-max/diun/releases/download/v4.28.0/diun_4.28.0_linux_arm64.tar.gz &&
+        tar -xzf /usr/local/bin/diun -C /usr/local/bin diun 2>/dev/null || wget -qO- https://github.com/crazy-max/diun/releases/download/v4.28.0/diun_4.28.0_linux_arm64.tar.gz | tar xzf - -C /usr/local/bin diun;
+        chmod +x /usr/local/bin/diun;
+
+        echo '[Management] Starting autoheal monitoring...';
+        (
+          while true; do
+            sleep $$AUTOHEAL_INTERVAL;
+            docker ps --format '{{.ID}}:{{.Names}}' | while IFS=: read -r container_id container_name; do
+              health=\$(docker inspect --format='{{.State.Health.Status}}' \"$$container_id\" 2>/dev/null || echo \"none\");
+              if [ \"$$health\" = \"unhealthy\" ]; then
+                echo \"[Autoheal] Restarting unhealthy container: $$container_name\";
+                docker restart \"$$container_id\";
+              fi;
+            done;
+          done
+        ) &
+
+        echo '[Management] Starting Diun image monitoring...';
+        /usr/local/bin/diun serve --config /etc/diun/diun.yml &
+
+        echo '[Management] All monitoring services running';
+        wait
+      "
+    mem_limit: 96m
+    mem_reservation: 48m
+    cpus: 0.5
     logging:
+      <<: *default-logging
       options:
         max-size: "5m"
         max-file: "2"
     labels:
       - "homepage.group=Management"
-      - "homepage.name=Diun"
-      - "homepage.icon=mdi-bell-alert"
-      - "homepage.description=Docker image update notifications"
+      - "homepage.name=Management Daemon"
+      - "homepage.icon=mdi-cog-sync"
+      - "homepage.description=Autoheal + image updates"
       - "diun.enable=true"
 
   uptime-kuma:
@@ -1362,7 +1337,7 @@ services:
     restart: unless-stopped
     networks:
       - default
-      - proxy
+      - backend
       - monitoring
     ports:
       - "${HOST_BIND:-0.0.0.0}:3002:3001"
@@ -1394,24 +1369,23 @@ services:
     hostname: dozzle
     restart: unless-stopped
     networks:
-      - proxy
+      - backend
     ports:
       - "${HOST_BIND:-0.0.0.0}:8083:8080"
     security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
+      - *default-security
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /mnt/seconddrive:/mnt/seconddrive:ro
-      - /mnt/cachehdd:/mnt/cachehdd:ro
     environment:
-      - DOZZLE_LEVEL=info
-      - DOZZLE_TAILSIZE=300
-      - DOZZLE_FILTER=status=running
+      <<: *default-env
+      DOZZLE_LEVEL: info
+      DOZZLE_TAILSIZE: 300
+      DOZZLE_FILTER: status=running
     mem_limit: 64m
     mem_reservation: 32m
     cpus: 0.25
     logging:
+      <<: *default-logging
       options:
         max-size: "5m"
         max-file: "2"
@@ -1424,40 +1398,6 @@ services:
       - "homepage.widget.type=dozzle"
       - "homepage.widget.url=http://dozzle:8080"
 
-  ############################################################################
-  # AUTOHEAL - Automatically restart unhealthy containers
-  ############################################################################
-
-  autoheal:
-    image: willfarrell/autoheal:${AUTOHEAL_TAG:-latest}
-    container_name: autoheal
-    hostname: autoheal
-    restart: unless-stopped
-    networks:
-      - default
-    security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
-    environment:
-      - AUTOHEAL_CONTAINER_LABEL=all # Monitor all containers with healthchecks
-      - AUTOHEAL_INTERVAL=10 # Check every 10 seconds
-      - AUTOHEAL_START_PERIOD=300 # Wait 5 minutes after container start
-      - AUTOHEAL_DEFAULT_STOP_TIMEOUT=10 # Wait 10s before force-killing
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /etc/localtime:/etc/localtime:ro
-    mem_limit: 64m
-    mem_reservation: 32m
-    cpus: 0.25
-    logging:
-      options:
-        max-size: "5m"
-        max-file: "2"
-    labels:
-      - "homepage.group=Management"
-      - "homepage.name=Autoheal"
-      - "homepage.icon=mdi-heart-pulse"
-      - "homepage.description=Auto-restart unhealthy containers"
 
   ############################################################################
   # PASSWORD MANAGER - Vaultwarden (Bitwarden-compatible)
@@ -1470,7 +1410,7 @@ services:
     hostname: vaultwarden
     restart: unless-stopped
     networks:
-      - proxy
+      - backend
       - default
       - monitoring
     ports:
@@ -1548,27 +1488,24 @@ services:
     hostname: authelia
     restart: unless-stopped
     networks:
-      - proxy
+      - backend
       - default
       - monitoring
     ports:
       - "${HOST_BIND:-0.0.0.0}:9091:9091"
     security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
+      - *default-security
     environment:
-      - TZ=Europe/Berlin
-      - AUTHELIA_JWT_SECRET=${AUTHELIA_JWT_SECRET}
-      - AUTHELIA_SESSION_SECRET=${AUTHELIA_SESSION_SECRET}
-      - AUTHELIA_STORAGE_ENCRYPTION_KEY=${AUTHELIA_STORAGE_ENCRYPTION_KEY}
-      - AUTHELIA_IDENTITY_PROVIDERS_OIDC_HMAC_SECRET=${AUTHELIA_OIDC_HMAC_SECRET}
-      - AUTHELIA_IDENTITY_PROVIDERS_OIDC_ISSUER_PRIVATE_KEY=${AUTHELIA_OIDC_PRIVATE_KEY}
-      - AUTHELIA_NOTIFIER_SMTP_USERNAME=${ALERT_EMAIL_USER}
-      - AUTHELIA_NOTIFIER_SMTP_PASSWORD=${ALERT_EMAIL_PASSWORD}
+      <<: *default-env
+      AUTHELIA_JWT_SECRET: ${AUTHELIA_JWT_SECRET}
+      AUTHELIA_SESSION_SECRET: ${AUTHELIA_SESSION_SECRET}
+      AUTHELIA_STORAGE_ENCRYPTION_KEY: ${AUTHELIA_STORAGE_ENCRYPTION_KEY}
+      AUTHELIA_IDENTITY_PROVIDERS_OIDC_HMAC_SECRET: ${AUTHELIA_OIDC_HMAC_SECRET}
+      AUTHELIA_IDENTITY_PROVIDERS_OIDC_ISSUER_PRIVATE_KEY: ${AUTHELIA_OIDC_PRIVATE_KEY}
+      AUTHELIA_NOTIFIER_SMTP_USERNAME: ${ALERT_EMAIL_USER}
+      AUTHELIA_NOTIFIER_SMTP_PASSWORD: ${ALERT_EMAIL_PASSWORD}
     volumes:
       - ./config/authelia:/config
-      - /mnt/seconddrive:/mnt/seconddrive:ro
-      - /mnt/cachehdd:/mnt/cachehdd:ro
     depends_on:
       - redis
     healthcheck:
@@ -1581,9 +1518,7 @@ services:
     mem_reservation: 64m
     cpus: 0.5
     logging:
-      options:
-        max-size: "10m"
-        max-file: "3"
+      <<: *default-logging
     labels:
       - "homepage.group=Infrastructure"
       - "homepage.name=Authelia SSO"
@@ -1601,23 +1536,21 @@ services:
     hostname: npm
     restart: unless-stopped
     networks:
-      - proxy
+      - backend
       - monitoring
     ports:
       - "${HOST_BIND:-0.0.0.0}:80:80"
       - "${HOST_BIND:-0.0.0.0}:443:443"
       - "${HOST_BIND:-0.0.0.0}:81:81"
     security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
+      - *default-security
     environment:
-      - DB_SQLITE_FILE=/data/database.sqlite
-      - DISABLE_IPV6=true
+      <<: *default-env
+      DB_SQLITE_FILE: /data/database.sqlite
+      DISABLE_IPV6: "true"
     volumes:
       - npm_data:/data
       - npm_ssl:/etc/letsencrypt
-      - /mnt/seconddrive:/mnt/seconddrive:ro
-      - /mnt/cachehdd:/mnt/cachehdd:ro
     healthcheck:
       test: ["CMD-SHELL", "wget --spider --quiet http://localhost:81 || exit 1"]
       interval: 30s
@@ -1628,9 +1561,7 @@ services:
     mem_reservation: 64m
     cpus: 0.5
     logging:
-      options:
-        max-size: "10m"
-        max-file: "3"
+      <<: *default-logging
     labels:
       - "homepage.group=Infrastructure"
       - "homepage.name=Nginx Proxy Manager"
@@ -1648,29 +1579,27 @@ services:
     hostname: homepage
     restart: unless-stopped
     networks:
-      - proxy
+      - backend
       - monitoring
       - default
     ports:
       - "${HOST_BIND:-0.0.0.0}:3003:3000"
     security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
+      - *default-security
     environment:
-      - PUID=1000
-      - PGID=1000
-      - HOMEPAGE_VAR_QBITTORRENT_PASSWORD=${HOMEPAGE_VAR_QBITTORRENT_PASSWORD}
-      - HOMEPAGE_VAR_PORTAINER_KEY=${HOMEPAGE_VAR_PORTAINER_KEY}
-      - HOMEPAGE_VAR_GITEA_TOKEN=${HOMEPAGE_VAR_GITEA_TOKEN}
-      - HOMEPAGE_VAR_GRAFANA_USER=${HOMEPAGE_VAR_GRAFANA_USER}
-      - HOMEPAGE_VAR_GRAFANA_PASSWORD=${HOMEPAGE_VAR_GRAFANA_PASSWORD}
-      - HOMEPAGE_VAR_NPM_USER=${HOMEPAGE_VAR_NPM_USER}
-      - HOMEPAGE_VAR_NPM_PASSWORD=${HOMEPAGE_VAR_NPM_PASSWORD}
+      <<: *default-env
+      PUID: 1000
+      PGID: 1000
+      HOMEPAGE_VAR_QBITTORRENT_PASSWORD: ${HOMEPAGE_VAR_QBITTORRENT_PASSWORD}
+      HOMEPAGE_VAR_PORTAINER_KEY: ${HOMEPAGE_VAR_PORTAINER_KEY}
+      HOMEPAGE_VAR_GITEA_TOKEN: ${HOMEPAGE_VAR_GITEA_TOKEN}
+      HOMEPAGE_VAR_GRAFANA_USER: ${HOMEPAGE_VAR_GRAFANA_USER}
+      HOMEPAGE_VAR_GRAFANA_PASSWORD: ${HOMEPAGE_VAR_GRAFANA_PASSWORD}
+      HOMEPAGE_VAR_NPM_USER: ${HOMEPAGE_VAR_NPM_USER}
+      HOMEPAGE_VAR_NPM_PASSWORD: ${HOMEPAGE_VAR_NPM_PASSWORD}
     volumes:
       - ./config/homepage:/app/config
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /mnt/seconddrive:/mnt/seconddrive:ro
-      - /mnt/cachehdd:/mnt/cachehdd:ro
     healthcheck:
       test: ["CMD-SHELL", "wget --spider --quiet http://localhost:3000 || exit 1"]
       interval: 30s
@@ -1681,6 +1610,7 @@ services:
     mem_reservation: 96m
     cpus: 0.75
     logging:
+      <<: *default-logging
       options:
         max-size: "5m"
         max-file: "2"
@@ -1702,34 +1632,31 @@ services:
     restart: unless-stopped
     networks:
       - default
-      - proxy
+      - backend
       - monitoring
     ports:
       - "${HOST_BIND:-0.0.0.0}:2283:3001"
     security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
+      - *default-security
     environment:
-      - TZ=Europe/Berlin
-      - DB_HOSTNAME=postgres
-      - DB_DATABASE_NAME=immich
-      - DB_USERNAME=immich
-      - DB_PASSWORD=${IMMICH_DB_PASSWORD}
-      - REDIS_HOSTNAME=redis
-      - REDIS_PORT=6379
-      - REDIS_DBINDEX=2
+      <<: *default-env
+      DB_HOSTNAME: postgres
+      DB_DATABASE_NAME: immich
+      DB_USERNAME: immich
+      DB_PASSWORD: ${IMMICH_DB_PASSWORD}
+      REDIS_HOSTNAME: redis
+      REDIS_PORT: 6379
+      REDIS_DBINDEX: 2
       # Upload size limits
-      - UPLOAD_LOCATION=/usr/src/app/upload
+      UPLOAD_LOCATION: /usr/src/app/upload
       # Machine learning (disabled on Le Potato - too heavy)
-      - IMMICH_MACHINE_LEARNING_ENABLED=false
+      IMMICH_MACHINE_LEARNING_ENABLED: "false"
       # Reverse proxy
-      - IMMICH_SERVER_URL=http://${HOST_ADDR:-192.168.178.40}:2283
+      IMMICH_SERVER_URL: http://${HOST_ADDR:-192.168.178.40}:2283
     volumes:
       - /mnt/seconddrive/immich/upload:/usr/src/app/upload
       - /mnt/seconddrive/immich/library:/usr/src/app/library
       - /etc/localtime:/etc/localtime:ro
-      - /mnt/seconddrive:/mnt/seconddrive:ro
-      - /mnt/cachehdd:/mnt/cachehdd:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -1745,9 +1672,7 @@ services:
     mem_reservation: 256m
     cpus: 1.5
     logging:
-      options:
-        max-size: "10m"
-        max-file: "3"
+      <<: *default-logging
     labels:
       - "homepage.group=Storage & Backup"
       - "homepage.name=Immich"
@@ -1764,24 +1689,21 @@ services:
     networks:
       - default
     security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
+      - *default-security
     environment:
-      - TZ=Europe/Berlin
-      - DB_HOSTNAME=postgres
-      - DB_DATABASE_NAME=immich
-      - DB_USERNAME=immich
-      - DB_PASSWORD=${IMMICH_DB_PASSWORD}
-      - REDIS_HOSTNAME=redis
-      - REDIS_PORT=6379
-      - REDIS_DBINDEX=2
-      - IMMICH_MACHINE_LEARNING_ENABLED=false
+      <<: *default-env
+      DB_HOSTNAME: postgres
+      DB_DATABASE_NAME: immich
+      DB_USERNAME: immich
+      DB_PASSWORD: ${IMMICH_DB_PASSWORD}
+      REDIS_HOSTNAME: redis
+      REDIS_PORT: 6379
+      REDIS_DBINDEX: 2
+      IMMICH_MACHINE_LEARNING_ENABLED: "false"
     volumes:
       - /mnt/seconddrive/immich/upload:/usr/src/app/upload
       - /mnt/seconddrive/immich/library:/usr/src/app/library
       - /etc/localtime:/etc/localtime:ro
-      - /mnt/seconddrive:/mnt/seconddrive:ro
-      - /mnt/cachehdd:/mnt/cachehdd:ro
     depends_on:
       - postgres
       - redis
@@ -1790,6 +1712,4 @@ services:
     mem_reservation: 192m
     cpus: 1
     logging:
-      options:
-        max-size: "10m"
-        max-file: "3"
+      <<: *default-logging
