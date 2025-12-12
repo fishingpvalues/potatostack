@@ -117,8 +117,6 @@ check_container "filebrowser"
 check_http "Filebrowser" "http://${HOST_ADDR}:8087" 200 || true
 check_container "sftp"
 check_container "samba"
-check_container "seafile-db"
-check_container "seafile-memcached"
 check_container "seafile"
 check_http "Seafile" "http://${HOST_ADDR}:8001" 200 || true
 

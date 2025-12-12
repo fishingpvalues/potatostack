@@ -36,7 +36,6 @@ volumes:
   npm_ssl:
   npm_db:
   vaultwarden_data:
-  seafile_db_data:
   immich_model_cache:
 
 services:
@@ -334,14 +333,12 @@ services:
     networks:
       - default
     environment:
-      - SEAFILE_DB_ROOT_PASSWORD=${SEAFILE_DB_ROOT_PASSWORD}
       - GITEA_DB_PASSWORD=${GITEA_DB_PASSWORD}
       - IMMICH_DB_PASSWORD=${IMMICH_DB_PASSWORD}
+      - SEAFILE_DB_PASSWORD=${SEAFILE_DB_PASSWORD}
     volumes:
       - /mnt/seconddrive/backups/db:/backups
     depends_on:
-      seafile-db:
-        condition: service_healthy
       postgres:
         condition: service_healthy
     security_opt:
@@ -349,16 +346,9 @@ services:
     command: >
       sh -c "
         set -o pipefail;
-        apk add --no-cache mariadb-client postgresql-client gzip busybox-extras;
+        apk add --no-cache postgresql-client gzip busybox-extras;
         while true; do
           BACKUP_DATE=$$(date +%Y-%m-%d-%H%M);
-          if nc -z seafile-db 3306; then
-            echo 'Backing up Seafile databases (MariaDB)...';
-            mysqldump -h seafile-db -u root -p$$SEAFILE_DB_ROOT_PASSWORD --databases ccnet-db seafile-db seahub-db | gzip > /backups/seafile-dbs-$$BACKUP_DATE.sql.gz \
-              && echo 'Seafile backup complete.' || echo 'Seafile backup failed.';
-          else
-            echo 'Seafile DB not running, skipping Seafile backup.';
-          fi;
           if nc -z postgres 5432; then
             echo 'Backing up Gitea (Postgres)...';
             PGPASSWORD=$$GITEA_DB_PASSWORD pg_dump -h postgres -U gitea -d gitea | gzip > /backups/gitea-db-$$BACKUP_DATE.sql.gz \
@@ -366,8 +356,17 @@ services:
             echo 'Backing up Immich (Postgres)...';
             PGPASSWORD=$$IMMICH_DB_PASSWORD pg_dump -h postgres -U immich -d immich | gzip > /backups/immich-db-$$BACKUP_DATE.sql.gz \
               && echo 'Immich backup complete.' || echo 'Immich backup failed.';
+            echo 'Backing up Seafile ccnet_db (Postgres)...';
+            PGPASSWORD=$$SEAFILE_DB_PASSWORD pg_dump -h postgres -U seafile -d ccnet_db | gzip > /backups/seafile-ccnet-db-$$BACKUP_DATE.sql.gz \
+              && echo 'Seafile ccnet_db backup complete.' || echo 'Seafile ccnet_db backup failed.';
+            echo 'Backing up Seafile seafile_db (Postgres)...';
+            PGPASSWORD=$$SEAFILE_DB_PASSWORD pg_dump -h postgres -U seafile -d seafile_db | gzip > /backups/seafile-seafile-db-$$BACKUP_DATE.sql.gz \
+              && echo 'Seafile seafile_db backup complete.' || echo 'Seafile seafile_db backup failed.';
+            echo 'Backing up Seafile seahub_db (Postgres)...';
+            PGPASSWORD=$$SEAFILE_DB_PASSWORD pg_dump -h postgres -U seafile -d seahub_db | gzip > /backups/seafile-seahub-db-$$BACKUP_DATE.sql.gz \
+              && echo 'Seafile seahub_db backup complete.' || echo 'Seafile seahub_db backup failed.';
           else
-            echo 'Postgres not running, skipping Gitea/Immich backups.';
+            echo 'Postgres not running, skipping all backups.';
           fi;
           sleep 1d;
         done
@@ -992,13 +991,13 @@ services:
         "--appendonly",
         "no",
         "--maxmemory",
-        "96mb",
+        "64mb",
         "--maxmemory-policy",
         "allkeys-lru",
         "--databases",
-        "16",
+        "8",
       ]
-    mem_limit: 96m
+    mem_limit: 64m
     mem_reservation: 48m
     cpus: 0.5
     logging:
@@ -1009,7 +1008,7 @@ services:
       - "homepage.group=Infrastructure"
       - "homepage.name=Redis (Shared)"
       - "homepage.icon=si-redis"
-      - "homepage.description=Shared cache for all services"
+      - "homepage.description=Shared cache (Gitea, Immich, Seafile, Authelia)"
 
   ############################################################################
   # LIGHT FILE ACCESS - Filebrowser (web UI) and SFTP (SSH)
@@ -1080,50 +1079,8 @@ services:
 
   ############################################################################
   # SEAFILE - Lightweight File Sync & Share (Nextcloud alternative)
+  # Now uses shared PostgreSQL + Redis (consolidated from MariaDB + memcached)
   ############################################################################
-
-  seafile-db:
-    image: mariadb:${MARIADB_TAG:-10.11}
-    container_name: seafile-db
-    hostname: seafile-db
-    restart: unless-stopped
-    networks:
-      - default
-    environment:
-      - MYSQL_ROOT_PASSWORD=${SEAFILE_DB_ROOT_PASSWORD}
-      - MYSQL_DATABASE=seafile
-      - MYSQL_USER=seafile
-      - MYSQL_PASSWORD=${SEAFILE_DB_PASSWORD}
-    volumes:
-      - seafile_db_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "--password=${SEAFILE_DB_ROOT_PASSWORD}"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    mem_limit: 128m
-    mem_reservation: 96m
-    cpus: 0.5
-    logging:
-      options:
-        max-size: "5m"
-        max-file: "2"
-
-  seafile-memcached:
-    image: memcached:alpine
-    container_name: seafile-memcached
-    hostname: seafile-memcached
-    restart: unless-stopped
-    networks:
-      - default
-    entrypoint: ["memcached", "-m", "128"]
-    mem_limit: 128m
-    mem_reservation: 64m
-    cpus: 0.25
-    logging:
-      options:
-        max-size: "5m"
-        max-file: "2"
 
   seafile:
     image: seafileltd/seafile-mc:latest
@@ -1137,27 +1094,35 @@ services:
     ports:
       - "${HOST_BIND:-0.0.0.0}:8001:80"
     environment:
-      - DB_HOST=seafile-db
-      - DB_ROOT_PASSWD=${SEAFILE_DB_ROOT_PASSWORD}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=seafile
+      - DB_PASSWORD=${SEAFILE_DB_PASSWORD}
+      - CCNET_DB=ccnet_db
+      - SEAFILE_DB=seafile_db
+      - SEAHUB_DB=seahub_db
       - SEAFILE_ADMIN_EMAIL=${SEAFILE_ADMIN_EMAIL}
       - SEAFILE_ADMIN_PASSWORD=${SEAFILE_ADMIN_PASSWORD}
       - SEAFILE_SERVER_LETSENCRYPT=false
       - SEAFILE_SERVER_HOSTNAME=seafile.${HOST_DOMAIN:-lepotato.local}
       - TIME_ZONE=Europe/Berlin
-      - MEMCACHED_LOCATION=seafile-memcached:11211
+      # Use Redis instead of memcached
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=6
     volumes:
       - /mnt/seconddrive/seafile:/shared
     depends_on:
-      seafile-db:
+      postgres:
         condition: service_healthy
-      seafile-memcached:
+      redis:
         condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "wget --spider --quiet http://localhost/seafile || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 90s
     mem_limit: 384m
     mem_reservation: 256m
     cpus: 1
@@ -1210,7 +1175,7 @@ services:
   ############################################################################
 
   postgres:
-    # Unified Postgres for Gitea + Immich (includes vector extension)
+    # Unified Postgres for Gitea + Immich + Seafile (includes vector extension)
     image: tensorchord/pgvecto-rs:pg14-v0.2.0
     container_name: postgres
     hostname: postgres
@@ -1227,6 +1192,7 @@ services:
       # Pass app DB passwords for init script
       - GITEA_DB_PASSWORD=${GITEA_DB_PASSWORD}
       - IMMICH_DB_PASSWORD=${IMMICH_DB_PASSWORD}
+      - SEAFILE_DB_PASSWORD=${SEAFILE_DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./config/postgres/init:/docker-entrypoint-initdb.d:ro
@@ -1237,19 +1203,21 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-    # Conservative Postgres tuning for 2GB RAM SBC
+    # Optimized Postgres tuning for 2GB RAM SBC (3 apps: Gitea + Immich + Seafile)
     command: [
       "postgres",
-      "-c", "shared_buffers=64MB",
+      "-c", "shared_buffers=48MB",
       "-c", "work_mem=4MB",
-      "-c", "maintenance_work_mem=64MB",
-      "-c", "effective_cache_size=256MB",
-      "-c", "max_connections=60",
+      "-c", "maintenance_work_mem=48MB",
+      "-c", "effective_cache_size=192MB",
+      "-c", "max_connections=40",
       "-c", "random_page_cost=2.0",
-      "-c", "jit=off"
+      "-c", "jit=off",
+      "-c", "max_wal_size=512MB",
+      "-c", "min_wal_size=128MB"
     ]
-    mem_limit: 256m
-    mem_reservation: 128m
+    mem_limit: 192m
+    mem_reservation: 96m
     cpus: 1
     logging:
       options:
