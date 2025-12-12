@@ -173,20 +173,15 @@ docker compose ps | grep -E "gluetun|qbittorrent|slskd"
 
 ---
 
-## Phase 5: Optional Services (USE PROFILES!)
+## Phase 5: Start All Services
 
-### Option A: Password Manager (~1.9GB total)
+**All services now start by default (no profiles):**
+
 ```bash
-docker compose --profile apps up -d vaultwarden vaultwarden-backup
+docker compose up -d
 ```
 
-### Option B: Extended Monitoring (~2GB+ total)
-```bash
-docker compose --profile monitoring-extra up -d \
-    netdata uptime-kuma speedtest-exporter fritzbox-exporter blackbox-exporter
-```
-
-**⚠️ WARNING**: Heavy profile previously included Immich/Firefly/Authelia; Immich and Authelia now run by default. Avoid enabling extra heavy services on 2GB RAM.
+**Note**: All services including monitoring, Vaultwarden, and databases start automatically. Requires swap to be enabled for 2GB RAM systems.
 
 ---
 

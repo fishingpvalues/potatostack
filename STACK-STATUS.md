@@ -10,11 +10,11 @@
 | Metric | Value | Notes |
 |--------|-------|-------|
 | **Version** | 2.3 | Extreme unification - multi-service containers |
-| **Total Services** | 22 | Core services (-8 containers from v2.1!) |
+| **Total Services** | 32 | All services enabled |
 | **Database Memory** | 256MB | PostgreSQL + Redis (down from 608MB) |
-| **Total RAM Usage** | ~1.1GB | Default profile (900MB free!) |
+| **Total RAM Usage** | ~1.8GB | All services (requires swap) |
 | **Memory Savings** | -550MB | From all consolidations (-68%) |
-| **Containers** | 10-18 | Depending on profiles |
+| **Containers** | 32 | Single default configuration |
 | **Networks** | 2 | down from 4 (vpn + backend only) |
 
 ---
@@ -25,7 +25,7 @@
 - **PostgreSQL** (192MB): Gitea, Immich, Seafile
 - **Redis** (64MB): Gitea, Immich, Seafile, Authelia
 
-### Core Services (Always Running)
+### Core Services
 - Gluetun VPN (128MB)
 - qBittorrent (384MB)
 - slskd/Soulseek (256MB)
@@ -35,25 +35,31 @@
 - Immich Microservices (384MB)
 - Gitea (128MB)
 - Authelia SSO (128MB)
+- Vaultwarden (128MB)
 
 ### Monitoring Stack
 - Prometheus (192MB)
 - Grafana (128MB)
 - Alertmanager (128MB)
 - Node Exporter (32MB)
+- Loki (128MB)
+- Promtail (128MB)
+- cAdvisor (64MB)
+- Netdata (256MB)
+- Uptime Kuma (256MB)
+- Blackbox Exporter (64MB)
+- Speedtest Exporter (64MB)
+- Fritzbox Exporter (64MB)
 
 ### Management Tools
 - Portainer (128MB)
 - Homepage Dashboard (192MB)
 - Nginx Proxy Manager (128MB)
 - Dozzle Logs (64MB)
-- Diun Updates (64MB)
-- Autoheal (64MB)
+- Unified Management (64MB)
 
-### Optional Services (Profiles)
-- **apps**: Vaultwarden (128MB)
-- **monitoring-extra**: Loki (128MB), Promtail (128MB), cAdvisor (64MB), Netdata (256MB), Uptime Kuma (256MB), Blackbox Exporter (64MB)
-- **heavy**: MariaDB (192MB) - legacy only
+### Database Services
+- MariaDB (192MB)
 
 ---
 
@@ -68,26 +74,8 @@
 ### Previous Optimizations
 - Redis consolidation: 3 instances → 1 shared
 - Memory limits reduced 40-60% across services
-- Docker Compose profiles for flexible deployment
+- Removed Docker Compose profiles - single default config
 - qBittorrent connection tuning for 2GB RAM
-
----
-
-## Docker Compose Profiles
-
-```bash
-# Core services (~1.4GB)
-docker compose up -d
-
-# + Password manager (~1.6GB)
-docker compose --profile apps up -d
-
-# + Extended monitoring (~1.8GB)
-docker compose --profile monitoring-extra up -d
-
-# Everything (~2.5GB - requires swap!)
-docker compose --profile apps --profile monitoring-extra up -d
-```
 
 ---
 
@@ -186,7 +174,7 @@ docker compose exec redis redis-cli PING
 ### Short Term
 1. Set up monitoring dashboards in Grafana
 2. Configure Authelia SSO for services
-3. Enable Vaultwarden (apps profile)
+3. Configure Vaultwarden password manager
 4. Set up Immich mobile apps
 
 ### Ongoing
