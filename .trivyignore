@@ -1,6 +1,0 @@
-# This file can be used to ignore specific Trivy vulnerabilities.
-# For example, to ignore vulnerability CVE-2021-12345 in all images:
-# CVE-2021-12345
-
-# To ignore a vulnerability only in a specific image:
-# CVE-2021-12345: my-image:latest

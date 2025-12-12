@@ -20,7 +20,8 @@
       "Bash(xargs:*)",
       "Bash(docker system prune:*)",
       "Bash(docker system:*)",
-      "Bash(lsof:*)"
+      "Bash(lsof:*)",
+      "Bash(/bin/rm:*)"
     ],
     "deny": [],
     "ask": []
