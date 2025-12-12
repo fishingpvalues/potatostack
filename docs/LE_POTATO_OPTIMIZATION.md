@@ -6,8 +6,8 @@
 
 **Memory Savings Achieved**: ~512MB (from database consolidation)
 **Memory Limits Reduced**: ~40-60% across all services
-**Deployment Strategy**: Phased with profiles for optional services
-**Expected RAM Usage**: 1.6-2GB (with 2GB swap recommended)
+**Deployment Strategy**: Single default configuration (all services enabled)
+**Expected RAM Usage**: ~1.8GB (requires 2GB swap)
 
 ---
 

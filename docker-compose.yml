@@ -517,7 +517,6 @@ services:
       - "homepage.widget.password={{HOMEPAGE_VAR_GRAFANA_PASSWORD}}"
 
   loki:
-    profiles: ["monitoring-extra"]
     image: grafana/loki:${LOKI_TAG:-latest}
     container_name: loki
     hostname: loki
@@ -553,7 +552,6 @@ services:
       - "homepage.widget.url=http://loki:3100/ready"
 
   promtail:
-    profiles: ["monitoring-extra"]
     image: grafana/promtail:${PROMTAIL_TAG:-latest}
     container_name: promtail
     hostname: promtail
@@ -675,7 +673,6 @@ services:
       - "homepage.description=Node + SMART metrics"
 
   cadvisor:
-    profiles: ["monitoring-extra"]
     image: gcr.io/cadvisor/cadvisor:${CADVISOR_TAG:-latest}
     container_name: cadvisor
     hostname: cadvisor
@@ -717,7 +714,6 @@ services:
 
 
   netdata:
-    profiles: ["monitoring-extra"]  # OPTIONAL: Redundant with Prometheus/Grafana
     image: netdata/netdata:${NETDATA_TAG:-latest}
     container_name: netdata
     hostname: lepotato-netdata
@@ -766,7 +762,6 @@ services:
         max-file: "3"
 
   blackbox-exporter:
-    profiles: ["monitoring-extra"]  # OPTIONAL: Can disable if memory-constrained
     image: prom/blackbox-exporter:${BLACKBOX_EXPORTER_TAG:-latest}
     container_name: blackbox-exporter
     hostname: blackbox-exporter
@@ -811,7 +806,6 @@ services:
   ############################################################################
 
   speedtest-exporter:
-    profiles: ["monitoring-extra"]  # OPTIONAL: Nice to have
     image: miguelndecarvalho/speedtest-exporter:${SPEEDTEST_EXPORTER_TAG:-latest}
     container_name: speedtest-exporter
     hostname: speedtest-exporter
@@ -845,7 +839,6 @@ services:
   ############################################################################
 
   fritzbox-exporter:
-    profiles: ["monitoring-extra"]  # OPTIONAL: Nice to have
     image: pdreker/fritz_exporter:${FRITZBOX_EXPORTER_TAG:-latest}
     container_name: fritzbox-exporter
     hostname: fritzbox-exporter
@@ -884,7 +877,6 @@ services:
   ############################################################################
 
   mariadb:
-    profiles: ["heavy"]
     image: mariadb:${MARIADB_TAG:-10.11}
     container_name: mariadb
     hostname: mariadb
@@ -1330,7 +1322,6 @@ services:
       - "diun.enable=true"
 
   uptime-kuma:
-    profiles: ["monitoring-extra"]  # OPTIONAL: Redundant with Blackbox Exporter
     image: louislam/uptime-kuma:${UPTIME_KUMA_TAG:-latest}
     container_name: uptime-kuma
     hostname: uptime-kuma
@@ -1404,7 +1395,6 @@ services:
   ############################################################################
 
   vaultwarden:
-    profiles: ["apps"]  # OPTIONAL: Enable with --profile apps (important but can use cloud alternative)
     image: vaultwarden/server:${VAULTWARDEN_TAG:-latest}
     container_name: vaultwarden
     hostname: vaultwarden

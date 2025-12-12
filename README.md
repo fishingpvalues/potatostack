@@ -127,24 +127,6 @@ Local IP and access
 - Optionally limit bindings by setting `HOST_BIND` (default `0.0.0.0`) to your LAN IP to avoid exposing ports on all interfaces.
 - Expose services externally only via Nginx Proxy Manager with HTTPS and auth.
 
-## Docker Compose Profiles
-
-Run different service configurations based on available resources:
-
-```bash
-# Default (core services ~1.4GB)
-docker compose up -d
-
-# With password manager & SSO (~1.6GB)
-docker compose --profile apps up -d
-
-# With extended monitoring (~1.8GB)
-docker compose --profile monitoring-extra up -d
-
-# Everything (~2.5GB+ - requires swap!)
-docker compose --profile apps --profile monitoring-extra up -d
-```
-
 ## Service Access
 
 | Service | URL | Default Port |
@@ -159,7 +141,7 @@ docker compose --profile apps --profile monitoring-extra up -d
 | Immich | http://192.168.178.40:2283 | 2283 |
 | Gitea | http://192.168.178.40:3001 | 3001 |
 | Authelia SSO | http://192.168.178.40:9091 | 9091 |
-| Vaultwarden (apps profile) | http://192.168.178.40:8084 | 8084 |
+| Vaultwarden | http://192.168.178.40:8084 | 8084 |
 | Filebrowser | http://192.168.178.40:8087 | 8087 |
 | SFTP (SSH) | sftp://192.168.178.40:2223 | 2223 |
 | Samba (SMB) | smb://192.168.178.40 | 445 |
