@@ -21,7 +21,9 @@
       "Bash(docker system prune:*)",
       "Bash(docker system:*)",
       "Bash(lsof:*)",
-      "Bash(/bin/rm:*)"
+      "Bash(/bin/rm:*)",
+      "Bash(cat:*)",
+      "Bash(openssl genrsa:*)"
     ],
     "deny": [],
     "ask": []
