@@ -40,7 +40,6 @@ volumes:
   grafana_data:
   loki_data:
   alertmanager_data:
-  mariadb_data:
   gitea_data:
   postgres_data:
   npm_data:
@@ -871,56 +870,6 @@ services:
       - "homepage.href=http://fritzbox-exporter:9042"
       - "homepage.icon=router.png"
       - "homepage.description=Router metrics"
-
-  ############################################################################
-  # DATABASE - MariaDB (optional, for Firefly)
-  ############################################################################
-
-  mariadb:
-    image: mariadb:${MARIADB_TAG:-10.11}
-    container_name: mariadb
-    hostname: mariadb
-    restart: unless-stopped
-    networks:
-      - default
-    environment:
-      - MYSQL_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}
-    security_opt:
-      - no-new-privileges:false
-    # cap_drop: ALL removed - was too restrictive
-    volumes:
-      - ./config/mariadb/init:/docker-entrypoint-initdb.d:ro
-      - mariadb_data:/var/lib/mysql
-      - ./config/mariadb/low-memory.cnf:/etc/mysql/conf.d/low-memory.cnf:ro
-    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW --innodb-file-per-table=1 --skip-innodb-read-only-compressed
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "mysqladmin",
-          "ping",
-          "-h",
-          "localhost",
-          "-u",
-          "root",
-          "--password=${MARIADB_ROOT_PASSWORD}",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    mem_limit: 192m
-    mem_reservation: 96m
-    cpus: 0.5
-    logging:
-      options:
-        max-size: "10m"
-        max-file: "3"
-    labels:
-      - "homepage.group=Infrastructure"
-      - "homepage.name=MariaDB (Shared)"
-      - "homepage.icon=si-mariadb"
-      - "homepage.description=MariaDB (unused by default)"
-
 
   redis:
     image: redis:${REDIS_TAG:-7-alpine}

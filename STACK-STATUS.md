@@ -10,11 +10,11 @@
 | Metric | Value | Notes |
 |--------|-------|-------|
 | **Version** | 2.3 | Extreme unification - multi-service containers |
-| **Total Services** | 32 | All services enabled |
-| **Database Memory** | 256MB | PostgreSQL + Redis (down from 608MB) |
-| **Total RAM Usage** | ~1.8GB | All services (requires swap) |
+| **Total Services** | 31 | All services enabled |
+| **Database Memory** | 256MB | PostgreSQL + Redis only |
+| **Total RAM Usage** | ~1.6GB | All services (requires swap) |
 | **Memory Savings** | -550MB | From all consolidations (-68%) |
-| **Containers** | 32 | Single default configuration |
+| **Containers** | 31 | Single default configuration |
 | **Networks** | 2 | down from 4 (vpn + backend only) |
 
 ---
@@ -58,8 +58,6 @@
 - Dozzle Logs (64MB)
 - Unified Management (64MB)
 
-### Database Services
-- MariaDB (192MB)
 
 ---
 
