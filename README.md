@@ -1,8 +1,8 @@
-# PotatoStack v2.0 - Complete Self-Hosted Stack for Le Potato SBC
+# PotatoStack v2.1 - Complete Self-Hosted Stack for Le Potato SBC
 
-A fully integrated, state-of-the-art Docker stack optimized for the Le Potato single-board computer, featuring P2P file sharing, encrypted backups, comprehensive monitoring, and cloud storage.
+A fully integrated, state-of-the-art Docker stack optimized for the Le Potato single-board computer, featuring P2P file sharing, encrypted backups, comprehensive monitoring, and file sync.
 
-> Latest: Real-time Netdata monitoring, enhanced Homepage integration, security hardening, and full log aggregation. See docs/STACK_OVERVIEW.md for a component map.
+> **Latest (2025-12-12)**: Database consolidation saves 352MB RAM! Seafile now uses PostgreSQL+Redis. All databases optimized for 2GB RAM systems. See `DATABASE-CONSOLIDATION.txt` for details.
 
 ## Overview
 
@@ -38,9 +38,14 @@ PotatoStack is designed specifically for the Le Potato (AML-S905X-CC) with its l
 - **Dozzle** - Real-time log viewer
 - **Homepage** - Unified dashboard for all services
 
-#### 🔐 Infrastructure
+#### 🔐 Infrastructure & Security
 - **Nginx Proxy Manager** - Reverse proxy with Let's Encrypt SSL
+- **Authelia** - Single Sign-On (SSO) with 2FA support
+- **Vaultwarden** - Password manager (Bitwarden-compatible)
 - **Gitea** - Self-hosted Git server
+- **PostgreSQL** - Unified database (Gitea, Immich, Seafile)
+- **Redis** - Shared cache (Gitea, Immich, Seafile, Authelia)
+- **Immich** - Self-hosted Google Photos alternative
 
 ## Hardware Requirements
 
@@ -122,13 +127,22 @@ Local IP and access
 - Optionally limit bindings by setting `HOST_BIND` (default `0.0.0.0`) to your LAN IP to avoid exposing ports on all interfaces.
 - Expose services externally only via Nginx Proxy Manager with HTTPS and auth.
 
-Optional components
+## Docker Compose Profiles
 
-- Nextcloud Redis cache (improves responsiveness):
+Run different service configurations based on available resources:
 
 ```bash
-# Edit .env: set REDIS_HOST=redis
-COMPOSE_PROFILES=cache docker compose up -d
+# Default (core services ~1.4GB)
+docker compose up -d
+
+# With password manager & SSO (~1.6GB)
+docker compose --profile apps up -d
+
+# With extended monitoring (~1.8GB)
+docker compose --profile monitoring-extra up -d
+
+# Everything (~2.5GB+ - requires swap!)
+docker compose --profile apps --profile monitoring-extra up -d
 ```
 
 ## Service Access
@@ -136,19 +150,21 @@ COMPOSE_PROFILES=cache docker compose up -d
 | Service | URL | Default Port |
 |---------|-----|--------------|
 | Homepage Dashboard | http://192.168.178.40:3003 | 3003 |
-| Netdata ⭐ | http://192.168.178.40:19999 | 19999 |
-| Nginx Proxy Manager | http://192.168.178.40:81 | 81 |
-| Portainer | http://192.168.178.40:9000 | 9000 |
 | Grafana | http://192.168.178.40:3000 | 3000 |
 | Prometheus | http://192.168.178.40:9090 | 9090 |
 | qBittorrent | http://192.168.178.40:8080 | 8080 |
 | slskd (Soulseek) | http://192.168.178.40:2234 | 2234 |
 | Kopia | https://192.168.178.40:51515 | 51515 |
-| Filebrowser | http://192.168.178.40:8087 | 8087 |
 | Seafile | http://192.168.178.40:8001 | 8001 |
+| Immich | http://192.168.178.40:2283 | 2283 |
+| Gitea | http://192.168.178.40:3001 | 3001 |
+| Authelia SSO | http://192.168.178.40:9091 | 9091 |
+| Vaultwarden (apps profile) | http://192.168.178.40:8084 | 8084 |
+| Filebrowser | http://192.168.178.40:8087 | 8087 |
 | SFTP (SSH) | sftp://192.168.178.40:2223 | 2223 |
 | Samba (SMB) | smb://192.168.178.40 | 445 |
-| Gitea | http://192.168.178.40:3001 | 3001 |
+| Nginx Proxy Manager | http://192.168.178.40:81 | 81 |
+| Portainer | http://192.168.178.40:9000 | 9000 |
 | Uptime Kuma | http://192.168.178.40:3002 | 3002 |
 | Dozzle | http://192.168.178.40:8083 | 8083 |
 | Alertmanager | http://192.168.178.40:9093 | 9093 |
@@ -243,17 +259,22 @@ On your other devices (Windows/Mac/Linux/Android/iOS):
    - Accept self-signed certificate fingerprint
 3. Create backup policies and schedules
 
-### 5. Configure Nextcloud
+### 5. Configure Seafile
 
-1. Access http://192.168.178.40:8082
-2. Enable recommended apps (Calendar, Contacts, Talk)
-3. Configure external storage:
-   - Add /external/torrents as read-only
-   - Add /external/soulseek as read-only
-4. Install clients: https://nextcloud.com/install/#install-clients
-5. Enable 2FA: Settings → Security → Two-Factor Authentication
+1. Access http://192.168.178.40:8001
+2. Create admin account on first login
+3. Create libraries for organization
+4. Install desktop/mobile clients: https://www.seafile.com/en/download/
+5. Enable 2FA: Settings → Password & Security → Two-Factor Authentication
 
-### 6. Set Up WireGuard VPN (Fritzbox)
+### 6. Configure Immich (Google Photos Alternative)
+
+1. Access http://192.168.178.40:2283
+2. Create admin account
+3. Install mobile apps (iOS/Android): https://immich.app/docs/install/mobile
+4. Configure upload settings and libraries
+
+### 7. Set Up WireGuard VPN (Fritzbox)
 
 For secure external access:
 
@@ -312,7 +333,7 @@ For secure external access:
 ┌───▼──────┐  ┌──▼────────┐ ┌───▼──────┐
 │qBittorrent│ │Nginx PM   │ │Prometheus│
 │slskd      │ │Homepage   │ │Grafana   │
-└───────────┘ │Nextcloud  │ │Loki      │
+└───────────┘ │Seafile    │ │Loki      │
               └───────────┘ └──────────┘
 ```
 
@@ -325,20 +346,24 @@ For secure external access:
 │   ├── config/            # Kopia configuration
 │   ├── cache/             # Metadata cache
 │   └── logs/              # Detailed logs
-├── nextcloud/             # User files
+├── seafile/               # File sync & share data
+├── immich/                # Photo & video library
 ├── gitea/                 # Git repositories
+├── backups/               # Database & service backups
+│   ├── db/                # PostgreSQL dumps
+│   └── vaultwarden/       # Vaultwarden backups
+├── qbittorrent/config/    # qBittorrent configuration
+├── slskd/                 # Soulseek configuration & logs
 └── uptime-kuma/           # Monitoring data
 
 /mnt/cachehdd/             # Cache HDD (500GB)
 ├── torrents/              # Active downloads
 │   ├── incomplete/        # In-progress
-│   ├── pr0n/             # Completed (category)
 │   ├── music/            # Completed (category)
 │   ├── tv-shows/         # Completed (category)
 │   └── movies/           # Completed (category)
 └── soulseek/             # Soulseek downloads
     ├── incomplete/        # In-progress
-    ├── pr0n/
     ├── music/
     ├── tv-shows/
     └── movies/
@@ -346,20 +371,30 @@ For secure external access:
 
 ## Resource Management
 
-The stack is optimized for Le Potato's 2GB RAM:
+The stack is highly optimized for Le Potato's 2GB RAM with database consolidation:
 
-| Service | RAM Limit | CPU Limit |
-|---------|-----------|-----------|
-| Surfshark VPN | 256MB | 1.0 |
-| qBittorrent | 512MB | 1.5 |
-| slskd (Soulseek) | 384MB | 1.0 |
-| Kopia | 768MB | 2.0 |
-| Nextcloud | 512MB | 1.5 |
-| Prometheus | 512MB | 1.0 |
-| Grafana | 384MB | 1.0 |
-| All others | 64-256MB | 0.25-0.5 |
+| Service | RAM Limit | CPU Limit | Notes |
+|---------|-----------|-----------|-------|
+| **Database Layer** | | | |
+| PostgreSQL | 192MB | 1.0 | Shared: Gitea, Immich, Seafile |
+| Redis | 64MB | 0.5 | Shared cache for 4+ services |
+| **Core Services** | | | |
+| Gluetun VPN | 128MB | 1.0 | Universal VPN client |
+| qBittorrent | 384MB | 1.5 | Torrent client |
+| slskd | 256MB | 1.0 | Soulseek P2P |
+| Kopia | 384MB | 1.5 | Backup server |
+| Seafile | 384MB | 1.0 | File sync & share |
+| Immich Server | 512MB | 1.5 | Photo management |
+| **Monitoring** | | | |
+| Prometheus | 192MB | 0.75 | Metrics collection |
+| Grafana | 128MB | 0.75 | Dashboards |
+| **Management** | | | |
+| Portainer | 128MB | 0.5 | Docker GUI |
+| Homepage | 192MB | 0.75 | Unified dashboard |
+| All others | 64-128MB | 0.25-0.5 | Various |
 
-**Total estimated usage**: ~1.7GB RAM under normal load, leaving headroom for burst operations.
+**Database Consolidation Savings**: -352MB (-58% database memory)
+**Total estimated usage**: ~1.4GB RAM under normal load, ~300MB free for burst operations
 
 ## Monitoring & Alerts
 
@@ -389,7 +424,7 @@ Pre-configured alerts (edit `config/prometheus/alerts.yml`):
 ## Security Best Practices
 
 1. **Change all default passwords** in `.env` file
-2. **Enable 2FA** on all services that support it (Nextcloud, NPM, Portainer)
+2. **Enable 2FA** on all services that support it (Authelia, Vaultwarden, NPM, Portainer)
 3. **Use strong passwords** - generate with `openssl rand -base64 32`
 4. **Restrict VPN access** - Only allow known IPs through Fritzbox firewall
 5. **Use HTTPS** - Configure SSL certificates in Nginx Proxy Manager
@@ -484,13 +519,14 @@ docker exec kopia_server kopia repository status
 - Increase `GOGC` to 75 or 100
 - Schedule backups during low-activity hours
 
-### Nextcloud Issues
+### Seafile/Immich Issues
 
-**Problem**: Slow performance
+**Problem**: Slow upload/download performance
 
-- Check if Nextcloud has enough RAM (increase limit if needed)
-- Enable Redis cache (add to docker-compose.yml)
-- Move database to SSD if available
+- Check available RAM: `free -h`
+- Check PostgreSQL health: `docker logs postgres | grep -i error`
+- Check Redis connections: `docker exec redis redis-cli INFO`
+- Verify disk I/O: `docker stats`
 
 ### Monitoring Issues
 
@@ -513,17 +549,21 @@ docker logs prometheus
 ## Mobile Apps
 
 ### iOS
-- **Nextcloud**: Official app from App Store
+- **Immich**: Official app from App Store (photo backup & management)
+- **Seafile**: Official app from App Store (file sync & share)
+- **Vaultwarden**: Bitwarden app from App Store
 - **Kopia**: Use web interface (Safari)
-- **Grafana**: Official app
-- **Uptime Kuma**: Progressive Web App (add to home screen)
+- **Grafana**: Official app from App Store
+- **Homepage**: Progressive Web App (add to home screen)
 - **WireGuard**: Official app for VPN access
 
 ### Android
-- **Nextcloud**: Official app from Play Store
+- **Immich**: Official app from Play Store (photo backup & management)
+- **Seafile**: Official app from Play Store (file sync & share)
+- **Vaultwarden**: Bitwarden app from Play Store
 - **Kopia**: Use web interface (Chrome)
-- **Grafana**: Official app
-- **Uptime Kuma**: Progressive Web App
+- **Grafana**: Official app from Play Store
+- **Homepage**: Progressive Web App
 - **WireGuard**: Official app for VPN access
 - **Termux**: SSH access to Le Potato
 
@@ -590,7 +630,9 @@ See docs/STACK_OVERVIEW.md for detailed architecture and links.
 
 ### Useful Links
 - [Kopia Documentation](https://kopia.io/docs/)
-- [Nextcloud Documentation](https://docs.nextcloud.com/)
+- [Seafile Documentation](https://manual.seafile.com/)
+- [Immich Documentation](https://immich.app/docs/)
+- [Authelia Documentation](https://www.authelia.com/docs/)
 - [Grafana Dashboards](https://grafana.com/grafana/dashboards/)
 - [Prometheus Documentation](https://prometheus.io/docs/)
 - [Docker Compose Reference](https://docs.docker.com/compose/)

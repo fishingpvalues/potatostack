@@ -36,12 +36,5 @@ Thumbs.db
 *.tar.gz
 backup-*.tar.gz
 
-# FinTS Importer configurations (contains bank credentials)
-config/fints-importer/*.json
-config/fints-importer/*.xml
-config/fints-importer/*.csv
-!config/fints-importer/README.md
-!config/fints-importer/.gitkeep
-
-# Firefly III data
-data/firefly/
+# Data directories
+data/
