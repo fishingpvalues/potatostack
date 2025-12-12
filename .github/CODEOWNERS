@@ -1,7 +1,0 @@
-# CODEOWNERS
-# Use GitHub teams or users. Update to match your org.
-
-*       @your-org/maintainers
-docs/*  @your-org/docs
-config/* @your-org/platform
-scripts/* @your-org/platform

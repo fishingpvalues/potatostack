@@ -1,4 +1,4 @@
-.PHONY: help env setup preflight pull up down restart ps logs validate health health-quick health-security vpn-test backup-verify check conftest systemd install all fmt secrets-init secrets-edit secrets-list zfs-create zfs-migrate
+.PHONY: help env setup preflight pull up down restart ps logs validate health health-quick health-security vpn-test backup-verify conftest secrets-init secrets-edit secrets-list
 
 .DEFAULT_GOAL := help
 
@@ -12,8 +12,6 @@ help:
 	@echo "  make env              Create .env from .env.example"
 	@echo "  make preflight        Run pre-flight system checks"
 	@echo "  make setup            Run full system setup (requires sudo)"
-	@echo "  make install          Complete installation (env + setup + up + systemd)"
-	@echo "  make systemd          Install systemd services"
 	@echo ""
 	@echo "Docker Runtime:"
 	@echo "  make up               Start all Docker services"
@@ -35,15 +33,9 @@ help:
 	@echo "  make secrets-edit     Edit encrypted secrets"
 	@echo "  make secrets-list     List all encrypted secrets"
 	@echo ""
-	@echo "ZFS Storage (optional):"
-	@echo "  make zfs-create       Create ZFS pool (destructive!)"
-	@echo "  make zfs-migrate      Migrate Docker to ZFS paths"
-	@echo ""
 	@echo "Code Quality:"
 	@echo "  make validate         Validate docker-compose.yml"
 	@echo "  make conftest         Run OPA policy tests"
-	@echo "  make check            Run pre-commit checks"
-	@echo "  make fmt              Format markdown and YAML"
 	@echo ""
 	@echo "Profiles:"
 	@echo "  make up-cache         Start with Redis cache profile"
@@ -108,27 +100,5 @@ secrets-edit:
 secrets-list:
 	@./scripts/secrets.sh list
 
-zfs-create:
-	@sudo ./01-setup-zfs.sh --create
-
-zfs-migrate:
-	@sudo ./01-setup-zfs.sh --migrate
-
-check:
-	@pre-commit run --all-files
-
-fmt:
-	@markdownlint **/*.md || true
-	@yamllint -c .yamllint.yaml **/*.yml **/*.yaml || true
-
 conftest:
 	@conftest test -p policy docker-compose.yml
-
-systemd:
-	@cd systemd && sudo ./install-systemd-services.sh
-
-install: env setup up systemd
-	@echo "Install complete. Access Homepage or services per README."
-
-all: install
-	@true
