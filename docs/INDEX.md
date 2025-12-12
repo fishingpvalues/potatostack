@@ -27,7 +27,7 @@
 - **[SECRETS_MANAGEMENT.md](SECRETS_MANAGEMENT.md)** - Managing secrets and credentials
 
 ### Service-Specific Guides
-- **[FIREFLY-SETUP.md](FIREFLY-SETUP.md)** - Firefly III finance app setup
+- **[SEAFILE_ALTERNATIVE.md](SEAFILE_ALTERNATIVE.md)** - Seafile file sync & share (archived)
 
 ### Architecture & Technical Details
 - **[ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md)** - Enterprise architecture overview
@@ -39,10 +39,12 @@
 
 ## 🆕 What's New (Le Potato Optimization)
 
-### Database Consolidation
-- ✅ **Redis**: 3 instances → 1 shared (saves ~256MB)
-- ✅ **MariaDB**: 2 instances → 1 shared (saves ~256MB)
-- ✅ **Total savings**: ~512MB RAM
+### Database Consolidation (2025-12-12 Update)
+- ✅ **Seafile Migration**: MariaDB+memcached → PostgreSQL+Redis (saves ~256MB)
+- ✅ **PostgreSQL**: Now hosts Gitea, Immich, and Seafile (optimized: 256MB → 192MB)
+- ✅ **Redis**: 3 instances → 1 shared, optimized 96MB → 64MB
+- ✅ **MariaDB**: 2 instances → 1 shared (legacy, now in `heavy` profile only)
+- ✅ **Total database savings**: ~352MB RAM (-58%)
 
 ### Resource Optimization
 - ✅ Memory limits reduced 40-60% across all services

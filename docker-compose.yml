@@ -1749,7 +1749,7 @@ services:
         max-size: "10m"
         max-file: "3"
     labels:
-      - "homepage.group=Media & Storage"
+      - "homepage.group=Storage & Backup"
       - "homepage.name=Immich"
       - "homepage.icon=immich.png"
       - "homepage.href=http://${HOST_ADDR:-192.168.178.40}:2283"
