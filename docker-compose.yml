@@ -726,9 +726,6 @@ services:
     security_opt:
       - no-new-privileges:false
       - apparmor:unconfined
-    # cap_drop: ALL removed - was too restrictive
-      - SYS_PTRACE  # Keep only the required cap_add
-      - SYS_ADMIN
     environment:
       - NETDATA_CLAIM_TOKEN=${NETDATA_CLAIM_TOKEN}
       - NETDATA_CLAIM_URL=https://app.netdata.cloud
@@ -1227,8 +1224,9 @@ services:
         echo '[Management] Installing packages...';
         apk add --no-cache docker-cli curl jq wget;
 
-        wget -qO /usr/local/bin/diun https://github.com/crazy-max/diun/releases/download/v4.28.0/diun_4.28.0_linux_arm64.tar.gz &&
-        tar -xzf /usr/local/bin/diun -C /usr/local/bin diun 2>/dev/null || wget -qO- https://github.com/crazy-max/diun/releases/download/v4.28.0/diun_4.28.0_linux_arm64.tar.gz | tar xzf - -C /usr/local/bin diun;
+        wget -qO /tmp/diun.tar.gz https://github.com/crazy-max/diun/releases/download/v4.28.0/diun_4.28.0_linux_arm64.tar.gz &&
+        tar -xzf /tmp/diun.tar.gz -C /usr/local/bin &&
+        rm /tmp/diun.tar.gz &&
         chmod +x /usr/local/bin/diun;
 
         echo '[Management] Starting autoheal monitoring...';
