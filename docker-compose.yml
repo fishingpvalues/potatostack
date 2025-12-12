@@ -260,7 +260,6 @@ services:
     hostname: lepotato-backup
     restart: unless-stopped
     networks:
-      - monitoring
       - backend
     ports:
       - "${HOST_BIND:-0.0.0.0}:51515:51515"
@@ -348,7 +347,7 @@ services:
       postgres:
         condition: service_healthy
     security_opt:
-      - *default-security
+      - no-new-privileges:true
     command: >
       sh -c "
         set -o pipefail;
@@ -424,7 +423,7 @@ services:
     ports:
       - "${HOST_BIND:-0.0.0.0}:9090:9090"
     security_opt:
-      - *default-security
+      - no-new-privileges:true
     read_only: false
     environment:
       <<: *default-env
@@ -483,7 +482,7 @@ services:
       GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP: "true"
       GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: contains(groups[*], 'admins') && 'Admin' || 'Viewer'
     security_opt:
-      - *default-security
+      - no-new-privileges:true
     volumes:
       - grafana_data:/var/lib/grafana
       - ./config/grafana/provisioning:/etc/grafana/provisioning
@@ -677,7 +676,7 @@ services:
     hostname: cadvisor
     restart: unless-stopped
     networks:
-      - monitoring
+      - backend
     ports:
       - "${HOST_BIND:-0.0.0.0}:8081:8080"
     volumes:
@@ -718,7 +717,6 @@ services:
     hostname: lepotato-netdata
     restart: unless-stopped
     networks:
-      - monitoring
       - backend
     ports:
       - "${HOST_BIND:-0.0.0.0}:19999:19999"
@@ -766,7 +764,6 @@ services:
     hostname: blackbox-exporter
     restart: unless-stopped
     networks:
-      - monitoring
       - backend
       - default
     ports:
@@ -810,7 +807,7 @@ services:
     hostname: speedtest-exporter
     restart: unless-stopped
     networks:
-      - monitoring
+      - backend
     environment:
       - SPEEDTEST_INTERVAL=3600  # Run speedtest every hour
       - SPEEDTEST_HOST=  # Use closest server (default)
@@ -843,7 +840,7 @@ services:
     hostname: fritzbox-exporter
     restart: unless-stopped
     networks:
-      - monitoring
+      - backend
       - default
     environment:
       - FRITZ_USERNAME=${FRITZ_USERNAME:-}  # Fritz!Box username (usually empty for default)
@@ -881,7 +878,7 @@ services:
     environment:
       <<: *default-env
     security_opt:
-      - *default-security
+      - no-new-privileges:true
     read_only: false
     command:
       [
@@ -1016,7 +1013,6 @@ services:
     networks:
       - default
       - backend
-      - monitoring
     ports:
       - "${HOST_BIND:-0.0.0.0}:8001:80"
     environment:
@@ -1077,7 +1073,7 @@ services:
     networks:
       - default
     security_opt:
-      - *default-security
+      - no-new-privileges:true
     environment:
       <<: *default-env
       POSTGRES_USER: postgres
@@ -1126,7 +1122,7 @@ services:
       - "${HOST_BIND:-0.0.0.0}:3001:3000"
       - "${HOST_BIND:-0.0.0.0}:2222:22"
     security_opt:
-      - *default-security
+      - no-new-privileges:true
     environment:
       <<: *default-env
       USER_UID: 1000
@@ -1183,7 +1179,7 @@ services:
     environment:
       <<: *default-env
     security_opt:
-      - *default-security
+      - no-new-privileges:true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - portainer_data:/data
@@ -1214,7 +1210,7 @@ services:
     networks:
       - backend
     security_opt:
-      - *default-security
+      - no-new-privileges:true
     environment:
       <<: *default-env
       AUTOHEAL_INTERVAL: 30
@@ -1278,7 +1274,6 @@ services:
     networks:
       - default
       - backend
-      - monitoring
     ports:
       - "${HOST_BIND:-0.0.0.0}:3002:3001"
     security_opt:
@@ -1313,7 +1308,7 @@ services:
     ports:
       - "${HOST_BIND:-0.0.0.0}:8083:8080"
     security_opt:
-      - *default-security
+      - no-new-privileges:true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
@@ -1351,7 +1346,6 @@ services:
     networks:
       - backend
       - default
-      - monitoring
     ports:
       - "${HOST_BIND:-0.0.0.0}:8084:80"
       - "${HOST_BIND:-0.0.0.0}:3012:3012"  # WebSocket port
@@ -1429,11 +1423,10 @@ services:
     networks:
       - backend
       - default
-      - monitoring
     ports:
       - "${HOST_BIND:-0.0.0.0}:9091:9091"
     security_opt:
-      - *default-security
+      - no-new-privileges:true
     environment:
       <<: *default-env
       AUTHELIA_JWT_SECRET: ${AUTHELIA_JWT_SECRET}
@@ -1476,13 +1469,12 @@ services:
     restart: unless-stopped
     networks:
       - backend
-      - monitoring
     ports:
       - "${HOST_BIND:-0.0.0.0}:80:80"
       - "${HOST_BIND:-0.0.0.0}:443:443"
       - "${HOST_BIND:-0.0.0.0}:81:81"
     security_opt:
-      - *default-security
+      - no-new-privileges:true
     environment:
       <<: *default-env
       DB_SQLITE_FILE: /data/database.sqlite
@@ -1519,12 +1511,11 @@ services:
     restart: unless-stopped
     networks:
       - backend
-      - monitoring
       - default
     ports:
       - "${HOST_BIND:-0.0.0.0}:3003:3000"
     security_opt:
-      - *default-security
+      - no-new-privileges:true
     environment:
       <<: *default-env
       PUID: 1000
@@ -1572,11 +1563,10 @@ services:
     networks:
       - default
       - backend
-      - monitoring
     ports:
       - "${HOST_BIND:-0.0.0.0}:2283:3001"
     security_opt:
-      - *default-security
+      - no-new-privileges:true
     environment:
       <<: *default-env
       DB_HOSTNAME: postgres
@@ -1628,7 +1618,7 @@ services:
     networks:
       - default
     security_opt:
-      - *default-security
+      - no-new-privileges:true
     environment:
       <<: *default-env
       DB_HOSTNAME: postgres
