@@ -1,0 +1,39 @@
+DATABASE CONSOLIDATION COMPLETE - 2025-12-12
+============================================
+
+CHANGES SUMMARY:
+- Migrated Seafile from MariaDB+memcached to PostgreSQL+Redis
+- Removed 2 database containers (seafile-db, seafile-memcached)
+- Optimized PostgreSQL: 256MB → 192MB
+- Optimized Redis: 96MB → 64MB
+
+MEMORY SAVINGS:
+- Total database RAM: 608MB → 256MB (-352MB / -58%)
+- Available for apps: +350MB
+
+DATABASES NOW IN POSTGRESQL:
+- gitea (Gitea)
+- immich (Immich + vectors extension)
+- ccnet_db, seafile_db, seahub_db (Seafile)
+
+REDIS DATABASES:
+- DB 0: Authelia sessions
+- DB 2: Immich jobs
+- DB 3-5: Gitea cache/sessions/queues
+- DB 6: Seafile cache
+
+FILES MODIFIED:
+- docker-compose.yml: Updated Seafile service, removed old databases, optimized memory
+- config/postgres/init/10-init-multi-db.sh: Added Seafile database initialization
+- config/prometheus/prometheus.yml: Removed seafile-db monitoring
+- tests/check-health.sh: Removed seafile-db health checks
+- .env.example: Removed SEAFILE_DB_ROOT_PASSWORD
+- docs/SEAFILE_ALTERNATIVE.md: Archived with deprecation notice
+
+DEPLOYMENT:
+Push these changes to your LePotato and restart services:
+  docker compose down
+  git pull
+  docker compose up -d
+
+NOTE: PostgreSQL data will be re-initialized on first start with new databases.

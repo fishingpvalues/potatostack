@@ -105,9 +105,8 @@ scrape_configs:
       module: [tcp_connect]
     static_configs:
       - targets:
-          - seafile-db:3306                      # MariaDB (Seafile)
-          - postgres:5432                        # Unified PostgreSQL (Gitea & Immich)
-          - redis:6379                           # Redis (Shared)
+          - postgres:5432                        # Unified PostgreSQL (Gitea, Immich, Seafile)
+          - redis:6379                           # Redis (Shared cache: Gitea, Immich, Seafile, Authelia)
           - nginx-proxy-manager:80               # NPM HTTP
           - nginx-proxy-manager:443              # NPM HTTPS
     relabel_configs:

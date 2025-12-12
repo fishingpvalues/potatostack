@@ -1,3 +1,16 @@
+---
+**⚠️ ARCHIVED - This documentation is outdated as of 2025-12-12**
+
+**Seafile now uses PostgreSQL + Redis** (consolidated from MariaDB + memcached for better resource efficiency).
+
+See the main `docker-compose.yml` for current Seafile configuration.
+
+For migration details, see: `CONSOLIDATION-SUMMARY.md` and `MIGRATION-GUIDE.md`
+
+---
+
+# Original Documentation (Archived)
+
 Based on your Docker Compose stack running on a low-power ARM64 SBC like the Le Potato with only 2GB RAM, Nextcloud is generally not ideal due to its high resource demands (typically requiring 4GB+ RAM for smooth operation with multiple users or features enabled, and it's PHP-heavy, which can lead to CPU spikes and slow performance on ARM hardware). Your setup is already optimized with memory limits (e.g., many services capped at 128-256MB), monitoring (Prometheus/Grafana), VPN routing, and lightweight file access via Filebrowser/Samba/SFTP, so a replacement should prioritize minimal CPU/RAM usage while providing core Nextcloud-like features such as file syncing, sharing, web UI access, and mobile/desktop clients.
 
 Recommended Alternative: Seafile
