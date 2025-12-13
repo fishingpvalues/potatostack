@@ -1,76 +1,16 @@
----
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
-namespace: potatostack
-
 resources:
-  # Namespaces (must be first)
-  - namespaces/namespaces.yaml
-
-  # Operators and infrastructure
-  - operators/secret-generator.yaml
-  - operators/replicator.yaml
-  - operators/cert-manager.yaml
-  - operators/prometheus-operator.yaml
-
-  # Secrets
-  - secrets/generated-secrets.yaml
-
-  # ConfigMaps
-  - configmaps/postgres-init.yaml
-
-  # StatefulSets (databases)
-  - statefulsets/postgres.yaml
-  - statefulsets/redis.yaml
-  - statefulsets/loki.yaml
-
-  # Deployments (applications)
-  - deployments/gluetun-vpn.yaml
-  - deployments/gitea.yaml
-  - deployments/immich.yaml
-  - deployments/vaultwarden.yaml
-  - deployments/grafana.yaml
-  - deployments/promtail.yaml
-  - deployments/authelia.yaml
-  - deployments/kopia.yaml
-  - deployments/seafile.yaml
-  - deployments/fileserver.yaml
-  - deployments/management-tools.yaml
-  - deployments/monitoring-exporters.yaml
-  - deployments/unified-backups-cronjob.yaml
-
-  # PVCs
-  - pvc/all-pvcs.yaml
-
-  # Ingress
-  - ingress/main-ingress.yaml
-
-  # Network Policies
-  - networkpolicies/default-deny.yaml
-  - networkpolicies/allow-ingress.yaml
-
-commonLabels:
-  managed-by: kustomize
-  stack: potatostack
-
-images:
-  - name: grafana/grafana
-    newTag: 10.3.3
-  - name: grafana/loki
-    newTag: 2.9.5
-  - name: grafana/promtail
-    newTag: 2.9.5
-  - name: prom/prometheus
-    newTag: v2.50.1
-  - name: prom/alertmanager
-    newTag: v0.27.0
-
-configMapGenerator:
-  - name: common-env
-    literals:
-      - TZ=Europe/Berlin
-      - LOG_LEVEL=info
-
-generatorOptions:
-  disableNameSuffixHash: true
+  - ./configmaps
+  - ./deployments
+  - ./ingress
+  - ./namespaces
+  - ./networkpolicies
+  - ./operators
+  - ./pvc
+  - ./secrets
+  - ./services
+  - ./statefulsets
+  - ./monitoring
+  - ./ingress-nginx
+  - ../apps

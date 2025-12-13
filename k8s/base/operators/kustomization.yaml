@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - cert-manager.yaml
+  - cert-manager-app.yaml
+  - kyverno.yaml
+  - prometheus-operator.yaml
+  - replicator.yaml
+  - secret-generator.yaml

@@ -147,6 +147,12 @@ spec:
           value: "8080"
         - name: TORRENTING_PORT
           value: "6881"
+        - name: BT_MAX_OPEN_FILES
+          value: "100"
+        - name: BT_MAX_CONNECTIONS_GLOBAL
+          value: "200"
+        - name: BT_MAX_UPLOADS_GLOBAL
+          value: "20"
         volumeMounts:
         - name: qbittorrent-config
           mountPath: /config
@@ -159,6 +165,12 @@ spec:
           limits:
             cpu: 1500m
             memory: 384Mi
+        healthcheck:
+          test: ["CMD-SHELL", "curl -f http://localhost:8080 || exit 1"]
+          interval: 30s
+          timeout: 10s
+          retries: 3
+          start_period: 60s
       # slskd sidecar
       - name: slskd
         image: ghcr.io/slskd/slskd:latest
@@ -181,6 +193,10 @@ spec:
             secretKeyRef:
               name: slskd-credentials
               key: password
+        - name: SLSKD_METRICS
+          value: "true"
+        - name: SLSKD_METRICS_URL
+          value: "http://localhost:5031/metrics"
         volumeMounts:
         - name: slskd-config
           mountPath: /app
@@ -193,6 +209,12 @@ spec:
           limits:
             cpu: 1000m
             memory: 256Mi
+        healthcheck:
+          test: ["CMD-SHELL", "curl -f http://localhost:2234 || exit 1"]
+          interval: 30s
+          timeout: 10s
+          retries: 3
+          start_period: 60s
       volumes:
       - name: qbittorrent-config
         persistentVolumeClaim:

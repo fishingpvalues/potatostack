@@ -1,0 +1,383 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: homepage-config
+  namespace: potatostack
+data:
+  bookmarks.yaml: |
+    ---
+    # Homepage Bookmarks Configuration - SOTA Enhanced
+    # Comprehensive Home Lab Management Platform
+
+    # 📚 Documentation & Learning
+    - Documentation & Learning:
+        - Kopia Docs:
+            href: https://kopia.io/docs/
+            icon: kopia.png
+            description: "Complete backup and disaster recovery documentation"
+            category: "backup"
+            tags: ["documentation", "backup", "kopia"]
+            
+        # Nextcloud removed
+            
+        - Grafana Dashboards:
+            href: https://grafana.com/grafana/dashboards/
+            icon: si-grafana
+            description: "Official dashboard templates and examples"
+            category: "monitoring"
+            tags: ["dashboard", "monitoring", "grafana"]
+            
+        - Homepage Docs:
+            href: https://gethomepage.dev/
+            icon: homepage.png
+            description: "Complete homepage dashboard documentation"
+            category: "dashboard"
+            tags: ["documentation", "homepage", "dashboard"]
+            
+        - Docker Docs:
+            href: https://docs.docker.com/
+            icon: si-docker
+            description: "Official Docker documentation and guides"
+            category: "containers"
+            tags: ["documentation", "docker", "containers"]
+            
+        - Kubernetes Docs:
+            href: https://kubernetes.io/docs/
+            icon: si-kubernetes
+            description: "Kubernetes official documentation"
+            category: "orchestration"
+            tags: ["documentation", "kubernetes", "orchestration"]
+            
+        - Prometheus Docs:
+            href: https://prometheus.io/docs/
+            icon: si-prometheus
+            description: "Time-series monitoring system documentation"
+            category: "monitoring"
+            tags: ["documentation", "prometheus", "monitoring"]
+            
+        - Raspberry Pi Docs:
+            href: https://www.raspberrypi.com/documentation/
+            icon: raspberry-pi.png
+            description: "Official Raspberry Pi documentation"
+            category: "hardware"
+            tags: ["documentation", "raspberry-pi", "hardware"]
+
+    # 🚀 Quick Access & Essential Services
+    - Quick Access:
+        - Fritzbox:
+            href: http://fritz.box
+            icon: https://avm.de/favicon.ico
+            description: "Router management interface"
+            category: "network"
+            tags: ["router", "network", "fritzbox"]
+            
+        - Netdata Cloud:
+            href: https://app.netdata.cloud
+            icon: si-netdata
+            description: "Cloud-based infrastructure monitoring"
+            category: "monitoring"
+            tags: ["monitoring", "netdata", "cloud"]
+            
+        - Surfshark:
+            href: https://my.surfshark.com
+            icon: si-surfshark
+            description: "VPN service management"
+            category: "security"
+            tags: ["vpn", "security", "surfshark"]
+            
+        - Google Drive:
+            href: https://drive.google.com
+            icon: si-googledrive
+            description: "Cloud storage and file synchronization"
+            category: "cloud"
+            tags: ["cloud", "storage", "google"]
+            
+        - GitHub:
+            href: https://github.com
+            icon: si-github
+            description: "Code repository hosting and collaboration"
+            category: "development"
+            tags: ["development", "git", "github"]
+            
+        - Stack Overflow:
+            href: https://stackoverflow.com
+            icon: stack-overflow.png
+            description: "Programming Q&A community"
+            category: "learning"
+            tags: ["programming", "qa", "community"]
+
+    # 📊 Monitoring & Observability
+    - Monitoring & Observability:
+        - Prometheus Targets:
+            href: http://192.168.178.40:9090/targets
+            icon: si-prometheus
+            description: "Monitored targets and endpoints"
+            category: "monitoring"
+            tags: ["prometheus", "targets", "monitoring"]
+            
+        - Alertmanager:
+            href: http://192.168.178.40:9093
+            icon: si-prometheus
+            description: "Alert management and routing"
+            category: "monitoring"
+            tags: ["alertmanager", "alerts", "monitoring"]
+            
+        - Loki:
+            href: http://192.168.178.40:3100
+            icon: si-grafana
+            description: "Log aggregation system"
+            category: "logs"
+            tags: ["loki", "logs", "aggregation"]
+            
+        
+            
+        - Grafana Explore:
+            href: http://192.168.178.40:3000/explore
+            icon: si-grafana
+            description: "Data exploration and querying"
+            category: "visualization"
+            tags: ["grafana", "explore", "query"]
+
+    # 🛠️ Development Tools
+    - Development Tools:
+        - GitLab:
+            href: https://gitlab.com
+            icon: si-gitlab
+            description: "Git repository management and CI/CD"
+            category: "development"
+            tags: ["gitlab", "git", "cicd"]
+            
+        - VS Code:
+            href: https://code.visualstudio.com
+            icon: vscode.png
+            description: "Lightweight code editor"
+            category: "development"
+            tags: ["editor", "vscode", "development"]
+            
+        - Docker Hub:
+            href: https://hub.docker.com
+            icon: si-docker
+            description: "Container image registry"
+            category: "containers"
+            tags: ["docker", "registry", "images"]
+            
+        - Postman:
+            href: https://www.postman.com
+            icon: postman.png
+            description: "API testing and development platform"
+            category: "testing"
+            tags: ["api", "testing", "postman"]
+            
+        - Swagger:
+            href: https://swagger.io
+            icon: swagger.png
+            description: "API documentation and testing tools"
+            category: "api"
+            tags: ["swagger", "api", "documentation"]
+            
+        - Jupyter:
+            href: https://jupyter.org
+            icon: jupyter.png
+            description: "Interactive computing notebooks"
+            category: "development"
+            tags: ["jupyter", "notebooks", "python"]
+
+    # 🔐 Security & Privacy
+    - Security & Privacy:
+        - Have I Been Pwned:
+            href: https://haveibeenpwned.com
+            icon: hibp.png
+            description: "Check if your email is in a data breach"
+            category: "security"
+            tags: ["security", "breach", "privacy"]
+            
+        - 1Password:
+            href: https://1password.com
+            icon: 1password.png
+            description: "Password manager and digital vault"
+            category: "security"
+            tags: ["password", "security", "vault"]
+            
+        - Bitwarden:
+            href: https://bitwarden.com
+            icon: bitwarden.png
+            description: "Open source password manager"
+            category: "security"
+            tags: ["password", "security", "open-source"]
+            
+        - ProtonMail:
+            href: https://protonmail.com
+            icon: protonmail.png
+            description: "Encrypted email service"
+            category: "privacy"
+            tags: ["email", "encryption", "privacy"]
+            
+        - Tor Project:
+            href: https://torproject.org
+            icon: tor.png
+            description: "Anonymous communication network"
+            category: "privacy"
+            tags: ["tor", "anonymity", "privacy"]
+
+    # 🌐 Cloud Services
+    - Cloud Services:
+        - AWS:
+            href: https://aws.amazon.com
+            icon: aws.png
+            description: "Amazon Web Services cloud platform"
+            category: "cloud"
+            tags: ["aws", "cloud", "infrastructure"]
+            
+        - Google Cloud:
+            href: https://cloud.google.com
+            icon: google-cloud.png
+            description: "Google Cloud Platform services"
+            category: "cloud"
+            tags: ["gcp", "cloud", "google"]
+            
+        - Microsoft Azure:
+            href: https://azure.microsoft.com
+            icon: azure.png
+            description: "Microsoft Azure cloud services"
+            category: "cloud"
+            tags: ["azure", "cloud", "microsoft"]
+            
+        - DigitalOcean:
+            href: https://www.digitalocean.com
+            icon: digitalocean.png
+            description: "Simple cloud hosting platform"
+            category: "cloud"
+            tags: ["hosting", "cloud", "digitalocean"]
+            
+        - Vultr:
+            href: https://www.vultr.com
+            icon: vultr.png
+            description: "High performance SSD cloud servers"
+            category: "cloud"
+            tags: ["hosting", "cloud", "vultr"]
+
+    # 📱 Mobile Apps
+    - Mobile Apps:
+        - Network Analyzer:
+            href: https://play.google.com/store/apps/details?id=net.jackpal.androidnetstat
+            icon: network-analyzer.png
+            description: "Network diagnostic and analysis tool"
+            category: "network"
+            tags: ["mobile", "network", "diagnostics"]
+            
+        - Fing:
+            href: https://www.fing.com/products/fing-app
+            icon: fing.png
+            description: "Network scanner and device discovery"
+            category: "network"
+            tags: ["mobile", "network", "scanner"]
+            
+        - Termux:
+            href: https://termux.dev
+            icon: termux.png
+            description: "Terminal emulator for Android"
+            category: "development"
+            tags: ["mobile", "terminal", "android"]
+            
+        - Tasker:
+            href: https://tasker.joaoapps.com
+            icon: tasker.png
+            description: "Android automation app"
+            category: "automation"
+            tags: ["mobile", "automation", "android"]
+
+    # 🏠 Smart Home
+    - Smart Home:
+        - Home Assistant:
+            href: https://www.home-assistant.io
+            icon: home-assistant.png
+            description: "Open source home automation platform"
+            category: "automation"
+            tags: ["home", "automation", "assistant"]
+            
+        - SmartThings:
+            href: https://www.smartthings.com
+            icon: smartthings.png
+            description: "Samsung smart home platform"
+            category: "automation"
+            tags: ["smart", "home", "samsung"]
+            
+        - Philips Hue:
+            href: https://www.philips-hue.com
+            icon: philips-hue.png
+            description: "Smart lighting system"
+            category: "automation"
+            tags: ["lighting", "smart", "hue"]
+            
+        - IFTTT:
+            href: https://ifttt.com
+            icon: ifttt.png
+            description: "Automation and integration platform"
+            category: "automation"
+            tags: ["automation", "integration", "ifttt"]
+
+    # 🎯 Utility Tools
+    - Utility Tools:
+        - Shodan:
+            href: https://www.shodan.io
+            icon: shodan.png
+            description: "Internet connected device search engine"
+            category: "security"
+            tags: ["search", "security", "internet"]
+            
+        - VirusTotal:
+            href: https://www.virustotal.com
+            icon: virustotal.png
+            description: "Online virus scanner and malware detection"
+            category: "security"
+            tags: ["security", "malware", "scanner"]
+            
+        - Speedtest:
+            href: https://www.speedtest.net
+            icon: speedtest.png
+            description: "Internet speed testing tool"
+            category: "network"
+            tags: ["speed", "network", "test"]
+            
+        - Down For Everyone:
+            href: https://www.downforeveryoneorjustme.com
+            icon: downforeveryone.png
+            description: "Website availability checker"
+            category: "utility"
+            tags: ["website", "status", "checker"]
+            
+        - URL Shortener:
+            href: https://bit.ly
+            icon: bitly.png
+            description: "URL shortening service"
+            category: "utility"
+            tags: ["url", "shortener", "tool"]
+  docker.yaml: |
+    ---
+    docker:
+      # Use the local Docker socket for container discovery and widgets
+      socket: /var/run/docker.sock
+  kubernetes.yaml: |
+    ---
+    # sample kubernetes config
+  settings.yaml: |
+    ---
+    title: "PotatoStack"
+    subtitle: "Le Potato Home Stack"
+    theme: dark
+    color: slate
+    headerStyle: clean
+  widgets.yaml: |
+    ---
+    - resources:
+        cpu: true
+        memory: true
+        disk:
+          - /mnt/seconddrive
+          - /mnt/cachehdd
+        uptime: true
+    - search:
+        provider: duckduckgo
+        target: _blank
+    - datetime:
+        text_size: xl
