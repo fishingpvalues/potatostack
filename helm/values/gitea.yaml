@@ -1,0 +1,83 @@
+# Gitea Helm Values (SOTA 2025)
+# Chart version: v12.4.0+
+# Installation: helm install gitea oci://docker.gitea.com/charts/gitea -f helm/values/gitea.yaml -n potatostack --create-namespace
+
+replicaCount: 1
+
+image:
+  repository: gitea/gitea
+  tag: "1.22"
+  pullPolicy: IfNotPresent
+  rootless: true
+
+service:
+  http:
+    type: ClusterIP
+    port: 3000
+  ssh:
+    type: ClusterIP
+    port: 22
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: git.lepotato.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: gitea-tls
+      hosts:
+        - git.lepotato.local
+
+persistence:
+  enabled: true
+  size: 10Gi
+  accessModes:
+    - ReadWriteOnce
+
+postgresql:
+  enabled: false  # Use existing unified postgres
+
+postgresql-ha:
+  enabled: false
+
+# Use external PostgreSQL
+gitea:
+  config:
+    database:
+      DB_TYPE: postgres
+      HOST: postgres.potatostack.svc.cluster.local:5432
+      NAME: gitea
+      USER: gitea
+      PASSWD: "${GITEA_DB_PASSWORD}"
+    cache:
+      ADAPTER: redis
+      HOST: redis://redis.potatostack.svc.cluster.local:6379/3
+    session:
+      PROVIDER: redis
+      PROVIDER_CONFIG: redis://redis.potatostack.svc.cluster.local:6379/4
+    queue:
+      TYPE: redis
+      CONN_STR: redis://redis.potatostack.svc.cluster.local:6379/5
+    server:
+      DOMAIN: git.lepotato.local
+      ROOT_URL: https://git.lepotato.local
+      SSH_DOMAIN: git.lepotato.local
+      SSH_PORT: 22
+
+# Use Valkey instead of Redis (SOTA 2025)
+valkey:
+  enabled: false  # Use existing unified redis
+
+valkey-cluster:
+  enabled: false
+
+resources:
+  requests:
+    memory: 64Mi
+    cpu: 100m
+  limits:
+    memory: 128Mi
+    cpu: 500m

@@ -1,4 +1,4 @@
-.PHONY: help env setup preflight pull up down restart ps logs validate health health-quick health-security vpn-test backup-verify conftest secrets-init secrets-edit secrets-list
+.PHONY: help env setup preflight pull up down restart ps logs validate health health-quick health-security vpn-test backup-verify conftest secrets-init secrets-edit secrets-list k8s-setup k8s-operators k8s-up k8s-down k8s-restart k8s-status k8s-logs k8s-describe k8s-port-forward-grafana k8s-port-forward-prometheus k8s-port-forward-argocd k8s-backup k8s-restore k8s-clean k8s-validate helm-repos helm-install-operators helm-install-monitoring helm-install-argocd helm-install-gitea helm-install-all helm-uninstall-all helm-list helm-upgrade-all stack-up stack-down stack-status
 
 .DEFAULT_GOAL := help
 
@@ -20,6 +20,37 @@ help:
 	@echo "  make ps               List running containers"
 	@echo "  make logs             Follow container logs"
 	@echo "  make pull             Pull latest Docker images"
+	@echo ""
+	@echo "Kubernetes (SOTA 2025):"
+	@echo "  make k8s-setup        Full k3s + operators setup"
+	@echo "  make k8s-operators    Install cert-manager, ingress-nginx, operators"
+	@echo "  make k8s-up           Deploy full stack to k8s"
+	@echo "  make k8s-down         Delete all k8s resources"
+	@echo "  make k8s-restart      Restart all deployments"
+	@echo "  make k8s-status       Show all resources status"
+	@echo "  make k8s-logs         Follow logs (all namespaces)"
+	@echo "  make k8s-describe     Describe all resources"
+	@echo "  make k8s-backup       Backup Postgres to backup.sql"
+	@echo "  make k8s-restore      Restore Postgres from backup.sql"
+	@echo "  make k8s-clean        Delete namespaces & cleanup"
+	@echo "  make k8s-validate     Validate k8s manifests"
+	@echo ""
+	@echo "Kubernetes Port Forwards:"
+	@echo "  make k8s-port-forward-grafana      Access Grafana at localhost:3000"
+	@echo "  make k8s-port-forward-prometheus   Access Prometheus at localhost:9090"
+	@echo "  make k8s-port-forward-argocd       Access ArgoCD at localhost:8080"
+	@echo ""
+	@echo "Helm Stack Management (SOTA 2025):"
+	@echo "  make helm-repos                    Add all Helm repositories"
+	@echo "  make helm-install-operators        Install cert-manager, ingress-nginx, kyverno"
+	@echo "  make helm-install-monitoring       Install Prometheus, Grafana, Loki"
+	@echo "  make helm-install-argocd           Install ArgoCD for GitOps"
+	@echo "  make helm-install-all              Install complete stack via Helm"
+	@echo "  make helm-uninstall-all            Uninstall all Helm releases"
+	@echo "  make helm-list                     List all Helm releases"
+	@echo "  make stack-up                      🚀 Full stack startup (Helm + K8s)"
+	@echo "  make stack-down                    🛑 Full stack teardown"
+	@echo "  make stack-status                  📊 Complete stack status"
 	@echo ""
 	@echo "Health & Monitoring:"
 	@echo "  make health           Full system health check"
@@ -102,3 +133,231 @@ secrets-list:
 
 conftest:
 	@conftest test -p policy docker-compose.yml
+
+## ========================================
+## Kubernetes Commands (SOTA 2025 Stack)
+## ========================================
+
+k8s-setup:
+	@echo "Installing k3s..."
+	@curl -sfL https://get.k3s.io | sh -
+	@echo "Waiting for k3s to be ready..."
+	@sleep 10
+	@sudo k3s kubectl wait --for=condition=Ready nodes --all --timeout=120s
+	@mkdir -p ~/.kube
+	@sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+	@sudo chown $(shell id -u):$(shell id -g) ~/.kube/config
+	@echo "k3s installed successfully!"
+	@make k8s-operators
+
+k8s-operators:
+	@echo "Installing cert-manager..."
+	@kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.0/cert-manager.yaml
+	@echo "Waiting for cert-manager..."
+	@kubectl wait --for=condition=Available --timeout=300s deployment/cert-manager -n cert-manager
+	@echo ""
+	@echo "Installing ingress-nginx..."
+	@kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+	@echo "Waiting for ingress-nginx..."
+	@kubectl wait --for=condition=Available --timeout=300s deployment/ingress-nginx-controller -n ingress-nginx
+	@echo ""
+	@echo "Installing infrastructure operators..."
+	@kubectl apply -f k8s/base/operators/
+	@echo "Operators installed successfully!"
+
+k8s-up:
+	@echo "Deploying PotatoStack to Kubernetes..."
+	@kubectl apply -k k8s/overlays/production
+	@echo ""
+	@echo "Deployment initiated! Check status with: make k8s-status"
+	@echo "Get Ingress IP: kubectl get svc -n ingress-nginx ingress-nginx-controller"
+
+k8s-down:
+	@echo "Stopping all k8s resources..."
+	@kubectl delete -k k8s/overlays/production --ignore-not-found=true
+	@echo "Resources deleted!"
+
+k8s-restart:
+	@echo "Restarting all deployments..."
+	@kubectl rollout restart deployment -n potatostack
+	@kubectl rollout restart deployment -n potatostack-monitoring
+	@kubectl rollout restart statefulset -n potatostack
+	@echo "Restart initiated!"
+
+k8s-status:
+	@echo "=== Namespaces ==="
+	@kubectl get namespaces | grep -E 'potatostack|argocd|cert-manager|ingress-nginx|NAME'
+	@echo ""
+	@echo "=== Pods (All Namespaces) ==="
+	@kubectl get pods -A | grep -E 'potatostack|argocd|cert-manager|ingress-nginx|NAME'
+	@echo ""
+	@echo "=== Services ==="
+	@kubectl get svc -n potatostack
+	@echo ""
+	@echo "=== Ingress ==="
+	@kubectl get ingress -A
+	@echo ""
+	@echo "=== PVCs ==="
+	@kubectl get pvc -n potatostack
+
+k8s-logs:
+	@echo "Following logs from all potatostack pods..."
+	@kubectl logs -f -n potatostack -l app.kubernetes.io/name --max-log-requests=10
+
+k8s-describe:
+	@echo "=== Deployments ==="
+	@kubectl describe deployments -n potatostack
+	@echo ""
+	@echo "=== StatefulSets ==="
+	@kubectl describe statefulsets -n potatostack
+	@echo ""
+	@echo "=== Services ==="
+	@kubectl describe svc -n potatostack
+
+k8s-port-forward-grafana:
+	@echo "Forwarding Grafana to localhost:3000..."
+	@kubectl port-forward -n potatostack-monitoring svc/grafana 3000:3000
+
+k8s-port-forward-prometheus:
+	@echo "Forwarding Prometheus to localhost:9090..."
+	@kubectl port-forward -n potatostack-monitoring svc/prometheus-operated 9090:9090
+
+k8s-port-forward-argocd:
+	@echo "Forwarding ArgoCD to localhost:8080..."
+	@echo "Password: kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
+	@kubectl port-forward -n argocd svc/argocd-server 8080:443
+
+k8s-backup:
+	@echo "Backing up Postgres to backup.sql..."
+	@kubectl exec -n potatostack statefulset/postgres -- pg_dumpall -U postgres > backup.sql
+	@echo "Backup complete: backup.sql"
+
+k8s-restore:
+	@echo "Restoring Postgres from backup.sql..."
+	@cat backup.sql | kubectl exec -i -n potatostack statefulset/postgres -- psql -U postgres
+	@echo "Restore complete!"
+
+k8s-clean:
+	@echo "Cleaning up all k8s resources..."
+	@kubectl delete namespace potatostack --ignore-not-found=true
+	@kubectl delete namespace potatostack-monitoring --ignore-not-found=true
+	@kubectl delete namespace argocd --ignore-not-found=true
+	@echo "Cleanup complete!"
+
+k8s-validate:
+	@echo "Validating Kubernetes manifests..."
+	@kubectl apply -k k8s/overlays/production --dry-run=client
+	@echo "Validation successful!"
+
+## ========================================
+## Helm Commands (SOTA 2025 Stack)
+## ========================================
+
+helm-repos:
+	@echo "Adding Helm repositories..."
+	@helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+	@helm repo add grafana https://grafana.github.io/helm-charts
+	@helm repo add argo https://argoproj.github.io/argo-helm
+	@helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+	@helm repo add kyverno https://kyverno.github.io/kyverno/
+	@helm repo add mittwald https://helm.mittwald.de
+	@helm repo add bitnami https://charts.bitnami.com/bitnami
+	@helm repo update
+	@echo "Helm repositories added and updated!"
+
+helm-install-operators:
+	@echo "Installing operators via Helm..."
+	@helm upgrade --install cert-manager oci://quay.io/jetstack/charts/cert-manager \
+		--version v1.19.2 \
+		--namespace cert-manager --create-namespace \
+		--set crds.enabled=true \
+		-f helm/values/cert-manager.yaml --wait
+	@helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+		--namespace ingress-nginx --create-namespace \
+		-f helm/values/ingress-nginx.yaml --wait
+	@helm upgrade --install kyverno kyverno/kyverno \
+		--namespace kyverno --create-namespace \
+		-f helm/values/kyverno.yaml --wait
+	@helm upgrade --install kubernetes-secret-generator mittwald/kubernetes-secret-generator \
+		--namespace kube-system \
+		--set secretLength=32 \
+		--set watchNamespace="" --wait
+	@echo "Operators installed successfully!"
+
+helm-install-monitoring:
+	@echo "Installing monitoring stack via Helm..."
+	@helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
+		--namespace potatostack-monitoring --create-namespace \
+		-f helm/values/kube-prometheus-stack.yaml --wait
+	@helm upgrade --install loki grafana/loki-stack \
+		--namespace potatostack-monitoring \
+		-f helm/values/loki-stack.yaml --wait
+	@echo "Monitoring stack installed successfully!"
+
+helm-install-argocd:
+	@echo "Installing ArgoCD via Helm..."
+	@helm upgrade --install argocd argo/argo-cd \
+		--namespace argocd --create-namespace \
+		-f helm/values/argocd.yaml --wait
+	@echo "ArgoCD installed successfully!"
+	@echo "Get admin password: kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
+
+helm-install-gitea:
+	@echo "Installing Gitea via Helm..."
+	@helm upgrade --install gitea oci://docker.gitea.com/charts/gitea \
+		--namespace potatostack --create-namespace \
+		-f helm/values/gitea.yaml --wait
+	@echo "Gitea installed successfully!"
+
+helm-install-all:
+	@echo "Installing complete SOTA 2025 stack via Helm..."
+	@make helm-repos
+	@make helm-install-operators
+	@make helm-install-monitoring
+	@make helm-install-argocd
+	@echo "Waiting for operators to be ready..."
+	@sleep 30
+	@echo "Installing application workloads..."
+	@kubectl apply -k k8s/base
+	@echo "Complete stack installed successfully!"
+
+helm-uninstall-all:
+	@echo "Uninstalling Helm releases..."
+	@helm uninstall prometheus -n potatostack-monitoring --ignore-not-found
+	@helm uninstall loki -n potatostack-monitoring --ignore-not-found
+	@helm uninstall argocd -n argocd --ignore-not-found
+	@helm uninstall gitea -n potatostack --ignore-not-found
+	@helm uninstall kyverno -n kyverno --ignore-not-found
+	@helm uninstall ingress-nginx -n ingress-nginx --ignore-not-found
+	@helm uninstall cert-manager -n cert-manager --ignore-not-found
+	@helm uninstall kubernetes-secret-generator -n kube-system --ignore-not-found
+	@echo "All Helm releases uninstalled!"
+
+helm-list:
+	@echo "=== Helm Releases ==="
+	@helm list -A
+
+helm-upgrade-all:
+	@echo "Upgrading all Helm releases..."
+	@make helm-install-all
+	@echo "All Helm releases upgraded!"
+
+## Complete stack management (Helm + Kustomize hybrid)
+stack-up:
+	@echo "🚀 Starting complete PotatoStack (Helm + K8s)..."
+	@make helm-install-all
+	@echo "✅ PotatoStack is ready!"
+	@echo "📊 Access Grafana: make k8s-port-forward-grafana"
+	@echo "🔧 Access ArgoCD: make k8s-port-forward-argocd"
+
+stack-down:
+	@echo "🛑 Stopping complete PotatoStack..."
+	@make helm-uninstall-all
+	@make k8s-clean
+	@echo "✅ PotatoStack stopped!"
+
+stack-status:
+	@echo "=== Stack Status ==="
+	@make helm-list
+	@echo ""
+	@make k8s-status

@@ -26,7 +26,12 @@
       "Bash(openssl genrsa:*)",
       "Bash(tree:*)",
       "WebFetch(domain:kyverno.io)",
-      "WebFetch(domain:prometheus-community.github.io)"
+      "WebFetch(domain:prometheus-community.github.io)",
+      "Bash(make help:*)",
+      "WebFetch(domain:grafana.github.io)",
+      "WebFetch(domain:gitea.com)",
+      "WebFetch(domain:cert-manager.io)",
+      "WebFetch(domain:kubernetes.github.io)"
     ],
     "deny": [],
     "ask": []

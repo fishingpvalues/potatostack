@@ -1,0 +1,51 @@
+# Cert-Manager Helm Values (SOTA 2025)
+# Chart version: v1.19.2+
+# Installation: helm install cert-manager oci://quay.io/jetstack/charts/cert-manager -f helm/values/cert-manager.yaml -n cert-manager --create-namespace --set crds.enabled=true
+
+crds:
+  enabled: true
+
+global:
+  leaderElection:
+    namespace: cert-manager
+
+resources:
+  requests:
+    memory: 64Mi
+    cpu: 50m
+  limits:
+    memory: 128Mi
+    cpu: 250m
+
+webhook:
+  resources:
+    requests:
+      memory: 32Mi
+      cpu: 50m
+    limits:
+      memory: 64Mi
+      cpu: 100m
+
+cainjector:
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 50m
+    limits:
+      memory: 128Mi
+      cpu: 250m
+
+startupapicheck:
+  enabled: true
+  resources:
+    requests:
+      memory: 16Mi
+      cpu: 10m
+    limits:
+      memory: 32Mi
+      cpu: 50m
+
+prometheus:
+  enabled: true
+  servicemonitor:
+    enabled: true
