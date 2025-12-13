@@ -1,0 +1,3 @@
+this project ins in the middle of being convetted to a full SOTA 2025 k8s stack read docker-compose and old docs as entry pionts and all config files and webfetchj the prod stack exemplary charts of all used services 
+  and make sure the migration is successful, adheres to most modern prod ready enterprise grade standards and is really and functional and uses all offical stuff and mittwald stuff and is just best and then give report 
+  if not outlinbe a complete migration plan to continue and do all what is necessary especially focus on the scripts and config folder and all polöicieds basically ALL make sure all is migrated
