@@ -1,0 +1,99 @@
+# Kube-Prometheus-Stack Helm Values (SOTA 2025)
+# Chart version: Latest from prometheus-community
+# Installation: helm install prometheus prometheus-community/kube-prometheus-stack -f helm/values/kube-prometheus-stack.yaml -n potatostack-monitoring --create-namespace
+
+## Resource-optimized for 2GB RAM Le Potato SBC
+prometheus:
+  prometheusSpec:
+    retention: 3d
+    resources:
+      requests:
+        memory: 128Mi
+        cpu: 100m
+      limits:
+        memory: 192Mi
+        cpu: 750m
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+
+grafana:
+  enabled: true
+  adminPassword: "${GRAFANA_PASSWORD}"
+  persistence:
+    enabled: true
+    size: 2Gi
+  resources:
+    requests:
+      memory: 96Mi
+      cpu: 100m
+    limits:
+      memory: 128Mi
+      cpu: 750m
+  # OAuth2 via Authelia
+  grafana.ini:
+    server:
+      root_url: "%(protocol)s://%(domain)s:%(http_port)s/grafana/"
+    auth.generic_oauth:
+      enabled: true
+      name: Authelia
+      client_id: grafana
+      client_secret: "${GRAFANA_OIDC_SECRET}"
+      scopes: openid profile email groups
+      auth_url: https://authelia.lepotato.local/api/oidc/authorization
+      token_url: https://authelia.lepotato.local/api/oidc/token
+      api_url: https://authelia.lepotato.local/api/oidc/userinfo
+      allow_sign_up: true
+      role_attribute_path: "contains(groups[*], 'admins') && 'Admin' || 'Viewer'"
+
+alertmanager:
+  enabled: true
+  alertmanagerSpec:
+    resources:
+      requests:
+        memory: 64Mi
+        cpu: 50m
+      limits:
+        memory: 128Mi
+        cpu: 500m
+    storage:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 2Gi
+
+# Disable components not needed on ARM64/2GB
+kubeStateMetrics:
+  enabled: true
+  resources:
+    requests:
+      memory: 32Mi
+      cpu: 50m
+    limits:
+      memory: 64Mi
+      cpu: 250m
+
+nodeExporter:
+  enabled: true
+  resources:
+    requests:
+      memory: 32Mi
+      cpu: 50m
+    limits:
+      memory: 64Mi
+      cpu: 250m
+
+prometheusOperator:
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 50m
+    limits:
+      memory: 128Mi
+      cpu: 500m

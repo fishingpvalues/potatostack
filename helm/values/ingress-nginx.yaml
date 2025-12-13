@@ -1,0 +1,50 @@
+# Ingress-NGINX Helm Values (SOTA 2025)
+# Chart version: 4.14.1+
+# Installation: helm install ingress-nginx ingress-nginx/ingress-nginx -f helm/values/ingress-nginx.yaml -n ingress-nginx --create-namespace
+
+controller:
+  replicaCount: 1
+
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 100m
+    limits:
+      memory: 256Mi
+      cpu: 500m
+
+  service:
+    type: LoadBalancer
+    externalTrafficPolicy: Local
+
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: potatostack-monitoring
+
+  config:
+    use-forwarded-headers: "true"
+    compute-full-forwarded-for: "true"
+    use-proxy-protocol: "false"
+
+  admissionWebhooks:
+    enabled: true
+    patch:
+      resources:
+        requests:
+          memory: 16Mi
+          cpu: 10m
+        limits:
+          memory: 32Mi
+          cpu: 50m
+
+defaultBackend:
+  enabled: true
+  resources:
+    requests:
+      memory: 16Mi
+      cpu: 10m
+    limits:
+      memory: 32Mi
+      cpu: 50m
