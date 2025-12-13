@@ -2,9 +2,10 @@
 
 ingress:
   enabled: true
-  spec:
-    ingressClassName: nginx
-  hosts: netdata.lepotato.local
+  annotations:
+    kubernetes.io/ingress.class: nginx
+  hosts:
+    - netdata.lepotato.local
 
 parent:
   resources:
@@ -29,4 +30,3 @@ child:
     limits:
       cpu: 250m
       memory: 128Mi
-

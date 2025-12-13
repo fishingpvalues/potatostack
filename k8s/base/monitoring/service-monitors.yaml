@@ -1,0 +1,88 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: sm-kopia
+  namespace: potatostack-monitoring
+spec:
+  namespaceSelector:
+    matchNames:
+      - potatostack
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: kopia
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: sm-speedtest-exporter
+  namespace: potatostack-monitoring
+spec:
+  namespaceSelector:
+    matchNames:
+      - potatostack-monitoring
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: speedtest-exporter
+  endpoints:
+    - port: http
+      interval: 60s
+      path: /metrics
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: sm-fritzbox-exporter
+  namespace: potatostack-monitoring
+spec:
+  namespaceSelector:
+    matchNames:
+      - potatostack-monitoring
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: fritzbox-exporter
+  endpoints:
+    - port: http
+      interval: 60s
+      path: /metrics
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: sm-authelia
+  namespace: potatostack-monitoring
+spec:
+  namespaceSelector:
+    matchNames:
+      - potatostack
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: authelia
+  endpoints:
+    - port: http
+      interval: 30s
+      path: /api/metrics
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: sm-smartctl-exporter
+  namespace: potatostack-monitoring
+spec:
+  namespaceSelector:
+    matchNames:
+      - potatostack-monitoring
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: smartctl-exporter
+  endpoints:
+    - port: http
+      interval: 60s
+      path: /metrics

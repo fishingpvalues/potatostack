@@ -23,6 +23,7 @@ make stack-up
 ✅ **kubernetes-secret-generator** v3.4.1 - Automatic secret generation
 ✅ **Blackbox Exporter** - External endpoint probes (Prometheus)
 ✅ **Netdata** - Realtime node + app monitoring (optional)
+✅ **Authelia** - Official chart for SSO portal
 ✅ **Vaultwarden / Immich / Seafile / Kopia / Gluetun stack / Uptime Kuma / Homepage / Portainer / Dozzle / Fileserver** via app-template
 
 ### Kustomize-Managed Workloads
@@ -69,7 +70,7 @@ make helm-install-monitoring
 # 4. Install ArgoCD for GitOps
 make helm-install-argocd
 
-# 5. Install shared datastores (Redis)
+# 5. Install shared datastores (Redis + Postgres)
 make helm-install-datastores
 
 # 6. Install application workloads via Helm
@@ -131,6 +132,11 @@ helm install redis bitnami/redis \
   --namespace potatostack --create-namespace \
   -f helm/values/redis.yaml
 
+# Install PostgreSQL (pgvecto-rs image)
+helm install postgres bitnami/postgresql \
+  --namespace potatostack \
+  -f helm/values/postgresql.yaml
+
 # Install Vaultwarden
 helm install vaultwarden bjw-s/app-template \
   --namespace potatostack \
@@ -175,6 +181,11 @@ helm install portainer portainer/portainer \
 helm install dozzle dozzle/dozzle \
   --namespace potatostack \
   -f helm/values/dozzle.yaml
+
+# Install Unified Backups (CronJob)
+helm install unified-backups bjw-s/app-template \
+  --namespace potatostack \
+  -f helm/values/unified-backups.yaml
 ```
 
 ## 🎯 Architecture Highlights
@@ -428,3 +439,7 @@ helm install speedtest-exporter bjw-s/app-template \
 helm install fritzbox-exporter bjw-s/app-template \
   -n potatostack-monitoring \
   -f helm/values/fritzbox-exporter.yaml
+# Install Authelia (SSO)
+helm install authelia authelia/authelia \
+  --namespace potatostack --create-namespace \
+  -f helm/values/authelia.yaml

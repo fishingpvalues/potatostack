@@ -45,13 +45,20 @@ postgresql-ha:
 
 # Use external PostgreSQL
 gitea:
+  # Use environment secret to inject DB password securely
+  additionalEnvironment:
+    - name: GITEA__database__PASSWD
+      valueFrom:
+        secretKeyRef:
+          name: gitea-db
+          key: password
   config:
     database:
       DB_TYPE: postgres
       HOST: postgres.potatostack.svc.cluster.local:5432
       NAME: gitea
       USER: gitea
-      PASSWD: "${GITEA_DB_PASSWORD}"
+      PASSWD: ""  # Provided via env GITEA__database__PASSWD
     cache:
       ADAPTER: redis
       HOST: redis://redis.potatostack.svc.cluster.local:6379/3

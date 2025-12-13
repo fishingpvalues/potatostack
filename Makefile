@@ -49,6 +49,7 @@ help:
 	@echo "  make helm-uninstall-all            Uninstall all Helm releases"
 	@echo "  make helm-list                     List all Helm releases"
 	@echo "  make stack-up                      🚀 Full stack startup (Helm + K8s)"
+	@echo "  make stack-up-minikube            🚀 Full stack on Minikube (no TLS)"
 	@echo "  make stack-down                    🛑 Full stack teardown"
 	@echo "  make stack-status                  📊 Complete stack status"
 	@echo ""
@@ -149,6 +150,12 @@ k8s-setup:
 	@sudo chown $(shell id -u):$(shell id -g) ~/.kube/config
 	@echo "k3s installed successfully!"
 	@make k8s-operators
+
+minikube-setup:
+	@./scripts/minikube-setup.sh
+
+minikube-create-tls:
+	@./scripts/create-tls-secrets.sh
 
 k8s-operators:
 	@echo "Installing cert-manager..."
@@ -264,10 +271,11 @@ helm-repos:
 	@helm repo add bitnami https://charts.bitnami.com/bitnami
 	@helm repo add authelia https://charts.authelia.com
 	@helm repo add netdata https://netdata.github.io/helmchart/
-	@helm repo add bjw-s https://bjw-s.github.io/helm-charts
+	@echo "Skipping bjw-s (using OCI ghcr registry)"
 	@helm repo add gethomepage https://gethomepage.github.io/homepage/
 	@helm repo add portainer https://portainer.github.io/k8s/
 	@helm repo add dozzle https://amir20.github.io/dozzle/
+	@helm repo add cloudnative-pg https://cloudnative-pg.github.io/charts
 	@helm repo update
 	@echo "Helm repositories added and updated!"
 
@@ -279,9 +287,11 @@ helm-install-operators:
 		--set crds.enabled=true \
 		-f helm/values/cert-manager.yaml --wait
 	@helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+		--version 4.14.1 \
 		--namespace ingress-nginx --create-namespace \
 		-f helm/values/ingress-nginx.yaml --wait
 	@helm upgrade --install kyverno kyverno/kyverno \
+		--version 3.6.1 \
 		--namespace kyverno --create-namespace \
 		-f helm/values/kyverno.yaml --wait
 	@helm upgrade --install kubernetes-secret-generator mittwald/kubernetes-secret-generator \
@@ -290,6 +300,8 @@ helm-install-operators:
 		--set watchNamespace="" --wait
 	@helm upgrade --install kubernetes-replicator mittwald/kubernetes-replicator \
 		--namespace kube-system --wait
+	@helm upgrade --install cloudnative-pg cloudnative-pg/cloudnative-pg \
+		--namespace cnpg-system --create-namespace --wait
 	@echo "Operators installed successfully!"
 
 helm-install-monitoring:
@@ -306,6 +318,9 @@ helm-install-monitoring:
 	@helm upgrade --install netdata netdata/netdata \
 		--namespace potatostack-monitoring \
 		-f helm/values/netdata.yaml --wait || true
+	@helm upgrade --install smartctl-exporter oci://ghcr.io/bjw-s-labs/charts/app-template \
+		--namespace potatostack-monitoring \
+		-f helm/values/smartctl-exporter.yaml --wait
 	@echo "Monitoring stack installed successfully!"
 
 helm-install-argocd:
@@ -333,6 +348,9 @@ helm-install-all:
 	@make helm-install-apps
 	@echo "Waiting for operators to be ready..."
 	@sleep 30
+	@echo "Applying base configmaps and service monitors..."
+	@kubectl apply -f k8s/base/configmaps
+	@kubectl apply -f k8s/base/monitoring
 	@echo "Complete stack installed successfully!"
 
 helm-uninstall-all:
@@ -379,6 +397,24 @@ stack-up:
 	@echo "📊 Access Grafana: make k8s-port-forward-grafana"
 	@echo "🔧 Access ArgoCD: make k8s-port-forward-argocd"
 
+stack-up-minikube:
+	@echo "🚀 Starting PotatoStack on Minikube (no TLS)..."
+	@make helm-repos
+	@make minikube-setup
+	@./scripts/bootstrap-secrets.sh potatostack
+	@make helm-install-operators-minikube
+	@make helm-install-monitoring
+	@make helm-install-argocd
+	@make helm-install-datastores
+	@make helm-install-apps
+	@echo "Applying base configmaps and service monitors..."
+	@kubectl apply -f k8s/base/configmaps
+	@kubectl apply -f k8s/base/monitoring
+	@echo "Creating self-signed TLS secrets for ingress hosts (for completeness)..."
+	@make minikube-create-tls || true
+	@echo "✅ PotatoStack (Minikube) is ready!"
+	@echo "ℹ️  Add host entries: sudo -- sh -c 'echo "`minikube ip` git.lepotato.local vault.lepotato.local photos.lepotato.local fileserver.lepotato.local dashboard.lepotato.local argocd.lepotato.local netdata.lepotato.local" >> /etc/hosts'"
+
 ## ========================================
 ## Additional Helm: Datastores & Apps
 ## ========================================
@@ -389,38 +425,47 @@ helm-install-datastores:
 	@helm upgrade --install redis bitnami/redis \
 		--namespace potatostack --create-namespace \
 		-f helm/values/redis.yaml --wait
+	@helm upgrade --install postgres bitnami/postgresql \
+		--namespace potatostack \
+		-f helm/values/postgresql.yaml --wait
 	@echo "Datastores installed!"
 
 # App workloads via Helm (community charts)
 helm-install-apps:
 	@echo "Installing application workloads via Helm..."
-	@helm upgrade --install vaultwarden bjw-s/app-template \
+	@helm upgrade --install authelia authelia/authelia \
+		--namespace potatostack --create-namespace \
+		-f helm/values/authelia.yaml --wait
+	@helm upgrade --install vaultwarden oci://ghcr.io/bjw-s-labs/charts/app-template \
 		--namespace potatostack --create-namespace \
 		-f helm/values/vaultwarden.yaml --wait
-	@helm upgrade --install immich bjw-s/app-template \
+	@helm upgrade --install immich oci://ghcr.io/bjw-s-labs/charts/app-template \
 		--namespace potatostack \
 		-f helm/values/immich.yaml --wait
-	@helm upgrade --install seafile bjw-s/app-template \
+	@helm upgrade --install seafile oci://ghcr.io/bjw-s-labs/charts/app-template \
 		--namespace potatostack \
 		-f helm/values/seafile.yaml --wait
-	@helm upgrade --install kopia bjw-s/app-template \
+	@helm upgrade --install kopia oci://ghcr.io/bjw-s-labs/charts/app-template \
 		--namespace potatostack \
 		-f helm/values/kopia.yaml --wait
-	@helm upgrade --install gluetun-stack bjw-s/app-template \
+	@helm upgrade --install gluetun-stack oci://ghcr.io/bjw-s-labs/charts/app-template \
 		--namespace potatostack \
 		-f helm/values/gluetun-stack.yaml --wait
-	@helm upgrade --install uptime-kuma bjw-s/app-template \
+	@helm upgrade --install uptime-kuma oci://ghcr.io/bjw-s-labs/charts/app-template \
 		--namespace potatostack \
 		-f helm/values/uptime-kuma.yaml --wait
-	@helm upgrade --install fileserver bjw-s/app-template \
+	@helm upgrade --install fileserver oci://ghcr.io/bjw-s-labs/charts/app-template \
 		--namespace potatostack \
 		-f helm/values/fileserver.yaml --wait
-	@helm upgrade --install speedtest-exporter bjw-s/app-template \
+	@helm upgrade --install speedtest-exporter oci://ghcr.io/bjw-s-labs/charts/app-template \
 		--namespace potatostack-monitoring --create-namespace \
 		-f helm/values/speedtest-exporter.yaml --wait
-	@helm upgrade --install fritzbox-exporter bjw-s/app-template \
+	@helm upgrade --install fritzbox-exporter oci://ghcr.io/bjw-s-labs/charts/app-template \
 		--namespace potatostack-monitoring \
 		-f helm/values/fritzbox-exporter.yaml --wait
+	@helm upgrade --install unified-backups oci://ghcr.io/bjw-s-labs/charts/app-template \
+		--namespace potatostack \
+		-f helm/values/unified-backups.yaml --wait
 	@helm upgrade --install homepage gethomepage/homepage \
 		--namespace potatostack \
 		-f helm/values/homepage.yaml --wait
@@ -443,3 +488,26 @@ stack-status:
 	@make helm-list
 	@echo ""
 	@make k8s-status
+helm-install-operators-minikube:
+	@echo "Installing operators (Minikube)..."
+	@helm upgrade --install cert-manager oci://quay.io/jetstack/charts/cert-manager \
+		--version v1.19.2 \
+		--namespace cert-manager --create-namespace \
+		--set crds.enabled=true \
+		-f helm/values/cert-manager.yaml --wait
+	@helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+		--version 4.14.1 \
+		--namespace ingress-nginx --create-namespace \
+		-f helm/values/ingress-nginx.yaml \
+		-f helm/values/ingress-nginx-minikube.yaml --wait
+	@helm upgrade --install kyverno kyverno/kyverno \
+		--version 3.6.1 \
+		--namespace kyverno --create-namespace \
+		-f helm/values/kyverno.yaml --wait
+	@helm upgrade --install kubernetes-secret-generator mittwald/kubernetes-secret-generator \
+		--namespace kube-system \
+		--set secretLength=32 \
+		--set watchNamespace="" --wait
+	@helm upgrade --install kubernetes-replicator mittwald/kubernetes-replicator \
+		--namespace kube-system --wait
+	@echo "Operators installed (Minikube)!"
