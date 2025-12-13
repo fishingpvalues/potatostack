@@ -626,7 +626,7 @@ services:
   ############################################################################
 
   unified-exporters:
-    # Multi-exporter container running node-exporter + smartctl-exporter via supervisord
+    # Multi-exporter container running node-exporter + smartctl-exporter + swap management
     image: alpine:${ALPINE_TAG:-latest}
     container_name: unified-exporters
     hostname: unified-exporters
@@ -636,12 +636,30 @@ services:
     ports:
       - "${HOST_BIND:-0.0.0.0}:9100:9100"  # node-exporter
       - "${HOST_BIND:-0.0.0.0}:9633:9633"  # smartctl-exporter
-    privileged: true  # Required for SMART access
+    privileged: true  # Required for SMART access + swap management
     environment:
       <<: *default-env
+      SWAP_SIZE: ${SWAP_SIZE:-5G}
+      SWAP_PATH: /mnt/cachehdd/swapfile
     command: >
       sh -c "
-        apk add --no-cache wget curl smartmontools;
+        apk add --no-cache wget curl smartmontools util-linux;
+
+        echo '[Swap] Configuring 5GB swap on cache HDD...';
+        if [ ! -f /mnt/cachehdd/swapfile ]; then
+          echo '[Swap] Creating swap file...';
+          dd if=/dev/zero of=/mnt/cachehdd/swapfile bs=1M count=5120 status=progress &&
+          chmod 600 /mnt/cachehdd/swapfile &&
+          mkswap /mnt/cachehdd/swapfile;
+        fi;
+
+        if ! swapon --show | grep -q '/mnt/cachehdd/swapfile'; then
+          echo '[Swap] Enabling swap...';
+          swapon /mnt/cachehdd/swapfile && echo '[Swap] 5GB swap enabled on /mnt/cachehdd/swapfile';
+        else
+          echo '[Swap] Swap already active';
+        fi;
+
         wget -qO /usr/local/bin/node_exporter https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-arm64.tar.gz &&
         tar -xzf /usr/local/bin/node_exporter -C /usr/local/bin --strip-components=1 node_exporter-1.7.0.linux-arm64/node_exporter 2>/dev/null || wget -qO- https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-arm64.tar.gz | tar xzf - -C /tmp && mv /tmp/node_exporter*/node_exporter /usr/local/bin/;
         wget -qO /usr/local/bin/smartctl_exporter https://github.com/prometheus-community/smartctl_exporter/releases/download/v0.12.0/smartctl_exporter-0.12.0.linux-arm64.tar.gz &&
@@ -655,6 +673,7 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
+      - /mnt/cachehdd:/mnt/cachehdd
     mem_limit: 64m
     mem_reservation: 32m
     cpus: 0.5
