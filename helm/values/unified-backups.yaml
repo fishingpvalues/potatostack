@@ -1,0 +1,71 @@
+# Unified Backups CronJob via app-template
+
+controllers:
+  main:
+    type: cronjob
+    cronjob:
+      schedule: "0 3 * * *"
+      concurrencyPolicy: Forbid
+      successfulJobsHistoryLimit: 1
+      failedJobsHistoryLimit: 1
+    containers:
+      main:
+        image:
+          repository: alpine
+          tag: latest
+        env:
+          - name: TZ
+            value: Europe/Berlin
+          - name: GITEA_DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: postgres-init-secrets
+                key: GITEA_DB_PASSWORD
+          - name: IMMICH_DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: postgres-init-secrets
+                key: IMMICH_DB_PASSWORD
+          - name: SEAFILE_DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: postgres-init-secrets
+                key: SEAFILE_DB_PASSWORD
+          - name: BACKUP_VAULTWARDEN
+            value: "false"
+        command:
+          - sh
+          - -c
+          - |
+            set -o pipefail;
+            apk add --no-cache postgresql-client sqlite gzip tar busybox-extras;
+            BACKUP_DATE=$(date +%Y-%m-%d-%H%M);
+            echo '[DB Backup] Starting PostgreSQL backups...';
+            mkdir -p /backups/db;
+            if nc -z postgres 5432; then
+              PGPASSWORD=$GITEA_DB_PASSWORD pg_dump -h postgres -U gitea -d gitea | gzip > /backups/db/gitea-$BACKUP_DATE.sql.gz || echo 'Gitea backup FAILED';
+              PGPASSWORD=$IMMICH_DB_PASSWORD pg_dump -h postgres -U immich -d immich | gzip > /backups/db/immich-$BACKUP_DATE.sql.gz || echo 'Immich backup FAILED';
+              PGPASSWORD=$SEAFILE_DB_PASSWORD pg_dump -h postgres -U seafile -d ccnet_db | gzip > /backups/db/seafile-ccnet-$BACKUP_DATE.sql.gz || true;
+              PGPASSWORD=$SEAFILE_DB_PASSWORD pg_dump -h postgres -U seafile -d seafile_db | gzip > /backups/db/seafile-db-$BACKUP_DATE.sql.gz || true;
+              PGPASSWORD=$SEAFILE_DB_PASSWORD pg_dump -h postgres -U seafile -d seahub_db | gzip > /backups/db/seafile-seahub-$BACKUP_DATE.sql.gz || true;
+              find /backups/db -name '*.sql.gz' -mtime +7 -delete;
+            else
+              echo '[DB Backup] Postgres not reachable';
+            fi;
+            echo '[Backup] Done.'
+
+persistence:
+  backups:
+    enabled: true
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    mountPath: /backups
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 250m
+    memory: 128Mi
+

@@ -35,6 +35,23 @@ kubectl -n "$NAMESPACE" create secret generic seafile-secrets \
   --from-literal=SEAFILE_ADMIN_PASSWORD="${SEAFILE_ADMIN_PASSWORD:-}" \
   --dry-run=client -o yaml | kubectl apply -f -
 
+# PostgreSQL auth secret (for Bitnami chart)
+kubectl -n "$NAMESPACE" create secret generic postgres-auth-secret \
+  --from-literal=postgres-password="${POSTGRES_SUPER_PASSWORD:-changeme}" \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+# PostgreSQL init env (exposed to initdbScripts)
+kubectl -n "$NAMESPACE" create secret generic postgres-init-secrets \
+  --from-literal=GITEA_DB_PASSWORD="${GITEA_DB_PASSWORD:-}" \
+  --from-literal=IMMICH_DB_PASSWORD="${IMMICH_DB_PASSWORD:-}" \
+  --from-literal=SEAFILE_DB_PASSWORD="${SEAFILE_DB_PASSWORD:-}" \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+# Gitea DB password as separate secret for chart env injection
+kubectl -n "$NAMESPACE" create secret generic gitea-db \
+  --from-literal=password="${GITEA_DB_PASSWORD:-}" \
+  --dry-run=client -o yaml | kubectl apply -f -
+
 # Vaultwarden
 kubectl -n "$NAMESPACE" create secret generic vaultwarden-secrets \
   --from-literal=ADMIN_TOKEN="${VAULTWARDEN_ADMIN_TOKEN:-}" \
@@ -56,6 +73,7 @@ kubectl -n "$NAMESPACE" create secret generic gluetun-secrets \
   --from-literal=SURFSHARK_PASSWORD="${SURFSHARK_PASSWORD:-}" \
   --dry-run=client -o yaml | kubectl apply -f -
 
+# slskd
 # slskd
 kubectl -n "$NAMESPACE" create secret generic slskd-secrets \
   --from-literal=SLSKD_USER="${SLSKD_USER:-admin}" \
@@ -84,5 +102,15 @@ kubectl -n "$NAMESPACE" create secret generic fileserver-secrets \
 
 echo "Optionally create fileserver SSH authorized_keys configmap:" >&2
 echo "  kubectl -n $NAMESPACE create configmap fileserver-ssh-config --from-file=config/ssh/authorized_keys --dry-run=client -o yaml | kubectl apply -f -" >&2
+
+# Authelia core secrets
+kubectl -n "$NAMESPACE" create secret generic authelia-secrets \
+  --from-literal=AUTHELIA_JWT_SECRET="${AUTHELIA_JWT_SECRET:-}" \
+  --from-literal=AUTHELIA_SESSION_SECRET="${AUTHELIA_SESSION_SECRET:-}" \
+  --from-literal=AUTHELIA_STORAGE_ENCRYPTION_KEY="${AUTHELIA_STORAGE_ENCRYPTION_KEY:-}" \
+  --from-literal=AUTHELIA_OIDC_HMAC_SECRET="${AUTHELIA_OIDC_HMAC_SECRET:-}" \
+  --from-literal=AUTHELIA_NOTIFIER_SMTP_USERNAME="${ALERT_EMAIL_USER:-}" \
+  --from-literal=AUTHELIA_NOTIFIER_SMTP_PASSWORD="${ALERT_EMAIL_PASSWORD:-}" \
+  --dry-run=client -o yaml | kubectl apply -f -
 
 echo "All secrets applied to namespace $NAMESPACE."

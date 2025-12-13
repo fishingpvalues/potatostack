@@ -1,0 +1,44 @@
+# SMARTctl Exporter as DaemonSet via app-template
+
+controllers:
+  main:
+    type: daemonset
+    containers:
+      main:
+        image:
+          repository: quay.io/prometheuscommunity/smartctl-exporter
+          tag: v0.12.0
+        args:
+          - --web.listen-address=:9633
+        securityContext:
+          privileged: true
+        volumeMounts:
+          - name: dev
+            mountPath: /dev
+          - name: run-udev
+            mountPath: /run/udev
+
+service:
+  main:
+    ports:
+      http:
+        port: 9633
+
+persistence:
+  dev:
+    enabled: true
+    type: hostPath
+    hostPath: /dev
+  run-udev:
+    enabled: true
+    type: hostPath
+    hostPath: /run/udev
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+

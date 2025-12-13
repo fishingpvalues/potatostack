@@ -1,0 +1,11 @@
+# Authelia via official chart
+
+ingress:
+  enabled: false
+
+service:
+  port: 9091
+
+## Default resources and config are used; configuration is provided via a ConfigMap
+
+# Use external Redis in potatostack namespace, configured via configMap
