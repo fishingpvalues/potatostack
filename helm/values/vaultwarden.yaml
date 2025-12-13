@@ -1,0 +1,121 @@
+# Vaultwarden via bjw-s/app-template
+# Image: vaultwarden/server
+# Ingress: https://vault.lepotato.local
+
+controllers:
+  main:
+    replicas: 1
+    containers:
+      main:
+        image:
+          repository: vaultwarden/server
+          tag: latest
+          pullPolicy: IfNotPresent
+        env:
+          - name: TZ
+            value: Europe/Berlin
+          - name: DOMAIN
+            value: https://vault.lepotato.local
+          - name: ROCKET_PORT
+            value: "80"
+          - name: WEBSOCKET_ENABLED
+            value: "true"
+          - name: WEBSOCKET_PORT
+            value: "3012"
+          - name: SIGNUPS_ALLOWED
+            value: "false"
+          - name: INVITATIONS_ALLOWED
+            value: "true"
+          - name: ADMIN_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: vaultwarden-secrets
+                key: ADMIN_TOKEN
+          - name: SMTP_HOST
+            value: smtp.gmail.com
+          - name: SMTP_FROM
+            valueFrom:
+              secretKeyRef:
+                name: vaultwarden-secrets
+                key: ALERT_EMAIL_USER
+          - name: SMTP_PORT
+            value: "587"
+          - name: SMTP_SECURITY
+            value: starttls
+          - name: SMTP_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: vaultwarden-secrets
+                key: ALERT_EMAIL_USER
+          - name: SMTP_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: vaultwarden-secrets
+                key: ALERT_EMAIL_PASSWORD
+          - name: SSO_ENABLED
+            value: "false"
+          - name: SSO_ONLY
+            value: "false"
+          - name: SSO_CLIENT_ID
+            value: vaultwarden
+          - name: SSO_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: vaultwarden-secrets
+                key: VAULTWARDEN_OIDC_SECRET
+          - name: SSO_AUTHORITY
+            value: https://authelia.lepotato.local
+          - name: DATABASE_URL
+            value: /data/db.sqlite3
+          - name: ICON_CACHE_TTL
+            value: "2592000"
+          - name: ICON_CACHE_NEGTTL
+            value: "259200"
+          - name: LOG_LEVEL
+            value: info
+          - name: EXTENDED_LOGGING
+            value: "true"
+          - name: LOG_FILE
+            value: /data/vaultwarden.log
+
+service:
+  main:
+    ports:
+      http:
+        port: 80
+      websocket:
+        enabled: true
+        port: 3012
+
+ingress:
+  main:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - host: vault.lepotato.local
+        paths:
+          - path: /
+            pathType: Prefix
+            service:
+              name: main
+              port: http
+    tls:
+      - secretName: vaultwarden-tls
+        hosts:
+          - vault.lepotato.local
+
+persistence:
+  data:
+    enabled: true
+    accessMode: ReadWriteOnce
+    size: 5Gi
+    mountPath: /data
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 64Mi
+

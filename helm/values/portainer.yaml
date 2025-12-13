@@ -1,0 +1,51 @@
+# Portainer via bjw-s/app-template
+
+controllers:
+  main:
+    replicas: 1
+    containers:
+      main:
+        image:
+          repository: portainer/portainer-ce
+          tag: latest
+        env:
+          - name: TZ
+            value: Europe/Berlin
+
+service:
+  main:
+    ports:
+      http:
+        port: 9000
+
+ingress:
+  main:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - host: portainer.lepotato.local
+        paths:
+          - path: /
+            pathType: Prefix
+            service:
+              name: main
+              port: http
+    tls:
+      - secretName: portainer-tls
+        hosts: [portainer.lepotato.local]
+
+persistence:
+  data:
+    enabled: true
+    size: 5Gi
+    accessMode: ReadWriteOnce
+    mountPath: /data
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 64Mi
+

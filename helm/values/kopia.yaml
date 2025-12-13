@@ -1,0 +1,110 @@
+# Kopia server via bjw-s/app-template
+
+controllers:
+  main:
+    replicas: 1
+    containers:
+      main:
+        image:
+          repository: kopia/kopia
+          tag: latest
+        args:
+          - server
+          - start
+          - --address=0.0.0.0:51515
+          - --tls-generate-cert
+          - --tls-generate-rsa-key-size=4096
+          - --server-username=$(KOPIA_SERVER_USER)
+          - --server-password=$(KOPIA_SERVER_PASSWORD)
+          - --log-level=info
+          - --file-log-level=debug
+          - --metrics-listen-addr=:51516
+        env:
+          - name: TZ
+            value: Europe/Berlin
+          - name: KOPIA_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: kopia-secrets
+                key: KOPIA_PASSWORD
+          - name: KOPIA_SERVER_USER
+            valueFrom:
+              secretKeyRef:
+                name: kopia-secrets
+                key: KOPIA_SERVER_USER
+          - name: KOPIA_SERVER_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: kopia-secrets
+                key: KOPIA_SERVER_PASSWORD
+          - name: KOPIA_CONFIG_PATH
+            value: /app/config/repository.config
+          - name: KOPIA_CACHE_DIRECTORY
+            value: /app/cache
+          - name: KOPIA_LOG_DIR
+            value: /app/logs
+          - name: KOPIA_PROMETHEUS_ENABLED
+            value: "true"
+          - name: KOPIA_PROMETHEUS_LISTEN_ADDR
+            value: :51516
+        securityContext:
+          capabilities:
+            drop: ["ALL"]
+          readOnlyRootFilesystem: false
+
+service:
+  main:
+    ports:
+      http:
+        port: 51515
+      metrics:
+        enabled: true
+        port: 51516
+
+ingress:
+  main:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - host: backup.lepotato.local
+        paths:
+          - path: /
+            pathType: Prefix
+            service:
+              name: main
+              port: http
+    tls:
+      - secretName: kopia-tls
+        hosts:
+          - backup.lepotato.local
+
+persistence:
+  repository:
+    enabled: true
+    size: 10Gi
+    accessMode: ReadWriteOnce
+    mountPath: /repository
+  app-config:
+    enabled: true
+    size: 1Gi
+    accessMode: ReadWriteOnce
+    mountPath: /app/config
+  app-cache:
+    enabled: true
+    size: 1Gi
+    accessMode: ReadWriteOnce
+    mountPath: /app/cache
+  app-logs:
+    enabled: true
+    size: 1Gi
+    accessMode: ReadWriteOnce
+    mountPath: /app/logs
+
+resources:
+  limits:
+    cpu: 1500m
+    memory: 384Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+

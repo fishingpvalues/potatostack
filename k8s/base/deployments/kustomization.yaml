@@ -2,15 +2,4 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - authelia.yaml
-  - fileserver.yaml
-  - gitea.yaml
-  - gluetun-vpn.yaml
-  - grafana.yaml
-  - immich.yaml
-  - kopia.yaml
-  - management-tools.yaml
-  - monitoring-exporters.yaml
-  - promtail.yaml
-  - seafile.yaml
   - unified-backups-cronjob.yaml
-  - vaultwarden.yaml
