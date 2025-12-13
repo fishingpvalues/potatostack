@@ -24,7 +24,9 @@
       "Bash(/bin/rm:*)",
       "Bash(cat:*)",
       "Bash(openssl genrsa:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "WebFetch(domain:kyverno.io)",
+      "WebFetch(domain:prometheus-community.github.io)"
     ],
     "deny": [],
     "ask": []

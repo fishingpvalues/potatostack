@@ -7,7 +7,7 @@
 
 **Location**: `k8s/base/operators/secret-generator.yaml`
 
-**Image**: `quay.io/mittwald/kubernetes-secret-generator:v3.4.0`
+**Image**: `quay.io/mittwald/kubernetes-secret-generator:v3.4.1`
 
 **Usage in Secrets** (`k8s/base/secrets/generated-secrets.yaml`):
 ```yaml
