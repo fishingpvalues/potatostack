@@ -1,0 +1,183 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: authelia
+  namespace: potatostack
+  labels:
+    app: authelia
+spec:
+  type: ClusterIP
+  ports:
+  - port: 9091
+    name: http
+  selector:
+    app: authelia
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authelia
+  namespace: potatostack
+  labels:
+    app: authelia
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: authelia
+  template:
+    metadata:
+      labels:
+        app: authelia
+    spec:
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: authelia
+        image: authelia/authelia:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9091
+          name: http
+        env:
+        - name: TZ
+          value: Europe/Berlin
+        - name: AUTHELIA_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: authelia-secrets
+              key: AUTHELIA_JWT_SECRET
+        - name: AUTHELIA_SESSION_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: authelia-secrets
+              key: AUTHELIA_SESSION_SECRET
+        - name: AUTHELIA_STORAGE_ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: authelia-secrets
+              key: AUTHELIA_STORAGE_ENCRYPTION_KEY
+        - name: AUTHELIA_IDENTITY_PROVIDERS_OIDC_HMAC_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: authelia-secrets
+              key: AUTHELIA_OIDC_HMAC_SECRET
+        - name: AUTHELIA_NOTIFIER_SMTP_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: email-credentials
+              key: ALERT_EMAIL_USER
+        - name: AUTHELIA_NOTIFIER_SMTP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: email-credentials
+              key: ALERT_EMAIL_PASSWORD
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: authelia-data
+          mountPath: /var/lib/authelia
+        resources:
+          requests:
+            cpu: 100m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 128Mi
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 9091
+          initialDelaySeconds: 20
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 9091
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+      volumes:
+      - name: config
+        configMap:
+          name: authelia-config
+      - name: authelia-data
+        persistentVolumeClaim:
+          claimName: authelia-data
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authelia-config
+  namespace: potatostack
+data:
+  configuration.yml: |
+    server:
+      host: 0.0.0.0
+      port: 9091
+
+    log:
+      level: info
+
+    theme: auto
+
+    totp:
+      issuer: authelia.lepotato.local
+      period: 30
+      skew: 1
+
+    authentication_backend:
+      file:
+        path: /config/users_database.yml
+
+    access_control:
+      default_policy: deny
+      rules:
+        - domain: "*.lepotato.local"
+          policy: one_factor
+
+    session:
+      name: authelia_session
+      domain: lepotato.local
+      expiration: 1h
+      inactivity: 5m
+      redis:
+        host: redis.potatostack.svc.cluster.local
+        port: 6379
+        database_index: 1
+
+    regulation:
+      max_retries: 3
+      find_time: 2m
+      ban_time: 5m
+
+    storage:
+      local:
+        path: /var/lib/authelia/db.sqlite3
+
+    notifier:
+      smtp:
+        host: smtp.gmail.com
+        port: 587
+        username: ${AUTHELIA_NOTIFIER_SMTP_USERNAME}
+        password: ${AUTHELIA_NOTIFIER_SMTP_PASSWORD}
+        sender: authelia@lepotato.local
+
+  users_database.yml: |
+    users:
+      admin:
+        displayname: "Admin User"
+        password: "$argon2id$v=19$m=65536,t=3,p=4$REPLACEME"
+        email: admin@lepotato.local
+        groups:
+          - admins

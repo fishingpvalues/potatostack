@@ -1,0 +1,91 @@
+---
+# Install Prometheus Operator via Helm (recommended):
+# helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+# helm install prometheus prometheus-community/kube-prometheus-stack \
+#   --namespace potatostack-monitoring \
+#   --values prometheus-values.yaml
+
+# This file defines the custom Prometheus and Grafana instances
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: potatostack
+  namespace: potatostack-monitoring
+  labels:
+    prometheus: potatostack
+spec:
+  replicas: 1
+  retention: 3d
+  resources:
+    requests:
+      cpu: 200m
+      memory: 128Mi
+    limits:
+      cpu: 750m
+      memory: 192Mi
+  serviceAccountName: prometheus
+  serviceMonitorSelector:
+    matchLabels:
+      monitoring: potatostack
+  podMonitorSelector:
+    matchLabels:
+      monitoring: potatostack
+  ruleSelector:
+    matchLabels:
+      monitoring: potatostack
+  alerting:
+    alertmanagers:
+    - namespace: potatostack-monitoring
+      name: alertmanager-potatostack
+      port: web
+  securityContext:
+    fsGroup: 2000
+    runAsNonRoot: true
+    runAsUser: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  storage:
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+---
+apiVersion: monitoring.coreos.com/v1
+kind: Alertmanager
+metadata:
+  name: potatostack
+  namespace: potatostack-monitoring
+  labels:
+    alertmanager: potatostack
+spec:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 128Mi
+  securityContext:
+    fsGroup: 2000
+    runAsNonRoot: true
+    runAsUser: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  storage:
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: potatostack-monitoring

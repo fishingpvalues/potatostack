@@ -1,0 +1,49 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-scripts
+  namespace: potatostack
+data:
+  01-init-databases.sh: |
+    #!/bin/bash
+    set -e
+
+    echo "Creating application databases and users..."
+
+    # Gitea
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+        CREATE DATABASE gitea;
+        CREATE USER gitea WITH ENCRYPTED PASSWORD '$GITEA_DB_PASSWORD';
+        GRANT ALL PRIVILEGES ON DATABASE gitea TO gitea;
+        ALTER DATABASE gitea OWNER TO gitea;
+    EOSQL
+
+    # Immich
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+        CREATE DATABASE immich;
+        CREATE USER immich WITH ENCRYPTED PASSWORD '$IMMICH_DB_PASSWORD';
+        GRANT ALL PRIVILEGES ON DATABASE immich TO immich;
+        ALTER DATABASE immich OWNER TO immich;
+    EOSQL
+
+    # Enable vector extension for Immich
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "immich" <<-EOSQL
+        CREATE EXTENSION IF NOT EXISTS vectors;
+    EOSQL
+
+    # Seafile
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+        CREATE DATABASE ccnet_db;
+        CREATE DATABASE seafile_db;
+        CREATE DATABASE seahub_db;
+        CREATE USER seafile WITH ENCRYPTED PASSWORD '$SEAFILE_DB_PASSWORD';
+        GRANT ALL PRIVILEGES ON DATABASE ccnet_db TO seafile;
+        GRANT ALL PRIVILEGES ON DATABASE seafile_db TO seafile;
+        GRANT ALL PRIVILEGES ON DATABASE seahub_db TO seafile;
+        ALTER DATABASE ccnet_db OWNER TO seafile;
+        ALTER DATABASE seafile_db OWNER TO seafile;
+        ALTER DATABASE seahub_db OWNER TO seafile;
+    EOSQL
+
+    echo "Database initialization complete!"

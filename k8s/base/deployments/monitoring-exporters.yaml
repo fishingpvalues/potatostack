@@ -1,0 +1,534 @@
+---
+# cAdvisor - Container metrics
+apiVersion: v1
+kind: Service
+metadata:
+  name: cadvisor
+  namespace: potatostack-monitoring
+  labels:
+    app: cadvisor
+spec:
+  ports:
+  - port: 8080
+    name: http
+  selector:
+    app: cadvisor
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cadvisor
+  namespace: potatostack-monitoring
+  labels:
+    app: cadvisor
+spec:
+  selector:
+    matchLabels:
+      app: cadvisor
+  template:
+    metadata:
+      labels:
+        app: cadvisor
+    spec:
+      securityContext:
+        runAsUser: 0
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: cadvisor
+        image: gcr.io/cadvisor/cadvisor:latest
+        imagePullPolicy: IfNotPresent
+        args:
+        - --docker_only=true
+        - --housekeeping_interval=15s
+        - --max_housekeeping_interval=1m
+        - --store_container_labels=false
+        - --disable_metrics=advtcp,sched,hugetlb,percpu,process
+        ports:
+        - containerPort: 8080
+          name: http
+        volumeMounts:
+        - name: rootfs
+          mountPath: /rootfs
+          readOnly: true
+        - name: var-run
+          mountPath: /var/run
+          readOnly: true
+        - name: sys
+          mountPath: /sys
+          readOnly: true
+        - name: docker
+          mountPath: /var/lib/docker
+          readOnly: true
+        - name: disk
+          mountPath: /dev/disk
+          readOnly: true
+        - name: kmsg
+          mountPath: /dev/kmsg
+          readOnly: true
+        resources:
+          requests:
+            cpu: 100m
+            memory: 32Mi
+          limits:
+            cpu: 500m
+            memory: 64Mi
+        securityContext:
+          privileged: true
+      volumes:
+      - name: rootfs
+        hostPath:
+          path: /
+      - name: var-run
+        hostPath:
+          path: /var/run
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: docker
+        hostPath:
+          path: /var/lib/docker
+      - name: disk
+        hostPath:
+          path: /dev/disk
+      - name: kmsg
+        hostPath:
+          path: /dev/kmsg
+---
+# Node Exporter + SMART + Swap Management
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-exporter
+  namespace: potatostack-monitoring
+  labels:
+    app: node-exporter
+spec:
+  ports:
+  - port: 9100
+    name: metrics
+  - port: 9633
+    name: smartctl
+  selector:
+    app: node-exporter
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-exporter
+  namespace: potatostack-monitoring
+  labels:
+    app: node-exporter
+spec:
+  selector:
+    matchLabels:
+      app: node-exporter
+  template:
+    metadata:
+      labels:
+        app: node-exporter
+    spec:
+      hostNetwork: true
+      hostPID: true
+      securityContext:
+        runAsUser: 0
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+      - name: setup-swap
+        image: alpine:latest
+        command:
+        - sh
+        - -c
+        - |
+          apk add --no-cache util-linux
+          if [ ! -f /mnt/cachehdd/swapfile ]; then
+            echo '[Swap] Creating 5GB swap file...'
+            dd if=/dev/zero of=/mnt/cachehdd/swapfile bs=1M count=5120
+            chmod 600 /mnt/cachehdd/swapfile
+            mkswap /mnt/cachehdd/swapfile
+          fi
+          if ! swapon --show | grep -q '/mnt/cachehdd/swapfile'; then
+            echo '[Swap] Enabling swap...'
+            swapon /mnt/cachehdd/swapfile
+          fi
+        volumeMounts:
+        - name: cache-hdd
+          mountPath: /mnt/cachehdd
+        securityContext:
+          privileged: true
+      containers:
+      - name: node-exporter
+        image: prom/node-exporter:v1.7.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - --path.procfs=/host/proc
+        - --path.sysfs=/host/sys
+        - --path.rootfs=/rootfs
+        - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+        ports:
+        - containerPort: 9100
+          name: metrics
+        volumeMounts:
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: sys
+          mountPath: /host/sys
+          readOnly: true
+        - name: rootfs
+          mountPath: /rootfs
+          readOnly: true
+        resources:
+          requests:
+            cpu: 50m
+            memory: 32Mi
+          limits:
+            cpu: 500m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+      - name: smartctl-exporter
+        image: prometheuscommunity/smartctl-exporter:v0.12.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - --web.listen-address=:9633
+        ports:
+        - containerPort: 9633
+          name: smartctl
+        resources:
+          requests:
+            cpu: 50m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 64Mi
+        securityContext:
+          privileged: true
+      volumes:
+      - name: proc
+        hostPath:
+          path: /proc
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: rootfs
+        hostPath:
+          path: /
+      - name: cache-hdd
+        hostPath:
+          path: /mnt/cachehdd
+---
+# Blackbox Exporter
+apiVersion: v1
+kind: Service
+metadata:
+  name: blackbox-exporter
+  namespace: potatostack-monitoring
+  labels:
+    app: blackbox-exporter
+spec:
+  ports:
+  - port: 9115
+    name: http
+  selector:
+    app: blackbox-exporter
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blackbox-exporter
+  namespace: potatostack-monitoring
+  labels:
+    app: blackbox-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blackbox-exporter
+  template:
+    metadata:
+      labels:
+        app: blackbox-exporter
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: blackbox-exporter
+        image: prom/blackbox-exporter:latest
+        imagePullPolicy: IfNotPresent
+        args:
+        - --config.file=/config/blackbox.yml
+        ports:
+        - containerPort: 9115
+          name: http
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        resources:
+          requests:
+            cpu: 50m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 64Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 9115
+          initialDelaySeconds: 20
+          periodSeconds: 30
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+      volumes:
+      - name: config
+        configMap:
+          name: blackbox-exporter-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: blackbox-exporter-config
+  namespace: potatostack-monitoring
+data:
+  blackbox.yml: |
+    modules:
+      http_2xx:
+        prober: http
+        timeout: 5s
+        http:
+          valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+          valid_status_codes: []
+          method: GET
+          follow_redirects: true
+          preferred_ip_protocol: "ip4"
+      tcp_connect:
+        prober: tcp
+        timeout: 5s
+---
+# Speedtest Exporter
+apiVersion: v1
+kind: Service
+metadata:
+  name: speedtest-exporter
+  namespace: potatostack-monitoring
+  labels:
+    app: speedtest-exporter
+spec:
+  ports:
+  - port: 9798
+    name: metrics
+  selector:
+    app: speedtest-exporter
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: speedtest-exporter
+  namespace: potatostack-monitoring
+  labels:
+    app: speedtest-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: speedtest-exporter
+  template:
+    metadata:
+      labels:
+        app: speedtest-exporter
+    spec:
+      containers:
+      - name: speedtest-exporter
+        image: miguelndecarvalho/speedtest-exporter:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: SPEEDTEST_INTERVAL
+          value: "3600"
+        ports:
+        - containerPort: 9798
+          name: metrics
+        resources:
+          requests:
+            cpu: 100m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 128Mi
+---
+# FritzBox Exporter
+apiVersion: v1
+kind: Service
+metadata:
+  name: fritzbox-exporter
+  namespace: potatostack-monitoring
+  labels:
+    app: fritzbox-exporter
+spec:
+  ports:
+  - port: 9042
+    name: metrics
+  selector:
+    app: fritzbox-exporter
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fritzbox-exporter
+  namespace: potatostack-monitoring
+  labels:
+    app: fritzbox-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fritzbox-exporter
+  template:
+    metadata:
+      labels:
+        app: fritzbox-exporter
+    spec:
+      containers:
+      - name: fritzbox-exporter
+        image: pdreker/fritz_exporter:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: FRITZ_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: fritzbox-credentials
+              key: username
+              optional: true
+        - name: FRITZ_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: fritzbox-credentials
+              key: password
+              optional: true
+        - name: FRITZ_HOSTNAME
+          value: fritz.box
+        - name: FRITZ_PORT
+          value: "49000"
+        - name: FRITZ_PROTOCOL
+          value: https
+        ports:
+        - containerPort: 9042
+          name: metrics
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+---
+# Netdata
+apiVersion: v1
+kind: Service
+metadata:
+  name: netdata
+  namespace: potatostack-monitoring
+  labels:
+    app: netdata
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 19999
+    name: http
+  selector:
+    app: netdata
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: netdata
+  namespace: potatostack-monitoring
+  labels:
+    app: netdata
+spec:
+  selector:
+    matchLabels:
+      app: netdata
+  template:
+    metadata:
+      labels:
+        app: netdata
+    spec:
+      hostNetwork: true
+      hostPID: true
+      securityContext:
+        runAsUser: 0
+      containers:
+      - name: netdata
+        image: netdata/netdata:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: DOCKER_HOST
+          value: /var/run/docker.sock
+        - name: NETDATA_CLAIM_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: netdata-claim
+              key: token
+              optional: true
+        - name: NETDATA_CLAIM_URL
+          value: https://app.netdata.cloud
+        ports:
+        - containerPort: 19999
+          name: http
+        volumeMounts:
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: sys
+          mountPath: /host/sys
+          readOnly: true
+        - name: docker-sock
+          mountPath: /var/run/docker.sock
+          readOnly: true
+        - name: passwd
+          mountPath: /host/etc/passwd
+          readOnly: true
+        - name: group
+          mountPath: /host/etc/group
+          readOnly: true
+        resources:
+          requests:
+            cpu: 200m
+            memory: 128Mi
+          limits:
+            cpu: 1000m
+            memory: 256Mi
+        securityContext:
+          capabilities:
+            add:
+            - SYS_PTRACE
+            - SYS_ADMIN
+          privileged: true
+      volumes:
+      - name: proc
+        hostPath:
+          path: /proc
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: docker-sock
+        hostPath:
+          path: /var/run/docker.sock
+      - name: passwd
+        hostPath:
+          path: /etc/passwd
+      - name: group
+        hostPath:
+          path: /etc/group

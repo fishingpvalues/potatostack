@@ -1,0 +1,332 @@
+---
+# Portainer
+apiVersion: v1
+kind: Service
+metadata:
+  name: portainer
+  namespace: potatostack
+  labels:
+    app: portainer
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 9000
+    name: http
+  - port: 9443
+    name: https
+  selector:
+    app: portainer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portainer
+  namespace: potatostack
+  labels:
+    app: portainer
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: portainer
+  template:
+    metadata:
+      labels:
+        app: portainer
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: portainer
+        image: portainer/portainer-ce:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9000
+          name: http
+        - containerPort: 9443
+          name: https
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: docker-sock
+          mountPath: /var/run/docker.sock
+          readOnly: true
+        resources:
+          requests:
+            cpu: 100m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: portainer-data
+      - name: docker-sock
+        hostPath:
+          path: /var/run/docker.sock
+---
+# Uptime Kuma
+apiVersion: v1
+kind: Service
+metadata:
+  name: uptime-kuma
+  namespace: potatostack
+  labels:
+    app: uptime-kuma
+spec:
+  type: ClusterIP
+  ports:
+  - port: 3001
+    name: http
+  selector:
+    app: uptime-kuma
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: uptime-kuma
+  namespace: potatostack
+  labels:
+    app: uptime-kuma
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: uptime-kuma
+  template:
+    metadata:
+      labels:
+        app: uptime-kuma
+    spec:
+      containers:
+      - name: uptime-kuma
+        image: louislam/uptime-kuma:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3001
+          name: http
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+        - name: docker-sock
+          mountPath: /var/run/docker.sock
+          readOnly: true
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: uptime-kuma-data
+      - name: docker-sock
+        hostPath:
+          path: /var/run/docker.sock
+---
+# Dozzle
+apiVersion: v1
+kind: Service
+metadata:
+  name: dozzle
+  namespace: potatostack-monitoring
+  labels:
+    app: dozzle
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    name: http
+  selector:
+    app: dozzle
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dozzle
+  namespace: potatostack-monitoring
+  labels:
+    app: dozzle
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dozzle
+  template:
+    metadata:
+      labels:
+        app: dozzle
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: dozzle
+        image: amir20/dozzle:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: DOZZLE_LEVEL
+          value: info
+        - name: DOZZLE_TAILSIZE
+          value: "300"
+        - name: DOZZLE_FILTER
+          value: status=running
+        ports:
+        - containerPort: 8080
+          name: http
+        volumeMounts:
+        - name: docker-sock
+          mountPath: /var/run/docker.sock
+          readOnly: true
+        resources:
+          requests:
+            cpu: 50m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+      volumes:
+      - name: docker-sock
+        hostPath:
+          path: /var/run/docker.sock
+---
+# Homepage Dashboard
+apiVersion: v1
+kind: Service
+metadata:
+  name: homepage
+  namespace: potatostack
+  labels:
+    app: homepage
+spec:
+  type: ClusterIP
+  ports:
+  - port: 3000
+    name: http
+  selector:
+    app: homepage
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homepage
+  namespace: potatostack
+  labels:
+    app: homepage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: homepage
+  template:
+    metadata:
+      labels:
+        app: homepage
+    spec:
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: homepage
+        image: ghcr.io/gethomepage/homepage:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: TZ
+          value: Europe/Berlin
+        - name: HOMEPAGE_VAR_QBITTORRENT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: homepage-vars
+              key: qbittorrent-password
+              optional: true
+        - name: HOMEPAGE_VAR_PORTAINER_KEY
+          valueFrom:
+            secretKeyRef:
+              name: homepage-vars
+              key: portainer-key
+              optional: true
+        - name: HOMEPAGE_VAR_GITEA_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: homepage-vars
+              key: gitea-token
+              optional: true
+        - name: HOMEPAGE_VAR_GRAFANA_USER
+          valueFrom:
+            secretKeyRef:
+              name: homepage-vars
+              key: grafana-user
+              optional: true
+        - name: HOMEPAGE_VAR_GRAFANA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: homepage-vars
+              key: grafana-password
+              optional: true
+        ports:
+        - containerPort: 3000
+          name: http
+        volumeMounts:
+        - name: config
+          mountPath: /app/config
+        - name: docker-sock
+          mountPath: /var/run/docker.sock
+          readOnly: true
+        resources:
+          requests:
+            cpu: 100m
+            memory: 96Mi
+          limits:
+            cpu: 750m
+            memory: 192Mi
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+      volumes:
+      - name: config
+        configMap:
+          name: homepage-config
+      - name: docker-sock
+        hostPath:
+          path: /var/run/docker.sock

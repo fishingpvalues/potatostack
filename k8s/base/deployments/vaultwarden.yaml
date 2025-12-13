@@ -1,0 +1,110 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vaultwarden
+  namespace: potatostack
+  labels:
+    app: vaultwarden
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 80
+    name: http
+  - port: 3012
+    targetPort: 3012
+    name: websocket
+  selector:
+    app: vaultwarden
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vaultwarden
+  namespace: potatostack
+  labels:
+    app: vaultwarden
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: vaultwarden
+  template:
+    metadata:
+      labels:
+        app: vaultwarden
+    spec:
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: vaultwarden
+        image: vaultwarden/server:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+          name: http
+        - containerPort: 3012
+          name: websocket
+        env:
+        - name: DOMAIN
+          value: https://vaultwarden.lepotato.local
+        - name: ROCKET_PORT
+          value: "80"
+        - name: WEBSOCKET_ENABLED
+          value: "true"
+        - name: WEBSOCKET_PORT
+          value: "3012"
+        - name: SIGNUPS_ALLOWED
+          value: "false"
+        - name: INVITATIONS_ALLOWED
+          value: "true"
+        - name: SHOW_PASSWORD_HINT
+          value: "false"
+        - name: ADMIN_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: vaultwarden-secrets
+              key: VAULTWARDEN_ADMIN_TOKEN
+        - name: LOG_LEVEL
+          value: info
+        - name: DATABASE_URL
+          value: /data/db.sqlite3
+        volumeMounts:
+        - name: vaultwarden-data
+          mountPath: /data
+        resources:
+          requests:
+            cpu: 100m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 128Mi
+        livenessProbe:
+          httpGet:
+            path: /alive
+            port: 80
+          initialDelaySeconds: 20
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /alive
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+      volumes:
+      - name: vaultwarden-data
+        persistentVolumeClaim:
+          claimName: vaultwarden-data

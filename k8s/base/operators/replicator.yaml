@@ -1,0 +1,76 @@
+---
+# Install kubernetes-replicator
+# https://github.com/mittwald/kubernetes-replicator
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: replicator
+  namespace: potatostack-operators
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: replicator
+rules:
+  - apiGroups: [""]
+    resources: ["secrets", "configmaps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: replicator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: replicator
+subjects:
+  - kind: ServiceAccount
+    name: replicator
+    namespace: potatostack-operators
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: replicator
+  namespace: potatostack-operators
+  labels:
+    app: replicator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: replicator
+  template:
+    metadata:
+      labels:
+        app: replicator
+    spec:
+      serviceAccountName: replicator
+      containers:
+      - name: replicator
+        image: quay.io/mittwald/kubernetes-replicator:v2.9.2
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          seccompProfile:
+            type: RuntimeDefault

@@ -23,7 +23,8 @@
       "Bash(lsof:*)",
       "Bash(/bin/rm:*)",
       "Bash(cat:*)",
-      "Bash(openssl genrsa:*)"
+      "Bash(openssl genrsa:*)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []
