@@ -1,0 +1,42 @@
+# Prometheus Blackbox Exporter (official chart)
+
+fullnameOverride: blackbox
+
+config: |
+  modules:
+    http_2xx:
+      prober: http
+      timeout: 5s
+      http:
+        valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+        follow_redirects: true
+        preferred_ip_protocol: ip4
+
+serviceMonitor:
+  enabled: true
+  defaults:
+    interval: 60s
+    scrapeTimeout: 30s
+    module: http_2xx
+  targets:
+    - name: grafana
+      url: https://grafana.lepotato.local
+    - name: argocd
+      url: https://argocd.lepotato.local
+    - name: gitea
+      url: https://git.lepotato.local
+    - name: vaultwarden
+      url: https://vault.lepotato.local
+    - name: immich
+      url: https://photos.lepotato.local
+    - name: homepage
+      url: https://dashboard.lepotato.local
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 32Mi
+  limits:
+    cpu: 250m
+    memory: 96Mi
+

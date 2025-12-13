@@ -1,0 +1,89 @@
+# Seafile via bjw-s/app-template
+
+controllers:
+  main:
+    replicas: 1
+    containers:
+      main:
+        image:
+          repository: seafileltd/seafile-mc
+          tag: latest
+        env:
+          - name: DB_HOST
+            value: postgres
+          - name: DB_PORT
+            value: "5432"
+          - name: DB_USER
+            value: seafile
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: seafile-secrets
+                key: SEAFILE_DB_PASSWORD
+          - name: CCNET_DB
+            value: ccnet_db
+          - name: SEAFILE_DB
+            value: seafile_db
+          - name: SEAHUB_DB
+            value: seahub_db
+          - name: SEAFILE_ADMIN_EMAIL
+            valueFrom:
+              secretKeyRef:
+                name: seafile-secrets
+                key: SEAFILE_ADMIN_EMAIL
+          - name: SEAFILE_ADMIN_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: seafile-secrets
+                key: SEAFILE_ADMIN_PASSWORD
+          - name: SEAFILE_SERVER_LETSENCRYPT
+            value: "false"
+          - name: SEAFILE_SERVER_HOSTNAME
+            value: seafile.lepotato.local
+          - name: TIME_ZONE
+            value: Europe/Berlin
+          - name: REDIS_HOST
+            value: redis
+          - name: REDIS_PORT
+            value: "6379"
+          - name: REDIS_DB
+            value: "6"
+
+service:
+  main:
+    ports:
+      http:
+        port: 80
+
+ingress:
+  main:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - host: files.lepotato.local
+        paths:
+          - path: /
+            pathType: Prefix
+            service:
+              name: main
+              port: http
+    tls:
+      - secretName: seafile-tls
+        hosts:
+          - files.lepotato.local
+
+persistence:
+  shared:
+    enabled: true
+    accessMode: ReadWriteOnce
+    size: 50Gi
+    mountPath: /shared
+
+resources:
+  limits:
+    cpu: 1
+    memory: 384Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+

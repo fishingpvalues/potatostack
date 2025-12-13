@@ -1,0 +1,48 @@
+# Fritz!Box Exporter (app-template)
+
+controllers:
+  main:
+    replicas: 1
+    containers:
+      main:
+        image:
+          repository: pdreker/fritz_exporter
+          tag: latest
+        env:
+          - name: FRITZ_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: fritzbox-secrets
+                key: FRITZ_USERNAME
+          - name: FRITZ_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: fritzbox-secrets
+                key: FRITZ_PASSWORD
+          - name: FRITZ_HOSTNAME
+            value: fritz.box
+          - name: FRITZ_PORT
+            value: "49000"
+          - name: FRITZ_PROTOCOL
+            value: https
+          - name: FRITZ_DEVICE_NAME
+            value: fritzbox-7530
+
+service:
+  main:
+    ports:
+      http:
+        port: 9042
+
+ingress:
+  main:
+    enabled: false
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 250m
+    memory: 128Mi
+

@@ -1,0 +1,134 @@
+# Unified Fileserver (Samba + SFTP + Filebrowser) via app-template
+
+controllers:
+  main:
+    replicas: 1
+    containers:
+      main:
+        image:
+          repository: alpine
+          tag: latest
+        command:
+          - sh
+          - -c
+          - |
+            set -e; 
+            echo '[FileServer] Installing packages...';
+            apk add --no-cache samba samba-common-tools openssh-server wget;
+
+            echo '[FileServer] Configuring Samba...';
+            mkdir -p /var/lib/samba /run/samba;
+            (echo "$SAMBA_PASSWORD"; echo "$SAMBA_PASSWORD") | smbpasswd -a -s "$SAMBA_USER" 2>/dev/null || adduser -D "$SAMBA_USER" && (echo "$SAMBA_PASSWORD"; echo "$SAMBA_PASSWORD") | smbpasswd -a -s "$SAMBA_USER";
+            cat > /etc/samba/smb.conf <<'SMBEOF'
+            [global]
+            workgroup = WORKGROUP
+            server string = PotatoStack FileServer
+            security = user
+            map to guest = Bad User
+            log level = 1
+
+            [seconddrive]
+            path = /data
+            browseable = yes
+            writable = yes
+            valid users = files
+            create mask = 0644
+            directory mask = 0755
+            SMBEOF
+
+            echo '[FileServer] Configuring SFTP...';
+            ssh-keygen -A;
+            mkdir -p /config/ssh;
+            if [ -f /config/ssh/authorized_keys ]; then
+              mkdir -p /home/$SFTP_USER/.ssh;
+              cp /config/ssh/authorized_keys /home/$SFTP_USER/.ssh/;
+              chown -R $SFTP_USER:$SFTP_USER /home/$SFTP_USER/.ssh;
+              chmod 700 /home/$SFTP_USER/.ssh;
+              chmod 600 /home/$SFTP_USER/.ssh/authorized_keys;
+            fi;
+
+            echo '[FileServer] Downloading Filebrowser...';
+            wget -qO /tmp/filebrowser.tar.gz https://github.com/filebrowser/filebrowser/releases/download/v2.27.0/linux-arm64-filebrowser.tar.gz;
+            tar -xzf /tmp/filebrowser.tar.gz -C /usr/local/bin;
+            chmod +x /usr/local/bin/filebrowser;
+
+            echo '[FileServer] Starting services...';
+            smbd -D --no-process-group;
+            nmbd -D;
+            /usr/sbin/sshd -D -e -p 22 &
+            /usr/local/bin/filebrowser --address 0.0.0.0 --port 8087 --database /filebrowser-db/filebrowser.db --root /data &
+            echo '[FileServer] All services running';
+            wait
+        env:
+          - name: TZ
+            value: Europe/Berlin
+          - name: SAMBA_USER
+            value: files
+          - name: SAMBA_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: fileserver-secrets
+                key: SAMBA_PASSWORD
+          - name: SFTP_USER
+            value: files
+
+service:
+  main:
+    ports:
+      smb445:
+        port: 445
+        targetPort: 445
+      smb139:
+        port: 139
+        targetPort: 139
+      sftp:
+        port: 2223
+        targetPort: 22
+      filebrowser:
+        port: 8087
+        targetPort: 8087
+
+ingress:
+  filebrowser:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - host: fileserver.lepotato.local
+        paths:
+          - path: /
+            pathType: Prefix
+            service:
+              name: main
+              port: filebrowser
+    tls:
+      - secretName: fileserver-tls
+        hosts: [fileserver.lepotato.local]
+
+persistence:
+  data:
+    enabled: true
+    accessMode: ReadWriteOnce
+    size: 100Gi
+    mountPath: /data
+  ssh:
+    enabled: true
+    type: configMap
+    name: fileserver-ssh-config
+    defaultMode: 0644
+    subPath:
+      - path: authorized_keys
+        mountPath: /config/ssh/authorized_keys
+  db:
+    enabled: true
+    accessMode: ReadWriteOnce
+    size: 1Gi
+    mountPath: /filebrowser-db
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 128Mi
+  limits:
+    cpu: 750m
+    memory: 256Mi
+

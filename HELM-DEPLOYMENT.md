@@ -21,6 +21,9 @@ make stack-up
 ✅ **Kyverno** v3.6.1 - Kubernetes-native policy engine
 ✅ **Gitea** v12.4.0 - Self-hosted Git with PostgreSQL + Valkey
 ✅ **kubernetes-secret-generator** v3.4.1 - Automatic secret generation
+✅ **Blackbox Exporter** - External endpoint probes (Prometheus)
+✅ **Netdata** - Realtime node + app monitoring (optional)
+✅ **Vaultwarden / Immich / Seafile / Kopia / Gluetun stack / Uptime Kuma / Homepage / Portainer / Dozzle / Fileserver** via app-template
 
 ### Kustomize-Managed Workloads
 
@@ -66,8 +69,11 @@ make helm-install-monitoring
 # 4. Install ArgoCD for GitOps
 make helm-install-argocd
 
-# 5. Deploy application workloads
-kubectl apply -k k8s/base
+# 5. Install shared datastores (Redis)
+make helm-install-datastores
+
+# 6. Install application workloads via Helm
+make helm-install-apps
 ```
 
 ### Option 3: Manual Helm Install
@@ -80,6 +86,12 @@ helm repo add argo https://argoproj.github.io/argo-helm
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 helm repo add kyverno https://kyverno.github.io/kyverno/
 helm repo add mittwald https://helm.mittwald.de
+helm repo add bjw-s https://bjw-s.github.io/helm-charts
+helm repo add gethomepage https://gethomepage.github.io/homepage/
+helm repo add portainer https://portainer.github.io/k8s/
+helm repo add dozzle https://amir20.github.io/dozzle/
+helm repo add netdata https://netdata.github.io/helmchart/
+helm repo add authelia https://charts.authelia.com
 helm repo update
 
 # Install cert-manager
@@ -113,6 +125,56 @@ helm install argocd argo/argo-cd \
 helm install kyverno kyverno/kyverno \
   --namespace kyverno --create-namespace \
   -f helm/values/kyverno.yaml
+
+# Install Redis (shared cache)
+helm install redis bitnami/redis \
+  --namespace potatostack --create-namespace \
+  -f helm/values/redis.yaml
+
+# Install Vaultwarden
+helm install vaultwarden bjw-s/app-template \
+  --namespace potatostack \
+  -f helm/values/vaultwarden.yaml
+
+# Install Immich (server + microservices)
+helm install immich bjw-s/app-template \
+  --namespace potatostack \
+  -f helm/values/immich.yaml
+
+# Install Seafile
+helm install seafile bjw-s/app-template \
+  --namespace potatostack \
+  -f helm/values/seafile.yaml
+
+# Install Kopia
+helm install kopia bjw-s/app-template \
+  --namespace potatostack \
+  -f helm/values/kopia.yaml
+
+# Install Gluetun stack (gluetun + qBittorrent + slskd sidecars)
+helm install gluetun-stack bjw-s/app-template \
+  --namespace potatostack \
+  -f helm/values/gluetun-stack.yaml
+
+# Install Uptime Kuma
+helm install uptime-kuma bjw-s/app-template \
+  --namespace potatostack \
+  -f helm/values/uptime-kuma.yaml
+
+# Install Homepage
+helm install homepage gethomepage/homepage \
+  --namespace potatostack \
+  -f helm/values/homepage.yaml
+
+# Install Portainer
+helm install portainer portainer/portainer \
+  --namespace potatostack \
+  -f helm/values/portainer.yaml
+
+# Install Dozzle
+helm install dozzle dozzle/dozzle \
+  --namespace potatostack \
+  -f helm/values/dozzle.yaml
 ```
 
 ## 🎯 Architecture Highlights
@@ -237,6 +299,16 @@ make k8s-clean            # Remove K8s resources
 │       ├── ingress-nginx.yaml
 │       ├── kyverno.yaml
 │       └── gitea.yaml
+│       ├── redis.yaml
+│       ├── vaultwarden.yaml
+│       ├── immich.yaml
+│       ├── seafile.yaml
+│       ├── kopia.yaml
+│       ├── gluetun-stack.yaml
+│       ├── uptime-kuma.yaml
+│       ├── homepage.yaml
+│       ├── portainer.yaml
+│       └── dozzle.yaml
 ├── k8s/
 │   ├── base/                   # Base Kustomize manifests
 │   ├── overlays/production/    # Production overlays
@@ -335,3 +407,24 @@ kubectl describe certificate <cert-name> -n <namespace>
 - [Kyverno Helm chart](https://kyverno.io/docs/installation/)
 - [Bitnami PostgreSQL](https://artifacthub.io/packages/helm/bitnami/postgresql)
 - [kubernetes-secret-generator](https://github.com/mittwald/kubernetes-secret-generator)
+# Install Blackbox Exporter
+helm install blackbox prometheus-community/prometheus-blackbox-exporter \
+  -n potatostack-monitoring -f helm/values/blackbox-exporter.yaml
+
+# Install Netdata (optional)
+helm install netdata netdata/netdata \
+  -n potatostack-monitoring -f helm/values/netdata.yaml
+# Install Fileserver (Samba + SFTP + Filebrowser)
+helm install fileserver bjw-s/app-template \
+  --namespace potatostack \
+  -f helm/values/fileserver.yaml
+
+# Install Speedtest Exporter
+helm install speedtest-exporter bjw-s/app-template \
+  -n potatostack-monitoring \
+  -f helm/values/speedtest-exporter.yaml
+
+# Install Fritz!Box Exporter
+helm install fritzbox-exporter bjw-s/app-template \
+  -n potatostack-monitoring \
+  -f helm/values/fritzbox-exporter.yaml

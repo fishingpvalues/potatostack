@@ -4,6 +4,3 @@ resources:
   - cert-manager.yaml
   - cert-manager-app.yaml
   - kyverno.yaml
-  - prometheus-operator.yaml
-  - replicator.yaml
-  - secret-generator.yaml

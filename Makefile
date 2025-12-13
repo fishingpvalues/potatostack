@@ -262,6 +262,12 @@ helm-repos:
 	@helm repo add kyverno https://kyverno.github.io/kyverno/
 	@helm repo add mittwald https://helm.mittwald.de
 	@helm repo add bitnami https://charts.bitnami.com/bitnami
+	@helm repo add authelia https://charts.authelia.com
+	@helm repo add netdata https://netdata.github.io/helmchart/
+	@helm repo add bjw-s https://bjw-s.github.io/helm-charts
+	@helm repo add gethomepage https://gethomepage.github.io/homepage/
+	@helm repo add portainer https://portainer.github.io/k8s/
+	@helm repo add dozzle https://amir20.github.io/dozzle/
 	@helm repo update
 	@echo "Helm repositories added and updated!"
 
@@ -282,6 +288,8 @@ helm-install-operators:
 		--namespace kube-system \
 		--set secretLength=32 \
 		--set watchNamespace="" --wait
+	@helm upgrade --install kubernetes-replicator mittwald/kubernetes-replicator \
+		--namespace kube-system --wait
 	@echo "Operators installed successfully!"
 
 helm-install-monitoring:
@@ -292,6 +300,12 @@ helm-install-monitoring:
 	@helm upgrade --install loki grafana/loki-stack \
 		--namespace potatostack-monitoring \
 		-f helm/values/loki-stack.yaml --wait
+	@helm upgrade --install blackbox prometheus-community/prometheus-blackbox-exporter \
+		--namespace potatostack-monitoring \
+		-f helm/values/blackbox-exporter.yaml --wait
+	@helm upgrade --install netdata netdata/netdata \
+		--namespace potatostack-monitoring \
+		-f helm/values/netdata.yaml --wait || true
 	@echo "Monitoring stack installed successfully!"
 
 helm-install-argocd:
@@ -315,10 +329,10 @@ helm-install-all:
 	@make helm-install-operators
 	@make helm-install-monitoring
 	@make helm-install-argocd
+	@make helm-install-datastores
+	@make helm-install-apps
 	@echo "Waiting for operators to be ready..."
 	@sleep 30
-	@echo "Installing application workloads..."
-	@kubectl apply -k k8s/base
 	@echo "Complete stack installed successfully!"
 
 helm-uninstall-all:
@@ -331,6 +345,21 @@ helm-uninstall-all:
 	@helm uninstall ingress-nginx -n ingress-nginx --ignore-not-found
 	@helm uninstall cert-manager -n cert-manager --ignore-not-found
 	@helm uninstall kubernetes-secret-generator -n kube-system --ignore-not-found
+	@helm uninstall redis -n potatostack --ignore-not-found
+	@helm uninstall vaultwarden -n potatostack --ignore-not-found
+	@helm uninstall immich -n potatostack --ignore-not-found
+	@helm uninstall seafile -n potatostack --ignore-not-found
+	@helm uninstall kopia -n potatostack --ignore-not-found
+	@helm uninstall gluetun-stack -n potatostack --ignore-not-found
+	@helm uninstall uptime-kuma -n potatostack --ignore-not-found
+	@helm uninstall homepage -n potatostack --ignore-not-found
+	@helm uninstall portainer -n potatostack --ignore-not-found
+	@helm uninstall dozzle -n potatostack --ignore-not-found
+	@helm uninstall fileserver -n potatostack --ignore-not-found
+	@helm uninstall speedtest-exporter -n potatostack-monitoring --ignore-not-found
+	@helm uninstall fritzbox-exporter -n potatostack-monitoring --ignore-not-found
+	@helm uninstall blackbox -n potatostack-monitoring --ignore-not-found
+	@helm uninstall netdata -n potatostack-monitoring --ignore-not-found
 	@echo "All Helm releases uninstalled!"
 
 helm-list:
@@ -349,6 +378,59 @@ stack-up:
 	@echo "✅ PotatoStack is ready!"
 	@echo "📊 Access Grafana: make k8s-port-forward-grafana"
 	@echo "🔧 Access ArgoCD: make k8s-port-forward-argocd"
+
+## ========================================
+## Additional Helm: Datastores & Apps
+## ========================================
+
+# Datastores first to satisfy dependencies
+helm-install-datastores:
+	@echo "Installing shared datastores via Helm..."
+	@helm upgrade --install redis bitnami/redis \
+		--namespace potatostack --create-namespace \
+		-f helm/values/redis.yaml --wait
+	@echo "Datastores installed!"
+
+# App workloads via Helm (community charts)
+helm-install-apps:
+	@echo "Installing application workloads via Helm..."
+	@helm upgrade --install vaultwarden bjw-s/app-template \
+		--namespace potatostack --create-namespace \
+		-f helm/values/vaultwarden.yaml --wait
+	@helm upgrade --install immich bjw-s/app-template \
+		--namespace potatostack \
+		-f helm/values/immich.yaml --wait
+	@helm upgrade --install seafile bjw-s/app-template \
+		--namespace potatostack \
+		-f helm/values/seafile.yaml --wait
+	@helm upgrade --install kopia bjw-s/app-template \
+		--namespace potatostack \
+		-f helm/values/kopia.yaml --wait
+	@helm upgrade --install gluetun-stack bjw-s/app-template \
+		--namespace potatostack \
+		-f helm/values/gluetun-stack.yaml --wait
+	@helm upgrade --install uptime-kuma bjw-s/app-template \
+		--namespace potatostack \
+		-f helm/values/uptime-kuma.yaml --wait
+	@helm upgrade --install fileserver bjw-s/app-template \
+		--namespace potatostack \
+		-f helm/values/fileserver.yaml --wait
+	@helm upgrade --install speedtest-exporter bjw-s/app-template \
+		--namespace potatostack-monitoring --create-namespace \
+		-f helm/values/speedtest-exporter.yaml --wait
+	@helm upgrade --install fritzbox-exporter bjw-s/app-template \
+		--namespace potatostack-monitoring \
+		-f helm/values/fritzbox-exporter.yaml --wait
+	@helm upgrade --install homepage gethomepage/homepage \
+		--namespace potatostack \
+		-f helm/values/homepage.yaml --wait
+	@helm upgrade --install portainer portainer/portainer \
+		--namespace potatostack \
+		-f helm/values/portainer.yaml --wait
+	@helm upgrade --install dozzle dozzle/dozzle \
+		--namespace potatostack \
+		-f helm/values/dozzle.yaml --wait
+	@echo "Application workloads installed!"
 
 stack-down:
 	@echo "🛑 Stopping complete PotatoStack..."
