@@ -1,0 +1,236 @@
+---
+# NGINX Ingress Controller installation:
+# kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: potatostack-ingress
+  namespace: potatostack
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "1024m"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - "*.lepotato.local"
+    - lepotato.local
+    secretName: lepotato-tls
+  rules:
+  # Gitea
+  - host: git.lepotato.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: gitea
+            port:
+              number: 3000
+  # Immich
+  - host: photos.lepotato.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: immich-server
+            port:
+              number: 3001
+  # Vaultwarden
+  - host: vault.lepotato.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: vaultwarden
+            port:
+              number: 80
+  # Seafile
+  - host: files.lepotato.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: seafile
+            port:
+              number: 80
+  # Filebrowser
+  - host: fileserver.lepotato.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: fileserver
+            port:
+              number: 8087
+  # Portainer
+  - host: portainer.lepotato.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: portainer
+            port:
+              number: 9000
+  # Kopia
+  - host: backup.lepotato.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: kopia
+            port:
+              number: 51515
+  # Authelia
+  - host: authelia.lepotato.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: authelia
+            port:
+              number: 9091
+  # Uptime Kuma
+  - host: uptime.lepotato.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: uptime-kuma
+            port:
+              number: 3001
+  # Homepage Dashboard
+  - host: dashboard.lepotato.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: homepage
+            port:
+              number: 3000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: monitoring-ingress
+  namespace: potatostack-monitoring
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/auth-url: "https://authelia.lepotato.local/api/verify"
+    nginx.ingress.kubernetes.io/auth-signin: "https://authelia.lepotato.local"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - grafana.lepotato.local
+    - prometheus.lepotato.local
+    secretName: monitoring-tls
+  rules:
+  # Grafana
+  - host: grafana.lepotato.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: grafana
+            port:
+              number: 3000
+  # Prometheus
+  - host: prometheus.lepotato.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: prometheus-operated
+            port:
+              number: 9090
+  # Dozzle
+  - host: logs.lepotato.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: dozzle
+            port:
+              number: 8080
+  # Netdata
+  - host: netdata.lepotato.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: netdata
+            port:
+              number: 19999
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vpn-services-ingress
+  namespace: potatostack-vpn
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/auth-url: "https://authelia.lepotato.local/api/verify"
+    nginx.ingress.kubernetes.io/auth-signin: "https://authelia.lepotato.local"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - torrents.lepotato.local
+    - soulseek.lepotato.local
+    secretName: vpn-services-tls
+  rules:
+  # qBittorrent
+  - host: torrents.lepotato.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: gluetun
+            port:
+              number: 8080
+  # slskd
+  - host: soulseek.lepotato.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: gluetun
+            port:
+              number: 2234

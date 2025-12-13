@@ -1,0 +1,208 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gluetun
+  namespace: potatostack-vpn
+  labels:
+    app: gluetun
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: qbittorrent
+  - port: 2234
+    targetPort: 2234
+    name: slskd
+  - port: 6881
+    targetPort: 6881
+    name: bittorrent-tcp
+    protocol: TCP
+  - port: 6881
+    targetPort: 6881
+    name: bittorrent-udp
+    protocol: UDP
+  - port: 8000
+    targetPort: 8000
+    name: control
+  selector:
+    app: gluetun
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gluetun
+  namespace: potatostack-vpn
+  labels:
+    app: gluetun
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: gluetun
+  template:
+    metadata:
+      labels:
+        app: gluetun
+    spec:
+      securityContext:
+        sysctls:
+        - name: net.ipv4.conf.all.src_valid_mark
+          value: "1"
+        - name: net.ipv6.conf.all.disable_ipv6
+          value: "1"
+      containers:
+      - name: gluetun
+        image: qmcgaw/gluetun:latest
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+          privileged: false
+        env:
+        - name: VPN_SERVICE_PROVIDER
+          value: surfshark
+        - name: VPN_TYPE
+          value: openvpn
+        - name: OPENVPN_USER
+          valueFrom:
+            secretKeyRef:
+              name: surfshark-credentials
+              key: SURFSHARK_USER
+        - name: OPENVPN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: surfshark-credentials
+              key: SURFSHARK_PASSWORD
+        - name: SERVER_COUNTRIES
+          value: Netherlands
+        - name: SERVER_CITIES
+          value: Amsterdam
+        - name: FIREWALL_OUTBOUND_SUBNETS
+          value: 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+        - name: FIREWALL_VPN_INPUT_PORTS
+          value: "6881"
+        - name: FIREWALL
+          value: "on"
+        - name: DNS_ADDRESS
+          value: 1.1.1.1
+        - name: HTTP_CONTROL_SERVER_ADDRESS
+          value: ":8000"
+        - name: HEALTH_VPN_DURATION_INITIAL
+          value: 20s
+        - name: LOG_LEVEL
+          value: info
+        - name: IPV6
+          value: "off"
+        ports:
+        - containerPort: 8080
+          name: qbittorrent
+        - containerPort: 2234
+          name: slskd
+        - containerPort: 6881
+          name: bittorrent-tcp
+          protocol: TCP
+        - containerPort: 6881
+          name: bittorrent-udp
+          protocol: UDP
+        - containerPort: 8000
+          name: control
+        resources:
+          requests:
+            cpu: 200m
+            memory: 96Mi
+          limits:
+            cpu: 1000m
+            memory: 128Mi
+        livenessProbe:
+          httpGet:
+            path: /v1/publicip/ip
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 60
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /v1/publicip/ip
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 10
+      # qBittorrent sidecar
+      - name: qbittorrent
+        image: lscr.io/linuxserver/qbittorrent:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: TZ
+          value: Europe/Berlin
+        - name: WEBUI_PORT
+          value: "8080"
+        - name: TORRENTING_PORT
+          value: "6881"
+        volumeMounts:
+        - name: qbittorrent-config
+          mountPath: /config
+        - name: torrents-data
+          mountPath: /downloads
+        resources:
+          requests:
+            cpu: 250m
+            memory: 256Mi
+          limits:
+            cpu: 1500m
+            memory: 384Mi
+      # slskd sidecar
+      - name: slskd
+        image: ghcr.io/slskd/slskd:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: TZ
+          value: Europe/Berlin
+        - name: SLSKD_HTTP_PORT
+          value: "2234"
+        - name: SLSKD_SLSK_LISTEN_PORT
+          value: "50000"
+        - name: SLSKD_USERNAME
+          value: admin
+        - name: SLSKD_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: slskd-credentials
+              key: password
+        volumeMounts:
+        - name: slskd-config
+          mountPath: /app
+        - name: soulseek-data
+          mountPath: /var/slskd/shared
+        resources:
+          requests:
+            cpu: 200m
+            memory: 128Mi
+          limits:
+            cpu: 1000m
+            memory: 256Mi
+      volumes:
+      - name: qbittorrent-config
+        persistentVolumeClaim:
+          claimName: qbittorrent-config
+      - name: slskd-config
+        persistentVolumeClaim:
+          claimName: slskd-config
+      - name: torrents-data
+        persistentVolumeClaim:
+          claimName: torrents-data
+      - name: soulseek-data
+        persistentVolumeClaim:
+          claimName: soulseek-data

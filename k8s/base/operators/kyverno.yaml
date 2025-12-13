@@ -1,0 +1,139 @@
+---
+# Kyverno - Kubernetes Native Policy Management (2025 SOTA)
+# Install via Helm:
+# helm repo add kyverno https://kyverno.github.io/kyverno/
+# helm install kyverno kyverno/kyverno --namespace kyverno-system --create-namespace
+
+# Sample policies after installation
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-pod-security-standards
+  annotations:
+    policies.kyverno.io/title: Require Pod Security Standards
+    policies.kyverno.io/category: Pod Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/description: >-
+      Enforce baseline pod security standards across all namespaces
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+  - name: check-seccomp
+    match:
+      any:
+      - resources:
+          kinds:
+          - Pod
+    validate:
+      message: "securityContext.seccompProfile.type must be RuntimeDefault or Localhost"
+      pattern:
+        spec:
+          =(securityContext):
+            =(seccompProfile):
+              type: "RuntimeDefault | Localhost"
+  - name: check-capabilities
+    match:
+      any:
+      - resources:
+          kinds:
+          - Pod
+    validate:
+      message: "Containers must drop ALL capabilities"
+      foreach:
+      - list: "request.object.spec.containers"
+        deny:
+          conditions:
+            any:
+            - key: "{{ element.securityContext.capabilities.drop || `[]` }}"
+              operator: NotIn
+              value: ["ALL"]
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-labels
+  annotations:
+    policies.kyverno.io/title: Require Common Labels
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/description: >-
+      Require all resources to have app and version labels
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+  - name: check-labels
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+          - StatefulSet
+          - DaemonSet
+    validate:
+      message: "Resources must have app and version labels"
+      pattern:
+        metadata:
+          labels:
+            app: "?*"
+            version: "?*"
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-latest-tag
+  annotations:
+    policies.kyverno.io/title: Disallow Latest Tag
+    policies.kyverno.io/severity: medium
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+  - name: require-image-tag
+    match:
+      any:
+      - resources:
+          kinds:
+          - Pod
+    validate:
+      message: "Using 'latest' tag is not allowed"
+      pattern:
+        spec:
+          containers:
+          - image: "!*:latest"
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: add-default-network-policy
+  annotations:
+    policies.kyverno.io/title: Add Default Network Policy
+    policies.kyverno.io/category: Security
+spec:
+  background: false
+  rules:
+  - name: default-deny-ingress
+    match:
+      any:
+      - resources:
+          kinds:
+          - Namespace
+    exclude:
+      any:
+      - resources:
+          namespaces:
+          - kube-system
+          - kube-public
+          - kyverno-system
+    generate:
+      synchronize: true
+      apiVersion: networking.k8s.io/v1
+      kind: NetworkPolicy
+      name: default-deny-ingress
+      namespace: "{{request.object.metadata.name}}"
+      data:
+        spec:
+          podSelector: {}
+          policyTypes:
+          - Ingress

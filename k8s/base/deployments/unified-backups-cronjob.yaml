@@ -1,0 +1,129 @@
+---
+# Unified Backups CronJob - PostgreSQL + Vaultwarden
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: unified-backups
+  namespace: potatostack
+  labels:
+    app: unified-backups
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: unified-backups
+        spec:
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          restartPolicy: OnFailure
+          containers:
+          - name: backup
+            image: alpine:latest
+            imagePullPolicy: IfNotPresent
+            command:
+            - sh
+            - -c
+            - |
+              set -o pipefail
+              apk add --no-cache postgresql-client sqlite gzip tar busybox-extras
+
+              BACKUP_DATE=$(date +%Y-%m-%d-%H%M)
+
+              # PostgreSQL backups
+              if nc -z postgres.potatostack.svc.cluster.local 5432; then
+                echo '[DB Backup] Starting PostgreSQL backups...'
+                mkdir -p /backups/db
+
+                PGPASSWORD=$GITEA_DB_PASSWORD pg_dump -h postgres.potatostack.svc.cluster.local -U gitea -d gitea | gzip > /backups/db/gitea-$BACKUP_DATE.sql.gz \
+                  && echo '[DB Backup] Gitea: OK' || echo '[DB Backup] Gitea: FAILED'
+
+                PGPASSWORD=$IMMICH_DB_PASSWORD pg_dump -h postgres.potatostack.svc.cluster.local -U immich -d immich | gzip > /backups/db/immich-$BACKUP_DATE.sql.gz \
+                  && echo '[DB Backup] Immich: OK' || echo '[DB Backup] Immich: FAILED'
+
+                PGPASSWORD=$SEAFILE_DB_PASSWORD pg_dump -h postgres.potatostack.svc.cluster.local -U seafile -d ccnet_db | gzip > /backups/db/seafile-ccnet-$BACKUP_DATE.sql.gz \
+                  && echo '[DB Backup] Seafile ccnet: OK' || echo '[DB Backup] Seafile ccnet: FAILED'
+
+                PGPASSWORD=$SEAFILE_DB_PASSWORD pg_dump -h postgres.potatostack.svc.cluster.local -U seafile -d seafile_db | gzip > /backups/db/seafile-db-$BACKUP_DATE.sql.gz \
+                  && echo '[DB Backup] Seafile db: OK' || echo '[DB Backup] Seafile db: FAILED'
+
+                PGPASSWORD=$SEAFILE_DB_PASSWORD pg_dump -h postgres.potatostack.svc.cluster.local -U seafile -d seahub_db | gzip > /backups/db/seafile-seahub-$BACKUP_DATE.sql.gz \
+                  && echo '[DB Backup] Seafile seahub: OK' || echo '[DB Backup] Seafile seahub: FAILED'
+
+                find /backups/db -name '*.sql.gz' -mtime +7 -delete && echo '[DB Backup] Cleanup: Removed backups older than 7 days'
+              else
+                echo '[DB Backup] Postgres not running, skipping database backups.'
+              fi
+
+              # Vaultwarden backup
+              if [ "$BACKUP_VAULTWARDEN" = "true" ] && [ -f /vaultwarden/db.sqlite3 ]; then
+                echo '[VW Backup] Starting Vaultwarden backup...'
+                mkdir -p /backups/vaultwarden /tmp/vw-backup
+
+                sqlite3 /vaultwarden/db.sqlite3 ".backup /tmp/vw-backup/db.sqlite3"
+                cp -r /vaultwarden/attachments /tmp/vw-backup/ 2>/dev/null || true
+                cp -r /vaultwarden/sends /tmp/vw-backup/ 2>/dev/null || true
+                cp -r /vaultwarden/icon_cache /tmp/vw-backup/ 2>/dev/null || true
+                cp /vaultwarden/rsa_key* /tmp/vw-backup/ 2>/dev/null || true
+
+                tar -czf /backups/vaultwarden/vaultwarden-$BACKUP_DATE.tar.gz -C /tmp/vw-backup . \
+                  && echo '[VW Backup] OK' || echo '[VW Backup] FAILED'
+
+                rm -rf /tmp/vw-backup
+                find /backups/vaultwarden -name '*.tar.gz' -mtime +7 -delete && echo '[VW Backup] Cleanup: Removed backups older than 7 days'
+              fi
+
+              echo '[Backup] Cycle complete.'
+            env:
+            - name: GITEA_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: GITEA_DB_PASSWORD
+            - name: IMMICH_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: IMMICH_DB_PASSWORD
+            - name: SEAFILE_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: SEAFILE_DB_PASSWORD
+            - name: BACKUP_VAULTWARDEN
+              value: "true"
+            volumeMounts:
+            - name: backups
+              mountPath: /backups
+            - name: vaultwarden-data
+              mountPath: /vaultwarden
+              readOnly: true
+            resources:
+              requests:
+                cpu: 100m
+                memory: 64Mi
+              limits:
+                cpu: 250m
+                memory: 128Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              readOnlyRootFilesystem: false
+          volumes:
+          - name: backups
+            persistentVolumeClaim:
+              claimName: backups-data
+          - name: vaultwarden-data
+            persistentVolumeClaim:
+              claimName: vaultwarden-data
