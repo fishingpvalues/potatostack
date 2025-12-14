@@ -1,6 +1,6 @@
 # PotatoStack Kubernetes - Quick Start
 
-Complete Kubernetes migration with 2025 SOTA tooling.
+Complete Kubernetes migration with 2025 SOTA tooling. **Cluster-agnostic** - works with Minikube, k3s, and cloud clusters.
 
 ## What's Included
 
@@ -16,26 +16,33 @@ Complete Kubernetes migration with 2025 SOTA tooling.
 ✅ **Kyverno** for policy management
 ✅ **Kustomize** for environment management
 
-## 30-Second Deploy
+## Quick Deploy Options
 
+### Option 1: Local Development (Minikube/k3s)
 ```bash
-# 1. Install k3s
-curl -sfL https://get.k3s.io | sh -
+make stack-up-local
+```
+
+### Option 2: Manual Setup
+```bash
+# 1. Setup cluster (auto-detects type)
+make k8s-setup
 
 # 2. Install operators
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.0/cert-manager.yaml
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+make k8s-operators
 
-# 3. Deploy infrastructure operators
-kubectl apply -f k8s/base/operators/
+# 3. Deploy the stack
+make k8s-up
 
-# 4. Deploy the stack
-kubectl apply -k k8s/overlays/production
-
-# 5. Get Ingress IP
+# 4. Get Ingress IP
 kubectl get svc -n ingress-nginx ingress-nginx-controller
 
-# 6. Access services at https://*.lepotato.local
+# 5. Access services at https://*.lepotato.local
+```
+
+### Option 3: Full Helm Stack
+```bash
+make stack-up
 ```
 
 ## Key Services
@@ -47,6 +54,26 @@ kubectl get svc -n ingress-nginx ingress-nginx-controller
 | Vaultwarden | https://vault.lepotato.local | 80 |
 | Grafana | https://grafana.lepotato.local | 3000 |
 | qBittorrent | https://torrents.lepotato.local | 8080 |
+| Rustypaste | https://paste.lepotato.local | 8000 |
+
+## Supported Cluster Types
+
+PotatoStack is **cluster-agnostic** and works with:
+
+### 🏠 Local Development
+- **Minikube**: `make stack-up-local` (uses NodePort, no TLS in some configs)
+- **k3s**: `make stack-up-local` (lightweight Kubernetes for edge computing)
+
+### ☁️ Production/Cloud
+- **AWS EKS**: `make stack-up` (LoadBalancer service type)
+- **Google GKE**: `make stack-up` (LoadBalancer service type)
+- **Azure AKS**: `make stack-up` (LoadBalancer service type)
+- **Self-hosted k3s**: `make stack-up` (LoadBalancer service type)
+
+### 🔧 Bare Metal/Edge
+- **k3s on SBCs**: Perfect for Raspberry Pi, Le Potato, etc.
+- **MicroK8s**: Ubuntu's lightweight Kubernetes
+- **k0s**: Zero-friction Kubernetes
 
 ## Architecture Highlights
 

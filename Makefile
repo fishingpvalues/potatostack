@@ -49,7 +49,7 @@ help:
 	@echo "  make helm-uninstall-all            Uninstall all Helm releases"
 	@echo "  make helm-list                     List all Helm releases"
 	@echo "  make stack-up                      🚀 Full stack startup (Helm + K8s)"
-	@echo "  make stack-up-minikube            🚀 Full stack on Minikube (no TLS)"
+	@echo "  make stack-up-local               🚀 Full stack on local cluster (Minikube/k3s)"
 	@echo "  make stack-down                    🛑 Full stack teardown"
 	@echo "  make stack-status                  📊 Complete stack status"
 	@echo ""
@@ -140,19 +140,14 @@ conftest:
 ## ========================================
 
 k8s-setup:
-	@echo "Installing k3s..."
-	@curl -sfL https://get.k3s.io | sh -
-	@echo "Waiting for k3s to be ready..."
-	@sleep 10
-	@sudo k3s kubectl wait --for=condition=Ready nodes --all --timeout=120s
-	@mkdir -p ~/.kube
-	@sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
-	@sudo chown $(shell id -u):$(shell id -g) ~/.kube/config
-	@echo "k3s installed successfully!"
+	@echo "Setting up Kubernetes cluster (auto-detects minikube/k3s/generic)..."
+	@./scripts/cluster-setup.sh
+	@echo "Cluster setup complete!"
 	@make k8s-operators
 
 minikube-setup:
-	@./scripts/minikube-setup.sh
+	@echo "DEPRECATED: Use 'make k8s-setup' for cluster-agnostic setup"
+	@make k8s-setup
 
 minikube-create-tls:
 	@./scripts/create-tls-secrets.sh
@@ -373,6 +368,7 @@ helm-uninstall-all:
 	@helm uninstall homepage -n potatostack --ignore-not-found
 	@helm uninstall portainer -n potatostack --ignore-not-found
 	@helm uninstall dozzle -n potatostack --ignore-not-found
+	@helm uninstall rustypaste -n potatostack --ignore-not-found
 	@helm uninstall fileserver -n potatostack --ignore-not-found
 	@helm uninstall speedtest-exporter -n potatostack-monitoring --ignore-not-found
 	@helm uninstall fritzbox-exporter -n potatostack-monitoring --ignore-not-found
@@ -397,12 +393,12 @@ stack-up:
 	@echo "📊 Access Grafana: make k8s-port-forward-grafana"
 	@echo "🔧 Access ArgoCD: make k8s-port-forward-argocd"
 
-stack-up-minikube:
-	@echo "🚀 Starting PotatoStack on Minikube (no TLS)..."
+stack-up-local:
+	@echo "🚀 Starting PotatoStack on local cluster (Minikube/k3s)..."
 	@make helm-repos
-	@make minikube-setup
+	@make k8s-setup
 	@./scripts/bootstrap-secrets.sh potatostack
-	@make helm-install-operators-minikube
+	@make helm-install-operators-local
 	@make helm-install-monitoring
 	@make helm-install-argocd
 	@make helm-install-datastores
@@ -412,8 +408,9 @@ stack-up-minikube:
 	@kubectl apply -f k8s/base/monitoring
 	@echo "Creating self-signed TLS secrets for ingress hosts (for completeness)..."
 	@make minikube-create-tls || true
-	@echo "✅ PotatoStack (Minikube) is ready!"
-	@echo "ℹ️  Add host entries: sudo -- sh -c 'echo "`minikube ip` git.lepotato.local vault.lepotato.local photos.lepotato.local fileserver.lepotato.local dashboard.lepotato.local argocd.lepotato.local netdata.lepotato.local" >> /etc/hosts'"
+	@echo "✅ PotatoStack (Local Cluster) is ready!"
+	@echo "ℹ️  For Minikube: Add host entries: sudo -- sh -c 'echo \"`minikube ip` git.lepotato.local vault.lepotato.local photos.lepotato.local fileserver.lepotato.local dashboard.lepotato.local argocd.lepotato.local netdata.lepotato.local\" >> /etc/hosts'"
+	@echo "ℹ️  For k3s: Access via cluster IP or LoadBalancer external IP"
 
 ## ========================================
 ## Additional Helm: Datastores & Apps
@@ -475,6 +472,9 @@ helm-install-apps:
 	@helm upgrade --install dozzle dozzle/dozzle \
 		--namespace potatostack \
 		-f helm/values/dozzle.yaml --wait
+	@helm upgrade --install rustypaste oci://ghcr.io/bjw-s-labs/charts/app-template \
+		--namespace potatostack \
+		-f helm/values/rustypaste.yaml --wait
 	@echo "Application workloads installed!"
 
 stack-down:
@@ -488,8 +488,8 @@ stack-status:
 	@make helm-list
 	@echo ""
 	@make k8s-status
-helm-install-operators-minikube:
-	@echo "Installing operators (Minikube)..."
+helm-install-operators-local:
+	@echo "Installing operators (Local Cluster - NodePort)..."
 	@helm upgrade --install cert-manager oci://quay.io/jetstack/charts/cert-manager \
 		--version v1.19.2 \
 		--namespace cert-manager --create-namespace \
@@ -510,4 +510,4 @@ helm-install-operators-minikube:
 		--set watchNamespace="" --wait
 	@helm upgrade --install kubernetes-replicator mittwald/kubernetes-replicator \
 		--namespace kube-system --wait
-	@echo "Operators installed (Minikube)!"
+	@echo "Operators installed (Local Cluster)!"
