@@ -46,4 +46,12 @@ data:
         ALTER DATABASE seahub_db OWNER TO seafile;
     EOSQL
 
+    # Paperless-ngx
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+        CREATE DATABASE paperless;
+        CREATE USER paperless WITH ENCRYPTED PASSWORD '$PAPERLESS_DB_PASSWORD';
+        GRANT ALL PRIVILEGES ON DATABASE paperless TO paperless;
+        ALTER DATABASE paperless OWNER TO paperless;
+    EOSQL
+
     echo "Database initialization complete!"
