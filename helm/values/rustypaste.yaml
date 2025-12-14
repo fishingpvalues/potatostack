@@ -1,0 +1,105 @@
+# rustypaste - Minimal pastebin service (Rust)
+# Helm: oci://ghcr.io/bjw-s-labs/charts/app-template
+
+controllers:
+  rustypaste:
+    containers:
+      rustypaste:
+        image:
+          repository: orhunp/rustypaste
+          tag: latest
+          pullPolicy: IfNotPresent
+
+        env:
+          - name: CONFIG
+            value: /config/config.toml
+
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          seccompProfile:
+            type: RuntimeDefault
+
+service:
+  rustypaste:
+    controller: rustypaste
+    ports:
+      http:
+        port: 8000
+        protocol: HTTP
+
+ingress:
+  rustypaste:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    hosts:
+      - host: paste.lepotato.local
+        paths:
+          - path: /
+            pathType: Prefix
+            service:
+              identifier: rustypaste
+              port: http
+    tls:
+      - secretName: rustypaste-tls
+        hosts:
+          - paste.lepotato.local
+
+persistence:
+  config:
+    enabled: true
+    type: configMap
+    name: rustypaste-config
+    globalMounts:
+      - path: /config
+
+  uploads:
+    enabled: true
+    type: persistentVolumeClaim
+    accessMode: ReadWriteOnce
+    size: 5Gi
+    globalMounts:
+      - path: /var/lib/rustypaste
+
+# ConfigMap for rustypaste config
+configMaps:
+  config:
+    enabled: true
+    data:
+      config.toml: |
+        [server]
+        address = "0.0.0.0:8000"
+        workers = 2
+        max_content_length = "100MB"
+        upload_path = "/var/lib/rustypaste"
+        timeout = 30
+
+        [paste]
+        random_url.enabled = true
+        random_url.type = "petname"
+        random_url.words = 2
+        random_url.separator = "-"
+        default_extension = "txt"
+        duplicate_files = true
+
+        [landing_page]
+        text = """
+        PotatoStack Pastebin - Powered by rustypaste
+
+        Usage:
+          curl -F 'file=@example.txt' https://paste.lepotato.local
+          curl -F 'file=@-' https://paste.lepotato.local < file.txt
+        """
