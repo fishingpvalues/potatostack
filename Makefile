@@ -39,6 +39,18 @@ help:
 	@echo "  make k8s-port-forward-grafana      Access Grafana at localhost:3000"
 	@echo "  make k8s-port-forward-prometheus   Access Prometheus at localhost:9090"
 	@echo "  make k8s-port-forward-argocd       Access ArgoCD at localhost:8080"
+	@echo "  make k8s-port-forward-dashboard    Access K8s Dashboard at localhost:8443"
+	@echo ""
+	@echo "Production Enhancements (SOTA 2025):"
+	@echo "  make helm-install-enhancements     Install all production enhancements"
+	@echo "  make helm-install-velero           Velero backup & restore"
+	@echo "  make helm-install-sealed-secrets   Sealed Secrets for Git"
+	@echo "  make helm-install-external-dns     Automatic DNS management"
+	@echo "  make helm-install-metrics-server   Metrics Server for HPA"
+	@echo "  make helm-install-dashboard        Kubernetes Dashboard"
+	@echo "  make helm-install-tempo            Distributed tracing (Tempo)"
+	@echo "  make k8s-apply-hpa                 Apply HPA for autoscaling"
+	@echo "  make renovate-setup                Setup Renovate for automated updates"
 	@echo ""
 	@echo "Helm Stack Management (SOTA 2025):"
 	@echo "  make helm-repos                    Add all Helm repositories"
@@ -229,6 +241,11 @@ k8s-port-forward-argocd:
 	@echo "Password: kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
 	@kubectl port-forward -n argocd svc/argocd-server 8080:443
 
+k8s-port-forward-dashboard:
+	@echo "Forwarding Kubernetes Dashboard to localhost:8443..."
+	@echo "Get token: kubectl create token dashboard-admin -n kubernetes-dashboard --duration=24h"
+	@kubectl port-forward -n kubernetes-dashboard svc/kubernetes-dashboard-kong-proxy 8443:443
+
 k8s-backup:
 	@echo "Backing up Postgres to backup.sql..."
 	@kubectl exec -n potatostack statefulset/postgres -- pg_dumpall -U postgres > backup.sql
@@ -271,6 +288,11 @@ helm-repos:
 	@helm repo add portainer https://portainer.github.io/k8s/
 	@helm repo add dozzle https://amir20.github.io/dozzle/
 	@helm repo add cloudnative-pg https://cloudnative-pg.github.io/charts
+	@helm repo add vmware-tanzu https://vmware-tanzu.github.io/helm-charts
+	@helm repo add sealed-secrets https://bitnami-labs.github.io/sealed-secrets
+	@helm repo add external-dns https://kubernetes-sigs.github.io/external-dns/
+	@helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
+	@helm repo add kubernetes-dashboard https://kubernetes.github.io/dashboard/
 	@helm repo update
 	@echo "Helm repositories added and updated!"
 
@@ -488,6 +510,96 @@ stack-status:
 	@make helm-list
 	@echo ""
 	@make k8s-status
+
+## ========================================
+## Production Enhancements (SOTA 2025)
+## ========================================
+
+helm-install-enhancements:
+	@echo "Installing production enhancements..."
+	@make helm-install-velero
+	@make helm-install-sealed-secrets
+	@make helm-install-external-dns
+	@make helm-install-metrics-server
+	@make helm-install-dashboard
+	@make helm-install-tempo
+	@echo "Production enhancements installed!"
+
+helm-install-velero:
+	@echo "Installing Velero for backup & restore..."
+	@echo "NOTE: Create velero-credentials secret first!"
+	@echo "kubectl create secret generic velero-credentials -n velero --from-file=cloud=credentials-velero"
+	@helm upgrade --install velero vmware-tanzu/velero \
+		--namespace velero --create-namespace \
+		-f helm/values/velero.yaml --wait || echo "Velero install failed - check credentials"
+	@echo "Velero installed!"
+
+helm-install-sealed-secrets:
+	@echo "Installing Sealed Secrets controller..."
+	@helm upgrade --install sealed-secrets sealed-secrets/sealed-secrets \
+		--namespace kube-system \
+		-f helm/values/sealed-secrets.yaml --wait
+	@echo "Sealed Secrets installed!"
+	@echo "Install kubeseal CLI: wget https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.24.0/kubeseal-linux-arm64 -O kubeseal"
+
+helm-install-external-dns:
+	@echo "Installing external-dns..."
+	@echo "NOTE: Create DNS provider credentials secret first!"
+	@echo "kubectl create secret generic cloudflare-api-token --from-literal=api-token=<TOKEN> -n external-dns"
+	@helm upgrade --install external-dns external-dns/external-dns \
+		--namespace external-dns --create-namespace \
+		-f helm/values/external-dns.yaml --wait || echo "external-dns install failed - check credentials"
+	@echo "external-dns installed!"
+
+helm-install-metrics-server:
+	@echo "Installing Metrics Server for HPA..."
+	@helm upgrade --install metrics-server metrics-server/metrics-server \
+		--namespace kube-system \
+		-f helm/values/metrics-server.yaml --wait
+	@echo "Metrics Server installed!"
+	@echo "Verify: kubectl top nodes"
+
+helm-install-dashboard:
+	@echo "Installing Kubernetes Dashboard..."
+	@helm upgrade --install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard \
+		--namespace kubernetes-dashboard --create-namespace \
+		-f helm/values/kubernetes-dashboard.yaml --wait
+	@echo "Kubernetes Dashboard installed!"
+	@echo "Create admin user:"
+	@echo "  kubectl create serviceaccount dashboard-admin -n kubernetes-dashboard"
+	@echo "  kubectl create clusterrolebinding dashboard-admin --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:dashboard-admin"
+	@echo "Get token: kubectl create token dashboard-admin -n kubernetes-dashboard --duration=24h"
+	@echo "Access: make k8s-port-forward-dashboard"
+
+helm-install-tempo:
+	@echo "Installing Tempo for distributed tracing..."
+	@helm upgrade --install tempo grafana/tempo \
+		--namespace potatostack-monitoring \
+		-f helm/values/tempo.yaml --wait
+	@echo "Tempo installed!"
+	@echo "Add Tempo datasource to Grafana: http://tempo.potatostack-monitoring.svc.cluster.local:3100"
+
+k8s-apply-hpa:
+	@echo "Applying Horizontal Pod Autoscalers..."
+	@kubectl apply -f k8s/base/hpa/
+	@echo "HPAs applied!"
+	@echo "Check status: kubectl get hpa -n potatostack"
+	@echo "NOTE: Requires metrics-server to be installed"
+
+renovate-setup:
+	@echo "Renovate configuration already created: renovate.json"
+	@echo ""
+	@echo "To enable Renovate:"
+	@echo "1. Install Renovate GitHub App: https://github.com/apps/renovate"
+	@echo "2. Enable for this repository"
+	@echo "3. Renovate will automatically create PRs for updates"
+	@echo ""
+	@echo "Configuration features:"
+	@echo "  - Runs every weekend"
+	@echo "  - Auto-merges patch updates for stable images"
+	@echo "  - Groups monitoring stack updates"
+	@echo "  - Stability period: 3 days"
+	@echo "  - Security alerts enabled"
 helm-install-operators-local:
 	@echo "Installing operators (Local Cluster - NodePort)..."
 	@helm upgrade --install cert-manager oci://quay.io/jetstack/charts/cert-manager \

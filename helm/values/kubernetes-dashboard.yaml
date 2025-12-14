@@ -1,0 +1,120 @@
+# Kubernetes Dashboard
+# Chart: kubernetes-dashboard/kubernetes-dashboard
+# Web-based UI for Kubernetes cluster management
+
+# Resource limits (Le Potato optimized)
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# Metrics scraper
+metricsScraper:
+  enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# Service
+service:
+  type: ClusterIP
+  externalPort: 443
+
+# Ingress
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+  hosts:
+    - dashboard.lepotato.local
+  tls:
+    - secretName: kubernetes-dashboard-tls
+      hosts:
+        - dashboard.lepotato.local
+
+# Service account
+serviceAccount:
+  create: true
+  name: kubernetes-dashboard
+
+# RBAC
+rbac:
+  create: true
+  clusterAdminRole: false  # Don't grant cluster-admin by default
+  clusterReadOnlyRole: true
+
+# Settings
+settings:
+  clusterName: "PotatoStack"
+  itemsPerPage: 20
+  labelsLimit: 3
+  logsAutoRefreshTimeInterval: 5
+  resourceAutoRefreshTimeInterval: 5
+  disableSettingsAuthorizer: false
+  defaultNamespace: potatostack
+
+# Security context
+securityContext:
+  runAsUser: 1001
+  runAsGroup: 2001
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+  seccompProfile:
+    type: RuntimeDefault
+
+# Pod security context
+podSecurityContext:
+  seccompProfile:
+    type: RuntimeDefault
+
+# Node selector for ARM64
+nodeSelector:
+  kubernetes.io/arch: arm64
+
+# Extra environment variables
+extraEnv: []
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Metrics
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: prometheus
+
+# Pinned CRDs
+pinnedCRDs: []
+
+# Access via:
+# 1. Create admin user:
+# kubectl create serviceaccount dashboard-admin -n kubernetes-dashboard
+# kubectl create clusterrolebinding dashboard-admin \
+#   --clusterrole=cluster-admin \
+#   --serviceaccount=kubernetes-dashboard:dashboard-admin
+#
+# 2. Get token:
+# kubectl create token dashboard-admin -n kubernetes-dashboard --duration=24h
+#
+# 3. Access:
+# make k8s-port-forward-dashboard
+# https://localhost:8443

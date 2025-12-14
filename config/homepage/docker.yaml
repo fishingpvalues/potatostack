@@ -1,4 +1,0 @@
----
-docker:
-  # Use the local Docker socket for container discovery and widgets
-  socket: /var/run/docker.sock
