@@ -5,8 +5,27 @@
 .env.*
 .envrc
 
-# Docker volumes
-volumes/
+# Kubernetes secrets & credentials
+kubeconfig
+kubeconfig.*
+*.kubeconfig
+*-kubeconfig.yaml
+credentials-*
+*-credentials.yaml
+*-credentials.json
+sealed-secrets-key-backup.yaml
+velero-credentials
+
+# Helm
+.helm/
+helm/charts/*/charts/
+helm/charts/*/Chart.lock
+*.tgz
+
+# Kubernetes temporary files
+*.yaml.tmp
+*.yml.tmp
+kustomization.yaml.tmp
 
 # Logs
 *.log
@@ -35,6 +54,20 @@ Thumbs.db
 *.backup
 *.tar.gz
 backup-*.tar.gz
+backup.sql
+*.sql.gz
 
-# Data directories
+# Data directories (legacy Docker)
 data/
+volumes/
+
+# Kopia repository (if local)
+repository/
+
+# Terraform (if used)
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# Ansible (if used)
+*.retry
