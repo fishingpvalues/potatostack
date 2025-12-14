@@ -1,0 +1,78 @@
+# Metrics Server - Required for HPA (Horizontal Pod Autoscaler)
+# Chart: metrics-server/metrics-server
+# Collects resource metrics from Kubelets for autoscaling
+
+# Arguments for metrics-server
+args:
+  - --cert-dir=/tmp
+  - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
+  - --kubelet-use-node-status-port
+  - --metric-resolution=15s
+  # For local development (self-signed certs):
+  # - --kubelet-insecure-tls
+
+# Resource limits (Le Potato optimized)
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+# API service configuration
+apiService:
+  create: true
+  insecureSkipTLSVerify: false  # Set to true for local dev with self-signed certs
+
+# Security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+  seccompProfile:
+    type: RuntimeDefault
+
+# Service
+service:
+  type: ClusterIP
+  port: 443
+
+# Service monitor for Prometheus
+serviceMonitor:
+  enabled: true
+  additionalLabels:
+    release: prometheus
+
+# Node selector for ARM64
+nodeSelector:
+  kubernetes.io/arch: arm64
+
+# Replicas
+replicas: 1
+
+# Update strategy
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+
+# Host network (sometimes needed for kubelet access)
+hostNetwork:
+  enabled: false
+
+# Container port
+containerPort: 10250
+
+# Priority class
+priorityClassName: system-cluster-critical
+
+# Tolerations (allow on master nodes if needed)
+tolerations: []
+
+# Affinity
+affinity: {}

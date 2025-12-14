@@ -1,0 +1,101 @@
+# Velero - Kubernetes backup and restore
+# Chart: vmware-tanzu/velero
+# Optimized for Le Potato with local/S3 backup
+
+configuration:
+  # Backup storage location
+  backupStorageLocation:
+    - name: default
+      provider: aws  # Use AWS SDK (compatible with MinIO, S3, local)
+      bucket: potatostack-backups
+      default: true
+      config:
+        region: us-east-1
+        s3ForcePathStyle: "true"
+        s3Url: http://minio.potatostack.svc.cluster.local:9000  # Or external S3
+        # For local filesystem backup (NFS mount):
+        # publicUrl: file:///backups
+
+  # Volume snapshot location (if using CSI snapshots)
+  volumeSnapshotLocation:
+    - name: default
+      provider: aws
+      config:
+        region: us-east-1
+
+  # Backup defaults
+  defaultBackupStorageLocation: default
+  defaultVolumeSnapshotLocations: default
+  defaultBackupTTL: 720h  # 30 days
+
+  # Features
+  features: EnableCSI,EnableAPIGroupVersions
+
+# Resource limits (Le Potato optimized)
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# Init containers for plugins
+initContainers:
+  - name: velero-plugin-for-aws
+    image: velero/velero-plugin-for-aws:v1.9.0
+    volumeMounts:
+      - mountPath: /target
+        name: plugins
+
+# Node selector for ARM64
+nodeSelector:
+  kubernetes.io/arch: arm64
+
+# Credentials (create Secret manually)
+credentials:
+  useSecret: true
+  existingSecret: velero-credentials
+  # Secret should contain:
+  # cloud: |
+  #   [default]
+  #   aws_access_key_id=<YOUR_ACCESS_KEY>
+  #   aws_secret_access_key=<YOUR_SECRET_KEY>
+
+# Schedules (defined via CRDs after install)
+schedules:
+  daily:
+    disabled: false
+    schedule: "0 2 * * *"  # 2 AM daily
+    template:
+      ttl: 720h
+      includedNamespaces:
+        - potatostack
+        - potatostack-monitoring
+      storageLocation: default
+
+  weekly:
+    disabled: false
+    schedule: "0 3 * * 0"  # 3 AM Sunday
+    template:
+      ttl: 2160h  # 90 days
+      includedNamespaces:
+        - "*"
+      storageLocation: default
+
+# Metrics
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: prometheus
+
+# Don't deploy restic (use CSI snapshots instead for better performance)
+deployRestic: false
+
+# Service account
+serviceAccount:
+  server:
+    create: true
+    name: velero

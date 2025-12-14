@@ -246,7 +246,7 @@ kubectl describe certificate <cert-name> -n potatostack
 4. **Deploy**: `kubectl apply -k k8s/overlays/production`
 5. **Set up GitOps**: Configure ArgoCD with your Git repo
 6. **Enable monitoring**: Import Grafana dashboards
-7. **Configure backups**: Set up Velero or CronJobs
+7. **Install enhancements**: `make helm-install-enhancements` (see ENHANCEMENTS-GUIDE.md)
 
 ## Migration from Docker Compose
 

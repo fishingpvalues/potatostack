@@ -1,0 +1,123 @@
+# Grafana Tempo - Distributed tracing backend
+# Chart: grafana/tempo
+# Lightweight tracing for microservices (Le Potato optimized)
+
+# Tempo configuration
+tempo:
+  repository: grafana/tempo
+  tag: latest
+  pullPolicy: IfNotPresent
+
+  # Storage
+  storage:
+    trace:
+      backend: local
+      local:
+        path: /var/tempo/traces
+      wal:
+        path: /var/tempo/wal
+
+  # Receivers (which protocols to accept)
+  receivers:
+    jaeger:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:14250
+        thrift_http:
+          endpoint: 0.0.0.0:14268
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+  # Retention
+  retention: 72h  # 3 days (Le Potato memory constrained)
+
+  # Compactor
+  compactor:
+    ring:
+      kvstore:
+        store: memberlist
+
+# Resource limits (Le Potato optimized)
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# Persistence
+persistence:
+  enabled: true
+  size: 5Gi
+  storageClassName: ""  # Use default
+  accessModes:
+    - ReadWriteOnce
+
+# Service
+service:
+  type: ClusterIP
+  port: 3100
+
+# Service Monitor
+serviceMonitor:
+  enabled: true
+  additionalLabels:
+    release: prometheus
+
+# Security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+  seccompProfile:
+    type: RuntimeDefault
+
+# Node selector for ARM64
+nodeSelector:
+  kubernetes.io/arch: arm64
+
+# Tempo query (UI)
+tempoQuery:
+  enabled: true
+  repository: grafana/tempo-query
+  tag: latest
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# Global overrides
+global_overrides:
+  per_tenant_override_config: /conf/overrides.yaml
+
+# Metrics generator (optional, disabled for Le Potato)
+metricsGenerator:
+  enabled: false
+
+# Multi-tenancy
+multitenancyEnabled: false
+
+# Search
+search:
+  enabled: true
+
+# Grafana datasource (auto-provision in Grafana)
+# Add to Grafana datasources:
+# - name: Tempo
+#   type: tempo
+#   url: http://tempo.potatostack-monitoring.svc.cluster.local:3100
+#   access: proxy
