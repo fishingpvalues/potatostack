@@ -114,8 +114,6 @@ up:
 up-cache:
 	@COMPOSE_PROFILES=cache $(DC) up -d
 
-
-
 down:
 	@$(DC) down
 
@@ -167,10 +165,6 @@ k8s-setup:
 	@./scripts/cluster-setup.sh
 	@echo "Cluster setup complete!"
 	@make k8s-operators
-
-minikube-setup:
-	@echo "DEPRECATED: Use 'make k8s-setup' for cluster-agnostic setup"
-	@make k8s-setup
 
 minikube-create-tls:
 	@./scripts/create-tls-secrets.sh
