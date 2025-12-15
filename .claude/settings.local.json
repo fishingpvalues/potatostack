@@ -42,7 +42,8 @@
       "Bash(make:*)",
       "Bash(helm repo add:*)",
       "Bash(helm repo update:*)",
-      "Bash(helm repo list:*)"
+      "Bash(helm repo list:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

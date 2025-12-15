@@ -1,0 +1,28 @@
+# LimitRange for potatostack namespace - enforce resource limits
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: potatostack-limits
+  namespace: potatostack
+spec:
+  limits:
+    - max:
+        cpu: "2"
+        memory: 512Mi
+      min:
+        cpu: 10m
+        memory: 16Mi
+      default:
+        cpu: 200m
+        memory: 128Mi
+      defaultRequest:
+        cpu: 50m
+        memory: 64Mi
+      type: Container
+    - max:
+        cpu: "4"
+        memory: 1Gi
+      min:
+        cpu: 100m
+        memory: 64Mi
+      type: Pod
