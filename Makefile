@@ -8,6 +8,11 @@ DC := $(shell command -v docker-compose >/dev/null 2>&1 && echo docker-compose |
 help:
 	@echo "PotatoStack Makefile Targets"
 	@echo ""
+	@echo "🥔 Le Potato Quick Start (SOTA 2025):"
+	@echo "  make verify-le-potato          Verify Le Potato compatibility"
+	@echo "  make k3s-install-optimized     Install k3s with Le Potato optimizations"
+	@echo "  make sota-stack-deploy         Deploy complete SOTA 2025 stack"
+	@echo ""
 	@echo "Setup & Installation:"
 	@echo "  make env              Create .env from .env.example"
 	@echo "  make preflight        Run pre-flight system checks"
@@ -51,6 +56,12 @@ help:
 	@echo "  make helm-install-tempo            Distributed tracing (Tempo)"
 	@echo "  make k8s-apply-hpa                 Apply HPA for autoscaling"
 	@echo "  make renovate-setup                Setup Renovate for automated updates"
+	@echo ""
+	@echo "Missing Tools (awesome-selfhosted gaps):"
+	@echo "  make helm-install-missing-tools-essential    Phase 1: RSS, CalDAV (50MB)"
+	@echo "  make helm-install-missing-tools-productivity Phase 2: Bookmarks (40MB)"
+	@echo "  make helm-install-missing-tools-optional     Phase 3: P2P Sync (40MB)"
+	@echo "  make helm-install-missing-tools              Install all missing tools (130MB)"
 	@echo ""
 	@echo "Helm Stack Management (SOTA 2025):"
 	@echo "  make helm-repos                    Add all Helm repositories"
@@ -600,6 +611,103 @@ renovate-setup:
 	@echo "  - Groups monitoring stack updates"
 	@echo "  - Stability period: 3 days"
 	@echo "  - Security alerts enabled"
+
+## ========================================
+## SOTA 2025 Features (Le Potato)
+## ========================================
+
+verify-le-potato:
+	@./scripts/verify-le-potato-sota.sh
+
+install-gateway-api:
+	@echo "Installing Gateway API CRDs (SOTA 2025)..."
+	@kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
+	@echo "Gateway API installed!"
+	@echo "Deploy gateways: kubectl apply -f config/gateway-api.yaml"
+
+helm-install-cilium-hubble:
+	@echo "Installing Cilium Hubble for eBPF observability..."
+	@echo "WARNING: This is for observability only. Full Cilium CNI requires cluster rebuild."
+	@helm repo add cilium https://helm.cilium.io/
+	@helm repo update
+	@helm upgrade --install cilium cilium/cilium \
+		--namespace kube-system \
+		-f helm/values/cilium-hubble.yaml \
+		--set kubeProxyReplacement=false --wait
+	@echo "Cilium Hubble installed!"
+	@echo "Access Hubble UI: kubectl port-forward -n kube-system svc/hubble-ui 12000:80"
+
+k3s-install-optimized:
+	@echo "Installing k3s with Le Potato optimizations..."
+	@sudo mkdir -p /etc/rancher/k3s
+	@sudo cp config/k3s-server.yaml /etc/rancher/k3s/config.yaml
+	@curl -sfL https://get.k3s.io | sh -
+	@echo "Waiting for k3s to be ready..."
+	@sleep 15
+	@sudo k3s kubectl wait --for=condition=Ready nodes --all --timeout=120s
+	@mkdir -p ~/.kube
+	@sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+	@sudo chown $(id -u):$(id -g) ~/.kube/config
+	@echo "k3s installed with Le Potato optimizations!"
+
+sota-stack-deploy:
+	@echo "🚀 Deploying complete SOTA 2025 stack on Le Potato..."
+	@make verify-le-potato
+	@make helm-repos
+	@make helm-install-operators
+	@make helm-install-monitoring
+	@make helm-install-argocd
+	@make helm-install-datastores
+	@make helm-install-apps
+	@make install-gateway-api
+	@echo "✅ SOTA 2025 Stack deployed!"
+	@echo ""
+	@echo "Optional enhancements:"
+	@echo "  - eBPF monitoring: make helm-install-cilium-hubble"
+	@echo "  - Sealed Secrets: make helm-install-sealed-secrets"
+	@echo "  - Metrics Server: make helm-install-metrics-server"
+	@echo "  - Missing Tools: make helm-install-missing-tools"
+
+## ========================================
+## Missing Tools (awesome-selfhosted gaps)
+## ========================================
+
+helm-install-missing-tools-essential:
+	@echo "Installing essential missing tools (Phase 1)..."
+	@helm upgrade --install miniflux oci://ghcr.io/bjw-s-labs/charts/app-template \
+		--namespace potatostack \
+		-f helm/values/miniflux.yaml --wait
+	@helm upgrade --install radicale oci://ghcr.io/bjw-s-labs/charts/app-template \
+		--namespace potatostack \
+		-f helm/values/radicale.yaml --wait
+	@echo "Essential tools installed!"
+
+helm-install-missing-tools-productivity:
+	@echo "Installing productivity tools (Phase 2)..."
+	@helm upgrade --install linkding oci://ghcr.io/bjw-s-labs/charts/app-template \
+		--namespace potatostack \
+		-f helm/values/linkding.yaml --wait
+	@echo "Productivity tools installed!"
+
+helm-install-missing-tools-optional:
+	@echo "Installing optional tools (Phase 3)..."
+	@helm upgrade --install syncthing oci://ghcr.io/bjw-s-labs/charts/app-template \
+		--namespace potatostack \
+		-f helm/values/syncthing.yaml --wait
+	@echo "Optional tools installed!"
+
+helm-install-missing-tools:
+	@echo "Installing all recommended missing tools..."
+	@make helm-install-missing-tools-essential
+	@make helm-install-missing-tools-productivity
+	@make helm-install-missing-tools-optional
+	@echo "✅ All missing tools installed!"
+	@echo ""
+	@echo "Access your new tools:"
+	@echo "  - Miniflux (RSS): https://rss.lepotato.local"
+	@echo "  - Radicale (CalDAV/CardDAV): https://dav.lepotato.local"
+	@echo "  - linkding (Bookmarks): https://bookmarks.lepotato.local"
+	@echo "  - Syncthing (P2P Sync): https://sync.lepotato.local"
 helm-install-operators-local:
 	@echo "Installing operators (Local Cluster - NodePort)..."
 	@helm upgrade --install cert-manager oci://quay.io/jetstack/charts/cert-manager \
