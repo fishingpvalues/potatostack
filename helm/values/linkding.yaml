@@ -1,0 +1,71 @@
+# linkding - Minimalist Bookmark Manager
+# Chart: oci://ghcr.io/bjw-s-labs/charts/app-template
+# RAM: ~40MB | Fast Python/Django app
+# Installation: helm install linkding oci://ghcr.io/bjw-s-labs/charts/app-template -f helm/values/linkding.yaml -n potatostack
+
+controllers:
+  main:
+    replicas: 1
+    containers:
+      main:
+        image:
+          repository: sissbruecker/linkding
+          tag: 1.37.2
+        env:
+          TZ: Europe/Berlin
+          LD_DB_ENGINE: postgres
+          LD_DB_DATABASE: linkding
+          LD_DB_USER: linkding
+          LD_DB_PASSWORD: ${LINKDING_DB_PASSWORD}
+          LD_DB_HOST: postgres.potatostack.svc.cluster.local
+          LD_DB_PORT: "5432"
+          LD_SUPERUSER_NAME: admin
+          LD_SUPERUSER_PASSWORD: ${LINKDING_ADMIN_PASSWORD}
+          LD_CSRF_TRUSTED_ORIGINS: https://bookmarks.lepotato.local
+          LD_ENABLE_AUTH_PROXY: "False"
+        resources:
+          requests:
+            memory: 32Mi
+            cpu: 50m
+          limits:
+            memory: 80Mi
+            cpu: 200m
+
+service:
+  main:
+    ports:
+      http:
+        port: 9090
+
+persistence:
+  data:
+    enabled: true
+    type: persistentVolumeClaim
+    accessMode: ReadWriteOnce
+    size: 1Gi
+    globalMounts:
+      - path: /etc/linkding/data
+
+ingress:
+  main:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts:
+      - host: bookmarks.lepotato.local
+        paths:
+          - path: /
+            service:
+              name: main
+              port: http
+    tls:
+      - secretName: linkding-tls
+        hosts:
+          - bookmarks.lepotato.local
+
+# Note: Create database first:
+# kubectl exec -it statefulset/postgres -n potatostack -- psql -U postgres
+# CREATE DATABASE linkding;
+# CREATE USER linkding WITH PASSWORD 'your_password';
+# GRANT ALL PRIVILEGES ON DATABASE linkding TO linkding;

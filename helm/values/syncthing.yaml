@@ -1,0 +1,78 @@
+# Syncthing - P2P File Synchronization
+# Chart: oci://ghcr.io/bjw-s-labs/charts/app-template
+# RAM: ~40MB | Decentralized sync (complements Seafile)
+# Installation: helm install syncthing oci://ghcr.io/bjw-s-labs/charts/app-template -f helm/values/syncthing.yaml -n potatostack
+
+controllers:
+  main:
+    replicas: 1
+    containers:
+      main:
+        image:
+          repository: syncthing/syncthing
+          tag: 1.28.1
+        env:
+          TZ: Europe/Berlin
+          PUID: "1000"
+          PGID: "1000"
+        resources:
+          requests:
+            memory: 32Mi
+            cpu: 100m
+          limits:
+            memory: 96Mi
+            cpu: 500m
+
+service:
+  main:
+    ports:
+      http:
+        port: 8384  # Web UI
+  sync-tcp:
+    controller: main
+    type: LoadBalancer
+    ports:
+      sync:
+        port: 22000
+        protocol: TCP
+  sync-udp:
+    controller: main
+    type: LoadBalancer
+    ports:
+      discovery:
+        port: 22000
+        protocol: UDP
+
+persistence:
+  config:
+    enabled: true
+    type: persistentVolumeClaim
+    accessMode: ReadWriteOnce
+    size: 1Gi
+    globalMounts:
+      - path: /var/syncthing
+  data:
+    enabled: true
+    type: persistentVolumeClaim
+    accessMode: ReadWriteOnce
+    size: 50Gi
+    globalMounts:
+      - path: /sync
+
+ingress:
+  main:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts:
+      - host: sync.lepotato.local
+        paths:
+          - path: /
+            service:
+              name: main
+              port: http
+    tls:
+      - secretName: syncthing-tls
+        hosts:
+          - sync.lepotato.local

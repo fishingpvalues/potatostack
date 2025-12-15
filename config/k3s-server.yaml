@@ -1,0 +1,65 @@
+# k3s Server Configuration for Le Potato (ARM64, 2GB RAM)
+# Install: sudo mkdir -p /etc/rancher/k3s && sudo cp config/k3s-server.yaml /etc/rancher/k3s/config.yaml
+# Then: curl -sfL https://get.k3s.io | sh -
+
+# Disable built-in components (use our Helm charts instead)
+disable:
+  - traefik        # Using ingress-nginx instead
+  - servicelb      # Using MetalLB or cloud LB
+  - local-storage  # Using our own storage classes
+
+# Network configuration
+cluster-cidr: "10.42.0.0/16"
+service-cidr: "10.43.0.0/16"
+cluster-dns: "10.43.0.10"
+
+# Flannel CNI (lightweight, good for ARM)
+flannel-backend: "vxlan"  # or "host-gw" for better performance on single node
+
+# Resource optimization for 2GB RAM
+kube-apiserver-arg:
+  - "max-requests-inflight=200"
+  - "max-mutating-requests-inflight=100"
+
+kube-controller-manager-arg:
+  - "node-monitor-period=10s"
+  - "node-monitor-grace-period=40s"
+  - "pod-eviction-timeout=1m"
+
+kube-scheduler-arg:
+  - "kube-api-qps=50"
+
+kubelet-arg:
+  - "max-pods=50"                          # Limit pods per node
+  - "eviction-hard=memory.available<100Mi" # Aggressive memory eviction
+  - "eviction-soft=memory.available<200Mi"
+  - "eviction-soft-grace-period=memory.available=30s"
+  - "image-gc-high-threshold=80"           # Aggressive image cleanup
+  - "image-gc-low-threshold=70"
+  - "serialize-image-pulls=false"          # Parallel image pulls
+
+# Write kubeconfig with correct permissions
+write-kubeconfig-mode: "0644"
+
+# Node labels for scheduling
+node-label:
+  - "node.kubernetes.io/instance-type=le-potato"
+  - "kubernetes.io/arch=arm64"
+
+# Datastore (default is SQLite, efficient for single-node)
+# For production multi-node, consider external etcd or PostgreSQL
+
+# TLS SAN (add your domain/IPs)
+# tls-san:
+#   - "lepotato.local"
+#   - "192.168.178.40"
+
+# Protect kernel defaults for stability
+protect-kernel-defaults: false  # Set true if kernel already tuned
+
+# Secrets encryption at rest (SOTA security)
+secrets-encryption: true
+
+# Disable unused features to save memory
+disable-cloud-controller: true
+disable-network-policy: false  # Keep for Kyverno
