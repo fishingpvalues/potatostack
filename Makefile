@@ -376,6 +376,7 @@ helm-uninstall-all:
 	@helm uninstall homepage -n potatostack --ignore-not-found
 	@helm uninstall rustypaste -n potatostack --ignore-not-found
 	@helm uninstall speedtest-exporter -n potatostack-monitoring --ignore-not-found
+	@helm uninstall fritzbox-exporter -n potatostack-monitoring --ignore-not-found
 	@helm uninstall blackbox -n potatostack-monitoring --ignore-not-found
 	@helm uninstall miniflux -n potatostack --ignore-not-found
 	@helm uninstall linkding -n potatostack --ignore-not-found
@@ -456,30 +457,18 @@ helm-install-apps:
 	@helm upgrade --install uptime-kuma oci://ghcr.io/bjw-s-labs/charts/app-template \
 		--namespace potatostack \
 		-f helm/values/uptime-kuma.yaml --wait
-	@helm upgrade --install fileserver oci://ghcr.io/bjw-s-labs/charts/app-template \
+	@helm upgrade --install homepage gethomepage/homepage \
 		--namespace potatostack \
-		-f helm/values/fileserver.yaml --wait
+		-f helm/values/homepage.yaml --wait
+	@helm upgrade --install rustypaste oci://ghcr.io/bjw-s-labs/charts/app-template \
+		--namespace potatostack \
+		-f helm/values/rustypaste.yaml --wait
 	@helm upgrade --install speedtest-exporter oci://ghcr.io/bjw-s-labs/charts/app-template \
 		--namespace potatostack-monitoring --create-namespace \
 		-f helm/values/speedtest-exporter.yaml --wait
 	@helm upgrade --install fritzbox-exporter oci://ghcr.io/bjw-s-labs/charts/app-template \
 		--namespace potatostack-monitoring \
-		-f helm/values/fritzbox-exporter.yaml --wait
-	@helm upgrade --install unified-backups oci://ghcr.io/bjw-s-labs/charts/app-template \
-		--namespace potatostack \
-		-f helm/values/unified-backups.yaml --wait
-	@helm upgrade --install homepage gethomepage/homepage \
-		--namespace potatostack \
-		-f helm/values/homepage.yaml --wait
-	@helm upgrade --install portainer portainer/portainer \
-		--namespace potatostack \
-		-f helm/values/portainer.yaml --wait
-	@helm upgrade --install dozzle dozzle/dozzle \
-		--namespace potatostack \
-		-f helm/values/dozzle.yaml --wait
-	@helm upgrade --install rustypaste oci://ghcr.io/bjw-s-labs/charts/app-template \
-		--namespace potatostack \
-		-f helm/values/rustypaste.yaml --wait
+		-f helm/values/fritzbox-exporter.yaml --wait || echo "FritzBox exporter failed (check secret)"
 	@echo "Application workloads installed!"
 
 stack-down:
