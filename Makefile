@@ -46,16 +46,16 @@ help:
 	@echo "  make k8s-port-forward-argocd       Access ArgoCD at localhost:8080"
 	@echo "  make k8s-port-forward-dashboard    Access K8s Dashboard at localhost:8443"
 	@echo ""
-	@echo "Production Enhancements (SOTA 2025):"
-	@echo "  make helm-install-enhancements     Install all production enhancements"
-	@echo "  make helm-install-velero           Velero backup & restore"
-	@echo "  make helm-install-sealed-secrets   Sealed Secrets for Git"
-	@echo "  make helm-install-external-dns     Automatic DNS management"
+	@echo "Testing & Validation (Enterprise Grade):"
+	@echo "  make test-unit         Run unit tests (resource limits, YAML, shellcheck)"
+	@echo "  make test-integration  Run integration tests (k8s deployment)"
+	@echo "  make test-e2e          Run E2E smoke tests"
+	@echo "  make test-all          Run complete test suite"
+	@echo "  make lint              Run shellcheck and YAML validation"
+	@echo ""
+	@echo "Optional Production Features:"
 	@echo "  make helm-install-metrics-server   Metrics Server for HPA"
-	@echo "  make helm-install-dashboard        Kubernetes Dashboard"
-	@echo "  make helm-install-tempo            Distributed tracing (Tempo)"
 	@echo "  make k8s-apply-hpa                 Apply HPA for autoscaling"
-	@echo "  make renovate-setup                Setup Renovate for automated updates"
 	@echo ""
 	@echo "Missing Tools (awesome-selfhosted gaps):"
 	@echo "  make helm-install-missing-tools-essential    Phase 1: RSS, CalDAV (50MB)"
@@ -241,15 +241,6 @@ k8s-port-forward-prometheus:
 	@echo "Forwarding Prometheus to localhost:9090..."
 	@kubectl port-forward -n potatostack-monitoring svc/prometheus-operated 9090:9090
 
-k8s-port-forward-argocd:
-	@echo "Forwarding ArgoCD to localhost:8080..."
-	@echo "Password: kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
-	@kubectl port-forward -n argocd svc/argocd-server 8080:443
-
-k8s-port-forward-dashboard:
-	@echo "Forwarding Kubernetes Dashboard to localhost:8443..."
-	@echo "Get token: kubectl create token dashboard-admin -n kubernetes-dashboard --duration=24h"
-	@kubectl port-forward -n kubernetes-dashboard svc/kubernetes-dashboard-kong-proxy 8443:443
 
 k8s-backup:
 	@echo "Backing up Postgres to backup.sql..."
@@ -345,14 +336,6 @@ helm-install-monitoring:
 		-f helm/values/smartctl-exporter.yaml --wait
 	@echo "Monitoring stack installed successfully!"
 
-helm-install-argocd:
-	@echo "Installing ArgoCD via Helm..."
-	@helm upgrade --install argocd argo/argo-cd \
-		--namespace argocd --create-namespace \
-		-f helm/values/argocd.yaml --wait
-	@echo "ArgoCD installed successfully!"
-	@echo "Get admin password: kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
-
 helm-install-gitea:
 	@echo "Installing Gitea via Helm..."
 	@helm upgrade --install gitea oci://docker.gitea.com/charts/gitea \
@@ -365,7 +348,6 @@ helm-install-all:
 	@make helm-repos
 	@make helm-install-operators
 	@make helm-install-monitoring
-	@make helm-install-argocd
 	@make helm-install-datastores
 	@make helm-install-apps
 	@echo "Waiting for operators to be ready..."
@@ -379,7 +361,6 @@ helm-uninstall-all:
 	@echo "Uninstalling Helm releases..."
 	@helm uninstall prometheus -n potatostack-monitoring --ignore-not-found
 	@helm uninstall loki -n potatostack-monitoring --ignore-not-found
-	@helm uninstall argocd -n argocd --ignore-not-found
 	@helm uninstall gitea -n potatostack --ignore-not-found
 	@helm uninstall kyverno -n kyverno --ignore-not-found
 	@helm uninstall ingress-nginx -n ingress-nginx --ignore-not-found
@@ -393,14 +374,13 @@ helm-uninstall-all:
 	@helm uninstall gluetun-stack -n potatostack --ignore-not-found
 	@helm uninstall uptime-kuma -n potatostack --ignore-not-found
 	@helm uninstall homepage -n potatostack --ignore-not-found
-	@helm uninstall portainer -n potatostack --ignore-not-found
-	@helm uninstall dozzle -n potatostack --ignore-not-found
 	@helm uninstall rustypaste -n potatostack --ignore-not-found
-	@helm uninstall fileserver -n potatostack --ignore-not-found
 	@helm uninstall speedtest-exporter -n potatostack-monitoring --ignore-not-found
-	@helm uninstall fritzbox-exporter -n potatostack-monitoring --ignore-not-found
 	@helm uninstall blackbox -n potatostack-monitoring --ignore-not-found
-	@helm uninstall netdata -n potatostack-monitoring --ignore-not-found
+	@helm uninstall miniflux -n potatostack --ignore-not-found
+	@helm uninstall linkding -n potatostack --ignore-not-found
+	@helm uninstall radicale -n potatostack --ignore-not-found
+	@helm uninstall syncthing -n potatostack --ignore-not-found
 	@echo "All Helm releases uninstalled!"
 
 helm-list:
@@ -418,7 +398,6 @@ stack-up:
 	@make helm-install-all
 	@echo "✅ PotatoStack is ready!"
 	@echo "📊 Access Grafana: make k8s-port-forward-grafana"
-	@echo "🔧 Access ArgoCD: make k8s-port-forward-argocd"
 
 stack-up-local:
 	@echo "🚀 Starting PotatoStack on local cluster (Minikube/k3s)..."
@@ -427,7 +406,6 @@ stack-up-local:
 	@./scripts/bootstrap-secrets.sh potatostack
 	@make helm-install-operators-local
 	@make helm-install-monitoring
-	@make helm-install-argocd
 	@make helm-install-datastores
 	@make helm-install-apps
 	@echo "Applying base configmaps and service monitors..."
@@ -517,44 +495,38 @@ stack-status:
 	@make k8s-status
 
 ## ========================================
-## Production Enhancements (SOTA 2025)
+## Testing & Validation (Enterprise Grade)
 ## ========================================
 
-helm-install-enhancements:
-	@echo "Installing production enhancements..."
-	@make helm-install-velero
-	@make helm-install-sealed-secrets
-	@make helm-install-external-dns
-	@make helm-install-metrics-server
-	@make helm-install-dashboard
-	@make helm-install-tempo
-	@echo "Production enhancements installed!"
+test-unit:
+	@echo "Running unit tests..."
+	@./tests/unit/test_resource_limits.sh
+	@./tests/unit/test_yaml_syntax.sh
+	@./tests/unit/test_shell_scripts.sh
+	@echo "Unit tests completed!"
 
-helm-install-velero:
-	@echo "Installing Velero for backup & restore..."
-	@echo "NOTE: Create velero-credentials secret first!"
-	@echo "kubectl create secret generic velero-credentials -n velero --from-file=cloud=credentials-velero"
-	@helm upgrade --install velero vmware-tanzu/velero \
-		--namespace velero --create-namespace \
-		-f helm/values/velero.yaml --wait || echo "Velero install failed - check credentials"
-	@echo "Velero installed!"
+test-integration:
+	@echo "Running integration tests..."
+	@./tests/integration/test_k8s_deploy.sh
+	@echo "Integration tests completed!"
 
-helm-install-sealed-secrets:
-	@echo "Installing Sealed Secrets controller..."
-	@helm upgrade --install sealed-secrets sealed-secrets/sealed-secrets \
-		--namespace kube-system \
-		-f helm/values/sealed-secrets.yaml --wait
-	@echo "Sealed Secrets installed!"
-	@echo "Install kubeseal CLI: wget https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.24.0/kubeseal-linux-arm64 -O kubeseal"
+test-e2e:
+	@echo "Running E2E smoke tests..."
+	@./tests/e2e/test_smoke.sh
+	@echo "E2E tests completed!"
 
-helm-install-external-dns:
-	@echo "Installing external-dns..."
-	@echo "NOTE: Create DNS provider credentials secret first!"
-	@echo "kubectl create secret generic cloudflare-api-token --from-literal=api-token=<TOKEN> -n external-dns"
-	@helm upgrade --install external-dns external-dns/external-dns \
-		--namespace external-dns --create-namespace \
-		-f helm/values/external-dns.yaml --wait || echo "external-dns install failed - check credentials"
-	@echo "external-dns installed!"
+test-all:
+	@echo "Running complete test suite..."
+	@make test-unit
+	@make test-integration
+	@make test-e2e
+	@echo "All tests completed!"
+
+lint:
+	@echo "Running linters..."
+	@find . -type f -name "*.sh" -not -path "*/.git/*" -exec shellcheck -x {} +
+	@find . -type f \( -name "*.yaml" -o -name "*.yml" \) -not -path "*/node_modules/*" -not -path "*/.git/*" -exec yq eval '.' {} \; > /dev/null
+	@echo "Linting completed!"
 
 helm-install-metrics-server:
 	@echo "Installing Metrics Server for HPA..."
@@ -564,47 +536,12 @@ helm-install-metrics-server:
 	@echo "Metrics Server installed!"
 	@echo "Verify: kubectl top nodes"
 
-helm-install-dashboard:
-	@echo "Installing Kubernetes Dashboard..."
-	@helm upgrade --install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard \
-		--namespace kubernetes-dashboard --create-namespace \
-		-f helm/values/kubernetes-dashboard.yaml --wait
-	@echo "Kubernetes Dashboard installed!"
-	@echo "Create admin user:"
-	@echo "  kubectl create serviceaccount dashboard-admin -n kubernetes-dashboard"
-	@echo "  kubectl create clusterrolebinding dashboard-admin --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:dashboard-admin"
-	@echo "Get token: kubectl create token dashboard-admin -n kubernetes-dashboard --duration=24h"
-	@echo "Access: make k8s-port-forward-dashboard"
-
-helm-install-tempo:
-	@echo "Installing Tempo for distributed tracing..."
-	@helm upgrade --install tempo grafana/tempo \
-		--namespace potatostack-monitoring \
-		-f helm/values/tempo.yaml --wait
-	@echo "Tempo installed!"
-	@echo "Add Tempo datasource to Grafana: http://tempo.potatostack-monitoring.svc.cluster.local:3100"
-
 k8s-apply-hpa:
 	@echo "Applying Horizontal Pod Autoscalers..."
 	@kubectl apply -f k8s/base/hpa/
 	@echo "HPAs applied!"
 	@echo "Check status: kubectl get hpa -n potatostack"
 	@echo "NOTE: Requires metrics-server to be installed"
-
-renovate-setup:
-	@echo "Renovate configuration already created: renovate.json"
-	@echo ""
-	@echo "To enable Renovate:"
-	@echo "1. Install Renovate GitHub App: https://github.com/apps/renovate"
-	@echo "2. Enable for this repository"
-	@echo "3. Renovate will automatically create PRs for updates"
-	@echo ""
-	@echo "Configuration features:"
-	@echo "  - Runs every weekend"
-	@echo "  - Auto-merges patch updates for stable images"
-	@echo "  - Groups monitoring stack updates"
-	@echo "  - Stability period: 3 days"
-	@echo "  - Security alerts enabled"
 
 ## ========================================
 ## SOTA 2025 Features (Le Potato)
@@ -618,18 +555,6 @@ install-gateway-api:
 	@kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
 	@echo "Gateway API installed!"
 	@echo "Deploy gateways: kubectl apply -f config/gateway-api.yaml"
-
-helm-install-cilium-hubble:
-	@echo "Installing Cilium Hubble for eBPF observability..."
-	@echo "WARNING: This is for observability only. Full Cilium CNI requires cluster rebuild."
-	@helm repo add cilium https://helm.cilium.io/
-	@helm repo update
-	@helm upgrade --install cilium cilium/cilium \
-		--namespace kube-system \
-		-f helm/values/cilium-hubble.yaml \
-		--set kubeProxyReplacement=false --wait
-	@echo "Cilium Hubble installed!"
-	@echo "Access Hubble UI: kubectl port-forward -n kube-system svc/hubble-ui 12000:80"
 
 k3s-install-optimized:
 	@echo "Installing k3s with Le Potato optimizations..."
@@ -650,17 +575,19 @@ sota-stack-deploy:
 	@make helm-repos
 	@make helm-install-operators
 	@make helm-install-monitoring
-	@make helm-install-argocd
 	@make helm-install-datastores
 	@make helm-install-apps
 	@make install-gateway-api
 	@echo "✅ SOTA 2025 Stack deployed!"
 	@echo ""
 	@echo "Optional enhancements:"
-	@echo "  - eBPF monitoring: make helm-install-cilium-hubble"
-	@echo "  - Sealed Secrets: make helm-install-sealed-secrets"
-	@echo "  - Metrics Server: make helm-install-metrics-server"
+	@echo "  - Metrics Server (HPA): make helm-install-metrics-server"
 	@echo "  - Missing Tools: make helm-install-missing-tools"
+	@echo ""
+	@echo "Run tests:"
+	@echo "  - Unit tests: make test-unit"
+	@echo "  - Integration: make test-integration"
+	@echo "  - All tests: make test-all"
 
 ## ========================================
 ## Missing Tools (awesome-selfhosted gaps)

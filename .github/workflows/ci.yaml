@@ -1,0 +1,117 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint & Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Run shellcheck
+        run: |
+          find . -type f -name "*.sh" -not -path "*/.git/*" -exec shellcheck -x {} +
+
+      - name: Validate YAML syntax
+        run: |
+          find . -type f \( -name "*.yaml" -o -name "*.yml" \) -not -path "*/node_modules/*" -not -path "*/.git/*" -exec yq eval '.' {} \; > /dev/null
+
+      - name: Validate Helm charts
+        run: |
+          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+          for file in helm/values/*.yaml; do
+            echo "Validating $file"
+            yq eval '.' "$file" > /dev/null
+          done
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Run resource limits test
+        run: ./tests/unit/test_resource_limits.sh
+
+      - name: Run YAML syntax test
+        run: ./tests/unit/test_yaml_syntax.sh
+
+      - name: Run shell script test
+        run: ./tests/unit/test_shell_scripts.sh
+
+  integration-tests:
+    name: Integration Tests (k3s)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install k3s
+        run: |
+          curl -sfL https://get.k3s.io | sh -
+          sudo chmod 644 /etc/rancher/k3s/k3s.yaml
+          mkdir -p ~/.kube
+          sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+          sudo chown $USER:$USER ~/.kube/config
+
+      - name: Wait for k3s
+        run: |
+          kubectl wait --for=condition=Ready nodes --all --timeout=120s
+
+      - name: Install Helm
+        run: |
+          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+      - name: Install operators
+        run: |
+          make helm-repos
+          make helm-install-operators
+
+      - name: Run integration tests
+        run: ./tests/integration/test_k8s_deploy.sh
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  build-success:
+    name: Build Success
+    needs: [lint, unit-tests, integration-tests, security-scan]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Success
+        run: echo "All checks passed!"
