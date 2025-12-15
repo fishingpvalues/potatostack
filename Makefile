@@ -457,6 +457,9 @@ helm-install-apps:
 	@helm upgrade --install uptime-kuma oci://ghcr.io/bjw-s-labs/charts/app-template \
 		--namespace potatostack \
 		-f helm/values/uptime-kuma.yaml --wait
+	@helm upgrade --install gitea oci://docker.gitea.com/charts/gitea \
+		--namespace potatostack \
+		-f helm/values/gitea.yaml --wait
 	@helm upgrade --install homepage gethomepage/homepage \
 		--namespace potatostack \
 		-f helm/values/homepage.yaml --wait
