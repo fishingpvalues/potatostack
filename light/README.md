@@ -26,7 +26,7 @@ Minimal production-ready Docker Compose stack for Le Potato, mirroring the full 
 
 ### Storage Architecture
 - **14TB Main Drive** (`/mnt/seconddrive`): Downloads, photos, files, backups
-- **500GB Cache Drive** (`/mnt/cachehdd`): Temp files, thumbnails, cache
+- **500GB Cache Drive** (`/mnt/cachehdd`): Temp files, thumbnails, cache, pastebin uploads
 - **Docker Volumes**: Small config/state data only
 
 ## Quick Start
@@ -69,10 +69,11 @@ nano .env  # Edit with your values
 ```
 
 **Required Configuration:**
-- Update `HOST_BIND` to your Le Potato's IP
-- Configure Surfshark VPN credentials
-- Generate strong passwords for all services
-- Set your local network subnet in `LAN_NETWORK`
+- Update `HOST_BIND` to your Le Potato's IP (e.g., `192.168.178.40`)
+- Configure Surfshark VPN credentials from https://my.surfshark.com/vpn/manual-setup/main
+- Generate strong passwords for all services using `openssl rand -base64 32`
+- Set your local network subnet in `LAN_NETWORK` (e.g., `192.168.178.0/24`)
+- `VPN_DNS` must be a single IP address (e.g., `1.1.1.1`) - Gluetun doesn't support comma-separated DNS
 
 ### 4. Start the Stack
 ```bash
@@ -137,6 +138,7 @@ The stack uses two mounted HDDs for optimal performance:
 - slskd incomplete downloads
 - Immich thumbnails
 - Kopia cache
+- Rustypaste uploads
 
 ### Docker Volumes
 Small config and state data stored in Docker volumes:
@@ -149,12 +151,30 @@ Small config and state data stored in Docker volumes:
 ### PostgreSQL Databases
 Single PostgreSQL instance serves multiple applications:
 - `immich` - Immich photos database
+  - Extensions: `vectors` (pgvecto.rs), `cube`, `earthdistance`, `pg_trgm`
+  - Owner: `immich` user with full schema permissions
 - `ccnet_db`, `seafile_db`, `seahub_db` - Seafile databases
+  - Owner: `seafile` user
+
+**Initialization:**
+The stack uses `init-db.sh` (bash script) instead of SQL for database initialization:
+- Reads `IMMICH_DB_PASSWORD` and `SEAFILE_DB_PASSWORD` from environment
+- Creates database users and databases with proper ownership
+- Installs all required PostgreSQL extensions for Immich
+- Grants necessary permissions to prevent "permission denied" errors
 
 ### Redis Databases
 Shared Redis instance with database separation:
 - DB 2 - Immich cache
 - DB 6 - Seafile cache
+
+### Database Credentials
+All database passwords are configured in `.env`:
+- `POSTGRES_SUPER_PASSWORD` - PostgreSQL superuser
+- `IMMICH_DB_PASSWORD` - Immich database user
+- `SEAFILE_DB_PASSWORD` - Seafile database user
+
+**Security:** Never use `current_setting()` in SQL files - it cannot read OS environment variables. Use shell scripts with `psql` heredocs instead.
 
 ## Backup Strategy
 
@@ -275,6 +295,63 @@ docker compose ps gluetun
 Ensure PostgreSQL is healthy:
 ```bash
 docker compose exec postgres pg_isready -U postgres
+
+# Check if databases were created
+docker compose exec postgres psql -U postgres -c "\l"
+
+# Check if users exist
+docker compose exec postgres psql -U postgres -c "\du"
+
+# Verify Immich extensions
+docker compose exec postgres psql -U postgres -d immich -c "\dx"
+```
+
+**Common Issues:**
+- **"permission denied for schema vectors"**: Run database initialization again or grant permissions manually
+- **"function earthdistance does not exist"**: Missing extensions - recreate database volume
+- **"password authentication failed"**: Check `.env` file has correct database passwords
+
+### Immich Startup Issues
+If Immich fails to start with database errors:
+```bash
+# Check Immich logs
+docker compose logs immich-server --tail 50
+
+# Verify database extensions and permissions
+docker compose exec postgres psql -U postgres -d immich -c "
+  SELECT schema_name FROM information_schema.schemata WHERE schema_name = 'vectors';
+  SELECT extname FROM pg_extension;
+"
+
+# Grant missing permissions (if needed)
+docker compose exec postgres psql -U postgres -d immich -c "
+  GRANT USAGE ON SCHEMA vectors TO immich;
+  GRANT ALL ON ALL TABLES IN SCHEMA vectors TO immich;
+  ALTER DATABASE immich OWNER TO immich;
+  ALTER SCHEMA public OWNER TO immich;
+"
+```
+
+### Rustypaste Permission Errors
+If rustypaste shows "Permission denied" errors:
+```bash
+# Check directory ownership
+ls -ld /mnt/cachehdd/rustypaste
+
+# Fix permissions
+sudo chown -R 1000:1000 /mnt/cachehdd/rustypaste
+docker compose restart rustypaste
+```
+
+### VPN DNS Issues
+If Gluetun fails with DNS parsing errors:
+```bash
+# Check logs
+docker compose logs gluetun --tail 20
+
+# Verify DNS config in .env (must be single IP, NOT comma-separated)
+# ✅ Correct: VPN_DNS=1.1.1.1
+# ❌ Wrong: VPN_DNS=1.1.1.1,1.0.0.1
 ```
 
 ### Check Service Health
@@ -354,6 +431,38 @@ Minimum for Le Potato:
 - 16GB+ storage (+ external storage for media)
 - Ethernet connection recommended
 
+## Testing
+
+A complete test environment is available for validation:
+
+```bash
+# Run test stack (uses Windows-compatible paths)
+cd light
+docker compose -f docker-compose.test.yml --env-file .env.test up -d
+
+# Check status
+docker compose -f docker-compose.test.yml --env-file .env.test ps
+
+# View logs
+docker compose -f docker-compose.test.yml --env-file .env.test logs -f
+
+# Tear down test environment
+docker compose -f docker-compose.test.yml --env-file .env.test down -v
+```
+
+**Test Environment Differences:**
+- Uses test credentials (see `.env.test`)
+- Rustypaste uses `./data/rustypaste` bind mount (Windows-compatible)
+- All ports bound to `127.0.0.1` for local testing
+- VPN uses dummy credentials (won't actually connect)
+
+**Production vs Test Paths:**
+| Service | Production (Linux) | Test (Windows) |
+|---------|-------------------|----------------|
+| Rustypaste uploads | `/mnt/cachehdd/rustypaste` | `./data/rustypaste` |
+| PostgreSQL init | `init-db.sh` | `init-db.sh` (same) |
+| All services | Host IP binding | `127.0.0.1` binding |
+
 ## Integration with Kubernetes Setup
 
 This stack mirrors the full K8s deployment:
@@ -364,3 +473,55 @@ This stack mirrors the full K8s deployment:
 - Same database architecture
 
 Migrate to K8s later by using the configurations in `/k8s` and `/helm` directories.
+
+## Technical Notes
+
+### PostgreSQL Initialization
+- Uses **bash script** (`init-db.sh`) not SQL file
+- SQL `current_setting()` cannot read Docker environment variables
+- Shell script with `psql` heredocs reads env vars correctly
+- Includes all Immich extensions and permission grants
+- Idempotent - safe to run multiple times
+
+### Rustypaste Configuration
+- Deprecated `random_url.enabled` commented out (causes warnings)
+- Uses bind mount instead of Docker volume for cross-platform compatibility
+- Linux: `/mnt/cachehdd/rustypaste` (cache drive for temp uploads)
+- Windows: `./data/rustypaste` (local directory for testing)
+
+### VPN Configuration
+- Gluetun requires single DNS IP, not comma-separated
+- Invalid: `DNS_ADDRESS=1.1.1.1,1.0.0.1` causes parse error
+- Valid: `DNS_ADDRESS=1.1.1.1`
+- Set via `VPN_DNS` in `.env` file
+
+### Container Dependencies
+Services with health checks enforce startup order:
+1. `postgres`, `redis` - Start first, wait for healthy
+2. `gluetun` - Starts independently
+3. `immich-*`, `seafile`, `vaultwarden` - Wait for postgres + redis
+4. `transmission`, `slskd` - Wait for gluetun (network dependency)
+
+## Development Workflow
+
+### Making Changes
+1. Test changes in test environment first
+2. Verify all services start successfully
+3. Check logs for errors
+4. Apply to production `docker-compose.yml`
+5. Commit both test and production changes
+
+### Adding New Services
+1. Add service to `docker-compose.test.yml`
+2. Test with `.env.test` credentials
+3. Update `.env.example` with new variables
+4. Add to production `docker-compose.yml`
+5. Update README with service info
+6. Add port to service access table
+
+### Database Schema Changes
+1. Never modify databases directly in production
+2. Test schema changes in test environment
+3. Update `init-db.sh` if needed
+4. Document changes in commit message
+5. Create backup before applying to production
