@@ -60,6 +60,7 @@ backup.sql
 # Data directories (legacy Docker)
 data/
 volumes/
+mock-drives/
 
 # Kopia repository (if local)
 repository/
