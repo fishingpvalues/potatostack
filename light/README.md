@@ -54,13 +54,44 @@ df -h /mnt/seconddrive /mnt/cachehdd
 ```
 
 ### 2. Create Directory Structure
+
+**Production (Le Potato):**
 ```bash
 cd light
 chmod +x setup-directories.sh
 sudo ./setup-directories.sh
 ```
 
-This creates all required directories on both drives with proper permissions.
+**Testing (Windows/macOS):**
+```bash
+cd light
+chmod +x setup-directories-mock.sh
+./setup-directories-mock.sh
+```
+
+The setup scripts create all required directories with:
+- Automatic drive detection and size reporting
+- Color-coded output for easy verification
+- Duplicate detection (warns if directories already exist)
+- Directory verification after creation
+- Proper permissions (PUID/PGID 1000)
+
+**Verify Setup:**
+```bash
+chmod +x verify-directories.sh
+
+# For production
+./verify-directories.sh
+
+# For testing
+./verify-directories.sh test
+```
+
+The verification script checks:
+- All 11 required directories exist
+- Read/write permissions are correct
+- Drive space usage
+- Directory sizes
 
 ### 3. Configure Environment
 ```bash
@@ -436,8 +467,17 @@ Minimum for Le Potato:
 A complete test environment is available for validation:
 
 ```bash
-# Run test stack (uses Windows-compatible paths)
 cd light
+
+# 1. Setup mock directories (creates ../mock-drives/)
+chmod +x setup-directories-mock.sh
+./setup-directories-mock.sh
+
+# 2. Verify setup
+chmod +x verify-directories.sh
+./verify-directories.sh test
+
+# 3. Run test stack (uses Windows-compatible paths)
 docker compose -f docker-compose.test.yml --env-file .env.test up -d
 
 # Check status
@@ -457,9 +497,10 @@ docker compose -f docker-compose.test.yml --env-file .env.test down -v
 - VPN uses dummy credentials (won't actually connect)
 
 **Production vs Test Paths:**
-| Service | Production (Linux) | Test (Windows) |
-|---------|-------------------|----------------|
-| Rustypaste uploads | `/mnt/cachehdd/rustypaste` | `./data/rustypaste` |
+| Service | Production (Linux) | Test (Mock Drives) |
+|---------|-------------------|-------------------|
+| Main Drive | `/mnt/seconddrive/` | `../mock-drives/seconddrive/` |
+| Cache Drive | `/mnt/cachehdd/` | `../mock-drives/cachehdd/` |
 | PostgreSQL init | `init-db.sh` | `init-db.sh` (same) |
 | All services | Host IP binding | `127.0.0.1` binding |
 
