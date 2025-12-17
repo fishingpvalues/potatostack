@@ -3,10 +3,10 @@ address = "0.0.0.0:8000"
 workers = 2
 max_content_length = "100MB"
 upload_path = "/var/lib/rustypaste"
-timeout = 30
+timeout = "30s"
 
 [paste]
-random_url.enabled = true
+# random_url.enabled = true  # Deprecated - disabled by commenting out
 random_url.type = "petname"
 random_url.words = 2
 random_url.separator = "-"
