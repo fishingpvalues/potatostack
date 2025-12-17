@@ -1,11 +1,18 @@
 -- PostgreSQL initialization script for PotatoStack Light
 -- Creates databases and users for Immich and Seafile
+-- Environment variables IMMICH_DB_PASSWORD and SEAFILE_DB_PASSWORD must be set
 
 -- Create Immich user
 DO $$
+DECLARE
+    immich_password text := nullif(current_setting('IMMICH_DB_PASSWORD', true), '');
 BEGIN
+  IF immich_password IS NULL THEN
+    RAISE EXCEPTION 'IMMICH_DB_PASSWORD environment variable is not set';
+  END IF;
+
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'immich') THEN
-    EXECUTE format('CREATE ROLE immich LOGIN PASSWORD %L', current_setting('IMMICH_DB_PASSWORD', true));
+    EXECUTE format('CREATE ROLE immich LOGIN PASSWORD %L', immich_password);
   END IF;
 END
 $$;
@@ -16,9 +23,15 @@ WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'immich')\gexec
 
 -- Create Seafile user
 DO $$
+DECLARE
+    seafile_password text := nullif(current_setting('SEAFILE_DB_PASSWORD', true), '');
 BEGIN
+  IF seafile_password IS NULL THEN
+    RAISE EXCEPTION 'SEAFILE_DB_PASSWORD environment variable is not set';
+  END IF;
+
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'seafile') THEN
-    EXECUTE format('CREATE ROLE seafile LOGIN PASSWORD %L', current_setting('SEAFILE_DB_PASSWORD', true));
+    EXECUTE format('CREATE ROLE seafile LOGIN PASSWORD %L', seafile_password);
   END IF;
 END
 $$;
