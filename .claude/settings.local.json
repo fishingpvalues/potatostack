@@ -43,7 +43,8 @@
       "Bash(helm repo add:*)",
       "Bash(helm repo update:*)",
       "Bash(helm repo list:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(./setup-directories-mock.sh:*)"
     ],
     "deny": [],
     "ask": []
