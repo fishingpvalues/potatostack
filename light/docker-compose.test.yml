@@ -1,0 +1,433 @@
+version: '3.8'
+
+################################################################################
+# PotatoStack Light - Minimal Docker Compose for Le Potato
+# All services configured for home LAN access with VPN killswitch
+################################################################################
+
+services:
+  ################################################################################
+  # Gluetun - VPN Client with Killswitch
+  ################################################################################
+  gluetun:
+    image: qmcgaw/gluetun:${GLUETUN_TAG:-latest}
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - "${HOST_BIND}:8000:8000"     # Gluetun control server
+      - "${HOST_BIND}:9091:9091"     # Transmission WebUI
+      - "${HOST_BIND}:51413:51413"   # Transmission peer port TCP
+      - "${HOST_BIND}:51413:51413/udp" # Transmission peer port UDP
+      - "${HOST_BIND}:2234:2234"     # slskd WebUI
+      - "${HOST_BIND}:50000:50000"   # slskd Soulseek port
+    environment:
+      - TZ=Europe/Berlin
+      - VPN_SERVICE_PROVIDER=surfshark
+      - VPN_TYPE=${SURFSHARK_CONNECTION_TYPE:-openvpn}
+      - OPENVPN_USER=${SURFSHARK_USER}
+      - OPENVPN_PASSWORD=${SURFSHARK_PASSWORD}
+      - SERVER_COUNTRIES=${SURFSHARK_COUNTRY:-Netherlands}
+      - SERVER_CITIES=${SURFSHARK_CITY:-Amsterdam}
+      - FIREWALL_OUTBOUND_SUBNETS=${LAN_NETWORK:-192.168.178.0/24}
+      - FIREWALL_VPN_INPUT_PORTS=51413,50000
+      - FIREWALL=on
+      - DNS_ADDRESS=${VPN_DNS:-1.1.1.1}
+      - DOT=off
+      - HTTPPROXY=off
+      - SHADOWSOCKS=off
+      - HTTP_CONTROL_SERVER_ADDRESS=:8000
+      - HTTP_CONTROL_SERVER_LOG=on
+      - IPV6=off
+    volumes:
+      - gluetun-config:/gluetun
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8000/v1/publicip/ip"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+
+  ################################################################################
+  # Transmission - Torrent Client (wired to Gluetun)
+  ################################################################################
+  transmission:
+    image: lscr.io/linuxserver/transmission:${QBITTORRENT_TAG:-latest}
+    container_name: transmission
+    network_mode: "service:gluetun"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Berlin
+      - USER=admin
+      - PASS=admin
+    volumes:
+      - transmission-config:/config
+      - ../mock-drives/seconddrive/downloads:/downloads
+      - ../mock-drives/cachehdd/transmission-incomplete:/incomplete
+      - transmission-watch:/watch
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ################################################################################
+  # slskd - Soulseek Client (wired to Gluetun)
+  ################################################################################
+  slskd:
+    image: ghcr.io/slskd/slskd:${SLSKD_TAG:-latest}
+    container_name: slskd
+    network_mode: "service:gluetun"
+    environment:
+      - TZ=Europe/Berlin
+      - SLSKD_HTTP_PORT=2234
+      - SLSKD_SLSK_LISTEN_PORT=50000
+      - SLSKD_USERNAME=${SLSKD_USER}
+      - SLSKD_PASSWORD=${SLSKD_PASSWORD}
+      - SLSKD_METRICS=true
+      - SLSKD_METRICS_URL=http://localhost:5031/metrics
+    volumes:
+      - slskd-config:/app
+      - slskd-logs:/app/logs
+      - ../mock-drives/seconddrive/slskd-shared:/var/slskd/shared
+      - ../mock-drives/cachehdd/slskd-incomplete:/var/slskd/incomplete
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ################################################################################
+  # PostgreSQL - Shared database for Immich, Seafile
+  ################################################################################
+  postgres:
+    image: tensorchord/pgvecto-rs:${POSTGRES_TAG:-pg14-v0.2.0}
+    container_name: postgres
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_SUPER_PASSWORD}
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+      - IMMICH_DB_PASSWORD=${IMMICH_DB_PASSWORD}
+      - SEAFILE_DB_PASSWORD=${SEAFILE_DB_PASSWORD}
+      - TZ=Europe/Berlin
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/00-init-db.sql:ro
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ################################################################################
+  # Redis - Shared cache for Immich and Seafile
+  ################################################################################
+  redis:
+    image: redis:${REDIS_TAG:-7-alpine}
+    container_name: redis
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    networks:
+      - potatostack
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  ################################################################################
+  # Immich - Photo Management (Server)
+  ################################################################################
+  immich-server:
+    image: ghcr.io/immich-app/immich-server:${IMMICH_TAG:-release}
+    container_name: immich-server
+    command: ["start.sh", "immich"]
+    ports:
+      - "${HOST_BIND}:2283:3001"
+    environment:
+      - TZ=Europe/Berlin
+      - DB_HOSTNAME=postgres
+      - DB_DATABASE_NAME=immich
+      - DB_USERNAME=immich
+      - DB_PASSWORD=${IMMICH_DB_PASSWORD}
+      - REDIS_HOSTNAME=redis
+      - REDIS_PORT=6379
+      - REDIS_DBINDEX=2
+      - IMMICH_MACHINE_LEARNING_ENABLED=false
+      - UPLOAD_LOCATION=/usr/src/app/upload
+    volumes:
+      - ../mock-drives/seconddrive/immich/upload:/usr/src/app/upload
+      - ../mock-drives/seconddrive/immich/library:/usr/src/app/library
+      - ../mock-drives/cachehdd/immich/thumbs:/usr/src/app/thumbs
+    networks:
+      - potatostack
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ################################################################################
+  # Immich - Microservices
+  ################################################################################
+  immich-microservices:
+    image: ghcr.io/immich-app/immich-server:${IMMICH_TAG:-release}
+    container_name: immich-microservices
+    command: ["start.sh", "microservices"]
+    environment:
+      - TZ=Europe/Berlin
+      - DB_HOSTNAME=postgres
+      - DB_DATABASE_NAME=immich
+      - DB_USERNAME=immich
+      - DB_PASSWORD=${IMMICH_DB_PASSWORD}
+      - REDIS_HOSTNAME=redis
+      - REDIS_PORT=6379
+      - REDIS_DBINDEX=2
+      - IMMICH_MACHINE_LEARNING_ENABLED=false
+    volumes:
+      - ../mock-drives/seconddrive/immich/upload:/usr/src/app/upload
+      - ../mock-drives/seconddrive/immich/library:/usr/src/app/library
+      - ../mock-drives/cachehdd/immich/thumbs:/usr/src/app/thumbs
+    networks:
+      - potatostack
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ################################################################################
+  # Vaultwarden - Password Manager
+  ################################################################################
+  vaultwarden:
+    image: vaultwarden/server:${VAULTWARDEN_TAG:-latest}
+    container_name: vaultwarden
+    ports:
+      - "${HOST_BIND}:8080:80"
+      - "${HOST_BIND}:3012:3012"
+    environment:
+      - TZ=Europe/Berlin
+      - DOMAIN=https://vault.${HOST_DOMAIN:-lepotato.local}
+      - ROCKET_PORT=80
+      - WEBSOCKET_ENABLED=true
+      - WEBSOCKET_PORT=3012
+      - SIGNUPS_ALLOWED=${VAULTWARDEN_SIGNUPS_ALLOWED:-false}
+      - INVITATIONS_ALLOWED=${VAULTWARDEN_INVITATIONS_ALLOWED:-true}
+      - ADMIN_TOKEN=${VAULTWARDEN_ADMIN_TOKEN}
+      - DATABASE_URL=/data/db.sqlite3
+      - ICON_CACHE_TTL=2592000
+      - ICON_CACHE_NEGTTL=259200
+      - LOG_LEVEL=info
+      - EXTENDED_LOGGING=true
+      - LOG_FILE=/data/vaultwarden.log
+    volumes:
+      - vaultwarden-data:/data
+    networks:
+      - potatostack
+    restart: unless-stopped
+
+  ################################################################################
+  # Portainer - Container Management
+  ################################################################################
+  portainer:
+    image: portainer/portainer-ce:${PORTAINER_TAG:-latest}
+    container_name: portainer
+    ports:
+      - "${HOST_BIND}:9443:9443"
+      - "${HOST_BIND}:9000:9000"
+    environment:
+      - TZ=Europe/Berlin
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer-data:/data
+    networks:
+      - potatostack
+    restart: unless-stopped
+
+  ################################################################################
+  # Kopia - Backup Server (Central Repository for All Devices)
+  ################################################################################
+  kopia:
+    image: kopia/kopia:${KOPIA_TAG:-latest}
+    container_name: kopia
+    hostname: kopia-server
+    ports:
+      - "${HOST_BIND}:51515:51515"   # Kopia Server API
+      - "${HOST_BIND}:51516:51516"   # Prometheus metrics
+    environment:
+      - TZ=Europe/Berlin
+      - KOPIA_PASSWORD=${KOPIA_PASSWORD}
+      - KOPIA_SERVER_USER=${KOPIA_SERVER_USER}
+      - KOPIA_SERVER_PASSWORD=${KOPIA_SERVER_PASSWORD}
+      - KOPIA_CONFIG_PATH=/app/config/repository.config
+      - KOPIA_CACHE_DIRECTORY=/app/cache
+      - KOPIA_LOG_DIR=/app/logs
+      - KOPIA_PROMETHEUS_ENABLED=true
+      - KOPIA_PROMETHEUS_LISTEN_ADDR=:51516
+    command:
+      - server
+      - start
+      - --address=0.0.0.0:51515
+      - --tls-generate-cert
+      - --tls-generate-rsa-key-size=4096
+      - --server-username=${KOPIA_SERVER_USER}
+      - --server-password=${KOPIA_SERVER_PASSWORD}
+      - --log-level=info
+      - --file-log-level=debug
+      - --metrics-listen-addr=:51516
+      - --override-hostname=kopia-server
+      - --override-username=all-users
+    volumes:
+      # Kopia repository on main 14TB drive
+      - ../mock-drives/seconddrive/kopia/repository:/repository
+      - kopia-config:/app/config
+      # Cache on faster 500GB drive
+      - ../mock-drives/cachehdd/kopia/cache:/app/cache
+      - kopia-logs:/app/logs
+      # Local stack data access for backups
+      - vaultwarden-data:/data/vaultwarden
+      - ../mock-drives/seconddrive/immich/upload:/data/immich-upload
+      - ../mock-drives/seconddrive/immich/library:/data/immich-library
+      - ../mock-drives/seconddrive/seafile:/data/seafile
+      - ../mock-drives/seconddrive/downloads:/data/downloads
+      - ../mock-drives/seconddrive/slskd-shared:/data/slskd-shared
+    networks:
+      - potatostack
+    restart: unless-stopped
+
+  ################################################################################
+  # Seafile - File Sync & Share
+  ################################################################################
+  seafile:
+    image: seafileltd/seafile-mc:${SEAFILE_TAG:-latest}
+    container_name: seafile
+    ports:
+      - "${HOST_BIND}:8082:80"
+    environment:
+      - TZ=Europe/Berlin
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=seafile
+      - DB_PASSWORD=${SEAFILE_DB_PASSWORD}
+      - CCNET_DB=ccnet_db
+      - SEAFILE_DB=seafile_db
+      - SEAHUB_DB=seahub_db
+      - SEAFILE_ADMIN_EMAIL=${SEAFILE_ADMIN_EMAIL}
+      - SEAFILE_ADMIN_PASSWORD=${SEAFILE_ADMIN_PASSWORD}
+      - SEAFILE_SERVER_LETSENCRYPT=false
+      - SEAFILE_SERVER_HOSTNAME=files.${HOST_DOMAIN:-lepotato.local}
+      - TIME_ZONE=Europe/Berlin
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=6
+    volumes:
+      - ../mock-drives/seconddrive/seafile:/shared
+    networks:
+      - potatostack
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ################################################################################
+  # Rustypaste - Pastebin Service
+  ################################################################################
+  rustypaste:
+    image: orhunp/rustypaste:${RUSTYPASTE_TAG:-latest}
+    container_name: rustypaste
+    ports:
+      - "${HOST_BIND}:8001:8000"
+    environment:
+      - CONFIG=/config/config.toml
+    volumes:
+      - ./rustypaste-config.toml:/config/config.toml:ro
+      - rustypaste-uploads:/var/lib/rustypaste
+    networks:
+      - potatostack
+    restart: unless-stopped
+
+  ################################################################################
+  # FritzBox Exporter - Router Monitoring
+  ################################################################################
+  fritzbox-exporter:
+    image: pdreker/fritz_exporter:${FRITZBOX_EXPORTER_TAG:-latest}
+    container_name: fritzbox-exporter
+    ports:
+      - "${HOST_BIND}:9042:9042"
+    environment:
+      - TZ=Europe/Berlin
+      - FRITZ_USERNAME=${FRITZ_USERNAME}
+      - FRITZ_PASSWORD=${FRITZ_PASSWORD}
+      - FRITZ_HOSTNAME=${FRITZ_HOSTNAME:-fritz.box}
+      - FRITZ_PORT=${FRITZ_PORT:-49000}
+      - FRITZ_PROTOCOL=${FRITZ_PROTOCOL:-https}
+    networks:
+      - potatostack
+    restart: unless-stopped
+
+################################################################################
+# Networks
+################################################################################
+networks:
+  potatostack:
+    driver: bridge
+
+################################################################################
+# Volumes
+################################################################################
+volumes:
+  # VPN & P2P (small config volumes only)
+  gluetun-config:
+  transmission-config:
+  transmission-watch:
+  slskd-config:
+  slskd-logs:
+
+  # Databases (on system drive for performance)
+  postgres-data:
+  redis-data:
+
+  # Applications (small config/state volumes)
+  vaultwarden-data:
+  portainer-data:
+  rustypaste-uploads:
+
+  # Backup (small config/log volumes - main data on host)
+  kopia-config:
+  kopia-logs:
+
+################################################################################
+# Host Path Mounts (requires pre-created directories)
+################################################################################
+# Large data is stored on mounted HDDs:
+#
+# ../mock-drives/seconddrive (14TB) - Main storage:
+#   - ../mock-drives/seconddrive/downloads (Transmission)
+#   - ../mock-drives/seconddrive/slskd-shared (slskd)
+#   - ../mock-drives/seconddrive/immich/upload (Immich photos)
+#   - ../mock-drives/seconddrive/immich/library (Immich library)
+#   - ../mock-drives/seconddrive/seafile (Seafile files)
+#   - ../mock-drives/seconddrive/kopia/repository (Kopia backups)
+#
+# ../mock-drives/cachehdd (500GB) - Cache/temp storage:
+#   - ../mock-drives/cachehdd/transmission-incomplete (Transmission temp)
+#   - ../mock-drives/cachehdd/slskd-incomplete (slskd temp)
+#   - ../mock-drives/cachehdd/immich/thumbs (Immich thumbnails)
+#   - ../mock-drives/cachehdd/kopia/cache (Kopia cache)
+#
+# Create these directories before starting:
+# sudo mkdir -p ../mock-drives/seconddrive/{downloads,slskd-shared,immich/{upload,library},seafile,kopia/repository}
+# sudo mkdir -p ../mock-drives/cachehdd/{transmission-incomplete,slskd-incomplete,immich/thumbs,kopia/cache}
+# sudo chown -R 1000:1000 ../mock-drives/seconddrive ../mock-drives/cachehdd
