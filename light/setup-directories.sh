@@ -42,6 +42,7 @@ sudo mkdir -p /mnt/cachehdd/transmission-incomplete
 sudo mkdir -p /mnt/cachehdd/slskd-incomplete
 sudo mkdir -p /mnt/cachehdd/immich/thumbs
 sudo mkdir -p /mnt/cachehdd/kopia/cache
+sudo mkdir -p /mnt/cachehdd/rustypaste
 
 # Set ownership (PUID/PGID 1000)
 echo "🔐 Setting ownership to 1000:1000..."
@@ -65,6 +66,7 @@ echo "⚡ /mnt/cachehdd (Cache Storage - 500GB):"
 echo "   ├── transmission-incomplete  (Transmission temp)"
 echo "   ├── slskd-incomplete         (Soulseek temp)"
 echo "   ├── immich/thumbs            (Photo thumbnails)"
-echo "   └── kopia/cache              (Backup cache)"
+echo "   ├── kopia/cache              (Backup cache)"
+echo "   └── rustypaste               (Pastebin uploads)"
 echo ""
 echo "🚀 Ready to start: docker compose up -d"
