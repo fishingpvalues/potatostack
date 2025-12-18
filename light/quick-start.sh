@@ -109,13 +109,13 @@ echo -e "${CYAN}Step 2: Creating Directory Structure${NC}"
 echo -e "${CYAN}═══════════════════════════════════════════════════════════${NC}"
 echo ""
 
-if [ ! -f "./setup-directories-production.sh" ]; then
-    echo -e "${RED}ERROR: setup-directories-production.sh not found${NC}"
+if [ ! -f "./setup-directories.sh" ]; then
+    echo -e "${RED}ERROR: setup-directories.sh not found${NC}"
     exit 1
 fi
 
-chmod +x setup-directories-production.sh
-sudo ./setup-directories-production.sh
+chmod +x setup-directories.sh
+sudo ./setup-directories.sh
 
 echo ""
 
@@ -165,11 +165,11 @@ echo -e "${CYAN}═════════════════════�
 echo ""
 
 echo -e "${CYAN}Pulling Docker images...${NC}"
-docker compose -f docker-compose.production.yml --env-file .env.production pull
+docker compose --env-file .env.production pull
 
 echo ""
 echo -e "${CYAN}Starting containers...${NC}"
-docker compose -f docker-compose.production.yml --env-file .env.production up -d
+docker compose --env-file .env.production up -d
 
 echo ""
 echo -e "${GREEN}✓ Stack started successfully${NC}"
@@ -186,7 +186,7 @@ echo -e "${CYAN}Container Status${NC}"
 echo -e "${CYAN}═══════════════════════════════════════════════════════════${NC}"
 echo ""
 
-docker compose -f docker-compose.production.yml ps
+docker compose ps
 
 # Step 7: Setup homepage configuration
 echo ""
@@ -242,15 +242,15 @@ echo ""
 
 echo -e "${CYAN}Important Files:${NC}"
 echo "  📄 Passwords:        .env.production (chmod 600)"
-echo "  📋 Configuration:    docker-compose.production.yml"
-echo "  📝 Documentation:    README.production.md"
+echo "  📋 Configuration:    docker-compose.yml"
+echo "  📝 Documentation:    README.md"
 echo "  📊 Backup logs:      /var/log/potatostack/"
 echo ""
 
 echo -e "${CYAN}Useful Commands:${NC}"
-echo "  View logs:           docker compose -f docker-compose.production.yml logs -f"
-echo "  Restart service:     docker compose -f docker-compose.production.yml restart SERVICE"
-echo "  Stop stack:          docker compose -f docker-compose.production.yml down"
+echo "  View logs:           docker compose logs -f"
+echo "  Restart service:     docker compose restart SERVICE"
+echo "  Stop stack:          docker compose down"
 echo "  Check backups:       ls -lh /mnt/backup/"
 echo "  View cron jobs:      crontab -l"
 echo ""
@@ -260,7 +260,7 @@ echo "  1. Save your passwords from .env.production to a password manager"
 echo "  2. Set up Portainer password on first login"
 echo "  3. Configure Homepage API keys for Immich and Portainer widgets"
 echo "  4. Test manual backup: sudo ./backup-to-second-disk.sh"
-echo "  5. Read README.production.md for advanced configuration"
+echo "  5. Read README.md for advanced configuration"
 echo ""
 
 echo -e "${GREEN}Your PotatoStack is now running in production mode!${NC}"
