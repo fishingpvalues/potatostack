@@ -1,0 +1,24 @@
+---
+# Homepage Bookmarks
+
+- Quick Links:
+    - GitHub:
+        - icon: github.png
+          href: https://github.com
+    - Reddit:
+        - icon: reddit.png
+          href: https://reddit.com
+    - YouTube:
+        - icon: youtube.png
+          href: https://youtube.com
+
+- Documentation:
+    - Docker:
+        - icon: docker.png
+          href: https://docs.docker.com
+    - Kopia:
+        - icon: kopia.png
+          href: https://kopia.io/docs
+    - Homepage:
+        - icon: homepage.png
+          href: https://gethomepage.dev

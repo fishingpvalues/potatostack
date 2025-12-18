@@ -1,5 +1,3 @@
-version: '3.8'
-
 ################################################################################
 # PotatoStack Light - Minimal Docker Compose for Le Potato
 # All services configured for home LAN access with VPN killswitch

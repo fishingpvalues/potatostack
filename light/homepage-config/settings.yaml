@@ -1,0 +1,28 @@
+---
+# Homepage Settings
+
+title: PotatoStack Control Center
+favicon: https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/homarr.png
+
+theme: dark
+color: slate
+
+layout:
+  VPN & Downloads:
+    style: row
+    columns: 3
+  Media & Files:
+    style: row
+    columns: 3
+  Security & Management:
+    style: row
+    columns: 3
+  Monitoring:
+    style: row
+    columns: 4
+
+quicklaunch:
+  searchDescriptions: true
+  hideInternetSearch: false
+  showSearchSuggestions: true
+  hideVisitURL: false

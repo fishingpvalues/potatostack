@@ -1,0 +1,23 @@
+---
+# Homepage Widgets Configuration
+
+- resources:
+    cpu: true
+    memory: true
+    disk: /mnt/storage
+    label: Main Storage
+
+- resources:
+    disk: /mnt/backup
+    label: Backup Storage
+
+- datetime:
+    text_size: xl
+    format:
+      dateStyle: long
+      timeStyle: short
+      hour12: false
+
+- search:
+    provider: google
+    target: _blank

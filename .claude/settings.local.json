@@ -46,7 +46,10 @@
       "Bash(git commit:*)",
       "Bash(./setup-directories-mock.sh:*)",
       "Bash(git add:*)",
-      "Bash(./verify-directories.sh:*)"
+      "Bash(./verify-directories.sh:*)",
+      "Bash(du:*)",
+      "Bash(docker rm:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,0 +1,87 @@
+---
+# Homepage Services Configuration
+
+- VPN & Downloads:
+    - Gluetun:
+        icon: gluetun.png
+        href: http://{{HOMEPAGE_VAR_HOST_BIND}}:8000
+        description: VPN Killswitch
+        widget:
+          type: gluetun
+          url: http://{{HOMEPAGE_VAR_HOST_BIND}}:8000
+
+    - Transmission:
+        icon: transmission.png
+        href: http://{{HOMEPAGE_VAR_HOST_BIND}}:9091
+        description: Torrent Client
+        widget:
+          type: transmission
+          url: http://{{HOMEPAGE_VAR_HOST_BIND}}:9091
+          username: {{HOMEPAGE_VAR_TRANSMISSION_USER}}
+          password: {{HOMEPAGE_VAR_TRANSMISSION_PASSWORD}}
+
+    - slskd:
+        icon: slskd.png
+        href: http://{{HOMEPAGE_VAR_HOST_BIND}}:2234
+        description: Soulseek P2P
+        widget:
+          type: customapi
+          url: http://{{HOMEPAGE_VAR_HOST_BIND}}:2234/api/v0/session
+          username: {{HOMEPAGE_VAR_SLSKD_USER}}
+          password: {{HOMEPAGE_VAR_SLSKD_PASSWORD}}
+
+- Media & Files:
+    - Immich:
+        icon: immich.png
+        href: http://{{HOMEPAGE_VAR_HOST_BIND}}:2283
+        description: Photo Management
+        widget:
+          type: immich
+          url: http://{{HOMEPAGE_VAR_HOST_BIND}}:2283
+          key: {{HOMEPAGE_VAR_IMMICH_API_KEY}}
+
+    - Seafile:
+        icon: seafile.png
+        href: http://{{HOMEPAGE_VAR_HOST_BIND}}:8082
+        description: File Sync & Share
+        widget:
+          type: customapi
+          url: http://{{HOMEPAGE_VAR_HOST_BIND}}:8082/api2/ping/
+
+    - Rustypaste:
+        icon: si-pastebin
+        href: http://{{HOMEPAGE_VAR_HOST_BIND}}:8001
+        description: Pastebin
+
+- Security & Management:
+    - Vaultwarden:
+        icon: vaultwarden.png
+        href: http://{{HOMEPAGE_VAR_HOST_BIND}}:8080
+        description: Password Manager
+        widget:
+          type: customapi
+          url: http://{{HOMEPAGE_VAR_HOST_BIND}}:8080/alive
+
+    - Portainer:
+        icon: portainer.png
+        href: https://{{HOMEPAGE_VAR_HOST_BIND}}:9443
+        description: Container Management
+        widget:
+          type: portainer
+          url: https://{{HOMEPAGE_VAR_HOST_BIND}}:9443
+          env: 1
+          key: {{HOMEPAGE_VAR_PORTAINER_API_KEY}}
+
+    - Kopia:
+        icon: kopia.png
+        href: https://{{HOMEPAGE_VAR_HOST_BIND}}:51515
+        description: Backup Server
+
+- Monitoring:
+    - FritzBox:
+        icon: avm-fritzbox.png
+        href: http://fritz.box
+        description: Router
+        widget:
+          type: fritzbox
+          url: http://{{HOMEPAGE_VAR_HOST_BIND}}:9042
