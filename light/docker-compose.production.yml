@@ -1,9 +1,81 @@
 ################################################################################
-# PotatoStack Light - Minimal Docker Compose for Le Potato
-# All services configured for home LAN access with VPN killswitch
+# PotatoStack Light - Enterprise-Grade Production Setup
+# Single disk with nightly backup, automatic updates, self-healing
+# 100% uptime focus with redundancy and network resilience
 ################################################################################
 
 services:
+  ################################################################################
+  # Homepage - Unified Dashboard with All Widgets
+  ################################################################################
+  homepage:
+    image: ghcr.io/gethomepage/homepage:${HOMEPAGE_TAG:-latest}
+    container_name: homepage
+    ports:
+      - "${HOST_BIND}:3000:3000"
+    environment:
+      - TZ=Europe/Berlin
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - homepage-config:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - potatostack
+    restart: always
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "autoheal=true"
+
+  ################################################################################
+  # Watchtower - Automatic Container Updates
+  ################################################################################
+  watchtower:
+    image: containrrr/watchtower:${WATCHTOWER_TAG:-latest}
+    container_name: watchtower
+    environment:
+      - TZ=Europe/Berlin
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_INCLUDE_RESTARTING=true
+      - WATCHTOWER_INCLUDE_STOPPED=false
+      - WATCHTOWER_REVIVE_STOPPED=false
+      - WATCHTOWER_POLL_INTERVAL=86400
+      - WATCHTOWER_ROLLING_RESTART=true
+      - WATCHTOWER_TIMEOUT=300s
+      - WATCHTOWER_SCHEDULE=0 0 3 * * *
+      - WATCHTOWER_NOTIFICATIONS=shoutrrr
+      - WATCHTOWER_NOTIFICATION_URL=${WATCHTOWER_NOTIFICATION_URL:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - potatostack
+    restart: always
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+
+  ################################################################################
+  # Autoheal - Automatic Container Recovery
+  ################################################################################
+  autoheal:
+    image: willfarrell/autoheal:${AUTOHEAL_TAG:-latest}
+    container_name: autoheal
+    environment:
+      - AUTOHEAL_CONTAINER_LABEL=autoheal
+      - AUTOHEAL_INTERVAL=30
+      - AUTOHEAL_START_PERIOD=300
+      - AUTOHEAL_DEFAULT_STOP_TIMEOUT=10
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - potatostack
+    restart: always
+
   ################################################################################
   # Gluetun - VPN Client with Killswitch
   ################################################################################
@@ -15,12 +87,12 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     ports:
-      - "${HOST_BIND}:8000:8000"     # Gluetun control server
-      - "${HOST_BIND}:9091:9091"     # Transmission WebUI
-      - "${HOST_BIND}:51413:51413"   # Transmission peer port TCP
-      - "${HOST_BIND}:51413:51413/udp" # Transmission peer port UDP
-      - "${HOST_BIND}:2234:2234"     # slskd WebUI
-      - "${HOST_BIND}:50000:50000"   # slskd Soulseek port
+      - "${HOST_BIND}:8000:8000"
+      - "${HOST_BIND}:9091:9091"
+      - "${HOST_BIND}:51413:51413"
+      - "${HOST_BIND}:51413:51413/udp"
+      - "${HOST_BIND}:2234:2234"
+      - "${HOST_BIND}:50000:50000"
     environment:
       - TZ=Europe/Berlin
       - VPN_SERVICE_PROVIDER=surfshark
@@ -39,39 +111,47 @@ services:
       - HTTP_CONTROL_SERVER_ADDRESS=:8000
       - HTTP_CONTROL_SERVER_LOG=on
       - IPV6=off
+      - UPDATER_PERIOD=24h
     volumes:
       - gluetun-config:/gluetun
     networks:
       - potatostack
-    restart: unless-stopped
+    restart: always
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8000/v1/publicip/ip"]
       interval: 60s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 30s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "autoheal=true"
 
   ################################################################################
   # Transmission - Torrent Client (wired to Gluetun)
   ################################################################################
   transmission:
-    image: lscr.io/linuxserver/transmission:${QBITTORRENT_TAG:-latest}
+    image: lscr.io/linuxserver/transmission:${TRANSMISSION_TAG:-latest}
     container_name: transmission
     network_mode: "service:gluetun"
     environment:
       - PUID=1000
       - PGID=1000
       - TZ=Europe/Berlin
-      - USER=admin
-      - PASS=admin
+      - USER=${TRANSMISSION_USER}
+      - PASS=${TRANSMISSION_PASSWORD}
     volumes:
       - transmission-config:/config
-      - ../mock-drives/seconddrive/downloads:/downloads
-      - ../mock-drives/cachehdd/transmission-incomplete:/incomplete
+      - /mnt/storage/downloads:/downloads
+      - /mnt/storage/transmission-incomplete:/incomplete
       - transmission-watch:/watch
     depends_on:
       gluetun:
         condition: service_healthy
-    restart: unless-stopped
+    restart: always
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "autoheal=true"
 
   ################################################################################
   # slskd - Soulseek Client (wired to Gluetun)
@@ -91,15 +171,18 @@ services:
     volumes:
       - slskd-config:/app
       - slskd-logs:/app/logs
-      - ../mock-drives/seconddrive/slskd-shared:/var/slskd/shared
-      - ../mock-drives/cachehdd/slskd-incomplete:/var/slskd/incomplete
+      - /mnt/storage/slskd-shared:/var/slskd/shared
+      - /mnt/storage/slskd-incomplete:/var/slskd/incomplete
     depends_on:
       gluetun:
         condition: service_healthy
-    restart: unless-stopped
+    restart: always
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "autoheal=true"
 
   ################################################################################
-  # PostgreSQL - Shared database for Immich, Seafile
+  # PostgreSQL - Shared database
   ################################################################################
   postgres:
     image: tensorchord/pgvecto-rs:${POSTGRES_TAG:-pg14-v0.2.0}
@@ -116,30 +199,38 @@ services:
       - ./init-db.sh:/docker-entrypoint-initdb.d/00-init-db.sh:ro
     networks:
       - potatostack
-    restart: unless-stopped
+    restart: always
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 60s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "autoheal=true"
 
   ################################################################################
-  # Redis - Shared cache for Immich and Seafile
+  # Redis - Shared cache
   ################################################################################
   redis:
     image: redis:${REDIS_TAG:-7-alpine}
     container_name: redis
-    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --save 900 1 --save 300 10
     networks:
       - potatostack
     volumes:
       - redis-data:/data
-    restart: unless-stopped
+    restart: always
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 3
+      start_period: 10s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "autoheal=true"
 
   ################################################################################
   # Immich - Photo Management (Server)
@@ -162,9 +253,9 @@ services:
       - IMMICH_MACHINE_LEARNING_ENABLED=false
       - UPLOAD_LOCATION=/usr/src/app/upload
     volumes:
-      - ../mock-drives/seconddrive/immich/upload:/usr/src/app/upload
-      - ../mock-drives/seconddrive/immich/library:/usr/src/app/library
-      - ../mock-drives/cachehdd/immich/thumbs:/usr/src/app/thumbs
+      - /mnt/storage/immich/upload:/usr/src/app/upload
+      - /mnt/storage/immich/library:/usr/src/app/library
+      - /mnt/storage/immich/thumbs:/usr/src/app/thumbs
     networks:
       - potatostack
     depends_on:
@@ -172,7 +263,16 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    restart: unless-stopped
+    restart: always
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3001/api/server-info/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "autoheal=true"
 
   ################################################################################
   # Immich - Microservices
@@ -192,9 +292,9 @@ services:
       - REDIS_DBINDEX=2
       - IMMICH_MACHINE_LEARNING_ENABLED=false
     volumes:
-      - ../mock-drives/seconddrive/immich/upload:/usr/src/app/upload
-      - ../mock-drives/seconddrive/immich/library:/usr/src/app/library
-      - ../mock-drives/cachehdd/immich/thumbs:/usr/src/app/thumbs
+      - /mnt/storage/immich/upload:/usr/src/app/upload
+      - /mnt/storage/immich/library:/usr/src/app/library
+      - /mnt/storage/immich/thumbs:/usr/src/app/thumbs
     networks:
       - potatostack
     depends_on:
@@ -202,7 +302,10 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    restart: unless-stopped
+    restart: always
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "autoheal=true"
 
   ################################################################################
   # Vaultwarden - Password Manager
@@ -232,7 +335,16 @@ services:
       - vaultwarden-data:/data
     networks:
       - potatostack
-    restart: unless-stopped
+    restart: always
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:80/alive"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "autoheal=true"
 
   ################################################################################
   # Portainer - Container Management
@@ -250,18 +362,27 @@ services:
       - portainer-data:/data
     networks:
       - potatostack
-    restart: unless-stopped
+    restart: always
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9000/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "autoheal=true"
 
   ################################################################################
-  # Kopia - Backup Server (Central Repository for All Devices)
+  # Kopia - Backup Server
   ################################################################################
   kopia:
     image: kopia/kopia:${KOPIA_TAG:-latest}
     container_name: kopia
     hostname: kopia-server
     ports:
-      - "${HOST_BIND}:51515:51515"   # Kopia Server API
-      - "${HOST_BIND}:51516:51516"   # Prometheus metrics
+      - "${HOST_BIND}:51515:51515"
+      - "${HOST_BIND}:51516:51516"
     environment:
       - TZ=Europe/Berlin
       - KOPIA_PASSWORD=${KOPIA_PASSWORD}
@@ -286,22 +407,28 @@ services:
       - --override-hostname=kopia-server
       - --override-username=all-users
     volumes:
-      # Kopia repository on main 14TB drive
-      - ../mock-drives/seconddrive/kopia/repository:/repository
+      - /mnt/storage/kopia/repository:/repository
       - kopia-config:/app/config
-      # Cache on faster 500GB drive
-      - ../mock-drives/cachehdd/kopia/cache:/app/cache
+      - /mnt/storage/kopia/cache:/app/cache
       - kopia-logs:/app/logs
-      # Local stack data access for backups
-      - vaultwarden-data:/data/vaultwarden
-      - ../mock-drives/seconddrive/immich/upload:/data/immich-upload
-      - ../mock-drives/seconddrive/immich/library:/data/immich-library
-      - ../mock-drives/seconddrive/seafile:/data/seafile
-      - ../mock-drives/seconddrive/downloads:/data/downloads
-      - ../mock-drives/seconddrive/slskd-shared:/data/slskd-shared
+      - vaultwarden-data:/data/vaultwarden:ro
+      - /mnt/storage/immich/upload:/data/immich-upload:ro
+      - /mnt/storage/immich/library:/data/immich-library:ro
+      - /mnt/storage/seafile:/data/seafile:ro
+      - /mnt/storage/downloads:/data/downloads:ro
+      - /mnt/storage/slskd-shared:/data/slskd-shared:ro
     networks:
       - potatostack
-    restart: unless-stopped
+    restart: always
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "https://127.0.0.1:51515/api/v1/repo/status", "--no-check-certificate"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "autoheal=true"
 
   ################################################################################
   # Seafile - File Sync & Share
@@ -329,7 +456,7 @@ services:
       - REDIS_PORT=6379
       - REDIS_DB=6
     volumes:
-      - ../mock-drives/seconddrive/seafile:/shared
+      - /mnt/storage/seafile:/shared
     networks:
       - potatostack
     depends_on:
@@ -337,7 +464,16 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    restart: unless-stopped
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:80/api2/ping/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "autoheal=true"
 
   ################################################################################
   # Rustypaste - Pastebin Service
@@ -351,10 +487,19 @@ services:
       - CONFIG=/config/config.toml
     volumes:
       - ./rustypaste-config.toml:/config/config.toml:ro
-      - ./data/rustypaste:/var/lib/rustypaste
+      - /mnt/storage/rustypaste:/var/lib/rustypaste
     networks:
       - potatostack
-    restart: unless-stopped
+    restart: always
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "autoheal=true"
 
   ################################################################################
   # FritzBox Exporter - Router Monitoring
@@ -373,7 +518,16 @@ services:
       - FRITZ_PROTOCOL=${FRITZ_PROTOCOL:-https}
     networks:
       - potatostack
-    restart: unless-stopped
+    restart: always
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9042/metrics"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "autoheal=true"
 
 ################################################################################
 # Networks
@@ -381,51 +535,56 @@ services:
 networks:
   potatostack:
     driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br-potato
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
 
 ################################################################################
 # Volumes
 ################################################################################
 volumes:
-  # VPN & P2P (small config volumes only)
+  # Management tools
+  homepage-config:
+
+  # VPN & P2P
   gluetun-config:
   transmission-config:
   transmission-watch:
   slskd-config:
   slskd-logs:
 
-  # Databases (on system drive for performance)
+  # Databases
   postgres-data:
   redis-data:
 
-  # Applications (small config/state volumes)
+  # Applications
   vaultwarden-data:
   portainer-data:
-  rustypaste-uploads:
 
-  # Backup (small config/log volumes - main data on host)
+  # Backup
   kopia-config:
   kopia-logs:
 
 ################################################################################
-# Host Path Mounts (requires pre-created directories)
+# Host Path Mounts - Single Disk Architecture
 ################################################################################
-# Large data is stored on mounted HDDs:
+# All data stored on main 14TB drive mounted at /mnt/storage:
+#   - /mnt/storage/downloads (Transmission)
+#   - /mnt/storage/transmission-incomplete (Transmission temp)
+#   - /mnt/storage/slskd-shared (slskd)
+#   - /mnt/storage/slskd-incomplete (slskd temp)
+#   - /mnt/storage/immich/upload (Immich photos)
+#   - /mnt/storage/immich/library (Immich library)
+#   - /mnt/storage/immich/thumbs (Immich thumbnails)
+#   - /mnt/storage/seafile (Seafile files)
+#   - /mnt/storage/kopia/repository (Kopia backups)
+#   - /mnt/storage/kopia/cache (Kopia cache)
+#   - /mnt/storage/rustypaste (Pastebin uploads)
 #
-# ../mock-drives/seconddrive (14TB) - Main storage:
-#   - ../mock-drives/seconddrive/downloads (Transmission)
-#   - ../mock-drives/seconddrive/slskd-shared (slskd)
-#   - ../mock-drives/seconddrive/immich/upload (Immich photos)
-#   - ../mock-drives/seconddrive/immich/library (Immich library)
-#   - ../mock-drives/seconddrive/seafile (Seafile files)
-#   - ../mock-drives/seconddrive/kopia/repository (Kopia backups)
+# Second disk at /mnt/backup will receive nightly backups via cron
 #
-# ../mock-drives/cachehdd (500GB) - Cache/temp storage:
-#   - ../mock-drives/cachehdd/transmission-incomplete (Transmission temp)
-#   - ../mock-drives/cachehdd/slskd-incomplete (slskd temp)
-#   - ../mock-drives/cachehdd/immich/thumbs (Immich thumbnails)
-#   - ../mock-drives/cachehdd/kopia/cache (Kopia cache)
-#
-# Create these directories before starting:
-# sudo mkdir -p ../mock-drives/seconddrive/{downloads,slskd-shared,immich/{upload,library},seafile,kopia/repository}
-# sudo mkdir -p ../mock-drives/cachehdd/{transmission-incomplete,slskd-incomplete,immich/thumbs,kopia/cache}
-# sudo chown -R 1000:1000 ../mock-drives/seconddrive ../mock-drives/cachehdd
+# Create directories:
+# sudo mkdir -p /mnt/storage/{downloads,transmission-incomplete,slskd-shared,slskd-incomplete,immich/{upload,library,thumbs},seafile,kopia/{repository,cache},rustypaste}
+# sudo chown -R 1000:1000 /mnt/storage
