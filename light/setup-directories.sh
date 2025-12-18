@@ -1,165 +1,117 @@
 #!/bin/bash
+
 ################################################################################
-# PotatoStack Light - Directory Setup Script
-# Creates required directory structure on mounted HDDs
+# Setup Directory Structure for Production - Single Disk
+# Creates all required directories on /mnt/storage
 ################################################################################
 
-set -euo pipefail
+set -e
 
-# Colors for output
-RED='\033[0;31m'
+CYAN='\033[0;36m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+RED='\033[0;31m'
+NC='\033[0m'
 
-# Configuration
-MAIN_DRIVE="/mnt/seconddrive"
-CACHE_DRIVE="/mnt/cachehdd"
-PUID=${PUID:-1000}
-PGID=${PGID:-1000}
+echo -e "${CYAN}╔════════════════════════════════════════════════════╗${NC}"
+echo -e "${CYAN}║  PotatoStack Production Directory Setup           ║${NC}"
+echo -e "${CYAN}╚════════════════════════════════════════════════════╝${NC}"
+echo ""
 
-# Directory structure definitions
-declare -A MAIN_DIRS=(
-    ["downloads"]="Transmission completed torrents"
-    ["slskd-shared"]="Soulseek shared files"
-    ["immich/upload"]="Immich user photo uploads"
-    ["immich/library"]="Immich processed photo library"
-    ["seafile"]="Seafile file sync & share data"
-    ["kopia/repository"]="Kopia central backup repository"
-)
+# Check if running as root
+if [ "$EUID" -ne 0 ]; then
+    echo -e "${RED}ERROR: Please run as root (sudo ./setup-directories.sh)${NC}"
+    exit 1
+fi
 
-declare -A CACHE_DIRS=(
-    ["transmission-incomplete"]="Transmission incomplete downloads"
-    ["slskd-incomplete"]="Soulseek downloads in progress"
-    ["immich/thumbs"]="Immich photo thumbnails"
-    ["kopia/cache"]="Kopia backup cache"
-    ["rustypaste"]="Rustypaste pastebin uploads"
-)
+MAIN_DISK="/mnt/storage"
+BACKUP_DISK="/mnt/backup"
 
-# Functions
-log_info() {
-    echo -e "${GREEN}✅${NC} $1"
-}
-
-log_warn() {
-    echo -e "${YELLOW}⚠️${NC}  $1"
-}
-
-log_error() {
-    echo -e "${RED}❌${NC} $1"
-}
-
-check_drive() {
-    local drive=$1
-    if [ ! -d "$drive" ]; then
-        log_error "Drive $drive not found!"
-        echo "   Please mount the drive before running this script"
-        return 1
-    fi
-    local size=$(df -h "$drive" | tail -1 | awk '{print $2}')
-    log_info "Drive detected: $drive ($size)"
-    return 0
-}
-
-create_directories() {
-    local base_path=$1
-    local -n dirs=$2
-    local label=$3
-
-    echo ""
-    echo "📁 Creating directories on $base_path ($label)..."
-
-    for dir in "${!dirs[@]}"; do
-        local full_path="$base_path/$dir"
-        if [ -d "$full_path" ]; then
-            log_warn "Already exists: $dir"
-        else
-            sudo mkdir -p "$full_path"
-            log_info "Created: $dir"
-        fi
-    done
-}
-
-verify_directories() {
-    local base_path=$1
-    local -n dirs=$2
-    local missing=0
-
-    for dir in "${!dirs[@]}"; do
-        if [ ! -d "$base_path/$dir" ]; then
-            log_error "Missing: $base_path/$dir"
-            ((missing++))
-        fi
-    done
-
-    return $missing
-}
-
-set_permissions() {
-    echo ""
-    echo "🔐 Setting ownership to $PUID:$PGID..."
-
-    sudo chown -R "$PUID:$PGID" "$MAIN_DRIVE"
-    log_info "Permissions set on $MAIN_DRIVE"
-
-    sudo chown -R "$PUID:$PGID" "$CACHE_DRIVE"
-    log_info "Permissions set on $CACHE_DRIVE"
-}
-
-print_summary() {
-    echo ""
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "🥔 PotatoStack Light - Directory Structure"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo ""
-    echo "📦 $MAIN_DRIVE (Main Storage):"
-    for dir in "${!MAIN_DIRS[@]}"; do
-        printf "   ├── %-30s # %s\n" "$dir" "${MAIN_DIRS[$dir]}"
-    done
-
-    echo ""
-    echo "⚡ $CACHE_DRIVE (Cache Storage):"
-    for dir in "${!CACHE_DIRS[@]}"; do
-        printf "   ├── %-30s # %s\n" "$dir" "${CACHE_DIRS[$dir]}"
-    done
-
-    echo ""
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "🚀 Ready to start: docker compose up -d"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-}
-
-# Main execution
-main() {
-    echo "🥔 PotatoStack Light - Setting up directories..."
-    echo ""
-
-    # Check drives
-    check_drive "$MAIN_DRIVE" || exit 1
-    check_drive "$CACHE_DRIVE" || exit 1
-
-    # Create directories
-    create_directories "$MAIN_DRIVE" MAIN_DIRS "Main Storage"
-    create_directories "$CACHE_DRIVE" CACHE_DIRS "Cache Storage"
-
-    # Verify all directories were created
-    echo ""
-    echo "🔍 Verifying directory structure..."
-    local failed=0
-    verify_directories "$MAIN_DRIVE" MAIN_DIRS || ((failed+=$?))
-    verify_directories "$CACHE_DRIVE" CACHE_DIRS || ((failed+=$?))
-
-    if [ $failed -gt 0 ]; then
-        log_error "$failed directories missing!"
+# Check if main disk is mounted
+if ! mountpoint -q "$MAIN_DISK" 2>/dev/null; then
+    echo -e "${YELLOW}WARNING: $MAIN_DISK is not a mount point!${NC}"
+    read -p "Create directory anyway? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Aborted. Please mount your disk first."
         exit 1
     fi
-    log_info "All directories verified"
+fi
 
-    # Set permissions
-    set_permissions
+# Show disk information
+echo -e "${CYAN}Main Storage Disk:${NC}"
+df -h "$MAIN_DISK" 2>/dev/null || echo "Not mounted yet"
+echo ""
 
-    # Print summary
-    print_summary
-}
+if mountpoint -q "$BACKUP_DISK" 2>/dev/null; then
+    echo -e "${CYAN}Backup Storage Disk:${NC}"
+    df -h "$BACKUP_DISK"
+    echo ""
+else
+    echo -e "${YELLOW}Backup disk not mounted at $BACKUP_DISK${NC}"
+    echo "You can mount it later for nightly backups"
+    echo ""
+fi
 
-main "$@"
+# Define directory structure
+DIRECTORIES=(
+    "$MAIN_DISK/downloads"
+    "$MAIN_DISK/transmission-incomplete"
+    "$MAIN_DISK/slskd-shared"
+    "$MAIN_DISK/slskd-incomplete"
+    "$MAIN_DISK/immich/upload"
+    "$MAIN_DISK/immich/library"
+    "$MAIN_DISK/immich/thumbs"
+    "$MAIN_DISK/seafile"
+    "$MAIN_DISK/kopia/repository"
+    "$MAIN_DISK/kopia/cache"
+    "$MAIN_DISK/rustypaste"
+)
+
+echo -e "${CYAN}Creating directory structure...${NC}"
+echo ""
+
+# Create directories
+for DIR in "${DIRECTORIES[@]}"; do
+    if [ -d "$DIR" ]; then
+        echo -e "${YELLOW}  ⚠ Already exists: $DIR${NC}"
+    else
+        mkdir -p "$DIR"
+        echo -e "${GREEN}  ✓ Created: $DIR${NC}"
+    fi
+done
+
+echo ""
+echo -e "${CYAN}Setting ownership (PUID=1000, PGID=1000)...${NC}"
+chown -R 1000:1000 "$MAIN_DISK"
+echo -e "${GREEN}✓ Ownership set${NC}"
+
+echo ""
+echo -e "${CYAN}Setting permissions...${NC}"
+chmod -R 755 "$MAIN_DISK"
+echo -e "${GREEN}✓ Permissions set${NC}"
+
+echo ""
+echo -e "${GREEN}╔════════════════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║  Directory structure created successfully         ║${NC}"
+echo -e "${GREEN}╚════════════════════════════════════════════════════╝${NC}"
+echo ""
+
+# Show disk usage
+echo -e "${CYAN}Disk Usage:${NC}"
+df -h "$MAIN_DISK"
+
+if mountpoint -q "$BACKUP_DISK" 2>/dev/null; then
+    df -h "$BACKUP_DISK"
+fi
+
+echo ""
+echo -e "${CYAN}Directory Structure:${NC}"
+tree -L 3 -d "$MAIN_DISK" 2>/dev/null || find "$MAIN_DISK" -type d -maxdepth 3 | sed 's|[^/]*/| |g'
+
+echo ""
+echo -e "${CYAN}Next Steps:${NC}"
+echo "  1. Generate .env file: ./generate-env.sh"
+echo "  2. Setup cron jobs: ./setup-cron.sh"
+echo "  3. Start the stack: docker compose --env-file .env.production up -d"
+echo ""
