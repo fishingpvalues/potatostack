@@ -63,6 +63,13 @@ services:
     networks:
       - potatostack
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 64M
+        reservations:
+          memory: 32M
     labels:
       - "com.centurylinklabs.watchtower.enable=false"
 
@@ -82,6 +89,13 @@ services:
     networks:
       - potatostack
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 32M
+        reservations:
+          memory: 16M
 
   ################################################################################
   # Gluetun - VPN Client with Killswitch
@@ -201,6 +215,7 @@ services:
   postgres:
     image: tensorchord/pgvecto-rs:${POSTGRES_TAG:-pg14-v0.2.0}
     container_name: postgres
+    command: postgres -c shared_buffers=128MB -c effective_cache_size=256MB -c work_mem=8MB -c max_connections=50 -c synchronous_commit=off -c random_page_cost=1.1
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_SUPER_PASSWORD}
       - POSTGRES_USER=postgres
@@ -237,7 +252,7 @@ services:
   redis:
     image: redis:${REDIS_TAG:-7-alpine}
     container_name: redis
-    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru --save 900 1 --save 300 10
+    command: redis-server --maxmemory 96mb --maxmemory-policy allkeys-lru --save "" --appendonly no --lazyfree-lazy-eviction yes --activedefrag yes
     networks:
       - potatostack
     volumes:
@@ -246,10 +261,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: 192M
-        reservations:
+          cpus: '0.3'
           memory: 128M
+        reservations:
+          memory: 96M
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
