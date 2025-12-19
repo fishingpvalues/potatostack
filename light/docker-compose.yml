@@ -23,6 +23,13 @@ services:
     networks:
       - potatostack
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          memory: 64M
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000"]
       interval: 30s
@@ -117,6 +124,13 @@ services:
     networks:
       - potatostack
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          memory: 64M
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8000/v1/publicip/ip"]
       interval: 60s
@@ -200,6 +214,13 @@ services:
     networks:
       - potatostack
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 384M
+        reservations:
+          memory: 256M
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -216,12 +237,19 @@ services:
   redis:
     image: redis:${REDIS_TAG:-7-alpine}
     container_name: redis
-    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --save 900 1 --save 300 10
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru --save 900 1 --save 300 10
     networks:
       - potatostack
     volumes:
       - redis-data:/data
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 192M
+        reservations:
+          memory: 128M
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -264,6 +292,13 @@ services:
       redis:
         condition: service_healthy
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 384M
+        reservations:
+          memory: 256M
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3001/api/server-info/ping"]
       interval: 30s
@@ -303,6 +338,13 @@ services:
       redis:
         condition: service_healthy
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.75'
+          memory: 256M
+        reservations:
+          memory: 128M
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
@@ -336,6 +378,13 @@ services:
     networks:
       - potatostack
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          memory: 64M
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:80/alive"]
       interval: 30s
@@ -363,6 +412,13 @@ services:
     networks:
       - potatostack
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          memory: 64M
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9000/api/status"]
       interval: 30s
@@ -420,6 +476,13 @@ services:
     networks:
       - potatostack
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 256M
+        reservations:
+          memory: 128M
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "https://127.0.0.1:51515/api/v1/repo/status", "--no-check-certificate"]
       interval: 60s
@@ -465,6 +528,13 @@ services:
       redis:
         condition: service_healthy
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 384M
+        reservations:
+          memory: 256M
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:80/api2/ping/"]
       interval: 30s
@@ -568,23 +638,4 @@ volumes:
   kopia-logs:
 
 ################################################################################
-# Host Path Mounts - Single Disk Architecture
-################################################################################
-# All data stored on main 14TB drive mounted at /mnt/storage:
-#   - /mnt/storage/downloads (Transmission)
-#   - /mnt/storage/transmission-incomplete (Transmission temp)
-#   - /mnt/storage/slskd-shared (slskd)
-#   - /mnt/storage/slskd-incomplete (slskd temp)
-#   - /mnt/storage/immich/upload (Immich photos)
-#   - /mnt/storage/immich/library (Immich library)
-#   - /mnt/storage/immich/thumbs (Immich thumbnails)
-#   - /mnt/storage/seafile (Seafile files)
-#   - /mnt/storage/kopia/repository (Kopia backups)
-#   - /mnt/storage/kopia/cache (Kopia cache)
-#   - /mnt/storage/rustypaste (Pastebin uploads)
-#
-# Second disk at /mnt/backup will receive nightly backups via cron
-#
-# Create directories:
-# sudo mkdir -p /mnt/storage/{downloads,transmission-incomplete,slskd-shared,slskd-incomplete,immich/{upload,library,thumbs},seafile,kopia/{repository,cache},rustypaste}
-# sudo chown -R 1000:1000 /mnt/storage
+# Host Path Mounts - Single Disk Architectu
