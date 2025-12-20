@@ -49,7 +49,9 @@
       "Bash(./verify-directories.sh:*)",
       "Bash(du:*)",
       "Bash(docker rm:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(docker:*)",
+      "Bash(bash:*)"
     ],
     "deny": [],
     "ask": []
