@@ -56,10 +56,17 @@ GRANT ALL ON SCHEMA public TO immich;
 EOSQL
 echo "✓ Database passwords reset"
 
-# Fix Immich missing directories
+# Fix Immich missing directories (create on host volume)
 echo "[3/5] Creating Immich directories..."
-docker compose exec -T immich-server sh -c 'mkdir -p /usr/src/app/upload/encoded-video && echo "verified" > /usr/src/app/upload/encoded-video/.immich' 2>&1 | grep -v "already" || true
-echo "✓ Immich directories created"
+if [ -d "/mnt/storage/immich/upload" ]; then
+    mkdir -p /mnt/storage/immich/upload/encoded-video
+    echo "verified" > /mnt/storage/immich/upload/encoded-video/.immich
+    echo "✓ Immich directories created on host"
+else
+    echo "⚠ Cannot access /mnt/storage from Windows - run this on Linux host:"
+    echo "  mkdir -p /mnt/storage/immich/upload/encoded-video"
+    echo "  echo 'verified' > /mnt/storage/immich/upload/encoded-video/.immich"
+fi
 
 # Fix Seafile symlinks (if accessible)
 echo "[4/5] Checking Seafile..."
