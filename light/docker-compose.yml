@@ -132,6 +132,7 @@ services:
       - SHADOWSOCKS=off
       - HTTP_CONTROL_SERVER_ADDRESS=:8000
       - HTTP_CONTROL_SERVER_LOG=on
+      - HTTP_CONTROL_SERVER_AUTH=off
       - IPV6=off
       - UPDATER_PERIOD=24h
     volumes:
