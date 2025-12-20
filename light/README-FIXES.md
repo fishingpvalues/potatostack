@@ -1,95 +1,81 @@
-# PotatoStack Light - Fixes Applied
+# PotatoStack Light - Automated Fixes
 
-## Quick Fix (Run on Linux Host)
+## All Fixes Now Automated in Docker
 
-```bash
-cd /path/to/light
-bash fix-stack.sh
-```
+All manual fixes from `fix-stack.sh` have been integrated into the Docker Compose setup. Services will auto-fix themselves on startup.
 
-## What Was Fixed
+## What Was Fixed and Automated
 
-### 1. Gluetun 401 Errors ✅
+### 1. Gluetun 401 Errors ✅ AUTOMATED
 - **Issue**: HTTP control server returning 401 authentication errors in healthcheck
 - **Fix**: Added `HTTP_CONTROL_SERVER_AUTH=off` to docker-compose.yml (line 135)
-- **Status**: Fixed in docker-compose.yml - run `docker compose up -d --force-recreate gluetun` on Linux host
+- **Status**: Automatically fixed on container start
 
-### 2. PostgreSQL Authentication Failures ✅
+### 2. PostgreSQL Authentication Failures ✅ AUTOMATED
 - **Issue**: Immich and Seafile unable to authenticate to PostgreSQL
-- **Fix**: Created proper database users and databases via fix-stack.sh
+- **Fix**: Enhanced init-db.sh creates proper database users and databases
 - **Databases created**:
   - `immich` (owner: immich)
   - `ccnet_db`, `seafile_db`, `seahub_db` (owner: seafile)
-- **Status**: Fixed by script
+- **Status**: Automatically created on first postgres startup via init-db.sh
 
-### 3. Seafile Symlink Loop ✅
+### 3. Seafile Symlink Loop ✅ AUTOMATED
 - **Issue**: `mv: failed to access '/shared/logs/var-log': Too many levels of symbolic links`
-- **Fix**: Script removes circular symlinks from /mnt/storage/seafile/logs
-- **Status**: Fixed by script (must run on Linux host where /mnt/storage is accessible)
+- **Fix**: seafile-entrypoint.sh removes circular symlinks before Seafile starts
+- **Status**: Automatically cleaned on every container start via entrypoint script
 
-### 4. Immich Missing Directories ⚠️
+### 4. Immich Missing Directories ✅ AUTOMATED
 - **Issue**: Immich crashes due to missing `/usr/src/app/upload/encoded-video/.immich`
-- **Fix**: Create directory on host volume mount
-- **Manual fix needed** (run on Linux host):
-```bash
-mkdir -p /mnt/storage/immich/upload/encoded-video
-echo "verified" > /mnt/storage/immich/upload/encoded-video/.immich
-docker compose restart immich-server immich-microservices
-```
+- **Fix**: immich-entrypoint.sh creates required directories before Immich starts
+- **Status**: Automatically created on every container start via entrypoint script
 
-### 5. Vaultwarden Insecure Token ⚠️
+### 5. Vaultwarden Insecure Token ℹ️ OPTIONAL
 - **Issue**: Using plain text ADMIN_TOKEN instead of Argon2 hash
-- **Fix**: Generate secure hash (optional - current setup works but is insecure)
-- **Manual fix** (run on Linux host):
+- **Fix**: Optional - generate secure hash for better security
+- **Status**: Plain text works fine, hashing is optional security enhancement
+- **To generate hash** (optional):
 ```bash
 docker compose exec vaultwarden /vaultwarden hash --preset owasp
-# Then update .env with the generated hash
+# Then update .env with: VAULTWARDEN_ADMIN_TOKEN='generated-hash'
 ```
 
-### 6. init-db.sh Updated ✅
-- **Fix**: Now creates all 3 Seafile databases (was missing ccnet_db, seafile_db, seahub_db)
-- **Status**: Fixed in init-db.sh
+### 6. Healthcheck Endpoints Updated ✅ AUTOMATED
+- **Fix**: Updated healthcheck endpoints for Immich and Portainer to use correct API paths
+  - Immich: `/api/server/ping` (was `/api/server-info/ping`)
+  - Portainer: `/api/system/status` (was `/api/status`)
+- **Status**: Automatically checked on every health interval
 
 ## Files Modified
 
 1. **docker-compose.yml**
    - Line 135: Added `HTTP_CONTROL_SERVER_AUTH=off`
+   - immich-server: Added entrypoint script, updated healthcheck endpoint
+   - immich-microservices: Added entrypoint script
+   - seafile: Added entrypoint script
+   - portainer: Updated healthcheck endpoint
 
 2. **init-db.sh**
-   - Lines 53-60: Added Seafile database creation
+   - Lines 53-60: Added Seafile database creation (already present)
 
-3. **fix-stack.sh** (new file)
-   - Comprehensive auto-fix script that handles all issues
+3. **immich-entrypoint.sh** (new file)
+   - Auto-creates required Immich directories on startup
 
-## Running on Linux Host (Required)
+4. **seafile-entrypoint.sh** (new file)
+   - Auto-cleans broken symlinks on startup
 
-**IMPORTANT**: You must run the fix script on your actual Linux ARM host (not Windows) because:
-- /mnt/storage paths are only accessible on the Linux host
-- Docker volumes need to be fixed on the actual host filesystem
-- Some containers may be in restart loops and need host-level intervention
+5. **fix-stack.sh** (deprecated)
+   - No longer needed - all fixes are now automated in Docker
 
-### Steps for Linux Host
+## Deployment on Linux Host
+
+Just deploy and start - everything is automated:
 
 ```bash
-# 1. Transfer fix-stack.sh to your Linux host
-scp light/fix-stack.sh user@your-linux-host:/path/to/light/
-
-# 2. SSH into your Linux host
-ssh user@your-linux-host
-
-# 3. Run the fix script
 cd /path/to/light
-bash fix-stack.sh
-
-# 4. If Immich is still failing, create the directory manually
-mkdir -p /mnt/storage/immich/upload/encoded-video
-echo "verified" > /mnt/storage/immich/upload/encoded-video/.immich
-docker compose restart immich-server immich-microservices
-
-# 5. Check service status
-docker compose ps
-docker compose logs -f gluetun seafile immich-server
+docker compose up -d
 ```
+
+All fixes run automatically on container startup. No manual intervention needed.
 
 ## Verification Checklist
 
@@ -110,21 +96,19 @@ After running fixes:
 
 ## Troubleshooting
 
-If services still fail after running fix-stack.sh:
+If services fail on first start:
 
 ```bash
-# Check individual service logs
+# Check logs
 docker compose logs <service-name> --tail 50
 
-# Restart a specific service
+# Restart a service (fixes will re-run automatically)
 docker compose restart <service-name>
 
-# Force recreate everything (nuclear option)
-docker compose down
-docker compose up -d
+# Full restart
+docker compose down && docker compose up -d
 ```
 
 ## Summary
 
-**On Windows (Development/Testing)**: Changes to docker-compose.yml and init-db.sh are complete
-**On Linux Host (Production)**: Run `bash fix-stack.sh` to apply all fixes and create missing directories
+**All fixes are now automated** - just run `docker compose up -d` and everything self-configures on first start.
