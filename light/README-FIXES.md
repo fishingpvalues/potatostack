@@ -90,7 +90,6 @@ After running fixes:
 ## Notes
 
 - **Portainer timeout**: This is normal security behavior after 5 minutes idle - just refresh page
-- **FritzBox exporter warnings**: Non-critical, service is working fine
 - **Transmission/slskd**: Not visible in `docker compose ps` because they use `network_mode: service:gluetun`
 - **Redis eviction warning**: Immich warns about LRU policy but this is intentional for caching
 
