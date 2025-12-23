@@ -7,6 +7,8 @@
 services:
   ################################################################################
   # Homepage - Unified Dashboard with All Widgets
+  # Config files in ./homepage-config/ - edit and restart to apply changes
+  # Access: http://HOST_BIND:3000 or http://SERVER_IP:3000 from LAN
   ################################################################################
   homepage:
     image: ghcr.io/gethomepage/homepage:${HOMEPAGE_TAG:-latest}
@@ -17,8 +19,28 @@ services:
       - TZ=Europe/Berlin
       - PUID=1000
       - PGID=1000
+      # LAN Access Configuration (disableHostCheck: true in settings.yaml)
+      - HOMEPAGE_VAR_HOST=${HOST_BIND}
+      # Service credentials for widgets
+      - HOMEPAGE_VAR_TRANSMISSION_USER=${TRANSMISSION_USER}
+      - HOMEPAGE_VAR_TRANSMISSION_PASS=${TRANSMISSION_PASSWORD}
+      - HOMEPAGE_VAR_KOPIA_USER=${KOPIA_SERVER_USER}
+      - HOMEPAGE_VAR_KOPIA_PASS=${KOPIA_SERVER_PASSWORD}
+      - HOMEPAGE_VAR_POSTGRES_PASS=${POSTGRES_SUPER_PASSWORD}
     volumes:
-      - homepage-config:/app/config
+      # Homepage config files (edit in ./homepage-config/ and restart to apply)
+      # settings.yaml: Theme, layout, LAN access (disableHostCheck: true)
+      # services.yaml: All service widgets with Docker integration
+      # widgets.yaml: Info widgets (resources, search, weather)
+      # bookmarks.yaml: Quick links and shortcuts
+      # docker.yaml: Docker socket configuration
+      # custom.css: Custom styling and animations
+      - ./homepage-config/settings.yaml:/app/config/settings.yaml:ro
+      - ./homepage-config/services.yaml:/app/config/services.yaml:ro
+      - ./homepage-config/widgets.yaml:/app/config/widgets.yaml:ro
+      - ./homepage-config/bookmarks.yaml:/app/config/bookmarks.yaml:ro
+      - ./homepage-config/docker.yaml:/app/config/docker.yaml:ro
+      - ./homepage-config/custom.css:/app/config/custom.css:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - potatostack
@@ -604,9 +626,6 @@ networks:
 # Volumes
 ################################################################################
 volumes:
-  # Management tools
-  homepage-config:
-
   # VPN & P2P
   gluetun-config:
   transmission-config:

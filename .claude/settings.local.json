@@ -51,7 +51,8 @@
       "Bash(docker rm:*)",
       "Bash(rm:*)",
       "Bash(docker:*)",
-      "Bash(bash:*)"
+      "Bash(bash:*)",
+      "WebFetch(domain:gethomepage.dev)"
     ],
     "deny": [],
     "ask": []
