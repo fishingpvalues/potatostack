@@ -44,7 +44,7 @@ else
     echo -e "${YELLOW}⚠ Backup disk not mounted${NC}"
 fi
 
-for DIR in downloads transmission-incomplete slskd-{shared,incomplete} immich/{upload,library,thumbs} seafile kopia/{repository,cache} rustypaste; do
+for DIR in downloads transmission-incomplete slskd-{shared,incomplete} immich/{upload,library,thumbs} seafile kopia/{repository,cache}; do
     sudo mkdir -p "$MAIN_DISK/$DIR"
 done
 sudo chown -R 1000:1000 "$MAIN_DISK"; sudo chmod -R 755 "$MAIN_DISK"
@@ -167,9 +167,6 @@ KOPIA_SERVER_USER=admin
 KOPIA_SERVER_PASSWORD=$(openssl rand -base64 32)
 SEAFILE_ADMIN_EMAIL=$SF_E
 SEAFILE_ADMIN_PASSWORD=$(openssl rand -base64 32)
-FRITZ_USERNAME=
-FRITZ_PASSWORD=
-FRITZ_HOSTNAME=fritz.box
 ENVEOF
     chmod 600 .env.production
     echo -e "${GREEN}✓ .env.production created${NC}"
