@@ -52,7 +52,10 @@
       "Bash(rm:*)",
       "Bash(docker:*)",
       "Bash(bash:*)",
-      "WebFetch(domain:gethomepage.dev)"
+      "WebFetch(domain:gethomepage.dev)",
+      "WebFetch(domain:manual.seafile.com)",
+      "WebFetch(domain:docs.syncthing.net)",
+      "WebFetch(domain:docs.linuxserver.io)"
     ],
     "deny": [],
     "ask": []
