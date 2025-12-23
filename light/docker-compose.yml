@@ -39,6 +39,7 @@ services:
       - PGID=1000
       # LAN Access Configuration (disableHostCheck: true in settings.yaml)
       - HOMEPAGE_VAR_HOST=${HOST_BIND}
+      - HOMEPAGE_ALLOWED_HOSTS=${LAN_NETWORK:-192.168.178.0/24}
       # Service credentials for widgets
       - HOMEPAGE_VAR_TRANSMISSION_USER=${TRANSMISSION_USER}
       - HOMEPAGE_VAR_TRANSMISSION_PASS=${TRANSMISSION_PASSWORD}
@@ -265,7 +266,7 @@ services:
   postgres:
     image: tensorchord/pgvecto-rs:${POSTGRES_TAG:-pg14-v0.2.0}
     container_name: postgres
-    command: postgres -c shared_buffers=128MB -c effective_cache_size=256MB -c work_mem=8MB -c max_connections=50 -c synchronous_commit=off -c random_page_cost=1.1
+    command: postgres -c shared_preload_libraries='vectors.so' -c shared_buffers=128MB -c effective_cache_size=256MB -c work_mem=8MB -c max_connections=50 -c synchronous_commit=off -c random_page_cost=1.1
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_SUPER_PASSWORD}
       - POSTGRES_USER=postgres
@@ -332,7 +333,7 @@ services:
     image: ghcr.io/immich-app/immich-server:${IMMICH_TAG:-release}
     container_name: immich-server
     entrypoint: ["/entrypoint-wrapper.sh"]
-    command: ["start.sh", "immich"]
+    command: ["start-server.sh"]
     ports:
       - "${HOST_BIND}:2283:3001"
     environment:
@@ -369,14 +370,7 @@ services:
         reservations:
           memory: 256M
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--spider",
-          "-q",
-          "http://127.0.0.1:3001/api/server/ping",
-        ]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3001/api/server/ping/"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -392,7 +386,7 @@ services:
     image: ghcr.io/immich-app/immich-server:${IMMICH_TAG:-release}
     container_name: immich-microservices
     entrypoint: ["/entrypoint-wrapper.sh"]
-    command: ["start.sh", "microservices"]
+    command: ["start-microservices.sh"]
     environment:
       - TZ=Europe/Berlin
       - DB_HOSTNAME=postgres
@@ -425,6 +419,12 @@ services:
           memory: 256M
         reservations:
           memory: 128M
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "microservices"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
@@ -586,6 +586,38 @@ services:
       - "autoheal=true"
 
   ################################################################################
+  # MariaDB - Database for Seafile (seafile-mc requires MySQL/MariaDB)
+  ################################################################################
+  mariadb:
+    image: mariadb:${MARIADB_TAG:-11-jammy}
+    container_name: mariadb
+    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW --max-connections=50
+    environment:
+      - MYSQL_ROOT_PASSWORD=${SEAFILE_DB_PASSWORD}
+      - TZ=Europe/Berlin
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    networks:
+      - potatostack
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "autoheal=true"
+
+  ################################################################################
   # Seafile - File Sync & Share
   ################################################################################
   seafile:
@@ -596,21 +628,14 @@ services:
       - "${HOST_BIND}:8082:80"
     environment:
       - TZ=Europe/Berlin
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=seafile
-      - DB_PASSWORD=${SEAFILE_DB_PASSWORD}
-      - CCNET_DB=ccnet_db
-      - SEAFILE_DB=seafile_db
-      - SEAHUB_DB=seahub_db
+      - DB_HOST=mariadb
+      - DB_PORT=3306
+      - DB_ROOT_PASSWD=${SEAFILE_DB_PASSWORD}
+      - TIME_ZONE=Europe/Berlin
       - SEAFILE_ADMIN_EMAIL=${SEAFILE_ADMIN_EMAIL}
       - SEAFILE_ADMIN_PASSWORD=${SEAFILE_ADMIN_PASSWORD}
       - SEAFILE_SERVER_LETSENCRYPT=false
       - SEAFILE_SERVER_HOSTNAME=files.${HOST_DOMAIN:-lepotato.local}
-      - TIME_ZONE=Europe/Berlin
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_DB=6
     volumes:
       - /mnt/storage/seafile:/shared
       - ./seafile-entrypoint.sh:/entrypoint-wrapper.sh:ro
@@ -619,9 +644,7 @@ services:
     depends_on:
       storage-init:
         condition: service_completed_successfully
-      postgres:
-        condition: service_healthy
-      redis:
+      mariadb:
         condition: service_healthy
     restart: always
     deploy:
@@ -667,6 +690,7 @@ volumes:
   # Databases
   postgres-data:
   redis-data:
+  mariadb-data:
 
   # Applications
   vaultwarden-data:
