@@ -1,28 +1,44 @@
 ---
-# Homepage Settings
+title: PotatoStack Light
+favicon: https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/homer.png
 
-title: PotatoStack Control Center
-favicon: https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/homarr.png
+# Disable host validation for LAN access
+target: _self
+disableHostCheck: true
+background:
+  image: https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072
+  blur: sm
+  saturate: 50
+  brightness: 50
+  opacity: 20
 
 theme: dark
 color: slate
 
 layout:
-  VPN & Downloads:
-    style: row
-    columns: 3
-  Media & Files:
-    style: row
-    columns: 3
-  Security & Management:
-    style: row
-    columns: 3
-  Monitoring:
-    style: row
-    columns: 4
+  - VPN & Downloads:
+      style: row
+      columns: 3
+  - Media & Storage:
+      style: row
+      columns: 3
+  - Security & Management:
+      style: row
+      columns: 3
+  - System & Monitoring:
+      style: row
+      columns: 3
 
+providers:
+  openweathermap: openweathermapapikey
+  weatherapi: weatherapiapikey
+
+headerStyle: boxedWidgets
+cardBlur: md
+hideErrors: false
+showStats: true
+statusStyle: dot
 quicklaunch:
   searchDescriptions: true
   hideInternetSearch: false
-  showSearchSuggestions: true
   hideVisitURL: false

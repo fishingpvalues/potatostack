@@ -1,73 +1,126 @@
 ---
-# Homepage Services Configuration
-
 - VPN & Downloads:
-    - Gluetun:
+    - Gluetun VPN:
         icon: gluetun.png
-        href: http://{{HOMEPAGE_VAR_HOST_BIND}}:8000
+        href: http://{{HOMEPAGE_VAR_HOST}}:8000
         description: VPN Killswitch
+        server: docker-socket
+        container: gluetun
         widget:
           type: gluetun
-          url: http://{{HOMEPAGE_VAR_HOST_BIND}}:8000
+          url: http://gluetun:8000
 
     - Transmission:
         icon: transmission.png
-        href: http://{{HOMEPAGE_VAR_HOST_BIND}}:9091
-        description: Torrent Client
+        href: http://{{HOMEPAGE_VAR_HOST}}:9091
+        description: Torrent Client (via VPN)
+        server: docker-socket
+        container: transmission
         widget:
           type: transmission
-          url: http://{{HOMEPAGE_VAR_HOST_BIND}}:9091
+          url: http://gluetun:9091
           username: {{HOMEPAGE_VAR_TRANSMISSION_USER}}
-          password: {{HOMEPAGE_VAR_TRANSMISSION_PASSWORD}}
+          password: {{HOMEPAGE_VAR_TRANSMISSION_PASS}}
+          rpcUrl: /transmission/
 
     - slskd:
         icon: slskd.png
-        href: http://{{HOMEPAGE_VAR_HOST_BIND}}:2234
-        description: Soulseek P2P
+        href: http://{{HOMEPAGE_VAR_HOST}}:2234
+        description: Soulseek Client (via VPN)
+        server: docker-socket
+        container: slskd
         widget:
-          type: customapi
-          url: http://{{HOMEPAGE_VAR_HOST_BIND}}:2234/api/v0/session
-          username: {{HOMEPAGE_VAR_SLSKD_USER}}
-          password: {{HOMEPAGE_VAR_SLSKD_PASSWORD}}
+          type: slskd
+          url: http://gluetun:2234
+          apikey: {{HOMEPAGE_VAR_SLSKD_KEY}}
 
-- Media & Files:
+- Media & Storage:
     - Immich:
         icon: immich.png
-        href: http://{{HOMEPAGE_VAR_HOST_BIND}}:2283
+        href: http://{{HOMEPAGE_VAR_HOST}}:2283
         description: Photo Management
+        server: docker-socket
+        container: immich-server
         widget:
           type: immich
-          url: http://{{HOMEPAGE_VAR_HOST_BIND}}:2283
-          key: {{HOMEPAGE_VAR_IMMICH_API_KEY}}
+          url: http://immich-server:3001
+          key: {{HOMEPAGE_VAR_IMMICH_KEY}}
 
     - Seafile:
         icon: seafile.png
-        href: http://{{HOMEPAGE_VAR_HOST_BIND}}:8082
+        href: http://{{HOMEPAGE_VAR_HOST}}:8082
         description: File Sync & Share
+        server: docker-socket
+        container: seafile
+
+    - Kopia:
+        icon: kopia.png
+        href: https://{{HOMEPAGE_VAR_HOST}}:51515
+        description: Backup Server
+        server: docker-socket
+        container: kopia
         widget:
-          type: customapi
-          url: http://{{HOMEPAGE_VAR_HOST_BIND}}:8082/api2/ping/
+          type: kopia
+          url: https://kopia:51515
+          username: {{HOMEPAGE_VAR_KOPIA_USER}}
+          password: {{HOMEPAGE_VAR_KOPIA_PASS}}
 
 - Security & Management:
     - Vaultwarden:
         icon: vaultwarden.png
-        href: http://{{HOMEPAGE_VAR_HOST_BIND}}:8080
+        href: http://{{HOMEPAGE_VAR_HOST}}:8080
         description: Password Manager
+        server: docker-socket
+        container: vaultwarden
         widget:
-          type: customapi
-          url: http://{{HOMEPAGE_VAR_HOST_BIND}}:8080/alive
+          type: vaultwarden
+          url: http://vaultwarden:80
 
     - Portainer:
         icon: portainer.png
-        href: https://{{HOMEPAGE_VAR_HOST_BIND}}:9443
+        href: https://{{HOMEPAGE_VAR_HOST}}:9443
         description: Container Management
+        server: docker-socket
+        container: portainer
         widget:
           type: portainer
-          url: https://{{HOMEPAGE_VAR_HOST_BIND}}:9443
+          url: https://portainer:9443
           env: 1
-          key: {{HOMEPAGE_VAR_PORTAINER_API_KEY}}
+          key: {{HOMEPAGE_VAR_PORTAINER_KEY}}
 
-    - Kopia:
-        icon: kopia.png
-        href: https://{{HOMEPAGE_VAR_HOST_BIND}}:51515
-        description: Backup Server
+    - Rustypaste:
+        icon: pastebin.png
+        href: http://{{HOMEPAGE_VAR_HOST}}:8001
+        description: Pastebin Service
+        server: docker-socket
+        container: rustypaste
+
+- System & Monitoring:
+    - PostgreSQL:
+        icon: postgres.png
+        href: '#'
+        description: Shared Database
+        server: docker-socket
+        container: postgres
+        widget:
+          type: postgres
+          url: postgres://postgres:5432
+          username: postgres
+          password: {{HOMEPAGE_VAR_POSTGRES_PASS}}
+
+    - Redis:
+        icon: redis.png
+        href: '#'
+        description: Shared Cache
+        server: docker-socket
+        container: redis
+        widget:
+          type: redis
+          url: redis://redis:6379
+
+    - FritzBox:
+        icon: avm-fritzbox.png
+        href: http://fritz.box
+        description: Router Metrics
+        server: docker-socket
+        container: fritzbox-exporter

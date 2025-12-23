@@ -1,5 +1,3 @@
 ---
-# Homepage Docker Integration
-
-my-docker:
+docker-socket:
   socket: /var/run/docker.sock
