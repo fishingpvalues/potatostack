@@ -549,7 +549,8 @@ services:
       - vaultwarden-data:/data/vaultwarden:ro
       - /mnt/storage/immich/upload:/data/immich-upload:ro
       - /mnt/storage/immich/library:/data/immich-library:ro
-      - /mnt/storage/seafile:/data/seafile:ro
+      - /mnt/storage/syncthing/data:/data/syncthing-data:ro
+      - /mnt/storage/syncthing/backup:/data/syncthing-backup:ro
       - /mnt/storage/downloads:/data/downloads:ro
       - /mnt/storage/slskd-shared:/data/slskd-shared:ro
     networks:
@@ -584,80 +585,49 @@ services:
       - "autoheal=true"
 
   ################################################################################
-  # MariaDB - Database for Seafile (seafile-mc requires MySQL/MariaDB)
+  # Syncthing - P2P File Synchronization
+  # Access: http://HOST_BIND:8384
+  # Protocol: Decentralized, encrypted P2P sync
   ################################################################################
-  mariadb:
-    image: mariadb:${MARIADB_TAG:-11-jammy}
-    container_name: mariadb
-    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW --max-connections=50
-    environment:
-      - MARIADB_ROOT_PASSWORD=${SEAFILE_DB_PASSWORD}
-      - TZ=Europe/Berlin
-    volumes:
-      - mariadb-data:/var/lib/mysql
-    networks:
-      - potatostack
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 256M
-        reservations:
-          memory: 128M
-    healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 60s
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
-      - "autoheal=true"
-
-  ################################################################################
-  # Seafile - File Sync & Share
-  ################################################################################
-  seafile:
-    image: seafileltd/seafile-mc:${SEAFILE_TAG:-latest}
-    container_name: seafile
-    entrypoint: ["/entrypoint-wrapper.sh"]
+  syncthing:
+    image: lscr.io/linuxserver/syncthing:${SYNCTHING_TAG:-latest}
+    container_name: syncthing
+    hostname: ${SYNCTHING_HOSTNAME:-potatostack-sync}
     ports:
-      - "${HOST_BIND}:8082:80"
+      - "${HOST_BIND}:8384:8384"    # Web UI
+      - "${HOST_BIND}:22000:22000/tcp"  # TCP file transfers
+      - "${HOST_BIND}:22000:22000/udp"  # QUIC file transfers
+      - "${HOST_BIND}:21027:21027/udp"  # Local discovery
     environment:
+      - PUID=1000
+      - PGID=1000
       - TZ=Europe/Berlin
-      - DB_HOST=mariadb
-      - DB_PORT=3306
-      - DB_ROOT_PASSWD=${SEAFILE_DB_PASSWORD}
-      - TIME_ZONE=Europe/Berlin
-      - SEAFILE_ADMIN_EMAIL=${SEAFILE_ADMIN_EMAIL}
-      - SEAFILE_ADMIN_PASSWORD=${SEAFILE_ADMIN_PASSWORD}
-      - SEAFILE_SERVER_LETSENCRYPT=false
-      - SEAFILE_SERVER_HOSTNAME=files.${HOST_DOMAIN:-lepotato.local}
+      - UMASK=022
     volumes:
-      - /mnt/storage/seafile:/shared
-      - ./seafile-entrypoint.sh:/entrypoint-wrapper.sh:ro
+      - syncthing-config:/config
+      - /mnt/storage/syncthing/data:/data
+      - /mnt/storage/syncthing/sync1:/sync1
+      - /mnt/storage/syncthing/sync2:/sync2
+      - /mnt/storage/syncthing/backup:/backup
     networks:
       - potatostack
     depends_on:
       storage-init:
         condition: service_completed_successfully
-      mariadb:
-        condition: service_healthy
     restart: always
     deploy:
       resources:
         limits:
           cpus: "1.0"
-          memory: 384M
+          memory: 512M
         reservations:
           memory: 256M
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:80/api2/ping/"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8384/rest/system/status"]
       interval: 30s
-      timeout: 20s
-      retries: 10
-      start_period: 240s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
@@ -688,11 +658,11 @@ volumes:
   # Databases
   postgres-data:
   redis-data:
-  mariadb-data:
 
   # Applications
   vaultwarden-data:
   portainer-data:
+  syncthing-config:
 
   # Backup
   kopia-config:
