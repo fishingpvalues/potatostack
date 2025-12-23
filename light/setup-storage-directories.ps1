@@ -68,11 +68,6 @@ Write-Host "[Seafile - File Sync & Share]" -ForegroundColor Cyan
 Create-Dir "$STORAGE_BASE\seafile"
 Write-Host ""
 
-# Rustypaste directories
-Write-Host "[Rustypaste - Pastebin]" -ForegroundColor Cyan
-Create-Dir "$STORAGE_BASE\rustypaste"
-Write-Host ""
-
 # Summary
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "Directory structure created successfully!" -ForegroundColor Green

@@ -60,7 +60,7 @@ volumes:
 ### Service Widgets (with live stats)
 - **VPN & Downloads**: Gluetun, Transmission, slskd
 - **Media & Storage**: Immich, Seafile, Kopia
-- **Security & Management**: Vaultwarden, Portainer, Rustypaste
+- **Security & Management**: Vaultwarden, Portainer
 - **System & Monitoring**: PostgreSQL, Redis, FritzBox
 
 ### Information Widgets

@@ -88,13 +88,6 @@
           env: 1
           key: {{HOMEPAGE_VAR_PORTAINER_KEY}}
 
-    - Rustypaste:
-        icon: pastebin.png
-        href: http://{{HOMEPAGE_VAR_HOST}}:8001
-        description: Pastebin Service
-        server: docker-socket
-        container: rustypaste
-
 - System & Monitoring:
     - PostgreSQL:
         icon: postgres.png
