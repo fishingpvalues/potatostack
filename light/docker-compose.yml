@@ -303,7 +303,7 @@ services:
   redis:
     image: redis:${REDIS_TAG:-7-alpine}
     container_name: redis
-    command: redis-server --maxmemory 96mb --maxmemory-policy allkeys-lru --save "" --appendonly no --lazyfree-lazy-eviction yes --activedefrag yes
+    command: redis-server --maxmemory 96mb --maxmemory-policy noeviction --save "" --appendonly no --lazyfree-lazy-eviction yes --activedefrag yes
     networks:
       - potatostack
     volumes:
@@ -322,107 +322,6 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
-      - "autoheal=true"
-
-  ################################################################################
-  # Immich - Photo Management (Server)
-  ################################################################################
-  immich-server:
-    image: ghcr.io/immich-app/immich-server:${IMMICH_TAG:-release}
-    container_name: immich-server
-    entrypoint: ["/entrypoint-wrapper.sh"]
-    ports:
-      - "${HOST_BIND}:2283:3001"
-    environment:
-      - TZ=Europe/Berlin
-      - DB_HOSTNAME=postgres
-      - DB_DATABASE_NAME=immich
-      - DB_USERNAME=immich
-      - DB_PASSWORD=${IMMICH_DB_PASSWORD}
-      - REDIS_HOSTNAME=redis
-      - REDIS_PORT=6379
-      - REDIS_DBINDEX=2
-      - IMMICH_MACHINE_LEARNING_ENABLED=false
-      - UPLOAD_LOCATION=/usr/src/app/upload
-    volumes:
-      - /mnt/storage/immich/upload:/usr/src/app/upload
-      - /mnt/storage/immich/library:/usr/src/app/library
-      - /mnt/storage/immich/thumbs:/usr/src/app/thumbs
-      - ./immich-entrypoint.sh:/entrypoint-wrapper.sh:ro
-    networks:
-      - potatostack
-    depends_on:
-      storage-init:
-        condition: service_completed_successfully
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 384M
-        reservations:
-          memory: 256M
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:3001/api/server/ping/"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 120s
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
-      - "autoheal=true"
-
-  ################################################################################
-  # Immich - Microservices
-  ################################################################################
-  immich-microservices:
-    image: ghcr.io/immich-app/immich-server:${IMMICH_TAG:-release}
-    container_name: immich-microservices
-    entrypoint: ["/entrypoint-wrapper.sh"]
-    environment:
-      - TZ=Europe/Berlin
-      - DB_HOSTNAME=postgres
-      - DB_DATABASE_NAME=immich
-      - DB_USERNAME=immich
-      - DB_PASSWORD=${IMMICH_DB_PASSWORD}
-      - REDIS_HOSTNAME=redis
-      - REDIS_PORT=6379
-      - REDIS_DBINDEX=2
-      - IMMICH_MACHINE_LEARNING_ENABLED=false
-    volumes:
-      - /mnt/storage/immich/upload:/usr/src/app/upload
-      - /mnt/storage/immich/library:/usr/src/app/library
-      - /mnt/storage/immich/thumbs:/usr/src/app/thumbs
-      - ./immich-entrypoint.sh:/entrypoint-wrapper.sh:ro
-    networks:
-      - potatostack
-    depends_on:
-      storage-init:
-        condition: service_completed_successfully
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: "0.75"
-          memory: 256M
-        reservations:
-          memory: 128M
-    healthcheck:
-      test: ["CMD", "pgrep", "-f", "microservices"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 120s
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
@@ -547,9 +446,15 @@ services:
       - /mnt/storage/kopia/cache:/app/cache
       - kopia-logs:/app/logs
       - vaultwarden-data:/data/vaultwarden:ro
-      - /mnt/storage/immich/upload:/data/immich-upload:ro
-      - /mnt/storage/immich/library:/data/immich-library:ro
-      - /mnt/storage/syncthing/data:/data/syncthing-data:ro
+      - /mnt/storage/syncthing/camera-sync:/data/syncthing-camera-sync:ro
+      - /mnt/storage/syncthing/photos:/data/syncthing-photos:ro
+      - /mnt/storage/syncthing/videos:/data/syncthing-videos:ro
+      - /mnt/storage/syncthing/music:/data/syncthing-music:ro
+      - /mnt/storage/syncthing/audiobooks:/data/syncthing-audiobooks:ro
+      - /mnt/storage/syncthing/podcasts:/data/syncthing-podcasts:ro
+      - /mnt/storage/syncthing/documents:/data/syncthing-documents:ro
+      - /mnt/storage/syncthing/books:/data/syncthing-books:ro
+      - /mnt/storage/syncthing/shared:/data/syncthing-shared:ro
       - /mnt/storage/syncthing/backup:/data/syncthing-backup:ro
       - /mnt/storage/downloads:/data/downloads:ro
       - /mnt/storage/slskd-shared:/data/slskd-shared:ro
@@ -588,6 +493,17 @@ services:
   # Syncthing - P2P File Synchronization
   # Access: http://HOST_BIND:8384
   # Protocol: Decentralized, encrypted P2P sync
+  # Folder Structure:
+  #   camera-sync/    - Receive-only from mobile devices
+  #   photos/         - Master photo library (organized by year)
+  #   videos/         - Master video library (personal/projects/raw)
+  #   music/          - Music library (albums/playlists)
+  #   audiobooks/     - Audiobook collection
+  #   podcasts/       - Podcast episodes
+  #   documents/      - Important documents (personal/receipts/scans)
+  #   books/          - Ebook library
+  #   shared/         - General shared files
+  #   backup/         - Service backups
   ################################################################################
   syncthing:
     image: lscr.io/linuxserver/syncthing:${SYNCTHING_TAG:-latest}
@@ -605,10 +521,16 @@ services:
       - UMASK=022
     volumes:
       - syncthing-config:/config
-      - /mnt/storage/syncthing/data:/data
-      - /mnt/storage/syncthing/sync1:/sync1
-      - /mnt/storage/syncthing/sync2:/sync2
-      - /mnt/storage/syncthing/backup:/backup
+      - /mnt/storage/syncthing/camera-sync:/data/camera-sync
+      - /mnt/storage/syncthing/photos:/data/photos
+      - /mnt/storage/syncthing/videos:/data/videos
+      - /mnt/storage/syncthing/music:/data/music
+      - /mnt/storage/syncthing/audiobooks:/data/audiobooks
+      - /mnt/storage/syncthing/podcasts:/data/podcasts
+      - /mnt/storage/syncthing/documents:/data/documents
+      - /mnt/storage/syncthing/books:/data/books
+      - /mnt/storage/syncthing/shared:/data/shared
+      - /mnt/storage/syncthing/backup:/data/backup
     networks:
       - potatostack
     depends_on:
