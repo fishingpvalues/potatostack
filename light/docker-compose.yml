@@ -6,6 +6,24 @@
 
 services:
   ################################################################################
+  # Storage Init - Creates required directories on startup
+  ################################################################################
+  storage-init:
+    image: alpine:latest
+    container_name: storage-init
+    command: sh /init-storage.sh
+    environment:
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - /mnt/storage:/mnt/storage
+      - ./init-storage.sh:/init-storage.sh:ro
+    network_mode: none
+    restart: "no"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+
+  ################################################################################
   # Homepage - Unified Dashboard with All Widgets
   # Config files in ./homepage-config/ - edit and restart to apply changes
   # Access: http://HOST_BIND:3000 or http://SERVER_IP:3000 from LAN
@@ -203,6 +221,8 @@ services:
       - /mnt/storage/transmission-incomplete:/incomplete
       - transmission-watch:/watch
     depends_on:
+      storage-init:
+        condition: service_completed_successfully
       gluetun:
         condition: service_healthy
     restart: always
@@ -230,6 +250,8 @@ services:
       - /mnt/storage/slskd-shared:/var/slskd/shared
       - /mnt/storage/slskd-incomplete:/var/slskd/incomplete
     depends_on:
+      storage-init:
+        condition: service_completed_successfully
       gluetun:
         condition: service_healthy
     restart: always
@@ -332,6 +354,8 @@ services:
     networks:
       - potatostack
     depends_on:
+      storage-init:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -387,6 +411,8 @@ services:
     networks:
       - potatostack
     depends_on:
+      storage-init:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -530,6 +556,9 @@ services:
       - /mnt/storage/slskd-shared:/data/slskd-shared:ro
     networks:
       - potatostack
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
     restart: always
     deploy:
       resources:
@@ -588,6 +617,8 @@ services:
     networks:
       - potatostack
     depends_on:
+      storage-init:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
