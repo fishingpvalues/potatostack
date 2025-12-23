@@ -68,6 +68,18 @@ Write-Host "[Seafile - File Sync & Share]" -ForegroundColor Cyan
 Create-Dir "$STORAGE_BASE\seafile"
 Write-Host ""
 
+# Fix entrypoint script permissions (Windows - no-op, scripts are executable by default)
+Write-Host "[Checking Entrypoint Scripts]" -ForegroundColor Cyan
+$SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
+if (Test-Path "$SCRIPT_DIR\immich-entrypoint.sh") {
+    Write-Host "  Found: immich-entrypoint.sh" -ForegroundColor Gray
+}
+if (Test-Path "$SCRIPT_DIR\seafile-entrypoint.sh") {
+    Write-Host "  Found: seafile-entrypoint.sh" -ForegroundColor Gray
+}
+Write-Host "  (Windows uses WSL/Docker for script execution)" -ForegroundColor Yellow
+Write-Host ""
+
 # Summary
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "Directory structure created successfully!" -ForegroundColor Green
