@@ -118,11 +118,14 @@ services:
     environment:
       - TZ=Europe/Berlin
       - VPN_SERVICE_PROVIDER=surfshark
-      - VPN_TYPE=${SURFSHARK_CONNECTION_TYPE:-openvpn}
+      - VPN_TYPE=openvpn
       - OPENVPN_USER=${SURFSHARK_USER}
       - OPENVPN_PASSWORD=${SURFSHARK_PASSWORD}
-      - SERVER_COUNTRIES=${SURFSHARK_COUNTRY:-Netherlands}
-      - SERVER_CITIES=${SURFSHARK_CITY:-Amsterdam}
+      - OPENVPN_PROTOCOL=udp
+      - SERVER_COUNTRIES=Germany
+      - OPENVPN_VERBOSITY=1
+      - OPENVPN_FLAGS=--tls-timeout 10 --connect-timeout 30 --connect-retry-max 3 --mssfix 1300
+      - LOG_LEVEL=debug
       - FIREWALL_OUTBOUND_SUBNETS=${LAN_NETWORK:-192.168.178.0/24}
       - FIREWALL_VPN_INPUT_PORTS=51413,50000
       - FIREWALL=on
@@ -135,6 +138,8 @@ services:
       - HTTP_CONTROL_SERVER_AUTH=off
       - IPV6=off
       - UPDATER_PERIOD=24h
+      - HEALTH_VPN_DURATION_INITIAL=60s
+      - HEALTH_VPN_DURATION_ADDITION=10s
     volumes:
       - gluetun-config:/gluetun
     networks:
@@ -148,18 +153,11 @@ services:
         reservations:
           memory: 64M
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--spider",
-          "-q",
-          "http://127.0.0.1:8000/v1/publicip/ip",
-        ]
-      interval: 60s
+      test: ["CMD", "pgrep", "openvpn"]
+      interval: 120s
       timeout: 10s
       retries: 5
-      start_period: 30s
+      start_period: 120s
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
