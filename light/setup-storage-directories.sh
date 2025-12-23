@@ -78,6 +78,19 @@ echo "[Seafile - File Sync & Share]"
 create_dir "${STORAGE_BASE}/seafile"
 echo ""
 
+# Fix entrypoint script permissions
+echo "[Fixing Entrypoint Scripts]"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "${SCRIPT_DIR}/immich-entrypoint.sh" ]; then
+    chmod +x "${SCRIPT_DIR}/immich-entrypoint.sh"
+    echo "  Fixed: immich-entrypoint.sh"
+fi
+if [ -f "${SCRIPT_DIR}/seafile-entrypoint.sh" ]; then
+    chmod +x "${SCRIPT_DIR}/seafile-entrypoint.sh"
+    echo "  Fixed: seafile-entrypoint.sh"
+fi
+echo ""
+
 # Summary
 echo "=========================================="
 echo "Directory structure created successfully!"
