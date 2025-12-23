@@ -72,3 +72,5 @@ repository/
 
 # Ansible (if used)
 *.retry
+
+error.log
