@@ -55,6 +55,7 @@
         widget:
           type: syncthing
           url: http://syncthing:8384
+          key: {{HOMEPAGE_VAR_SYNCTHING_KEY}}
 
     - Kopia:
         icon: kopia.png
