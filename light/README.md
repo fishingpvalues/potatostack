@@ -1,17 +1,17 @@
-# PotatoStack Light
+# ud PotatoStack Light
 
 Production-ready Docker Compose stack for Le Potato with SOTA optimizations for 2GB RAM.
 
 ## Services
 
 **VPN & P2P:** Gluetun (killswitch), Transmission, slskd
-**Apps:** Vaultwarden, Portainer, Immich, Kopia, Seafile, Rustypaste, Homepage
+**Apps:** Vaultwarden, Portainer, Immich, Kopia, Seafile, Homepage
 **Infrastructure:** PostgreSQL, Redis, Watchtower, Autoheal
-**Monitoring:** FritzBox Exporter
 
 ## Quick Start
 
 ### 1. Mount Storage
+
 ```bash
 # Find UUIDs
 sudo blkid
@@ -26,6 +26,7 @@ sudo mount -a
 ```
 
 ### 2. Run Setup
+
 ```bash
 cd light
 chmod +x quick-start.sh
@@ -33,6 +34,7 @@ chmod +x quick-start.sh
 ```
 
 **The script handles everything:**
+
 - Directory structure
 - System optimizations (swap, ZRAM, kernel tuning)
 - Docker optimization
@@ -42,7 +44,9 @@ chmod +x quick-start.sh
 - Stack deployment
 
 ### 3. Access Services
+
 Replace `HOST_IP` with your Le Potato IP:
+
 - **Homepage**: http://HOST_IP:3000
 - **Immich**: http://HOST_IP:2283
 - **Portainer**: https://HOST_IP:9443
@@ -53,18 +57,21 @@ Replace `HOST_IP` with your Le Potato IP:
 ## Optimizations for Le Potato (2GB RAM)
 
 **Swap & Memory:**
+
 - 4GB swap file on HDD (swappiness=10)
 - ~1GB ZRAM compressed RAM (lz4, 50%)
 - Memory pressure handler (restarts containers at 92% RAM)
 - Kernel tuning (BBR TCP, aggressive writeback)
 
 **Docker:**
+
 - PostgreSQL: 128MB buffers, sync off, 50 connections
 - Redis: 96MB limit, no persistence, lazy eviction
 - Log limits: 10MB max, 3 files, compressed
 - Concurrent ops limited to 3
 
 **Monitoring:**
+
 - Memory handler: `/var/log/memory-pressure.log`
 - Cron logs: `/var/log/potatostack/`
 
@@ -83,6 +90,7 @@ Check status: `free -h && swapon --show`
 Central backup server for all network devices at `https://HOST_IP:51515`.
 
 **Connect devices:**
+
 ```bash
 kopia repository connect server --url https://HOST_IP:51515
 kopia snapshot create /path/to/backup
@@ -115,6 +123,7 @@ tail -f /var/log/potatostack/backup.log
 ## Troubleshooting
 
 **OOM / High Memory:**
+
 ```bash
 free -h
 tail /var/log/memory-pressure.log
@@ -122,18 +131,21 @@ docker stats --no-stream
 ```
 
 **VPN Issues:**
+
 ```bash
 docker compose logs gluetun
 curl http://HOST_IP:8000/v1/publicip/ip
 ```
 
 **Database Issues:**
+
 ```bash
 docker compose exec postgres pg_isready -U postgres
 docker compose logs immich-server --tail 50
 ```
 
 **Permissions:**
+
 ```bash
 sudo chown -R 1000:1000 /mnt/storage
 docker compose restart [service]

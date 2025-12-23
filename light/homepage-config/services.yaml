@@ -48,11 +48,6 @@
           type: customapi
           url: http://{{HOMEPAGE_VAR_HOST_BIND}}:8082/api2/ping/
 
-    - Rustypaste:
-        icon: si-pastebin
-        href: http://{{HOMEPAGE_VAR_HOST_BIND}}:8001
-        description: Pastebin
-
 - Security & Management:
     - Vaultwarden:
         icon: vaultwarden.png
@@ -76,12 +71,3 @@
         icon: kopia.png
         href: https://{{HOMEPAGE_VAR_HOST_BIND}}:51515
         description: Backup Server
-
-- Monitoring:
-    - FritzBox:
-        icon: avm-fritzbox.png
-        href: http://fritz.box
-        description: Router
-        widget:
-          type: fritzbox
-          url: http://{{HOMEPAGE_VAR_HOST_BIND}}:9042
