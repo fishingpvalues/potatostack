@@ -46,12 +46,15 @@
           url: http://immich-server:3001
           key: {{HOMEPAGE_VAR_IMMICH_KEY}}
 
-    - Seafile:
-        icon: seafile.png
-        href: http://{{HOMEPAGE_VAR_HOST}}:8082
-        description: File Sync & Share
+    - Syncthing:
+        icon: syncthing.png
+        href: http://{{HOMEPAGE_VAR_HOST}}:8384
+        description: P2P File Sync
         server: docker-socket
-        container: seafile
+        container: syncthing
+        widget:
+          type: syncthing
+          url: http://syncthing:8384
 
     - Kopia:
         icon: kopia.png

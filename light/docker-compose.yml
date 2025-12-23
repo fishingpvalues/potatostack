@@ -272,7 +272,6 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
       - IMMICH_DB_PASSWORD=${IMMICH_DB_PASSWORD}
-      - SEAFILE_DB_PASSWORD=${SEAFILE_DB_PASSWORD}
       - TZ=Europe/Berlin
     volumes:
       - postgres-data:/var/lib/postgresql/data
