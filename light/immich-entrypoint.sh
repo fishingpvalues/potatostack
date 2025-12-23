@@ -8,5 +8,5 @@ if [ ! -f /usr/src/app/upload/encoded-video/.immich ]; then
     echo "verified" > /usr/src/app/upload/encoded-video/.immich
 fi
 
-# Execute original Immich command
-exec "$@"
+# Execute original Immich entrypoint
+exec /bin/bash /usr/src/app/server/bin/start.sh
