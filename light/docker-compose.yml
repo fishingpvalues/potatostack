@@ -333,7 +333,6 @@ services:
     image: ghcr.io/immich-app/immich-server:${IMMICH_TAG:-release}
     container_name: immich-server
     entrypoint: ["/entrypoint-wrapper.sh"]
-    command: ["start-server.sh"]
     ports:
       - "${HOST_BIND}:2283:3001"
     environment:
@@ -386,7 +385,6 @@ services:
     image: ghcr.io/immich-app/immich-server:${IMMICH_TAG:-release}
     container_name: immich-microservices
     entrypoint: ["/entrypoint-wrapper.sh"]
-    command: ["start-microservices.sh"]
     environment:
       - TZ=Europe/Berlin
       - DB_HOSTNAME=postgres
@@ -593,7 +591,7 @@ services:
     container_name: mariadb
     command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW --max-connections=50
     environment:
-      - MYSQL_ROOT_PASSWORD=${SEAFILE_DB_PASSWORD}
+      - MARIADB_ROOT_PASSWORD=${SEAFILE_DB_PASSWORD}
       - TZ=Europe/Berlin
     volumes:
       - mariadb-data:/var/lib/mysql
