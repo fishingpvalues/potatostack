@@ -46,6 +46,7 @@ services:
       - HOMEPAGE_VAR_KOPIA_USER=${KOPIA_SERVER_USER}
       - HOMEPAGE_VAR_KOPIA_PASS=${KOPIA_SERVER_PASSWORD}
       - HOMEPAGE_VAR_POSTGRES_PASS=${POSTGRES_SUPER_PASSWORD}
+      - HOMEPAGE_VAR_SYNCTHING_KEY=${SYNCTHING_API_KEY}
     volumes:
       # Homepage config files (edit in ./homepage-config/ and restart to apply)
       # settings.yaml: Theme, layout, LAN access (disableHostCheck: true)
