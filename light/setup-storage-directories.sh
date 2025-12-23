@@ -78,11 +78,6 @@ echo "[Seafile - File Sync & Share]"
 create_dir "${STORAGE_BASE}/seafile"
 echo ""
 
-# Rustypaste directories
-echo "[Rustypaste - Pastebin]"
-create_dir "${STORAGE_BASE}/rustypaste"
-echo ""
-
 # Summary
 echo "=========================================="
 echo "Directory structure created successfully!"

@@ -21,8 +21,7 @@ mkdir -p \
     "${STORAGE_BASE}/immich/thumbs" \
     "${STORAGE_BASE}/kopia/repository" \
     "${STORAGE_BASE}/kopia/cache" \
-    "${STORAGE_BASE}/seafile" \
-    "${STORAGE_BASE}/rustypaste"
+    "${STORAGE_BASE}/seafile"
 
 # Set ownership
 chown -R ${PUID}:${PGID} "${STORAGE_BASE}"

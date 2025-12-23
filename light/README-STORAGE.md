@@ -34,8 +34,7 @@ The init container:
 ├── kopia/
 │   ├── repository/               # Kopia backup repository
 │   └── cache/                    # Kopia cache
-├── seafile/                      # Seafile file sync data
-└── rustypaste/                   # Rustypaste uploaded files
+└── seafile/                      # Seafile file sync data
 ```
 
 ## Manual Setup (Optional)
