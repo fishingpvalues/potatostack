@@ -2,6 +2,7 @@ We have light stack which is the minimal configuration i want on Mini PC this on
 
 HARDWARE: Mini PC with 16GB RAM+ , SSD, CPU 4 core min, 1GB ehternet, no dedicated gpu
 
+the list.txt apps are mandatory
 - Postgres as DB
 - maybe mongo
 - Redis as DB both fully integrated
@@ -9,7 +10,7 @@ HARDWARE: Mini PC with 16GB RAM+ , SSD, CPU 4 core min, 1GB ehternet, no dedicat
 - healtchecks automation 
 - huginn
 - Rustypaste
-- Add nextrcloudxc for all with all addons and STuff SOTA for this stack add all
+- Add nextrcloud aio for all with all addons and STuff SOTA for this stack add all
 - Firefly with deutsche bank csv import export etc and STOA pipeline 
 - remove filebrowser
 - Add fritzbox exporter

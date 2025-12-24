@@ -1,0 +1,65 @@
+# Grafana Datasource Provisioning - SOTA 2025
+# Auto-provisions Prometheus, Loki, and Elasticsearch datasources
+
+apiVersion: 1
+
+datasources:
+  # Prometheus - Metrics collection
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    uid: prometheus-uid
+    url: http://prometheus:9090
+    isDefault: true
+    jsonData:
+      httpMethod: POST
+      manageAlerts: true
+      allowAsRecordingRulesTarget: true
+      prometheusType: Prometheus
+      cacheLevel: 'High'
+      timeInterval: 30s
+      incrementalQueryOverlapWindow: 10m
+      # Enable exemplar support for tracing integration
+      exemplarTraceIdDestinations:
+        - name: traceID
+          datasourceUid: loki-uid
+    version: 1
+    editable: false
+
+  # Loki - Log aggregation
+  - name: Loki
+    type: loki
+    access: proxy
+    uid: loki-uid
+    url: http://loki:3100
+    jsonData:
+      maxLines: 1000
+      derivedFields:
+        # Extract trace IDs from logs for correlation
+        - datasourceUid: prometheus-uid
+          matcherRegex: "traceID=(\\w+)"
+          name: TraceID
+          url: '$${__value.raw}'
+    version: 1
+    editable: false
+
+  # Elasticsearch - Search and analytics
+  - name: Elasticsearch
+    type: elasticsearch
+    access: proxy
+    uid: elasticsearch-uid
+    url: http://elasticsearch:9200
+    database: '[logs-]YYYY.MM.DD'
+    jsonData:
+      esVersion: '8.11.0'
+      timeField: '@timestamp'
+      logMessageField: message
+      logLevelField: level
+      interval: Daily
+      timeInterval: 30s
+    basicAuth: true
+    basicAuthUser: elastic
+    secureJsonData:
+      basicAuthPassword: ${ELASTIC_PASSWORD}
+    version: 1
+    editable: false
