@@ -35,10 +35,21 @@
           apikey: {{HOMEPAGE_VAR_SLSKD_KEY}}
 
 - Media & Storage:
+    - FileBrowser:
+        icon: filebrowser.png
+        href: http://{{HOMEPAGE_VAR_HOST}}:8181
+        description: File Manager (All Folders)
+        server: docker-socket
+        container: filebrowser
+        widget:
+          type: customapi
+          url: http://filebrowser:80/api/usage
+          method: GET
+
     - Syncthing:
         icon: syncthing.png
         href: http://{{HOMEPAGE_VAR_HOST}}:8384
-        description: Photo/Media Sync (Android/iOS)
+        description: OneDrive Mirror + P2P Sync
         server: docker-socket
         container: syncthing
         widget:

@@ -22,10 +22,20 @@ mkdir -p \
     "${STORAGE_BASE}/slskd-shared" \
     "${STORAGE_BASE}/slskd-incomplete"
 
-# Syncthing P2P File Sync - SOTA Content-Based Structure
-# Based on best practices from Syncthing community and media organization
-echo "Creating Syncthing SOTA content-based directories..."
+# Syncthing P2P File Sync - Full OneDrive Mirror Structure
+echo "Creating Syncthing OneDrive mirror directories..."
 mkdir -p \
+    "${STORAGE_BASE}/syncthing/Desktop" \
+    "${STORAGE_BASE}/syncthing/Obsidian-Vault" \
+    "${STORAGE_BASE}/syncthing/Bilder" \
+    "${STORAGE_BASE}/syncthing/Dokumente" \
+    "${STORAGE_BASE}/syncthing/workdir" \
+    "${STORAGE_BASE}/syncthing/nvim" \
+    "${STORAGE_BASE}/syncthing/Microsoft-Copilot-Chat-Dateien" \
+    "${STORAGE_BASE}/syncthing/Attachments" \
+    "${STORAGE_BASE}/syncthing/Privates" \
+    "${STORAGE_BASE}/syncthing/Studium" \
+    "${STORAGE_BASE}/syncthing/Berufliches" \
     "${STORAGE_BASE}/syncthing/camera-sync/android" \
     "${STORAGE_BASE}/syncthing/camera-sync/ios" \
     "${STORAGE_BASE}/syncthing/photos/2024" \
@@ -38,9 +48,6 @@ mkdir -p \
     "${STORAGE_BASE}/syncthing/music/playlists" \
     "${STORAGE_BASE}/syncthing/audiobooks" \
     "${STORAGE_BASE}/syncthing/podcasts" \
-    "${STORAGE_BASE}/syncthing/documents/personal" \
-    "${STORAGE_BASE}/syncthing/documents/receipts" \
-    "${STORAGE_BASE}/syncthing/documents/scans" \
     "${STORAGE_BASE}/syncthing/books" \
     "${STORAGE_BASE}/syncthing/shared" \
     "${STORAGE_BASE}/syncthing/backup" \
@@ -63,5 +70,6 @@ chmod -R 755 "${STORAGE_BASE}"
 # Special permissions for Syncthing versioning
 chmod 775 "${STORAGE_BASE}/syncthing/.stversions"
 
-echo "✓ Storage initialization complete with SOTA structure!"
-echo "✓ Created: VPN, P2P, Syncthing (camera-sync/photos/videos/music/audiobooks/podcasts/documents/books/shared/backup), Kopia"
+echo "✓ Storage initialization complete with full OneDrive mirror!"
+echo "✓ Created: VPN, P2P, Syncthing (OneDrive mirror + media folders), Kopia"
+echo "✓ OneDrive folders: Desktop, Obsidian-Vault, Bilder, Dokumente, workdir, nvim, etc."
