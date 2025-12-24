@@ -1,7 +1,7 @@
 We have light stack which is the minimal configuration i want on Mini PC this one with k9s, kind, minikube or vanilla kubernetes choose best. additionally, i want these services which complement some of the others and  remove some as well. I want tthat you leave the folder light stack as is (ignore) and delete old files from the main stack and then update the stack with the list under. i want yiu to read light stack for the folder strcute and hdds to mount and then fully integrate all of them dand update env example 
 
 HARDWARE: Mini PC with 16GB RAM+ , SSD, CPU 4 core min, 1GB ehternet, no dedicated gpu
-
+INGRESS AND EGRESS: I have a domain at mittwald container hosting I want there a container to run with wg quick or so which is connected to my Fritzbox at all times and from here I want to connect to the public domain of mittwald container is that possible? is that safe and sota or should I use something else? which container is suitable for this? maybe I just need it as a proxy or routing idk this topics it should serve as a mouth for the data to enter and exit to the end devices so that my Fritzbox home network is only reachable and protected. 
 the list.txt apps are mandatory
 - Postgres as DB
 - maybe mongo
