@@ -1,0 +1,14 @@
+[server]
+address = "0.0.0.0:8000"
+workers = 4
+max_content_length = "10MB"
+
+[paste]
+random_url = { enabled = true, type = "alphanumeric", length = 6 }
+default_extension = "txt"
+duplicate_files = true
+delete_expired_files = { enabled = true, interval = "1h" }
+
+[landing_page]
+enabled = true
+text = "Welcome to PotatoStack Pastebin"
