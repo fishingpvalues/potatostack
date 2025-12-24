@@ -1,0 +1,2000 @@
+################################################################################
+# PotatoStack Main - Optimized for Mini PC (16GB RAM)
+# Full-featured self-hosted stack with monitoring, automation, and media
+# Target: Mini PC with 16GB RAM, 4+ core CPU, 1GB ethernet
+################################################################################
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+    compress: "true"
+
+x-common-env: &common-env
+  TZ: Europe/Berlin
+  PUID: 1000
+  PGID: 1000
+
+services:
+  ################################################################################
+  # Storage Init - Creates required directories on startup
+  ################################################################################
+  storage-init:
+    image: alpine:${ALPINE_TAG:-latest}
+    container_name: storage-init
+    command: sh /init-storage.sh
+    environment:
+      <<: *common-env
+    volumes:
+      - /mnt/storage:/mnt/storage
+      - /mnt/cachehdd:/mnt/cachehdd
+      - ./init-storage.sh:/init-storage.sh:ro
+    network_mode: none
+    restart: "no"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+
+  ################################################################################
+  # CORE DATABASES
+  ################################################################################
+
+  # PostgreSQL - Primary database for multiple services
+  postgres:
+    image: postgres:${POSTGRES_TAG:-16-alpine}
+    container_name: postgres
+    logging: *default-logging
+    environment:
+      <<: *common-env
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-nextcloud,firefly,authentik,gitea,immich,calibre,linkding,n8n,healthchecks,stirlingpdf}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-postgres-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-postgres-multiple-dbs.sh:ro
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  # MongoDB - Document database
+  mongo:
+    image: mongo:${MONGO_TAG:-7}
+    container_name: mongo
+    logging: *default-logging
+    environment:
+      <<: *common-env
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    volumes:
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  # Redis - Cache and session storage
+  redis:
+    image: redis:${REDIS_TAG:-7-alpine}
+    container_name: redis
+    logging: *default-logging
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --save 60 1000
+    volumes:
+      - redis-data:/data
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # Adminer - Database management UI
+  adminer:
+    image: adminer:${ADMINER_TAG:-latest}
+    container_name: adminer
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8090:8080"
+    environment:
+      <<: *common-env
+      ADMINER_DEFAULT_SERVER: postgres
+      ADMINER_DESIGN: nette
+    networks:
+      - potatostack
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - mongo
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  ################################################################################
+  # REVERSE PROXY & SSL
+  ################################################################################
+
+  # Traefik - Modern reverse proxy with automatic SSL
+  traefik:
+    image: traefik:${TRAEFIK_TAG:-latest}
+    container_name: traefik
+    logging: *default-logging
+    ports:
+      - "80:80"
+      - "443:443"
+      - "${HOST_BIND:-192.168.178.40}:8080:8080"  # Dashboard
+    environment:
+      <<: *common-env
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik-certs:/letsencrypt
+    networks:
+      - potatostack
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.traefik.service=api@internal"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # Nginx Proxy Manager - Alternative reverse proxy with UI
+  npm:
+    image: jc21/nginx-proxy-manager:${NPM_TAG:-latest}
+    container_name: npm
+    logging: *default-logging
+    ports:
+      - "81:81"      # Admin UI
+      - "8081:80"    # HTTP
+      - "4443:443"   # HTTPS
+    environment:
+      <<: *common-env
+    volumes:
+      - npm-data:/data
+      - npm-letsencrypt:/etc/letsencrypt
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:81"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  ################################################################################
+  # AUTHENTICATION & SECURITY
+  ################################################################################
+
+  # Authentik - SSO and 2FA provider
+  authentik-postgres:
+    image: postgres:${POSTGRES_TAG:-16-alpine}
+    container_name: authentik-postgres
+    logging: *default-logging
+    environment:
+      POSTGRES_USER: authentik
+      POSTGRES_PASSWORD: ${AUTHENTIK_DB_PASSWORD}
+      POSTGRES_DB: authentik
+    volumes:
+      - authentik-postgres:/var/lib/postgresql/data
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U authentik"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  authentik-redis:
+    image: redis:${REDIS_TAG:-7-alpine}
+    container_name: authentik-redis
+    logging: *default-logging
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - authentik-redis:/data
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  authentik-server:
+    image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-latest}
+    container_name: authentik-server
+    logging: *default-logging
+    command: server
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:9000:9000"
+      - "${HOST_BIND:-192.168.178.40}:9443:9443"
+    environment:
+      <<: *common-env
+      AUTHENTIK_REDIS__HOST: authentik-redis
+      AUTHENTIK_POSTGRESQL__HOST: authentik-postgres
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_DB_PASSWORD}
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
+      AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
+    volumes:
+      - authentik-media:/media
+      - authentik-custom-templates:/templates
+    networks:
+      - potatostack
+    depends_on:
+      - authentik-postgres
+      - authentik-redis
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  authentik-worker:
+    image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-latest}
+    container_name: authentik-worker
+    logging: *default-logging
+    command: worker
+    environment:
+      <<: *common-env
+      AUTHENTIK_REDIS__HOST: authentik-redis
+      AUTHENTIK_POSTGRESQL__HOST: authentik-postgres
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_DB_PASSWORD}
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
+    volumes:
+      - authentik-media:/media
+      - authentik-certs:/certs
+    networks:
+      - potatostack
+    depends_on:
+      - authentik-postgres
+      - authentik-redis
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Vaultwarden - Password manager and 2FA aggregator
+  vaultwarden:
+    image: vaultwarden/server:${VAULTWARDEN_TAG:-latest}
+    container_name: vaultwarden
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8888:80"
+      - "${HOST_BIND:-192.168.178.40}:3012:3012"
+    environment:
+      <<: *common-env
+      DOMAIN: https://vault.${HOST_DOMAIN:-local.domain}
+      ROCKET_PORT: 80
+      WEBSOCKET_ENABLED: "true"
+      WEBSOCKET_PORT: 3012
+      SIGNUPS_ALLOWED: ${VAULTWARDEN_SIGNUPS_ALLOWED:-false}
+      INVITATIONS_ALLOWED: ${VAULTWARDEN_INVITATIONS_ALLOWED:-true}
+      ADMIN_TOKEN: ${VAULTWARDEN_ADMIN_TOKEN}
+      DATABASE_URL: /data/db.sqlite3
+      ICON_CACHE_TTL: 2592000
+      LOG_LEVEL: warn
+    volumes:
+      - vaultwarden-data:/data
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:80/alive"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  ################################################################################
+  # VPN & NETWORKING
+  ################################################################################
+
+  # Gluetun - VPN client with killswitch
+  gluetun:
+    image: qmcgaw/gluetun:${GLUETUN_TAG:-latest}
+    container_name: gluetun
+    logging: *default-logging
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8000:8000"     # Gluetun control
+      - "${HOST_BIND:-192.168.178.40}:8989:8989"     # Sonarr
+      - "${HOST_BIND:-192.168.178.40}:7878:7878"     # Radarr
+      - "${HOST_BIND:-192.168.178.40}:9696:9696"     # Prowlarr
+      - "${HOST_BIND:-192.168.178.40}:6767:6767"     # Bazarr
+      - "${HOST_BIND:-192.168.178.40}:8787:8787"     # Readarr
+      - "${HOST_BIND:-192.168.178.40}:8686:8686"     # Lidarr
+      - "${HOST_BIND:-192.168.178.40}:8282:8282"     # qBittorrent
+      - "${HOST_BIND:-192.168.178.40}:51413:51413"   # qBittorrent
+      - "${HOST_BIND:-192.168.178.40}:51413:51413/udp"
+      - "${HOST_BIND:-192.168.178.40}:6800:6800"     # aria2 RPC
+      - "${HOST_BIND:-192.168.178.40}:6880:80"       # aria2 WebUI
+    environment:
+      <<: *common-env
+      VPN_SERVICE_PROVIDER: ${VPN_PROVIDER:-surfshark}
+      VPN_TYPE: ${VPN_TYPE:-openvpn}
+      OPENVPN_USER: ${VPN_USER}
+      OPENVPN_PASSWORD: ${VPN_PASSWORD}
+      SERVER_COUNTRIES: ${VPN_COUNTRY:-Germany}
+      FIREWALL_OUTBOUND_SUBNETS: ${LAN_NETWORK:-192.168.178.0/24}
+      FIREWALL_VPN_INPUT_PORTS: 51413,6800
+      HTTP_CONTROL_SERVER_ADDRESS: :8000
+    volumes:
+      - gluetun-config:/gluetun
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "pgrep", "openvpn"]
+      interval: 120s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # Tailscale - Mesh VPN for remote access
+  tailscale:
+    image: tailscale/tailscale:${TAILSCALE_TAG:-latest}
+    container_name: tailscale
+    logging: *default-logging
+    hostname: potatostack
+    environment:
+      <<: *common-env
+      TS_AUTHKEY: ${TAILSCALE_AUTHKEY}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "false"
+    volumes:
+      - tailscale-data:/var/lib/tailscale
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    network_mode: host
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  ################################################################################
+  # CLOUD STORAGE & FILE SYNC
+  ################################################################################
+
+  # Nextcloud - Complete cloud platform with all addons
+  nextcloud-db:
+    image: postgres:${POSTGRES_TAG:-16-alpine}
+    container_name: nextcloud-db
+    logging: *default-logging
+    environment:
+      POSTGRES_USER: nextcloud
+      POSTGRES_PASSWORD: ${NEXTCLOUD_DB_PASSWORD}
+      POSTGRES_DB: nextcloud
+    volumes:
+      - nextcloud-db:/var/lib/postgresql/data
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nextcloud"]
+      interval: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  nextcloud-redis:
+    image: redis:${REDIS_TAG:-7-alpine}
+    container_name: nextcloud-redis
+    logging: *default-logging
+    command: redis-server --save 60 1
+    volumes:
+      - nextcloud-redis:/data
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  nextcloud:
+    image: nextcloud:${NEXTCLOUD_TAG:-latest}
+    container_name: nextcloud
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8082:80"
+    environment:
+      <<: *common-env
+      POSTGRES_HOST: nextcloud-db
+      POSTGRES_DB: nextcloud
+      POSTGRES_USER: nextcloud
+      POSTGRES_PASSWORD: ${NEXTCLOUD_DB_PASSWORD}
+      REDIS_HOST: nextcloud-redis
+      NEXTCLOUD_ADMIN_USER: ${NEXTCLOUD_ADMIN_USER:-admin}
+      NEXTCLOUD_ADMIN_PASSWORD: ${NEXTCLOUD_ADMIN_PASSWORD}
+      NEXTCLOUD_TRUSTED_DOMAINS: ${NEXTCLOUD_TRUSTED_DOMAINS:-localhost}
+      OVERWRITEPROTOCOL: https
+    volumes:
+      - nextcloud-data:/var/www/html
+      - /mnt/storage/nextcloud:/var/www/html/data
+    networks:
+      - potatostack
+    depends_on:
+      - nextcloud-db
+      - nextcloud-redis
+      - storage-init
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/status.php"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  # Syncthing - P2P file sync
+  syncthing:
+    image: lscr.io/linuxserver/syncthing:${SYNCTHING_TAG:-latest}
+    container_name: syncthing
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8384:8384"
+      - "${HOST_BIND:-192.168.178.40}:22000:22000/tcp"
+      - "${HOST_BIND:-192.168.178.40}:22000:22000/udp"
+      - "${HOST_BIND:-192.168.178.40}:21027:21027/udp"
+    environment:
+      <<: *common-env
+    volumes:
+      - syncthing-config:/config
+      - /mnt/storage/syncthing:/data
+    networks:
+      - potatostack
+    depends_on:
+      - storage-init
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8384/rest/noauth/health"]
+      interval: 120s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  ################################################################################
+  # FINANCE
+  ################################################################################
+
+  # Firefly III - Financial management with Deutsche Bank CSV support
+  firefly-db:
+    image: postgres:${POSTGRES_TAG:-16-alpine}
+    container_name: firefly-db
+    logging: *default-logging
+    environment:
+      POSTGRES_USER: firefly
+      POSTGRES_PASSWORD: ${FIREFLY_DB_PASSWORD}
+      POSTGRES_DB: firefly
+    volumes:
+      - firefly-db:/var/lib/postgresql/data
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U firefly"]
+      interval: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  firefly:
+    image: fireflyiii/core:${FIREFLY_TAG:-latest}
+    container_name: firefly
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8083:8080"
+    environment:
+      <<: *common-env
+      APP_KEY: ${FIREFLY_APP_KEY}
+      DB_HOST: firefly-db
+      DB_PORT: 5432
+      DB_CONNECTION: pgsql
+      DB_DATABASE: firefly
+      DB_USERNAME: firefly
+      DB_PASSWORD: ${FIREFLY_DB_PASSWORD}
+      TRUSTED_PROXIES: "**"
+      APP_URL: https://firefly.${HOST_DOMAIN:-local.domain}
+    volumes:
+      - firefly-upload:/var/www/html/storage/upload
+    networks:
+      - potatostack
+    depends_on:
+      - firefly-db
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Firefly III Data Importer - CSV import tool
+  firefly-importer:
+    image: fireflyiii/data-importer:${FIREFLY_IMPORTER_TAG:-latest}
+    container_name: firefly-importer
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8084:8080"
+    environment:
+      <<: *common-env
+      FIREFLY_III_URL: http://firefly:8080
+      VANITY_URL: https://firefly.${HOST_DOMAIN:-local.domain}
+      FIREFLY_III_ACCESS_TOKEN: ${FIREFLY_ACCESS_TOKEN}
+      NORDIGEN_ID: ${NORDIGEN_ID:-}
+      NORDIGEN_KEY: ${NORDIGEN_KEY:-}
+      SPECTRE_APP_ID: ${SPECTRE_APP_ID:-}
+      SPECTRE_SECRET: ${SPECTRE_SECRET:-}
+    networks:
+      - potatostack
+    depends_on:
+      - firefly
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  ################################################################################
+  # MEDIA MANAGEMENT - *ARR STACK
+  ################################################################################
+
+  # Prowlarr - Indexer manager
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:${PROWLARR_TAG:-latest}
+    container_name: prowlarr
+    logging: *default-logging
+    network_mode: "service:gluetun"
+    environment:
+      <<: *common-env
+    volumes:
+      - prowlarr-config:/config
+    depends_on:
+      - gluetun
+      - storage-init
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # Sonarr - TV show management
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:${SONARR_TAG:-latest}
+    container_name: sonarr
+    logging: *default-logging
+    network_mode: "service:gluetun"
+    environment:
+      <<: *common-env
+    volumes:
+      - sonarr-config:/config
+      - /mnt/storage/media/tv:/tv
+      - /mnt/storage/downloads:/downloads
+    depends_on:
+      - gluetun
+      - storage-init
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Radarr - Movie management
+  radarr:
+    image: lscr.io/linuxserver/radarr:${RADARR_TAG:-latest}
+    container_name: radarr
+    logging: *default-logging
+    network_mode: "service:gluetun"
+    environment:
+      <<: *common-env
+    volumes:
+      - radarr-config:/config
+      - /mnt/storage/media/movies:/movies
+      - /mnt/storage/downloads:/downloads
+    depends_on:
+      - gluetun
+      - storage-init
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Lidarr - Music management
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:${LIDARR_TAG:-latest}
+    container_name: lidarr
+    logging: *default-logging
+    network_mode: "service:gluetun"
+    environment:
+      <<: *common-env
+    volumes:
+      - lidarr-config:/config
+      - /mnt/storage/media/music:/music
+      - /mnt/storage/downloads:/downloads
+    depends_on:
+      - gluetun
+      - storage-init
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Readarr - Ebook management
+  readarr:
+    image: lscr.io/linuxserver/readarr:${READARR_TAG:-develop}
+    container_name: readarr
+    logging: *default-logging
+    network_mode: "service:gluetun"
+    environment:
+      <<: *common-env
+    volumes:
+      - readarr-config:/config
+      - /mnt/storage/media/books:/books
+      - /mnt/storage/downloads:/downloads
+    depends_on:
+      - gluetun
+      - storage-init
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Bazarr - Subtitle management
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:${BAZARR_TAG:-latest}
+    container_name: bazarr
+    logging: *default-logging
+    network_mode: "service:gluetun"
+    environment:
+      <<: *common-env
+    volumes:
+      - bazarr-config:/config
+      - /mnt/storage/media/movies:/movies
+      - /mnt/storage/media/tv:/tv
+    depends_on:
+      - gluetun
+      - sonarr
+      - radarr
+      - storage-init
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # Maintainerr - Media library cleanup
+  maintainerr:
+    image: jorenn92/maintainerr:${MAINTAINERR_TAG:-latest}
+    container_name: maintainerr
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:6246:6246"
+    environment:
+      <<: *common-env
+    volumes:
+      - maintainerr-data:/opt/data
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  ################################################################################
+  # MEDIA SERVERS & REQUEST MANAGEMENT
+  ################################################################################
+
+  # Jellyfin - Media server
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:${JELLYFIN_TAG:-latest}
+    container_name: jellyfin
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8096:8096"
+      - "${HOST_BIND:-192.168.178.40}:8920:8920"
+      - "${HOST_BIND:-192.168.178.40}:7359:7359/udp"
+      - "${HOST_BIND:-192.168.178.40}:1900:1900/udp"
+    environment:
+      <<: *common-env
+    volumes:
+      - jellyfin-config:/config
+      - /mnt/storage/media/tv:/data/tvshows
+      - /mnt/storage/media/movies:/data/movies
+      - /mnt/storage/media/music:/data/music
+      - /mnt/storage/media/audiobooks:/data/audiobooks
+      - /mnt/cachehdd/jellyfin-cache:/cache
+    networks:
+      - potatostack
+    depends_on:
+      - storage-init
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  # Jellyseerr - Media request management for Jellyfin
+  jellyseerr:
+    image: fallenbagel/jellyseerr:${JELLYSEERR_TAG:-latest}
+    container_name: jellyseerr
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:5055:5055"
+    environment:
+      <<: *common-env
+    volumes:
+      - jellyseerr-config:/app/config
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # Overseerr - Alternative media request management
+  overseerr:
+    image: lscr.io/linuxserver/overseerr:${OVERSEERR_TAG:-latest}
+    container_name: overseerr
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:5056:5055"
+    environment:
+      <<: *common-env
+    volumes:
+      - overseerr-config:/config
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # Audiobookshelf - Audiobook and podcast server
+  audiobookshelf:
+    image: ghcr.io/advplyr/audiobookshelf:${AUDIOBOOKSHELF_TAG:-latest}
+    container_name: audiobookshelf
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:13378:80"
+    environment:
+      <<: *common-env
+    volumes:
+      - audiobookshelf-config:/config
+      - audiobookshelf-metadata:/metadata
+      - /mnt/storage/media/audiobooks:/audiobooks
+      - /mnt/storage/media/podcasts:/podcasts
+    networks:
+      - potatostack
+    depends_on:
+      - storage-init
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  ################################################################################
+  # DOWNLOAD CLIENTS (behind VPN)
+  ################################################################################
+
+  # qBittorrent - Torrent client
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:${QBITTORRENT_TAG:-latest}
+    container_name: qbittorrent
+    logging: *default-logging
+    network_mode: "service:gluetun"
+    environment:
+      <<: *common-env
+      WEBUI_PORT: 8282
+    volumes:
+      - qbittorrent-config:/config
+      - /mnt/storage/downloads:/downloads
+      - /mnt/cachehdd/qbittorrent-incomplete:/incomplete
+    depends_on:
+      - gluetun
+      - storage-init
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Aria2 - Download manager
+  aria2:
+    image: p3terx/aria2-pro:${ARIA2_TAG:-latest}
+    container_name: aria2
+    logging: *default-logging
+    network_mode: "service:gluetun"
+    environment:
+      <<: *common-env
+      RPC_SECRET: ${ARIA2_RPC_SECRET}
+      RPC_PORT: 6800
+      LISTEN_PORT: 6888
+      DISK_CACHE: 64M
+      IPV6_MODE: "false"
+    volumes:
+      - aria2-config:/config
+      - /mnt/storage/downloads:/downloads
+    depends_on:
+      - gluetun
+      - storage-init
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # AriaNg - Aria2 web UI
+  ariang:
+    image: p3terx/ariang:${ARIANG_TAG:-latest}
+    container_name: ariang
+    logging: *default-logging
+    network_mode: "service:gluetun"
+    command: --port 80 --ipv6-mode false
+    depends_on:
+      - aria2
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  ################################################################################
+  # PHOTO MANAGEMENT
+  ################################################################################
+
+  # Immich - Photo management and AI tagging
+  immich-postgres:
+    image: tensorchord/pgvecto-rs:${IMMICH_POSTGRES_TAG:-pg16-v0.2.0}
+    container_name: immich-postgres
+    logging: *default-logging
+    environment:
+      POSTGRES_USER: immich
+      POSTGRES_PASSWORD: ${IMMICH_DB_PASSWORD}
+      POSTGRES_DB: immich
+    volumes:
+      - immich-postgres:/var/lib/postgresql/data
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U immich"]
+      interval: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  immich-redis:
+    image: redis:${REDIS_TAG:-7-alpine}
+    container_name: immich-redis
+    logging: *default-logging
+    command: redis-server --save 60 1
+    volumes:
+      - immich-redis:/data
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  immich-server:
+    image: ghcr.io/immich-app/immich-server:${IMMICH_TAG:-release}
+    container_name: immich-server
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:2283:3001"
+    environment:
+      <<: *common-env
+      DB_HOSTNAME: immich-postgres
+      DB_USERNAME: immich
+      DB_PASSWORD: ${IMMICH_DB_PASSWORD}
+      DB_DATABASE_NAME: immich
+      REDIS_HOSTNAME: immich-redis
+      UPLOAD_LOCATION: /usr/src/app/upload
+    volumes:
+      - /mnt/storage/photos:/usr/src/app/upload
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - potatostack
+    depends_on:
+      - immich-postgres
+      - immich-redis
+      - storage-init
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  immich-machine-learning:
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_TAG:-release}
+    container_name: immich-ml
+    logging: *default-logging
+    environment:
+      <<: *common-env
+    volumes:
+      - immich-ml-cache:/cache
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  ################################################################################
+  # MONITORING & OBSERVABILITY
+  ################################################################################
+
+  # Prometheus - Metrics collection
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_TAG:-latest}
+    container_name: prometheus
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=${PROMETHEUS_RETENTION_DAYS:-30d}'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    volumes:
+      - ./config/prometheus:/etc/prometheus
+      - prometheus-data:/prometheus
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # Grafana - Visualization and dashboards
+  grafana:
+    image: grafana/grafana:${GRAFANA_TAG:-latest}
+    container_name: grafana
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:3000:3000"
+    environment:
+      <<: *common-env
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_INSTALL_PLUGINS: ${GRAFANA_PLUGINS:-}
+      GF_SERVER_ROOT_URL: https://grafana.${HOST_DOMAIN:-local.domain}
+      GF_DATABASE_TYPE: postgres
+      GF_DATABASE_HOST: postgres:5432
+      GF_DATABASE_NAME: grafana
+      GF_DATABASE_USER: postgres
+      GF_DATABASE_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - potatostack
+    depends_on:
+      - prometheus
+      - postgres
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Loki - Log aggregation
+  loki:
+    image: grafana/loki:${LOKI_TAG:-latest}
+    container_name: loki
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:3100:3100"
+    command: -config.file=/etc/loki/loki.yml
+    volumes:
+      - ./config/loki:/etc/loki
+      - loki-data:/loki
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Promtail - Log collector
+  promtail:
+    image: grafana/promtail:${PROMTAIL_TAG:-latest}
+    container_name: promtail
+    logging: *default-logging
+    command: -config.file=/etc/promtail/promtail.yml
+    volumes:
+      - ./config/promtail:/etc/promtail
+      - /var/log:/var/log:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - potatostack
+    depends_on:
+      - loki
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  # Node Exporter - System metrics
+  node-exporter:
+    image: prom/node-exporter:${NODE_EXPORTER_TAG:-latest}
+    container_name: node-exporter
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:9100:9100"
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  # cAdvisor - Container metrics
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:${CADVISOR_TAG:-latest}
+    container_name: cadvisor
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:9200:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    privileged: true
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # Fritzbox Exporter - Router metrics
+  fritzbox-exporter:
+    image: pdreker/fritz_exporter:${FRITZBOX_EXPORTER_TAG:-latest}
+    container_name: fritzbox-exporter
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:9787:9787"
+    environment:
+      FRITZ_USERNAME: ${FRITZ_USERNAME:-}
+      FRITZ_PASSWORD: ${FRITZ_PASSWORD}
+      FRITZ_HOSTNAME: ${FRITZ_HOSTNAME:-fritz.box}
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  # Netdata - Real-time performance monitoring
+  netdata:
+    image: netdata/netdata:${NETDATA_TAG:-latest}
+    container_name: netdata
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:19999:19999"
+    environment:
+      <<: *common-env
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    volumes:
+      - netdata-config:/etc/netdata
+      - netdata-lib:/var/lib/netdata
+      - netdata-cache:/var/cache/netdata
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Uptime Kuma - Uptime monitoring
+  uptime-kuma:
+    image: louislam/uptime-kuma:${UPTIME_KUMA_TAG:-latest}
+    container_name: uptime-kuma
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:3001:3001"
+    environment:
+      <<: *common-env
+    volumes:
+      - uptime-kuma-data:/app/data
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  ################################################################################
+  # AUTOMATION & WORKFLOWS
+  ################################################################################
+
+  # n8n - Workflow automation
+  n8n:
+    image: n8nio/n8n:${N8N_TAG:-latest}
+    container_name: n8n
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:5678:5678"
+    environment:
+      <<: *common-env
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: ${N8N_USER:-admin}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_PASSWORD}
+      N8N_HOST: n8n.${HOST_DOMAIN:-local.domain}
+      N8N_PORT: 5678
+      N8N_PROTOCOL: https
+      WEBHOOK_URL: https://n8n.${HOST_DOMAIN:-local.domain}/
+      GENERIC_TIMEZONE: Europe/Berlin
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: n8n
+      DB_POSTGRESDB_USER: postgres
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+    volumes:
+      - n8n-data:/home/node/.n8n
+    networks:
+      - potatostack
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Huginn - Self-hosted automation
+  huginn:
+    image: ghcr.io/huginn/huginn:${HUGINN_TAG:-latest}
+    container_name: huginn
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:3002:3000"
+    environment:
+      <<: *common-env
+      DATABASE_ADAPTER: postgresql
+      DATABASE_HOST: postgres
+      DATABASE_NAME: huginn
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+      APP_SECRET_TOKEN: ${HUGINN_SECRET_TOKEN}
+      DOMAIN: huginn.${HOST_DOMAIN:-local.domain}
+      INVITATION_CODE: ${HUGINN_INVITATION_CODE}
+    volumes:
+      - huginn-data:/var/lib/huginn
+    networks:
+      - potatostack
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Healthchecks - Cron monitoring
+  healthchecks:
+    image: lscr.io/linuxserver/healthchecks:${HEALTHCHECKS_TAG:-latest}
+    container_name: healthchecks
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8001:8000"
+    environment:
+      <<: *common-env
+      SITE_ROOT: https://healthchecks.${HOST_DOMAIN:-local.domain}
+      SITE_NAME: PotatoStack Healthchecks
+      SUPERUSER_EMAIL: ${HEALTHCHECKS_ADMIN_EMAIL}
+      SUPERUSER_PASSWORD: ${HEALTHCHECKS_ADMIN_PASSWORD}
+      SECRET_KEY: ${HEALTHCHECKS_SECRET_KEY}
+      DB: postgres
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: healthchecks
+      DB_USER: postgres
+      DB_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+    volumes:
+      - healthchecks-data:/config
+    networks:
+      - potatostack
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  ################################################################################
+  # UTILITIES & TOOLS
+  ################################################################################
+
+  # Rustypaste - Pastebin
+  rustypaste:
+    image: orhunp/rustypaste:${RUSTYPASTE_TAG:-latest}
+    container_name: rustypaste
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8085:8000"
+    environment:
+      <<: *common-env
+    volumes:
+      - rustypaste-data:/app/data
+      - ./config/rustypaste/config.toml:/app/config.toml:ro
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  # Stirling PDF - PDF tools
+  stirling-pdf:
+    image: frooodle/s-pdf:${STIRLING_PDF_TAG:-latest}
+    container_name: stirling-pdf
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8086:8080"
+    environment:
+      <<: *common-env
+      DOCKER_ENABLE_SECURITY: "false"
+      INSTALL_BOOK_AND_ADVANCED_HTML_OPS: "true"
+      LANGS: de_DE,en_US
+    volumes:
+      - stirling-pdf-data:/usr/share/tessdata
+      - stirling-pdf-configs:/configs
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # Linkding - Bookmark manager
+  linkding:
+    image: sissbruecker/linkding:${LINKDING_TAG:-latest}
+    container_name: linkding
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:9091:9090"
+    environment:
+      <<: *common-env
+      LD_DB_ENGINE: postgres
+      LD_DB_HOST: postgres
+      LD_DB_PORT: 5432
+      LD_DB_DATABASE: linkding
+      LD_DB_USER: postgres
+      LD_DB_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+      LD_SUPERUSER_NAME: ${LINKDING_ADMIN_USER:-admin}
+      LD_SUPERUSER_PASSWORD: ${LINKDING_ADMIN_PASSWORD}
+    volumes:
+      - linkding-data:/etc/linkding/data
+    networks:
+      - potatostack
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # Cal.com - Calendar scheduling
+  calcom:
+    image: calcom/cal.com:${CALCOM_TAG:-latest}
+    container_name: calcom
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:3003:3000"
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgresql://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/calcom
+      NEXT_PUBLIC_WEBAPP_URL: https://cal.${HOST_DOMAIN:-local.domain}
+      NEXTAUTH_SECRET: ${CALCOM_NEXTAUTH_SECRET}
+      CALENDSO_ENCRYPTION_KEY: ${CALCOM_ENCRYPTION_KEY}
+    networks:
+      - potatostack
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Code Server - VS Code in browser
+  code-server:
+    image: lscr.io/linuxserver/code-server:${CODE_SERVER_TAG:-latest}
+    container_name: code-server
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8443:8443"
+    environment:
+      <<: *common-env
+      PASSWORD: ${CODE_SERVER_PASSWORD}
+      SUDO_PASSWORD: ${CODE_SERVER_SUDO_PASSWORD}
+    volumes:
+      - code-server-config:/config
+      - /mnt/storage/projects:/config/workspace
+    networks:
+      - potatostack
+    depends_on:
+      - storage-init
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # Draw.io - Diagramming tool
+  drawio:
+    image: jgraph/drawio:${DRAWIO_TAG:-latest}
+    container_name: drawio
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8087:8080"
+    environment:
+      <<: *common-env
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # Excalidraw - Sketching tool
+  excalidraw:
+    image: excalidraw/excalidraw:${EXCALIDRAW_TAG:-latest}
+    container_name: excalidraw
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8088:80"
+    environment:
+      <<: *common-env
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  # Atuin - Shell history sync
+  atuin:
+    image: ghcr.io/atuinsh/atuin:${ATUIN_TAG:-latest}
+    container_name: atuin
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8889:8888"
+    environment:
+      <<: *common-env
+      ATUIN_DB_URI: postgres://postgres:${POSTGRES_SUPER_PASSWORD}@postgres/atuin
+    command: server start
+    volumes:
+      - atuin-config:/config
+    networks:
+      - potatostack
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  ################################################################################
+  # DEVELOPMENT & GIT
+  ################################################################################
+
+  # Gitea - Git hosting
+  gitea:
+    image: gitea/gitea:${GITEA_TAG:-latest}
+    container_name: gitea
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:3004:3000"
+      - "${HOST_BIND:-192.168.178.40}:2222:22"
+    environment:
+      <<: *common-env
+      GITEA__database__DB_TYPE: postgres
+      GITEA__database__HOST: postgres:5432
+      GITEA__database__NAME: gitea
+      GITEA__database__USER: postgres
+      GITEA__database__PASSWD: ${POSTGRES_SUPER_PASSWORD}
+      GITEA__server__DOMAIN: git.${HOST_DOMAIN:-local.domain}
+      GITEA__server__ROOT_URL: https://git.${HOST_DOMAIN:-local.domain}/
+      GITEA__server__SSH_DOMAIN: git.${HOST_DOMAIN:-local.domain}
+      GITEA__security__INSTALL_LOCK: "true"
+    volumes:
+      - gitea-data:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - potatostack
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Gitea Runner - CI/CD for Gitea
+  gitea-runner:
+    image: gitea/act_runner:${GITEA_RUNNER_TAG:-latest}
+    container_name: gitea-runner
+    logging: *default-logging
+    environment:
+      <<: *common-env
+      GITEA_INSTANCE_URL: http://gitea:3000
+      GITEA_RUNNER_REGISTRATION_TOKEN: ${GITEA_RUNNER_TOKEN}
+      GITEA_RUNNER_NAME: docker-runner
+    volumes:
+      - gitea-runner-data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - potatostack
+    depends_on:
+      - gitea
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # Drone CI - Alternative CI/CD
+  drone:
+    image: drone/drone:${DRONE_TAG:-latest}
+    container_name: drone
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8089:80"
+    environment:
+      <<: *common-env
+      DRONE_GITEA_SERVER: http://gitea:3000
+      DRONE_GITEA_CLIENT_ID: ${DRONE_GITEA_CLIENT_ID}
+      DRONE_GITEA_CLIENT_SECRET: ${DRONE_GITEA_CLIENT_SECRET}
+      DRONE_RPC_SECRET: ${DRONE_RPC_SECRET}
+      DRONE_SERVER_HOST: drone.${HOST_DOMAIN:-local.domain}
+      DRONE_SERVER_PROTO: https
+      DRONE_USER_CREATE: username:${DRONE_ADMIN_USER},admin:true
+    volumes:
+      - drone-data:/data
+    networks:
+      - potatostack
+    depends_on:
+      - gitea
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  drone-runner:
+    image: drone/drone-runner-docker:${DRONE_RUNNER_TAG:-latest}
+    container_name: drone-runner
+    logging: *default-logging
+    environment:
+      <<: *common-env
+      DRONE_RPC_PROTO: http
+      DRONE_RPC_HOST: drone
+      DRONE_RPC_SECRET: ${DRONE_RPC_SECRET}
+      DRONE_RUNNER_CAPACITY: 2
+      DRONE_RUNNER_NAME: docker-runner
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - potatostack
+    depends_on:
+      - drone
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # Sentry - Error tracking
+  sentry-postgres:
+    image: postgres:${POSTGRES_TAG:-16-alpine}
+    container_name: sentry-postgres
+    logging: *default-logging
+    environment:
+      POSTGRES_USER: sentry
+      POSTGRES_PASSWORD: ${SENTRY_DB_PASSWORD}
+      POSTGRES_DB: sentry
+    volumes:
+      - sentry-postgres:/var/lib/postgresql/data
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentry"]
+      interval: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  sentry-redis:
+    image: redis:${REDIS_TAG:-7-alpine}
+    container_name: sentry-redis
+    logging: *default-logging
+    volumes:
+      - sentry-redis:/data
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  sentry:
+    image: sentry:${SENTRY_TAG:-latest}
+    container_name: sentry
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:9092:9000"
+    environment:
+      <<: *common-env
+      SENTRY_SECRET_KEY: ${SENTRY_SECRET_KEY}
+      SENTRY_POSTGRES_HOST: sentry-postgres
+      SENTRY_DB_USER: sentry
+      SENTRY_DB_PASSWORD: ${SENTRY_DB_PASSWORD}
+      SENTRY_REDIS_HOST: sentry-redis
+    volumes:
+      - sentry-data:/var/lib/sentry/files
+    networks:
+      - potatostack
+    depends_on:
+      - sentry-postgres
+      - sentry-redis
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  ################################################################################
+  # AI & SPECIAL APPLICATIONS
+  ################################################################################
+
+  # Open WebUI - LLM interface
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:${OPEN_WEBUI_TAG:-main}
+    container_name: open-webui
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:3005:8080"
+    environment:
+      <<: *common-env
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      WEBUI_SECRET_KEY: ${OPEN_WEBUI_SECRET_KEY}
+    volumes:
+      - open-webui-data:/app/backend/data
+    networks:
+      - potatostack
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # OctoBot - AI crypto trading
+  octobot:
+    image: drakkarsoftware/octobot:${OCTOBOT_TAG:-latest}
+    container_name: octobot
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:5001:5001"
+    environment:
+      <<: *common-env
+      CONFIG_PATH: /octobot/user/config.json
+    volumes:
+      - octobot-data:/octobot/user
+      - octobot-tentacles:/octobot/tentacles
+      - octobot-logs:/octobot/logs
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Pinchflat - YouTube downloader
+  pinchflat:
+    image: ghcr.io/kieraneglin/pinchflat:${PINCHFLAT_TAG:-latest}
+    container_name: pinchflat
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8945:8945"
+    environment:
+      <<: *common-env
+    volumes:
+      - pinchflat-config:/config
+      - /mnt/storage/media/youtube:/downloads
+    networks:
+      - potatostack
+    depends_on:
+      - storage-init
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  ################################################################################
+  # ELASTICSEARCH STACK
+  ################################################################################
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTICSEARCH_TAG:-8.11.0}
+    container_name: elasticsearch
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:9200:9200"
+      - "${HOST_BIND:-192.168.178.40}:9300:9300"
+    environment:
+      <<: *common-env
+      discovery.type: single-node
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+      xpack.security.enabled: "true"
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${KIBANA_TAG:-8.11.0}
+    container_name: kibana
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:5601:5601"
+    environment:
+      <<: *common-env
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      ELASTICSEARCH_USERNAME: elastic
+      ELASTICSEARCH_PASSWORD: ${ELASTIC_PASSWORD}
+    networks:
+      - potatostack
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  ################################################################################
+  # DASHBOARD
+  ################################################################################
+
+  # Glance - Modern dashboard (replacing Homepage)
+  glance:
+    image: glanceapp/glance:${GLANCE_TAG:-latest}
+    container_name: glance
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:3006:8080"
+    environment:
+      <<: *common-env
+    volumes:
+      - ./config/glance/glance.yml:/app/glance.yml:ro
+      - glance-data:/app/data
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  ################################################################################
+  # SYSTEM UTILITIES
+  ################################################################################
+
+  # Watchtower - Auto updates
+  watchtower:
+    image: containrrr/watchtower:${WATCHTOWER_TAG:-latest}
+    container_name: watchtower
+    logging: *default-logging
+    environment:
+      <<: *common-env
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_SCHEDULE: "0 0 4 * * *"
+      WATCHTOWER_NOTIFICATIONS: shoutrrr
+      WATCHTOWER_NOTIFICATION_URL: ${WATCHTOWER_NOTIFICATION_URL:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  # Autoheal - Container health recovery
+  autoheal:
+    image: willfarrell/autoheal:${AUTOHEAL_TAG:-latest}
+    container_name: autoheal
+    logging: *default-logging
+    environment:
+      AUTOHEAL_CONTAINER_LABEL: autoheal
+      AUTOHEAL_INTERVAL: 60
+      AUTOHEAL_START_PERIOD: 300
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  # Portainer - Container management UI
+  portainer:
+    image: portainer/portainer-ce:${PORTAINER_TAG:-latest}
+    container_name: portainer
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:9443:9443"
+    environment:
+      <<: *common-env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer-data:/data
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+################################################################################
+# NETWORKS
+################################################################################
+networks:
+  potatostack:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br-potato
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+
+################################################################################
+# VOLUMES
+################################################################################
+volumes:
+  # Databases
+  postgres-data:
+  mongo-data:
+  mongo-config:
+  redis-data:
+
+  # Authentication
+  authentik-postgres:
+  authentik-redis:
+  authentik-media:
+  authentik-custom-templates:
+  authentik-certs:
+  vaultwarden-data:
+
+  # Reverse Proxy
+  traefik-certs:
+  npm-data:
+  npm-letsencrypt:
+
+  # VPN
+  gluetun-config:
+  tailscale-data:
+
+  # Cloud Storage
+  nextcloud-db:
+  nextcloud-redis:
+  nextcloud-data:
+  syncthing-config:
+
+  # Finance
+  firefly-db:
+  firefly-upload:
+
+  # Media Management
+  prowlarr-config:
+  sonarr-config:
+  radarr-config:
+  lidarr-config:
+  readarr-config:
+  bazarr-config:
+  maintainerr-data:
+  jellyfin-config:
+  jellyseerr-config:
+  overseerr-config:
+  audiobookshelf-config:
+  audiobookshelf-metadata:
+
+  # Downloads
+  qbittorrent-config:
+  aria2-config:
+
+  # Photos
+  immich-postgres:
+  immich-redis:
+  immich-ml-cache:
+
+  # Monitoring
+  prometheus-data:
+  grafana-data:
+  loki-data:
+  netdata-config:
+  netdata-lib:
+  netdata-cache:
+  uptime-kuma-data:
+
+  # Automation
+  n8n-data:
+  huginn-data:
+  healthchecks-data:
+
+  # Utilities
+  rustypaste-data:
+  stirling-pdf-data:
+  stirling-pdf-configs:
+  linkding-data:
+  code-server-config:
+  atuin-config:
+
+  # Development
+  gitea-data:
+  gitea-runner-data:
+  drone-data:
+  sentry-postgres:
+  sentry-redis:
+  sentry-data:
+
+  # AI & Special
+  open-webui-data:
+  octobot-data:
+  octobot-tentacles:
+  octobot-logs:
+  pinchflat-config:
+
+  # Elasticsearch
+  elasticsearch-data:
+
+  # Dashboard
+  glance-data:
+
+  # System
+  portainer-data:

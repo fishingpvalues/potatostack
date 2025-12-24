@@ -56,7 +56,8 @@
       "WebFetch(domain:manual.seafile.com)",
       "WebFetch(domain:docs.syncthing.net)",
       "WebFetch(domain:docs.linuxserver.io)",
-      "Bash(jq:*)"
+      "Bash(jq:*)",
+      "Bash(mv:*)"
     ],
     "deny": [],
     "ask": []
