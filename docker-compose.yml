@@ -410,7 +410,7 @@ services:
         limits:
           memory: 256M
 
-  # Tailscale - Mesh VPN for remote access
+  # Tailscale - Mesh VPN for remote access (SOTA 2025 - easiest option)
   tailscale:
     image: tailscale/tailscale:${TAILSCALE_TAG:-latest}
     container_name: tailscale
@@ -433,6 +433,39 @@ services:
       resources:
         limits:
           memory: 256M
+
+  # WireGuard Server - For VPS gateway connection and advanced users
+  # Use this for public domain access via VPS or direct client connections
+  wireguard-server:
+    image: lscr.io/linuxserver/wireguard:${WIREGUARD_TAG:-latest}
+    container_name: wireguard-server
+    logging: *default-logging
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      <<: *common-env
+      SERVERURL: ${WIREGUARD_SERVERURL:-auto}
+      SERVERPORT: ${WIREGUARD_SERVERPORT:-51820}
+      PEERS: ${WIREGUARD_PEERS:-vps,android,laptop,tablet}
+      PEERDNS: ${WIREGUARD_PEERDNS:-auto}
+      INTERNAL_SUBNET: ${WIREGUARD_INTERNAL_SUBNET:-10.13.13.0/24}
+      ALLOWEDIPS: ${WIREGUARD_ALLOWEDIPS:-0.0.0.0/0}
+      LOG_CONFS: ${WIREGUARD_LOG_CONFS:-true}
+    volumes:
+      - wireguard-config:/config
+      - /lib/modules:/lib/modules:ro
+    ports:
+      - "${WIREGUARD_SERVERPORT:-51820}:51820/udp"
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
 
   ################################################################################
   # CLOUD STORAGE & FILE SYNC
@@ -1986,6 +2019,7 @@ volumes:
   # VPN
   gluetun-config:
   tailscale-data:
+  wireguard-config:
 
   # Cloud Storage
   nextcloud-aio-mastercontainer:
