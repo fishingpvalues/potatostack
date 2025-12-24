@@ -1,160 +1,362 @@
-# ud PotatoStack Light
+# PotatoStack Light
 
-Production-ready Docker Compose stack for Le Potato with SOTA optimizations for 2GB RAM.
+**Ultra-lean Docker stack for Le Potato (2GB RAM)**
 
-## Services
+VPN-protected P2P, OneDrive sync, backups, password manager. Dual-disk caching. ~1.2GB total RAM usage.
 
-**VPN & P2P:** Gluetun (killswitch), Transmission, slskd
-**Apps:** Vaultwarden, Portainer, Immich, Kopia, Seafile, Homepage
-**Infrastructure:** PostgreSQL, Redis, Watchtower, Autoheal
+## Architecture
+
+```mermaid
+graph TB
+    subgraph Internet
+        VPN[VPN Gateway]
+    end
+
+    subgraph "Gluetun VPN Container"
+        GLU[Gluetun Killswitch]
+        TRANS[Transmission]
+        SLSK[slskd]
+    end
+
+    subgraph "Core Services"
+        HOME[Homepage Dashboard]
+        SYNC[Syncthing]
+        FILE[FileBrowser]
+        VAULT[Vaultwarden]
+        PORT[Portainer]
+        KOPIA[Kopia Backup]
+    end
+
+    subgraph "Infrastructure"
+        WATCH[Watchtower]
+        HEAL[Autoheal]
+    end
+
+    subgraph "Storage - 14TB HDD"
+        STOR[/mnt/storage<br/>Final Storage]
+    end
+
+    subgraph "Cache - 500GB HDD"
+        CACHE[/mnt/cachehdd<br/>Temp & Cache]
+    end
+
+    VPN --> GLU
+    GLU --> TRANS
+    GLU --> SLSK
+
+    TRANS --> CACHE
+    SLSK --> CACHE
+    SYNC --> CACHE
+    KOPIA --> CACHE
+    PG --> CACHE
+
+    TRANS --> STOR
+    SLSK --> STOR
+    SYNC --> STOR
+    KOPIA --> STOR
+    FILE --> STOR
+    FILE --> CACHE
+
+    HOME -.-> TRANS
+    HOME -.-> SLSK
+    HOME -.-> SYNC
+    HOME -.-> KOPIA
+    HOME -.-> VAULT
+```
+
+## Storage Strategy
+
+```mermaid
+graph LR
+    subgraph "Write Operations"
+        W1[Incomplete Downloads]
+        W2[DB Temp Files]
+        W3[File Versions]
+        W4[Backup Cache]
+    end
+
+    subgraph "500GB Cache HDD"
+        C1[transmission-incomplete]
+        C2[slskd-incomplete]
+        C3[postgres-temp]
+        C4[syncthing-versions]
+        C5[kopia-cache]
+    end
+
+    subgraph "14TB Main HDD"
+        S1[downloads/]
+        S2[slskd-shared/]
+        S3[syncthing/]
+        S4[kopia/repository]
+    end
+
+    W1 --> C1
+    W2 --> C3
+    W3 --> C4
+    W4 --> C5
+
+    C1 -->|On Complete| S1
+    C2 -->|On Complete| S2
+
+    style C1 fill:#f96
+    style C2 fill:#f96
+    style C3 fill:#f96
+    style C4 fill:#f96
+    style C5 fill:#f96
+    style S1 fill:#9f6
+    style S2 fill:#9f6
+    style S3 fill:#9f6
+    style S4 fill:#9f6
+```
 
 ## Quick Start
 
-### 1. Mount Storage
-
 ```bash
-# Find UUIDs
-sudo blkid
-
-# Add to /etc/fstab
-UUID=xxx /mnt/storage ext4 defaults,nofail 0 2
-UUID=yyy /mnt/backup ext4 defaults,nofail 0 2
-
-# Mount
-sudo mkdir -p /mnt/storage /mnt/backup
+# 1. Mount drives
+sudo mkdir -p /mnt/storage /mnt/cachehdd
+# Edit /etc/fstab with your UUIDs
 sudo mount -a
-```
 
-### 2. Run Setup
-
-```bash
+# 2. Run setup
 cd light
-chmod +x quick-start.sh
+cp .env.example .env
+# Edit .env with your credentials
 ./quick-start.sh
+
+# 3. Access services at http://YOUR_IP:PORT
 ```
 
-**The script handles everything:**
+## Services & Ports
 
-- Directory structure
-- System optimizations (swap, ZRAM, kernel tuning)
-- Docker optimization
-- Memory pressure handler
-- Environment generation
-- Cron jobs (backup, cleanup)
-- Stack deployment
+| Service | Port | Description |
+|---------|------|-------------|
+| Homepage | 3000 | Unified dashboard |
+| Gluetun | 8000 | VPN control panel |
+| Transmission | 9091 | Torrent client (via VPN) |
+| slskd | 2234 | Soulseek client (via VPN) |
+| Syncthing | 8384 | P2P file sync |
+| FileBrowser | 8181 | Web file manager |
+| Vaultwarden | 8080 | Password manager |
+| Portainer | 9443 | Container management |
+| Kopia | 51515 | Backup server |
 
-### 3. Access Services
+## Complete Folder Structure
 
-Replace `HOST_IP` with your Le Potato IP:
+```
+/mnt/storage/                         # 14TB Main Storage
+├── downloads/                        # Completed torrents
+├── slskd-shared/                     # Soulseek shared files
+├── syncthing/                        # Syncthing sync folders
+│   ├── Desktop/
+│   ├── Obsidian-Vault/
+│   ├── Bilder/
+│   ├── Dokumente/
+│   ├── workdir/
+│   ├── nvim/
+│   ├── Microsoft-Copilot-Chat-Dateien/
+│   ├── Attachments/
+│   ├── Privates/
+│   ├── Studium/
+│   ├── Berufliches/
+│   ├── camera-sync/
+│   │   ├── android/
+│   │   └── ios/
+│   ├── photos/
+│   │   ├── 2024/
+│   │   ├── 2025/
+│   │   └── albums/
+│   ├── videos/
+│   │   ├── personal/
+│   │   ├── projects/
+│   │   └── raw/
+│   ├── music/
+│   │   ├── albums/
+│   │   └── playlists/
+│   ├── audiobooks/
+│   ├── podcasts/
+│   ├── books/
+│   ├── shared/
+│   └── backup/
+└── kopia/
+    └── repository/                   # Backup repository
 
-- **Homepage**: http://HOST_IP:3000
-- **Immich**: http://HOST_IP:2283
-- **Portainer**: https://HOST_IP:9443
-- **Vaultwarden**: http://HOST_IP:8080
-- **Transmission**: http://HOST_IP:9091
-- **Kopia**: https://HOST_IP:51515
+/mnt/cachehdd/                        # 500GB Cache HDD
+├── transmission-incomplete/          # Active torrents
+├── slskd-incomplete/                 # Active downloads
+├── kopia-cache/                      # Dedup cache
+└── syncthing-versions/               # File versioning
 
-## Optimizations for Le Potato (2GB RAM)
-
-**Swap & Memory:**
-
-- 4GB swap file on HDD (swappiness=10)
-- ~1GB ZRAM compressed RAM (lz4, 50%)
-- Memory pressure handler (restarts containers at 92% RAM)
-- Kernel tuning (BBR TCP, aggressive writeback)
-
-**Docker:**
-
-- PostgreSQL: 128MB buffers, sync off, 50 connections
-- Redis: 96MB limit, no persistence, lazy eviction
-- Log limits: 10MB max, 3 files, compressed
-- Concurrent ops limited to 3
-
-**Monitoring:**
-
-- Memory handler: `/var/log/memory-pressure.log`
-- Cron logs: `/var/log/potatostack/`
-
-Check status: `free -h && swapon --show`
-
-## Automated Features
-
-- **Watchtower**: Daily updates at 3 AM
-- **Autoheal**: Self-healing unhealthy containers
-- **Backup**: Nightly rsync to `/mnt/backup` (3 AM)
-- **Cleanup**: Weekly docker prune (Sunday 4 AM)
-- **Memory handler**: Auto-restarts at high memory
-
-## Kopia Backup Server
-
-Central backup server for all network devices at `https://HOST_IP:51515`.
-
-**Connect devices:**
-
-```bash
-kopia repository connect server --url https://HOST_IP:51515
-kopia snapshot create /path/to/backup
+Docker Volumes:
+├── gluetun-config
+├── transmission-config
+├── transmission-watch
+├── slskd-config
+├── slskd-logs
+├── syncthing-config
+├── filebrowser-config
+├── filebrowser-database
+├── postgres-data
+├── redis-data
+├── vaultwarden-data
+├── portainer-data
+├── kopia-config
+└── kopia-logs
 ```
 
-**Nightly backups:** Automatic rsync to `/mnt/backup` at 3 AM (7 day retention)
+## Data Flow
 
-## Common Commands
+```mermaid
+sequenceDiagram
+    participant User
+    participant Syncthing
+    participant Storage as /mnt/storage
+    participant Cache as /mnt/cachehdd
+    participant Kopia
+
+    User->>Syncthing: Upload file
+    Syncthing->>Storage: Save to syncthing/
+    Syncthing->>Cache: Create version in syncthing-versions/
+
+    User->>Transmission: Start torrent
+    Transmission->>Cache: Download to transmission-incomplete/
+    Transmission->>Storage: Move to downloads/ (complete)
+
+    Kopia->>Storage: Read all folders
+    Kopia->>Cache: Use kopia-cache/ for dedup
+    Kopia->>Storage: Write to kopia/repository/
+```
+
+## Configuration
+
+Edit `.env` before starting:
 
 ```bash
+# Network
+HOST_BIND=192.168.178.40
+LAN_NETWORK=192.168.178.0/24
+
+# VPN (Surfshark credentials)
+SURFSHARK_USER=your_username
+SURFSHARK_PASSWORD=your_password
+
+# Service Passwords
+TRANSMISSION_PASSWORD=...
+SLSKD_PASSWORD=...
+VAULTWARDEN_ADMIN_TOKEN=...
+KOPIA_PASSWORD=...
+
+# Get from UIs after first start:
+SYNCTHING_API_KEY=
+SLSKD_API_KEY=
+```
+
+**Optional Portainer:**
+```bash
+# Start with Portainer (container management UI)
+docker compose --profile optional up -d
+
+# Start without Portainer (save 96MB RAM)
+docker compose up -d
+```
+
+## Memory Optimizations
+
+**Removed unused services:**
+- PostgreSQL ❌ (saved 384MB)
+- Redis ❌ (saved 128MB)
+
+**Resource limits (total ~1.2GB):**
+- Homepage: 96MB
+- Gluetun: 96MB
+- Transmission: minimal
+- slskd: minimal
+- Syncthing: 384MB
+- Kopia: 192MB
+- Vaultwarden: 96MB
+- FileBrowser: 96MB
+- Portainer: 96MB (optional profile)
+- Watchtower: 48MB
+- Autoheal: 24MB
+
+**Logging:**
+- 5MB max size, 2 files, compressed
+- Reduced verbosity across all services
+
+**Other:**
+- Swap: 4GB file (swappiness=10)
+- ZRAM: ~1GB compressed RAM
+- Healthchecks: 60-120s intervals
+- Restart policy: `unless-stopped`
+
+## Backup Strategy
+
+**Kopia Server** backs up:
+- All Syncthing folders (OneDrive mirror + media)
+- Vaultwarden passwords
+- Downloads & slskd files
+
+**Connect from any device:**
+```bash
+kopia repository connect server --url https://YOUR_IP:51515
+kopia snapshot create ~/Documents
+```
+
+## Commands
+
+```bash
+# Start stack
+docker compose up -d
+
 # View logs
 docker compose logs -f [service]
 
 # Restart service
 docker compose restart [service]
 
-# Update stack (auto via Watchtower at 3 AM)
-docker compose pull && docker compose up -d
+# Check status
+docker compose ps
 
 # Stop stack
 docker compose down
 
 # Check memory
-free -h && swapon --show
-
-# View backup logs
-tail -f /var/log/potatostack/backup.log
+free -h && docker stats --no-stream
 ```
+
+## Automated Tasks
+
+| Task | Schedule | Action |
+|------|----------|--------|
+| Watchtower | 3 AM daily | Update containers |
+| Autoheal | Every 30s | Restart unhealthy containers |
+| Backup | 3 AM daily | Rsync to backup drive |
+| Cleanup | Sunday 4 AM | Prune unused images |
 
 ## Troubleshooting
 
-**OOM / High Memory:**
-
+**High Memory:**
 ```bash
 free -h
-tail /var/log/memory-pressure.log
 docker stats --no-stream
+tail /var/log/memory-pressure.log
 ```
 
-**VPN Issues:**
-
+**VPN not working:**
 ```bash
 docker compose logs gluetun
-curl http://HOST_IP:8000/v1/publicip/ip
+curl http://YOUR_IP:8000/v1/publicip/ip
 ```
 
-**Database Issues:**
-
+**Permission errors:**
 ```bash
-docker compose exec postgres pg_isready -U postgres
-docker compose logs immich-server --tail 50
-```
-
-**Permissions:**
-
-```bash
-sudo chown -R 1000:1000 /mnt/storage
-docker compose restart [service]
+sudo chown -R 1000:1000 /mnt/storage /mnt/cachehdd
+docker compose restart
 ```
 
 ## Security
 
-- All services bind to HOST_IP (LAN-only)
-- VPN killswitch for P2P (Transmission, slskd)
-- Passwords auto-generated by quick-start.sh
-- Store passwords in password manager
-- Verify VPN: `curl http://HOST_IP:8000/v1/publicip/ip`
+- Services bind to LAN IP only
+- VPN killswitch for P2P traffic
+- Passwords auto-generated
+- File versioning enabled
+- Nightly backups

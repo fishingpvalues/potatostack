@@ -64,8 +64,7 @@ mkdir -p \
     "${CACHE_BASE}/transmission-incomplete" \
     "${CACHE_BASE}/slskd-incomplete" \
     "${CACHE_BASE}/kopia-cache" \
-    "${CACHE_BASE}/syncthing-versions" \
-    "${CACHE_BASE}/postgres-temp"
+    "${CACHE_BASE}/syncthing-versions"
 
 # Set ownership
 echo "Setting ownership to ${PUID}:${PGID}..."
@@ -77,11 +76,10 @@ echo "Setting permissions..."
 chmod -R 755 "${STORAGE_BASE}"
 chmod -R 755 "${CACHE_BASE}"
 
-# Special permissions for versioning and temp directories
+# Special permissions for versioning directories
 chmod 775 "${CACHE_BASE}/syncthing-versions"
-chmod 775 "${CACHE_BASE}/postgres-temp"
 
 echo "✓ Storage initialization complete with full OneDrive mirror!"
 echo "✓ Main HDD: VPN, P2P, Syncthing (OneDrive mirror + media folders), Kopia repository"
-echo "✓ Cache HDD: Incomplete downloads, Kopia cache, Syncthing versions, DB temp files"
+echo "✓ Cache HDD: Incomplete downloads, Kopia cache, Syncthing file versioning"
 echo "✓ OneDrive folders: Desktop, Obsidian-Vault, Bilder, Dokumente, workdir, nvim, etc."
