@@ -1,296 +1,254 @@
-# PotatoStack 🥔
+# PotatoStack Main - Complete Self-Hosted Stack
 
-**Enterprise-grade self-hosted stack optimized for Le Potato (2GB RAM)**
+**Comprehensive Docker Compose stack for Mini PC (16GB RAM)**
 
-Production-ready Kubernetes stack with comprehensive monitoring, security, and automation - all running on ARM64 SBC with minimal resources.
+## Overview
 
-## 🎯 Design Goals
+Upgraded from Kubernetes to Docker Compose with all requested services from `upgrade.txt`.
 
-- **Low Resource**: Optimized for Le Potato (2GB RAM, ARM64)
-- **Production Ready**: Enterprise-grade reliability and security
-- **SOTA 2025**: Modern Kubernetes stack (k3s, Gateway API, Kyverno)
-- **Fully Tested**: Comprehensive test suite with CI/CD
-- **GitOps Ready**: Declarative infrastructure as code
+## Hardware Requirements
 
-## 📊 Resource Usage
+- **RAM**: 16GB minimum
+- **CPU**: 4+ cores
+- **Storage**: SSD + HDD recommended
+  - `/mnt/storage` - Main storage (HDD)
+  - `/mnt/cachehdd` - Cache storage (HDD/SSD)
+- **Network**: 1GB Ethernet
 
-- **Core Stack**: ~1.6GB RAM
-- **With Extras**: ~1.73GB RAM
-- **Free Buffer**: 270MB
-- **Services**: 26 essential services
+## Included Services (60+ containers)
 
-## 🚀 Quick Start (5 Minutes)
+### Core Infrastructure
+- **PostgreSQL** - Shared database for multiple services
+- **MongoDB** - Document database
+- **Redis** - Cache and sessions
+- **Adminer** - Database UI
 
-```bash
-# 1. Install k3s with optimizations
-make k3s-install-optimized
+### Reverse Proxy & SSL
+- **Traefik** - Modern reverse proxy (ports 80/443)
+- **Nginx Proxy Manager** - Alternative UI-based proxy
 
-# 2. Verify Le Potato compatibility
-make verify-le-potato
+### Authentication & Security
+- **Authentik** - SSO and 2FA provider
+- **Vaultwarden** - Password manager
 
-# 3. Deploy complete stack
-make sota-stack-deploy
+### VPN & Networking
+- **Gluetun** - VPN client (for *arr stack and downloads)
+- **Tailscale** - Mesh VPN for remote access
 
-# 4. Run tests
-make test-all
-```
+### Cloud & Storage
+- **Nextcloud** - Complete cloud platform
+- **Syncthing** - P2P file sync
 
-## 📦 What's Included
+### Finance
+- **Firefly III** - Financial management with Deutsche Bank CSV import
+- **Firefly Data Importer** - CSV import tool
 
-### Core Infrastructure (SOTA 2025)
-- **k3s** - Lightweight Kubernetes
-- **cert-manager** - Automatic SSL certificates
-- **ingress-nginx** - Traffic routing
-- **Kyverno** - Policy engine
-- **Gateway API** - Modern traffic management
+### Media Management (*arr Stack)
+- **Prowlarr** - Indexer manager
+- **Sonarr** - TV shows
+- **Radarr** - Movies
+- **Lidarr** - Music
+- **Readarr** - Ebooks
+- **Bazarr** - Subtitles
+- **Maintainerr** - Library cleanup
+
+### Media Servers
+- **Jellyfin** - Media server
+- **Jellyseerr** - Request management for Jellyfin
+- **Overseerr** - Alternative request management
+- **Audiobookshelf** - Audiobooks and podcasts
+
+### Download Clients (Behind VPN)
+- **qBittorrent** - Torrent client
+- **Aria2** - Download manager
+- **AriaNg** - Aria2 web UI
+
+### Photos
+- **Immich** - AI-powered photo management
 
 ### Monitoring & Observability
 - **Prometheus** - Metrics collection
-- **Grafana** - Visualization dashboards
+- **Grafana** - Dashboards and visualization
 - **Loki** - Log aggregation
-- **Blackbox Exporter** - Endpoint monitoring
-- **Speedtest Exporter** - Network monitoring
-- **SMART CTL Exporter** - Disk health
-
-### Applications
-- **Vaultwarden** - Password manager
-- **Immich** - Photo management
-- **Seafile** - File sync & share
-- **Kopia** - Encrypted backups
-- **Gitea** - Git hosting
-- **Jellyfin** - Media server
-- **Paperless-ngx** - Document management
-- **Stirling PDF** - PDF tools
-
-### Productivity Tools
-- **Miniflux** - RSS reader (30MB)
-- **linkding** - Bookmark manager (40MB)
-- **Radicale** - CalDAV/CardDAV (20MB)
-- **Syncthing** - P2P file sync (40MB)
-
-### Security & Utilities
-- **Authelia** - SSO authentication
+- **Promtail** - Log collector
+- **Node Exporter** - System metrics
+- **cAdvisor** - Container metrics
+- **Fritzbox Exporter** - Router metrics
+- **Netdata** - Real-time monitoring
 - **Uptime Kuma** - Uptime monitoring
-- **Homepage** - Dashboard
+
+### Automation & Workflows
+- **n8n** - Workflow automation
+- **Huginn** - Self-hosted automation
+- **Healthchecks** - Cron monitoring
+
+### Utilities & Tools
 - **Rustypaste** - Pastebin
-- **Gluetun** - VPN client (optional)
+- **Stirling PDF** - PDF tools
+- **Linkding** - Bookmark manager
+- **Cal.com** - Calendar scheduling
+- **Code Server** - VS Code in browser
+- **Draw.io** - Diagramming
+- **Excalidraw** - Sketching
+- **Atuin** - Shell history sync
 
-## 🧪 Testing (Enterprise Grade)
+### Development & Git
+- **Gitea** - Git hosting
+- **Gitea Runner** - CI/CD for Gitea
+- **Drone** - Alternative CI/CD
+- **Sentry** - Error tracking
 
-### Test Suite
+### AI & Special
+- **Open WebUI** - LLM interface
+- **OctoBot** - AI crypto trading
+- **Pinchflat** - YouTube downloader
+
+### Search & Analytics
+- **Elasticsearch** - Search engine
+- **Kibana** - Elasticsearch UI
+
+### Dashboard
+- **Glance** - Modern dashboard (replacing Homepage)
+
+### System Utilities
+- **Watchtower** - Auto-update containers
+- **Autoheal** - Auto-restart unhealthy containers
+- **Portainer** - Container management UI
+
+## Quick Start
+
+1. **Prepare environment**:
+   ```bash
+   # Create storage directories (will be created automatically by storage-init)
+   # /mnt/storage and /mnt/cachehdd must exist and be mounted
+
+   # Copy environment template
+   cp .env.example .env
+
+   # Edit .env and fill in all passwords and configuration
+   nano .env
+   ```
+
+2. **Generate secrets**:
+   ```bash
+   # Generate random passwords
+   openssl rand -base64 32
+
+   # Generate Firefly app key (requires Firefly container running first)
+   # Or use: base64:$(openssl rand -base64 32)
+   ```
+
+3. **Start core services**:
+   ```bash
+   # Start databases first
+   docker compose up -d postgres mongo redis
+
+   # Wait for databases to initialize
+   sleep 30
+
+   # Start everything
+   docker compose up -d
+   ```
+
+4. **Access services**:
+   - Glance Dashboard: `http://192.168.178.40:3006`
+   - Grafana: `http://192.168.178.40:3000`
+   - Portainer: `https://192.168.178.40:9443`
+   - Jellyfin: `http://192.168.178.40:8096`
+   - Nextcloud: `http://192.168.178.40:8082`
+   - See docker-compose.yml for all ports
+
+## Volume Mounts
+
+- `/mnt/storage/` - Main storage
+  - `downloads/` - Downloads
+  - `media/tv/` - TV shows
+  - `media/movies/` - Movies
+  - `media/music/` - Music
+  - `media/audiobooks/` - Audiobooks
+  - `media/books/` - Ebooks
+  - `media/youtube/` - YouTube downloads
+  - `photos/` - Immich photos
+  - `nextcloud/` - Nextcloud data
+  - `syncthing/` - Syncthing folders
+  - `projects/` - Code projects
+
+- `/mnt/cachehdd/` - Cache storage
+  - `qbittorrent-incomplete/` - Incomplete torrents
+  - `jellyfin-cache/` - Transcoding cache
+  - `kopia-cache/` - Backup cache
+
+## Network Ports
+
+All services bind to `${HOST_BIND}` (default: 192.168.178.40) except:
+- Traefik: ports 80, 443 (bind to all interfaces)
+- NPM: ports 81, 8081, 4443
+- Tailscale: uses host network
+
+## Resource Limits
+
+Each service has memory limits configured. Total estimated usage:
+- Databases: ~3GB
+- Media stack: ~4GB
+- Monitoring: ~2.5GB
+- Other services: ~4GB
+- **Total**: ~13.5GB (leaving 2.5GB buffer on 16GB system)
+
+## Management
+
 ```bash
-make test-unit          # Resource limits, YAML, shellcheck
-make test-integration   # K8s deployment validation
-make test-e2e           # Smoke tests
-make test-all           # Complete suite
-make lint               # Code quality
+# View all running containers
+docker compose ps
+
+# View logs for specific service
+docker compose logs -f jellyfin
+
+# Restart a service
+docker compose restart sonarr
+
+# Update all containers (via Watchtower)
+# Auto-updates daily at 4 AM
+
+# Stop everything
+docker compose down
+
+# Remove everything including volumes (DANGER!)
+docker compose down -v
 ```
 
-### CI/CD Pipeline
-- **GitHub Actions** - Automated testing on every push
-- **Security Scanning** - Trivy vulnerability detection
-- **Pre-commit Hooks** - Local validation
+## Backup Strategy
 
-## 📁 Project Structure
+1. **Database backups**: Configure in respective services
+2. **Volume backups**: Use Kopia (from light stack) or external backup solution
+3. **Config backup**: Backup this directory and `.env` file (encrypted!)
 
-```
-potatostack/
-├── helm/values/         # Helm chart values (26 services)
-├── k8s/
-│   ├── base/           # Base Kubernetes manifests
-│   │   ├── policies/   # ResourceQuota, LimitRange
-│   │   ├── monitoring/ # ServiceMonitors
-│   │   └── configmaps/ # Configuration
-│   └── overlays/       # Environment-specific configs
-├── config/
-│   ├── k3s-server.yaml      # k3s configuration
-│   └── gateway-api.yaml     # Gateway API resources
-├── scripts/
-│   ├── verify-le-potato-sota.sh  # Validation script
-│   └── cluster-setup.sh          # Automated setup
-├── tests/
-│   ├── unit/           # Unit tests
-│   ├── integration/    # Integration tests
-│   └── e2e/            # End-to-end tests
-└── .github/workflows/  # CI/CD pipelines
-```
+## Security Notes
 
-## 🛠️ Common Tasks
+- All services behind Gluetun use VPN killswitch
+- Configure Authentik for SSO across services
+- Use Tailscale for secure remote access
+- Enable Traefik SSL with Let's Encrypt
+- Never expose port 80/443 without proper security
 
-### Deployment
+## Troubleshooting
+
 ```bash
-make helm-repos                    # Add Helm repositories
-make helm-install-operators        # Install core operators
-make helm-install-monitoring       # Install monitoring stack
-make helm-install-datastores       # Install PostgreSQL, Redis
-make helm-install-apps             # Install applications
-make helm-install-missing-tools    # Install productivity tools
+# Check service health
+docker compose ps
+
+# View real-time resource usage
+docker stats
+
+# Check specific service logs
+docker compose logs -f <service-name>
+
+# Restart unhealthy services
+docker compose restart <service-name>
+
+# Check Gluetun VPN status
+curl http://192.168.178.40:8000/v1/openvpn/status
 ```
 
-### Management
-```bash
-make k8s-status          # View cluster status
-make k8s-logs            # Follow logs
-make k8s-backup          # Backup PostgreSQL
-make k8s-restore         # Restore from backup
-make helm-list           # List installed releases
-```
+## Old Stack
 
-### Monitoring
-```bash
-make k8s-port-forward-grafana      # Access Grafana (localhost:3000)
-make k8s-port-forward-prometheus   # Access Prometheus (localhost:9090)
-```
-
-## 🔒 Production Hardening
-
-### Resource Management
-- **ResourceQuota**: Namespace-level limits (1.8GB RAM)
-- **LimitRange**: Container defaults and limits
-- **HPA**: Horizontal Pod Autoscaling (optional)
-
-### Security
-- **Network Policies**: Traffic segmentation
-- **Kyverno Policies**: Enforcement and validation
-- **Authelia SSO**: Centralized authentication
-- **TLS**: Automatic SSL via cert-manager
-
-### Monitoring
-- **Prometheus Alerts**: Critical service monitoring
-- **Grafana Dashboards**: Pre-configured visualizations
-- **Loki**: Centralized logging
-- **Uptime Kuma**: Endpoint monitoring
-
-## 📖 Documentation
-
-- [Le Potato Quickstart](docs/LE_POTATO_QUICKSTART.md) - Detailed deployment guide
-- [Test Suite](tests/README.md) - Testing documentation
-- [Missing Tools](docs/MISSING_TOOLS_RECOMMENDATIONS.md) - Optional additions
-- [Comparison](docs/AWESOME_SELFHOSTED_COMPARISON.md) - vs awesome-selfhosted
-
-## 🔧 Requirements
-
-### Hardware
-- **Le Potato** (AML-S905X-CC) or similar ARM64 SBC
-- **RAM**: 2GB minimum
-- **Storage**: 64GB+ microSD/eMMC
-- **Network**: Ethernet recommended
-
-### Software
-- **k3s** (installed via Makefile)
-- **Helm** 3.x
-- **kubectl**
-- **Git**
-
-### Optional
-- **yq** - YAML processing (for tests)
-- **shellcheck** - Shell linting (for tests)
-- **pre-commit** - Git hooks
-
-## 🎓 Architecture Decisions
-
-### Why k3s?
-- Lightweight (< 512MB RAM)
-- ARM64 optimized
-- Production-grade Kubernetes
-- Minimal dependencies
-
-### Why Not Include?
-**Removed (too heavy for 2GB)**:
-- ArgoCD → Use kubectl apply
-- Portainer → Use kubectl/k9s
-- Netdata → Use Prometheus
-- Tempo → Tracing overkill
-- Velero → Use Kopia
-
-### Resource Philosophy
-- Aggressive memory limits
-- CPU throttling over OOM
-- Shared datastores (PostgreSQL, Redis)
-- Minimal replicas (usually 1)
-
-## 🤝 Contributing
-
-### Development Workflow
-1. Fork and clone
-2. Install pre-commit: `pre-commit install`
-3. Make changes
-4. Run tests: `make test-all`
-5. Commit and push
-6. Open pull request
-
-### Code Quality
-- All shell scripts must pass `shellcheck`
-- All YAML must be valid
-- Resource limits required for new services
-- Tests required for new features
-
-## 📊 Monitoring & Alerting
-
-### Access Dashboards
-```bash
-# Grafana (user: admin, password: from secret)
-make k8s-port-forward-grafana
-
-# Prometheus
-make k8s-port-forward-prometheus
-
-# Uptime Kuma
-kubectl port-forward -n potatostack svc/uptime-kuma 3001:3001
-```
-
-### Pre-configured Dashboards
-- Node metrics (CPU, RAM, disk)
-- Pod resource usage
-- Network statistics
-- Application-specific metrics
-
-## 🚨 Troubleshooting
-
-### Out of Memory
-```bash
-# Check memory usage
-kubectl top nodes
-kubectl top pods -A
-
-# Review resource limits
-make test-unit
-```
-
-### Pod Crashes
-```bash
-# Check events
-kubectl get events -A --sort-by='.lastTimestamp'
-
-# View logs
-kubectl logs -n potatostack <pod-name>
-
-# Describe pod
-kubectl describe pod -n potatostack <pod-name>
-```
-
-### Tests Failing
-```bash
-# Run verbose tests
-./tests/unit/test_resource_limits.sh
-./tests/integration/test_k8s_deploy.sh
-
-# Check CI logs
-# Visit: https://github.com/[user]/potatostack/actions
-```
-
-## 📝 License
-
-MIT License - See LICENSE file
-
-## 🙏 Credits
-
-Built with:
-- [k3s](https://k3s.io/) - Lightweight Kubernetes
-- [Helm](https://helm.sh/) - Package manager
-- [bjw-s app-template](https://github.com/bjw-s/helm-charts) - Helm charts
-- [awesome-selfhosted](https://github.com/awesome-selfhosted/awesome-selfhosted) - Inspiration
-
----
-
-**Made with ❤️ for Le Potato by the PotatoStack community**
+The previous Kubernetes-based stack has been moved to `old-k8s-stack/` directory for reference.
