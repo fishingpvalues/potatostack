@@ -1,26 +1,59 @@
+# Prometheus Configuration - SOTA 2025
+# Scrapes metrics from all PotatoStack services
+
 global:
   scrape_interval: 30s
   evaluation_interval: 30s
+  scrape_timeout: 10s
   external_labels:
     monitor: 'potatostack'
+    environment: 'homelab'
 
+# Scrape configurations
 scrape_configs:
+  # Prometheus self-monitoring
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
 
+  # System metrics
   - job_name: 'node-exporter'
     static_configs:
       - targets: ['node-exporter:9100']
+        labels:
+          service: 'node-exporter'
+          type: 'system'
 
+  # Container metrics
   - job_name: 'cadvisor'
     static_configs:
       - targets: ['cadvisor:8080']
+        labels:
+          service: 'cadvisor'
+          type: 'containers'
 
+  # Network/Router metrics
   - job_name: 'fritzbox'
     static_configs:
       - targets: ['fritzbox-exporter:9787']
+        labels:
+          service: 'fritzbox'
+          type: 'network'
 
+  # Comprehensive system monitoring
   - job_name: 'netdata'
     static_configs:
       - targets: ['netdata:19999']
+        labels:
+          service: 'netdata'
+          type: 'system'
+
+  # Traefik reverse proxy metrics
+  - job_name: 'traefik'
+    static_configs:
+      - targets: ['traefik:8080']
+        labels:
+          service: 'traefik'
+          type: 'proxy'

@@ -143,11 +143,13 @@ services:
   # REVERSE PROXY & SSL
   ################################################################################
 
-  # Traefik - Modern reverse proxy with automatic SSL
+  # Traefik - Modern reverse proxy with automatic SSL (SOTA 2025)
   traefik:
     image: traefik:${TRAEFIK_TAG:-latest}
     container_name: traefik
     logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "80:80"
       - "443:443"
@@ -155,14 +157,29 @@ services:
     environment:
       <<: *common-env
     command:
-      - "--api.dashboard=true"
+      # EntryPoints
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.websecure.http.tls=true"
+      # Providers
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
+      - "--providers.docker.network=potatostack"
+      # API & Dashboard
+      - "--api.dashboard=true"
+      - "--api.insecure=false"
+      # SSL/TLS
       - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      # Observability
+      - "--log.level=INFO"
+      - "--accesslog=true"
+      - "--metrics.prometheus=true"
+      - "--metrics.prometheus.addServicesLabels=true"
+      - "--metrics.prometheus.addEntryPointsLabels=true"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik-certs:/letsencrypt
@@ -171,8 +188,21 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
+      # Dashboard router
       - "traefik.http.routers.traefik.rule=Host(`traefik.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
       - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.tls=true"
+      # Security headers middleware
+      - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.X-Robots-Tag=noindex,nofollow,nosnippet,noarchive,notranslate,noimageindex"
+      - "traefik.http.middlewares.security-headers.headers.sslRedirect=true"
+      - "traefik.http.middlewares.security-headers.headers.stsSeconds=315360000"
+      - "traefik.http.middlewares.security-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.security-headers.headers.stsPreload=true"
+      - "traefik.http.middlewares.security-headers.headers.forceSTSHeader=true"
+      - "traefik.http.middlewares.security-headers.headers.frameDeny=true"
+      - "traefik.http.middlewares.security-headers.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.security-headers.headers.browserXssFilter=true"
     deploy:
       resources:
         limits:
@@ -209,7 +239,7 @@ services:
   # AUTHENTICATION & SECURITY
   ################################################################################
 
-  # Authentik - SSO and 2FA provider
+  # Authentik - SSO and 2FA provider (SOTA 2025 - no Redis needed in v2025.10+)
   authentik-postgres:
     image: postgres:${POSTGRES_TAG:-16-alpine}
     container_name: authentik-postgres
@@ -233,26 +263,6 @@ services:
         limits:
           memory: 512M
 
-  authentik-redis:
-    image: redis:${REDIS_TAG:-7-alpine}
-    container_name: authentik-redis
-    logging: *default-logging
-    command: redis-server --save 60 1 --loglevel warning
-    volumes:
-      - authentik-redis:/data
-    networks:
-      - potatostack
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-
   authentik-server:
     image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-latest}
     container_name: authentik-server
@@ -263,7 +273,6 @@ services:
       - "${HOST_BIND:-192.168.178.40}:9443:9443"
     environment:
       <<: *common-env
-      AUTHENTIK_REDIS__HOST: authentik-redis
       AUTHENTIK_POSTGRESQL__HOST: authentik-postgres
       AUTHENTIK_POSTGRESQL__USER: authentik
       AUTHENTIK_POSTGRESQL__NAME: authentik
@@ -277,7 +286,6 @@ services:
       - potatostack
     depends_on:
       - authentik-postgres
-      - authentik-redis
     restart: unless-stopped
     deploy:
       resources:
@@ -291,7 +299,6 @@ services:
     command: worker
     environment:
       <<: *common-env
-      AUTHENTIK_REDIS__HOST: authentik-redis
       AUTHENTIK_POSTGRESQL__HOST: authentik-postgres
       AUTHENTIK_POSTGRESQL__USER: authentik
       AUTHENTIK_POSTGRESQL__NAME: authentik
@@ -304,7 +311,6 @@ services:
       - potatostack
     depends_on:
       - authentik-postgres
-      - authentik-redis
     restart: unless-stopped
     deploy:
       resources:
@@ -341,6 +347,13 @@ services:
       interval: 60s
       timeout: 10s
       retries: 5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.vaultwarden.rule=Host(`vault.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.vaultwarden.entrypoints=websecure"
+      - "traefik.http.routers.vaultwarden.tls=true"
+      - "traefik.http.services.vaultwarden.loadbalancer.server.port=80"
+      - "traefik.http.routers.vaultwarden.middlewares=security-headers@docker"
     deploy:
       resources:
         limits:
@@ -425,79 +438,40 @@ services:
   # CLOUD STORAGE & FILE SYNC
   ################################################################################
 
-  # Nextcloud - Complete cloud platform with all addons
-  nextcloud-db:
-    image: postgres:${POSTGRES_TAG:-16-alpine}
-    container_name: nextcloud-db
+  # Nextcloud AIO - All-in-One with Collabora, Talk, Whiteboard, etc. (SOTA 2025)
+  nextcloud-aio:
+    image: nextcloud/all-in-one:${NEXTCLOUD_AIO_TAG:-latest}
+    container_name: nextcloud-aio-mastercontainer
     logging: *default-logging
+    init: true
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8080:8080"  # AIO interface
+      - "${HOST_BIND:-192.168.178.40}:8443:8443"  # Nextcloud
     environment:
-      POSTGRES_USER: nextcloud
-      POSTGRES_PASSWORD: ${NEXTCLOUD_DB_PASSWORD}
-      POSTGRES_DB: nextcloud
+      <<: *common-env
+      APACHE_PORT: 11000
+      APACHE_IP_BINDING: 0.0.0.0
+      NEXTCLOUD_DATADIR: /mnt/storage/nextcloud
+      NEXTCLOUD_MOUNT: /mnt/storage/nextcloud
+      NEXTCLOUD_UPLOAD_LIMIT: 10G
+      NEXTCLOUD_MAX_TIME: 3600
+      NEXTCLOUD_MEMORY_LIMIT: 512M
+      SKIP_DOMAIN_VALIDATION: "true"
     volumes:
-      - nextcloud-db:/var/lib/postgresql/data
+      - nextcloud-aio-mastercontainer:/mnt/docker-aio-config
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /mnt/storage/nextcloud:/mnt/storage/nextcloud:rw
     networks:
       - potatostack
+    depends_on:
+      - storage-init
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nextcloud"]
-      interval: 30s
     deploy:
       resources:
         limits:
           memory: 512M
-
-  nextcloud-redis:
-    image: redis:${REDIS_TAG:-7-alpine}
-    container_name: nextcloud-redis
-    logging: *default-logging
-    command: redis-server --save 60 1
-    volumes:
-      - nextcloud-redis:/data
-    networks:
-      - potatostack
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-
-  nextcloud:
-    image: nextcloud:${NEXTCLOUD_TAG:-latest}
-    container_name: nextcloud
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.40}:8082:80"
-    environment:
-      <<: *common-env
-      POSTGRES_HOST: nextcloud-db
-      POSTGRES_DB: nextcloud
-      POSTGRES_USER: nextcloud
-      POSTGRES_PASSWORD: ${NEXTCLOUD_DB_PASSWORD}
-      REDIS_HOST: nextcloud-redis
-      NEXTCLOUD_ADMIN_USER: ${NEXTCLOUD_ADMIN_USER:-admin}
-      NEXTCLOUD_ADMIN_PASSWORD: ${NEXTCLOUD_ADMIN_PASSWORD}
-      NEXTCLOUD_TRUSTED_DOMAINS: ${NEXTCLOUD_TRUSTED_DOMAINS:-localhost}
-      OVERWRITEPROTOCOL: https
-    volumes:
-      - nextcloud-data:/var/www/html
-      - /mnt/storage/nextcloud:/var/www/html/data
-    networks:
-      - potatostack
-    depends_on:
-      - nextcloud-db
-      - nextcloud-redis
-      - storage-init
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/status.php"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          memory: 2G
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
 
   # Syncthing - P2P file sync
   syncthing:
@@ -526,6 +500,57 @@ services:
       resources:
         limits:
           memory: 512M
+
+  ################################################################################
+  # KNOWLEDGE MANAGEMENT
+  ################################################################################
+
+  # CouchDB - For Obsidian LiveSync (SOTA 2025 self-hosted sync)
+  couchdb:
+    image: couchdb:${COUCHDB_TAG:-latest}
+    container_name: couchdb
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:5984:5984"
+    environment:
+      <<: *common-env
+      COUCHDB_USER: ${COUCHDB_USER:-admin}
+      COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
+    volumes:
+      - couchdb-data:/opt/couchdb/data
+      - couchdb-config:/opt/couchdb/etc/local.d
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5984/_up"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # CouchDB Setup - Initialize database for Obsidian LiveSync
+  couchdb-setup:
+    image: curlimages/curl:${CURL_TAG:-latest}
+    container_name: couchdb-setup
+    command: >
+      sh -c '
+        sleep 10 &&
+        curl -X PUT http://${COUCHDB_USER:-admin}:${COUCHDB_PASSWORD}@couchdb:5984/obsidian &&
+        curl -X PUT http://${COUCHDB_USER:-admin}:${COUCHDB_PASSWORD}@couchdb:5984/_users &&
+        curl -X PUT http://${COUCHDB_USER:-admin}:${COUCHDB_PASSWORD}@couchdb:5984/_replicator &&
+        curl -X PUT http://${COUCHDB_USER:-admin}:${COUCHDB_PASSWORD}@couchdb:5984/_global_changes
+      '
+    depends_on:
+      - couchdb
+    networks:
+      - potatostack
+    restart: "no"
 
   ################################################################################
   # FINANCE
@@ -761,7 +786,7 @@ services:
   # MEDIA SERVERS & REQUEST MANAGEMENT
   ################################################################################
 
-  # Jellyfin - Media server
+  # Jellyfin - Media server (SOTA 2025 with HW acceleration support)
   jellyfin:
     image: lscr.io/linuxserver/jellyfin:${JELLYFIN_TAG:-latest}
     container_name: jellyfin
@@ -773,6 +798,13 @@ services:
       - "${HOST_BIND:-192.168.178.40}:1900:1900/udp"
     environment:
       <<: *common-env
+    # Uncomment group_add and devices for Intel/AMD hardware acceleration
+    # Get render group ID with: getent group render | cut -d: -f3
+    # group_add:
+    #   - "107"  # render group - adjust to match your system
+    # devices:
+    #   - /dev/dri/renderD128:/dev/dri/renderD128
+    #   - /dev/dri/card0:/dev/dri/card0
     volumes:
       - jellyfin-config:/config
       - /mnt/storage/media/tv:/data/tvshows
@@ -785,10 +817,19 @@ services:
     depends_on:
       - storage-init
     restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jellyfin.rule=Host(`jellyfin.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.jellyfin.entrypoints=websecure"
+      - "traefik.http.routers.jellyfin.tls=true"
+      - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
+      - "traefik.http.routers.jellyfin.middlewares=security-headers@docker"
     deploy:
       resources:
         limits:
           memory: 2G
+        reservations:
+          memory: 1G
 
   # Jellyseerr - Media request management for Jellyfin
   jellyseerr:
@@ -1032,7 +1073,7 @@ services:
         limits:
           memory: 1G
 
-  # Grafana - Visualization and dashboards
+  # Grafana - Visualization and dashboards (SOTA 2025 provisioning)
   grafana:
     image: grafana/grafana:${GRAFANA_TAG:-latest}
     container_name: grafana
@@ -1050,20 +1091,30 @@ services:
       GF_DATABASE_NAME: grafana
       GF_DATABASE_USER: postgres
       GF_DATABASE_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+      GF_FEATURE_TOGGLES_ENABLE: traceqlEditor
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./config/grafana/provisioning:/etc/grafana/provisioning
-      - ./config/grafana/dashboards:/var/lib/grafana/dashboards
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:rw
     networks:
       - potatostack
     depends_on:
       - prometheus
       - postgres
     restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls=true"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
     deploy:
       resources:
         limits:
           memory: 512M
+        reservations:
+          memory: 256M
 
   # Loki - Log aggregation
   loki:
@@ -1216,6 +1267,12 @@ services:
     networks:
       - potatostack
     restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.uptime.rule=Host(`uptime.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.uptime.entrypoints=websecure"
+      - "traefik.http.routers.uptime.tls=true"
+      - "traefik.http.services.uptime.loadbalancer.server.port=3001"
     deploy:
       resources:
         limits:
@@ -1821,19 +1878,30 @@ services:
   # SYSTEM UTILITIES
   ################################################################################
 
-  # Watchtower - Auto updates
-  watchtower:
-    image: containrrr/watchtower:${WATCHTOWER_TAG:-latest}
-    container_name: watchtower
+  # Diun - Docker Image Update Notifier (SOTA 2025 best practice)
+  # Monitors for updates but doesn't auto-update, giving full control
+  diun:
+    image: crazymax/diun:${DIUN_TAG:-latest}
+    container_name: diun
     logging: *default-logging
+    command: serve
     environment:
       <<: *common-env
-      WATCHTOWER_CLEANUP: "true"
-      WATCHTOWER_SCHEDULE: "0 0 4 * * *"
-      WATCHTOWER_NOTIFICATIONS: shoutrrr
-      WATCHTOWER_NOTIFICATION_URL: ${WATCHTOWER_NOTIFICATION_URL:-}
+      LOG_LEVEL: info
+      LOG_JSON: "false"
+      DIUN_WATCH_WORKERS: 20
+      DIUN_WATCH_SCHEDULE: "0 */6 * * *"
+      DIUN_WATCH_JITTER: 30s
+      DIUN_PROVIDERS_DOCKER: "true"
+      DIUN_PROVIDERS_DOCKER_WATCHBYDEFAULT: "true"
+      DIUN_NOTIF_GOTIFY_ENDPOINT: ${DIUN_GOTIFY_ENDPOINT:-}
+      DIUN_NOTIF_GOTIFY_TOKEN: ${DIUN_GOTIFY_TOKEN:-}
+      DIUN_NOTIF_DISCORD_WEBHOOKURL: ${DIUN_DISCORD_WEBHOOK:-}
+      DIUN_NOTIF_TELEGRAM_TOKEN: ${DIUN_TELEGRAM_TOKEN:-}
+      DIUN_NOTIF_TELEGRAM_CHATIDS: ${DIUN_TELEGRAM_CHATIDS:-}
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - diun-data:/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - potatostack
     restart: unless-stopped
@@ -1905,7 +1973,6 @@ volumes:
 
   # Authentication
   authentik-postgres:
-  authentik-redis:
   authentik-media:
   authentik-custom-templates:
   authentik-certs:
@@ -1921,10 +1988,12 @@ volumes:
   tailscale-data:
 
   # Cloud Storage
-  nextcloud-db:
-  nextcloud-redis:
-  nextcloud-data:
+  nextcloud-aio-mastercontainer:
   syncthing-config:
+
+  # Knowledge Management
+  couchdb-data:
+  couchdb-config:
 
   # Finance
   firefly-db:
@@ -1997,4 +2066,5 @@ volumes:
   glance-data:
 
   # System
+  diun-data:
   portainer-data:
