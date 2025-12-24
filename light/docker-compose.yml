@@ -1,8 +1,15 @@
 ################################################################################
-# PotatoStack Light - Enterprise-Grade Production Setup
-# Single disk with nightly backup, automatic updates, self-healing
-# 100% uptime focus with redundancy and network resilience
+# PotatoStack Light - Optimized for Le Potato (2GB RAM)
+# Lean stack: VPN, file sync, backups, password manager
+# Dual-disk caching, auto-healing, minimal footprint
 ################################################################################
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "5m"
+    max-file: "2"
+    compress: "true"
 
 services:
   ################################################################################
@@ -32,31 +39,22 @@ services:
   homepage:
     image: ghcr.io/gethomepage/homepage:${HOMEPAGE_TAG:-latest}
     container_name: homepage
+    logging: *default-logging
     ports:
       - "${HOST_BIND}:3000:3000"
     environment:
       - TZ=Europe/Berlin
       - PUID=1000
       - PGID=1000
-      # LAN Access Configuration (disableHostCheck: true in settings.yaml)
       - HOMEPAGE_VAR_HOST=${HOST_BIND}
       - HOMEPAGE_ALLOWED_HOSTS=${LAN_NETWORK:-192.168.178.0/24}
-      # Service credentials for widgets
       - HOMEPAGE_VAR_TRANSMISSION_USER=${TRANSMISSION_USER}
       - HOMEPAGE_VAR_TRANSMISSION_PASS=${TRANSMISSION_PASSWORD}
       - HOMEPAGE_VAR_KOPIA_USER=${KOPIA_SERVER_USER}
       - HOMEPAGE_VAR_KOPIA_PASS=${KOPIA_SERVER_PASSWORD}
-      - HOMEPAGE_VAR_POSTGRES_PASS=${POSTGRES_SUPER_PASSWORD}
       - HOMEPAGE_VAR_SYNCTHING_KEY=${SYNCTHING_API_KEY}
       - HOMEPAGE_VAR_SLSKD_KEY=${SLSKD_API_KEY}
     volumes:
-      # Homepage config files (edit in ./homepage-config/ and restart to apply)
-      # settings.yaml: Theme, layout, LAN access (disableHostCheck: true)
-      # services.yaml: All service widgets with Docker integration
-      # widgets.yaml: Info widgets (resources, search, weather)
-      # bookmarks.yaml: Quick links and shortcuts
-      # docker.yaml: Docker socket configuration
-      # custom.css: Custom styling and animations
       - ./homepage-config/settings.yaml:/app/config/settings.yaml:ro
       - ./homepage-config/services.yaml:/app/config/services.yaml:ro
       - ./homepage-config/widgets.yaml:/app/config/widgets.yaml:ro
@@ -66,20 +64,20 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - potatostack
-    restart: always
+    restart: unless-stopped
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 128M
+          cpus: "0.3"
+          memory: 96M
         reservations:
-          memory: 64M
+          memory: 48M
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000"]
-      interval: 30s
+      interval: 60s
       timeout: 10s
-      retries: 5
-      start_period: 60s
+      retries: 3
+      start_period: 30s
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
@@ -90,6 +88,7 @@ services:
   watchtower:
     image: containrrr/watchtower:latest
     container_name: watchtower
+    logging: *default-logging
     environment:
       - TZ=Europe/Berlin
       - DOCKER_API_VERSION=1.44
@@ -107,14 +106,14 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - potatostack
-    restart: always
+    restart: unless-stopped
     deploy:
       resources:
         limits:
-          cpus: "0.25"
-          memory: 64M
+          cpus: "0.2"
+          memory: 48M
         reservations:
-          memory: 32M
+          memory: 24M
     labels:
       - "com.centurylinklabs.watchtower.enable=false"
 
@@ -124,23 +123,24 @@ services:
   autoheal:
     image: willfarrell/autoheal:${AUTOHEAL_TAG:-latest}
     container_name: autoheal
+    logging: *default-logging
     environment:
       - AUTOHEAL_CONTAINER_LABEL=autoheal
-      - AUTOHEAL_INTERVAL=30
+      - AUTOHEAL_INTERVAL=60
       - AUTOHEAL_START_PERIOD=300
       - AUTOHEAL_DEFAULT_STOP_TIMEOUT=10
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - potatostack
-    restart: always
+    restart: unless-stopped
     deploy:
       resources:
         limits:
           cpus: "0.1"
-          memory: 32M
+          memory: 24M
         reservations:
-          memory: 16M
+          memory: 12M
 
   ################################################################################
   # Gluetun - VPN Client with Killswitch
@@ -148,6 +148,7 @@ services:
   gluetun:
     image: qmcgaw/gluetun:${GLUETUN_TAG:-latest}
     container_name: gluetun
+    logging: *default-logging
     cap_add:
       - NET_ADMIN
     devices:
@@ -167,9 +168,9 @@ services:
       - OPENVPN_PASSWORD=${SURFSHARK_PASSWORD}
       - OPENVPN_PROTOCOL=udp
       - SERVER_COUNTRIES=Germany
-      - OPENVPN_VERBOSITY=1
+      - OPENVPN_VERBOSITY=0
       - OPENVPN_FLAGS=--tls-timeout 10 --connect-timeout 30 --connect-retry-max 3 --mssfix 1300
-      - LOG_LEVEL=debug
+      - LOG_LEVEL=info
       - FIREWALL_OUTBOUND_SUBNETS=${LAN_NETWORK:-192.168.178.0/24}
       - FIREWALL_VPN_INPUT_PORTS=51413,50000
       - FIREWALL=on
@@ -178,7 +179,7 @@ services:
       - HTTPPROXY=off
       - SHADOWSOCKS=off
       - HTTP_CONTROL_SERVER_ADDRESS=:8000
-      - HTTP_CONTROL_SERVER_LOG=on
+      - HTTP_CONTROL_SERVER_LOG=off
       - HTTP_CONTROL_SERVER_AUTH=off
       - IPV6=off
       - UPDATER_PERIOD=24h
@@ -188,19 +189,19 @@ services:
       - gluetun-config:/gluetun
     networks:
       - potatostack
-    restart: always
+    restart: unless-stopped
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 128M
+          cpus: "0.4"
+          memory: 96M
         reservations:
-          memory: 64M
+          memory: 48M
     healthcheck:
       test: ["CMD", "pgrep", "openvpn"]
       interval: 120s
       timeout: 10s
-      retries: 5
+      retries: 3
       start_period: 120s
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
@@ -212,6 +213,7 @@ services:
   transmission:
     image: lscr.io/linuxserver/transmission:${TRANSMISSION_TAG:-latest}
     container_name: transmission
+    logging: *default-logging
     network_mode: "service:gluetun"
     environment:
       - PUID=1000
@@ -229,7 +231,7 @@ services:
         condition: service_completed_successfully
       gluetun:
         condition: service_healthy
-    restart: always
+    restart: unless-stopped
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
@@ -240,6 +242,7 @@ services:
   slskd:
     image: ghcr.io/slskd/slskd:${SLSKD_TAG:-latest}
     container_name: slskd
+    logging: *default-logging
     network_mode: "service:gluetun"
     environment:
       - TZ=Europe/Berlin
@@ -258,74 +261,7 @@ services:
         condition: service_completed_successfully
       gluetun:
         condition: service_healthy
-    restart: always
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
-      - "autoheal=true"
-
-  ################################################################################
-  # PostgreSQL - Shared database
-  ################################################################################
-  postgres:
-    image: tensorchord/pgvecto-rs:${POSTGRES_TAG:-pg14-v0.2.0}
-    container_name: postgres
-    command: postgres -c shared_preload_libraries='vectors.so' -c shared_buffers=128MB -c effective_cache_size=256MB -c work_mem=8MB -c max_connections=50 -c synchronous_commit=off -c random_page_cost=1.1 -c temp_tablespaces='cachehdd_temp'
-    environment:
-      - POSTGRES_PASSWORD=${POSTGRES_SUPER_PASSWORD}
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=postgres
-      - IMMICH_DB_PASSWORD=${IMMICH_DB_PASSWORD}
-      - TZ=Europe/Berlin
-      - PGDATA=/var/lib/postgresql/data
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - /mnt/cachehdd/postgres-temp:/var/lib/postgresql/temp
-      - ./init-db.sh:/docker-entrypoint-initdb.d/00-init-db.sh:ro
-    networks:
-      - potatostack
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 384M
-        reservations:
-          memory: 256M
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 60s
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
-      - "autoheal=true"
-
-  ################################################################################
-  # Redis - Shared cache
-  ################################################################################
-  redis:
-    image: redis:${REDIS_TAG:-7-alpine}
-    container_name: redis
-    command: redis-server --maxmemory 96mb --maxmemory-policy noeviction --save "" --appendonly no --lazyfree-lazy-eviction yes --activedefrag yes
-    networks:
-      - potatostack
-    volumes:
-      - redis-data:/data
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: "0.3"
-          memory: 128M
-        reservations:
-          memory: 96M
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
+    restart: unless-stopped
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
@@ -336,6 +272,7 @@ services:
   vaultwarden:
     image: vaultwarden/server:${VAULTWARDEN_TAG:-latest}
     container_name: vaultwarden
+    logging: *default-logging
     ports:
       - "${HOST_BIND}:8080:80"
       - "${HOST_BIND}:3012:3012"
@@ -351,27 +288,26 @@ services:
       - DATABASE_URL=/data/db.sqlite3
       - ICON_CACHE_TTL=2592000
       - ICON_CACHE_NEGTTL=259200
-      - LOG_LEVEL=info
-      - EXTENDED_LOGGING=true
-      - LOG_FILE=/data/vaultwarden.log
+      - LOG_LEVEL=warn
+      - EXTENDED_LOGGING=false
     volumes:
       - vaultwarden-data:/data
     networks:
       - potatostack
-    restart: always
+    restart: unless-stopped
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 128M
+          cpus: "0.3"
+          memory: 96M
         reservations:
-          memory: 64M
+          memory: 48M
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:80/alive"]
-      interval: 30s
+      interval: 60s
       timeout: 10s
-      retries: 10
-      start_period: 60s
+      retries: 5
+      start_period: 30s
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
@@ -382,9 +318,9 @@ services:
   portainer:
     image: portainer/portainer-ce:${PORTAINER_TAG:-latest}
     container_name: portainer
+    logging: *default-logging
     ports:
       - "${HOST_BIND}:9443:9443"
-      - "${HOST_BIND}:9000:9000"
     environment:
       - TZ=Europe/Berlin
     volumes:
@@ -392,24 +328,25 @@ services:
       - portainer-data:/data
     networks:
       - potatostack
-    restart: always
+    restart: unless-stopped
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 128M
+          cpus: "0.3"
+          memory: 96M
         reservations:
-          memory: 64M
+          memory: 48M
     healthcheck:
-      test:
-        ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9000/api/system/status"]
-      interval: 30s
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9000/api/system/status"]
+      interval: 120s
       timeout: 10s
-      retries: 10
-      start_period: 180s
+      retries: 3
+      start_period: 60s
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
+    profiles:
+      - optional
 
   ################################################################################
   # Kopia - Backup Server
@@ -417,10 +354,10 @@ services:
   kopia:
     image: kopia/kopia:${KOPIA_TAG:-latest}
     container_name: kopia
+    logging: *default-logging
     hostname: kopia-server
     ports:
       - "${HOST_BIND}:51515:51515"
-      - "${HOST_BIND}:51516:51516"
     environment:
       - TZ=Europe/Berlin
       - KOPIA_PASSWORD=${KOPIA_PASSWORD}
@@ -429,19 +366,16 @@ services:
       - KOPIA_CONFIG_PATH=/app/config/repository.config
       - KOPIA_CACHE_DIRECTORY=/app/cache
       - KOPIA_LOG_DIR=/app/logs
-      - KOPIA_PROMETHEUS_ENABLED=true
-      - KOPIA_PROMETHEUS_LISTEN_ADDR=:51516
     command:
       - server
       - start
       - --address=0.0.0.0:51515
       - --tls-generate-cert
-      - --tls-generate-rsa-key-size=4096
+      - --tls-generate-rsa-key-size=2048
       - --server-username=${KOPIA_SERVER_USER}
       - --server-password=${KOPIA_SERVER_PASSWORD}
-      - --log-level=info
-      - --file-log-level=debug
-      - --metrics-listen-addr=:51516
+      - --log-level=warn
+      - --file-log-level=warn
       - --override-hostname=kopia-server
       - --override-username=all-users
     volumes:
@@ -480,28 +414,20 @@ services:
     depends_on:
       storage-init:
         condition: service_completed_successfully
-    restart: always
+    restart: unless-stopped
     deploy:
       resources:
         limits:
-          cpus: "1.0"
-          memory: 256M
+          cpus: "0.8"
+          memory: 192M
         reservations:
-          memory: 128M
+          memory: 96M
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--spider",
-          "-q",
-          "https://127.0.0.1:51515/api/v1/repo/status",
-          "--no-check-certificate",
-        ]
-      interval: 60s
+      test: ["CMD", "wget", "--spider", "-q", "https://127.0.0.1:51515/api/v1/repo/status", "--no-check-certificate"]
+      interval: 120s
       timeout: 20s
-      retries: 10
-      start_period: 180s
+      retries: 3
+      start_period: 60s
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
@@ -515,12 +441,13 @@ services:
   syncthing:
     image: lscr.io/linuxserver/syncthing:${SYNCTHING_TAG:-latest}
     container_name: syncthing
+    logging: *default-logging
     hostname: ${SYNCTHING_HOSTNAME:-potatostack-sync}
     ports:
-      - "${HOST_BIND}:8384:8384"    # Web UI
-      - "${HOST_BIND}:22000:22000/tcp"  # TCP file transfers
-      - "${HOST_BIND}:22000:22000/udp"  # QUIC file transfers
-      - "${HOST_BIND}:21027:21027/udp"  # Local discovery
+      - "${HOST_BIND}:8384:8384"
+      - "${HOST_BIND}:22000:22000/tcp"
+      - "${HOST_BIND}:22000:22000/udp"
+      - "${HOST_BIND}:21027:21027/udp"
     environment:
       - PUID=1000
       - PGID=1000
@@ -560,20 +487,20 @@ services:
     depends_on:
       storage-init:
         condition: service_completed_successfully
-    restart: always
+    restart: unless-stopped
     deploy:
       resources:
         limits:
-          cpus: "1.0"
-          memory: 512M
+          cpus: "0.8"
+          memory: 384M
         reservations:
-          memory: 256M
+          memory: 192M
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8384/rest/noauth/health"]
-      interval: 30s
+      interval: 120s
       timeout: 10s
-      retries: 5
-      start_period: 60s
+      retries: 3
+      start_period: 30s
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
@@ -587,6 +514,7 @@ services:
   filebrowser:
     image: filebrowser/filebrowser:${FILEBROWSER_TAG:-latest}
     container_name: filebrowser
+    logging: *default-logging
     ports:
       - "${HOST_BIND}:8181:80"
     environment:
@@ -596,7 +524,6 @@ services:
     volumes:
       - filebrowser-config:/config
       - filebrowser-database:/database
-      # Mount entire storage tree for full access
       - /mnt/storage:/srv/storage
       - /mnt/cachehdd:/srv/cachehdd
     networks:
@@ -604,20 +531,20 @@ services:
     depends_on:
       storage-init:
         condition: service_completed_successfully
-    restart: always
+    restart: unless-stopped
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 128M
+          cpus: "0.3"
+          memory: 96M
         reservations:
-          memory: 64M
+          memory: 48M
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:80/health"]
-      interval: 30s
+      interval: 120s
       timeout: 10s
-      retries: 5
-      start_period: 30s
+      retries: 3
+      start_period: 20s
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
@@ -644,10 +571,6 @@ volumes:
   transmission-watch:
   slskd-config:
   slskd-logs:
-
-  # Databases
-  postgres-data:
-  redis-data:
 
   # Applications
   vaultwarden-data:

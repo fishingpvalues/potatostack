@@ -92,32 +92,3 @@
           env: 1
           key: {{HOMEPAGE_VAR_PORTAINER_KEY}}
 
-- System & Monitoring:
-    - PostgreSQL:
-        icon: postgres.png
-        href: '#'
-        description: Shared Database
-        server: docker-socket
-        container: postgres
-        widget:
-          type: postgres
-          url: postgres://postgres:5432
-          username: postgres
-          password: {{HOMEPAGE_VAR_POSTGRES_PASS}}
-
-    - Redis:
-        icon: redis.png
-        href: '#'
-        description: Shared Cache
-        server: docker-socket
-        container: redis
-        widget:
-          type: redis
-          url: redis://redis:6379
-
-    - FritzBox:
-        icon: avm-fritzbox.png
-        href: http://fritz.box
-        description: Router Metrics
-        server: docker-socket
-        container: fritzbox-exporter
