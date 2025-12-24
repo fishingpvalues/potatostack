@@ -47,6 +47,7 @@ services:
       - HOMEPAGE_VAR_KOPIA_PASS=${KOPIA_SERVER_PASSWORD}
       - HOMEPAGE_VAR_POSTGRES_PASS=${POSTGRES_SUPER_PASSWORD}
       - HOMEPAGE_VAR_SYNCTHING_KEY=${SYNCTHING_API_KEY}
+      - HOMEPAGE_VAR_SLSKD_KEY=${SLSKD_API_KEY}
     volumes:
       # Homepage config files (edit in ./homepage-config/ and restart to apply)
       # settings.yaml: Theme, layout, LAN access (disableHostCheck: true)
@@ -446,16 +447,29 @@ services:
       - /mnt/storage/kopia/cache:/app/cache
       - kopia-logs:/app/logs
       - vaultwarden-data:/data/vaultwarden:ro
+      # OneDrive mirror folders
+      - /mnt/storage/syncthing/Desktop:/data/syncthing-Desktop:ro
+      - /mnt/storage/syncthing/Obsidian-Vault:/data/syncthing-Obsidian-Vault:ro
+      - /mnt/storage/syncthing/Bilder:/data/syncthing-Bilder:ro
+      - /mnt/storage/syncthing/Dokumente:/data/syncthing-Dokumente:ro
+      - /mnt/storage/syncthing/workdir:/data/syncthing-workdir:ro
+      - /mnt/storage/syncthing/nvim:/data/syncthing-nvim:ro
+      - /mnt/storage/syncthing/Microsoft-Copilot-Chat-Dateien:/data/syncthing-Microsoft-Copilot-Chat-Dateien:ro
+      - /mnt/storage/syncthing/Attachments:/data/syncthing-Attachments:ro
+      - /mnt/storage/syncthing/Privates:/data/syncthing-Privates:ro
+      - /mnt/storage/syncthing/Studium:/data/syncthing-Studium:ro
+      - /mnt/storage/syncthing/Berufliches:/data/syncthing-Berufliches:ro
+      # Media folders
       - /mnt/storage/syncthing/camera-sync:/data/syncthing-camera-sync:ro
       - /mnt/storage/syncthing/photos:/data/syncthing-photos:ro
       - /mnt/storage/syncthing/videos:/data/syncthing-videos:ro
       - /mnt/storage/syncthing/music:/data/syncthing-music:ro
       - /mnt/storage/syncthing/audiobooks:/data/syncthing-audiobooks:ro
       - /mnt/storage/syncthing/podcasts:/data/syncthing-podcasts:ro
-      - /mnt/storage/syncthing/documents:/data/syncthing-documents:ro
       - /mnt/storage/syncthing/books:/data/syncthing-books:ro
       - /mnt/storage/syncthing/shared:/data/syncthing-shared:ro
       - /mnt/storage/syncthing/backup:/data/syncthing-backup:ro
+      # Download folders
       - /mnt/storage/downloads:/data/downloads:ro
       - /mnt/storage/slskd-shared:/data/slskd-shared:ro
     networks:
@@ -493,17 +507,7 @@ services:
   # Syncthing - P2P File Synchronization
   # Access: http://HOST_BIND:8384
   # Protocol: Decentralized, encrypted P2P sync
-  # Folder Structure:
-  #   camera-sync/    - Receive-only from mobile devices
-  #   photos/         - Master photo library (organized by year)
-  #   videos/         - Master video library (personal/projects/raw)
-  #   music/          - Music library (albums/playlists)
-  #   audiobooks/     - Audiobook collection
-  #   podcasts/       - Podcast episodes
-  #   documents/      - Important documents (personal/receipts/scans)
-  #   books/          - Ebook library
-  #   shared/         - General shared files
-  #   backup/         - Service backups
+  # Full OneDrive mirror structure with ALL folders
   ################################################################################
   syncthing:
     image: lscr.io/linuxserver/syncthing:${SYNCTHING_TAG:-latest}
@@ -521,16 +525,31 @@ services:
       - UMASK=022
     volumes:
       - syncthing-config:/config
+      # OneDrive mirror structure - ALL folders
+      - /mnt/storage/syncthing/Desktop:/data/Desktop
+      - /mnt/storage/syncthing/Obsidian-Vault:/data/Obsidian-Vault
+      - /mnt/storage/syncthing/Bilder:/data/Bilder
+      - /mnt/storage/syncthing/Dokumente:/data/Dokumente
+      - /mnt/storage/syncthing/workdir:/data/workdir
+      - /mnt/storage/syncthing/nvim:/data/nvim
+      - /mnt/storage/syncthing/Microsoft-Copilot-Chat-Dateien:/data/Microsoft-Copilot-Chat-Dateien
+      - /mnt/storage/syncthing/Attachments:/data/Attachments
+      - /mnt/storage/syncthing/Privates:/data/Privates
+      - /mnt/storage/syncthing/Studium:/data/Studium
+      - /mnt/storage/syncthing/Berufliches:/data/Berufliches
+      # Additional media folders
       - /mnt/storage/syncthing/camera-sync:/data/camera-sync
       - /mnt/storage/syncthing/photos:/data/photos
       - /mnt/storage/syncthing/videos:/data/videos
       - /mnt/storage/syncthing/music:/data/music
       - /mnt/storage/syncthing/audiobooks:/data/audiobooks
       - /mnt/storage/syncthing/podcasts:/data/podcasts
-      - /mnt/storage/syncthing/documents:/data/documents
       - /mnt/storage/syncthing/books:/data/books
       - /mnt/storage/syncthing/shared:/data/shared
       - /mnt/storage/syncthing/backup:/data/backup
+      # Symlinks to slskd and transmission (shared via Syncthing)
+      - /mnt/storage/downloads:/data/downloads
+      - /mnt/storage/slskd-shared:/data/slskd-shared
     networks:
       - potatostack
     depends_on:
@@ -550,6 +569,49 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "autoheal=true"
+
+  ################################################################################
+  # FileBrowser - Web File Manager
+  # Access: http://HOST_BIND:8181
+  # Default credentials: admin/admin (change on first login!)
+  # Full access to ALL storage folders
+  ################################################################################
+  filebrowser:
+    image: filebrowser/filebrowser:${FILEBROWSER_TAG:-latest}
+    container_name: filebrowser
+    ports:
+      - "${HOST_BIND}:8181:80"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Berlin
+    volumes:
+      - filebrowser-config:/config
+      - filebrowser-database:/database
+      # Mount entire storage tree for full access
+      - /mnt/storage:/srv/storage
+    networks:
+      - potatostack
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+        reservations:
+          memory: 64M
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
@@ -585,6 +647,8 @@ volumes:
   vaultwarden-data:
   portainer-data:
   syncthing-config:
+  filebrowser-config:
+  filebrowser-database:
 
   # Backup
   kopia-config:
