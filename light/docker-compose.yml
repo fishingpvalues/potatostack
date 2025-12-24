@@ -17,6 +17,7 @@ services:
       - PGID=1000
     volumes:
       - /mnt/storage:/mnt/storage
+      - /mnt/cachehdd:/mnt/cachehdd
       - ./init-storage.sh:/init-storage.sh:ro
     network_mode: none
     restart: "no"
@@ -221,7 +222,7 @@ services:
     volumes:
       - transmission-config:/config
       - /mnt/storage/downloads:/downloads
-      - /mnt/storage/transmission-incomplete:/incomplete
+      - /mnt/cachehdd/transmission-incomplete:/incomplete
       - transmission-watch:/watch
     depends_on:
       storage-init:
@@ -251,7 +252,7 @@ services:
       - slskd-config:/app
       - slskd-logs:/app/logs
       - /mnt/storage/slskd-shared:/var/slskd/shared
-      - /mnt/storage/slskd-incomplete:/var/slskd/incomplete
+      - /mnt/cachehdd/slskd-incomplete:/var/slskd/incomplete
     depends_on:
       storage-init:
         condition: service_completed_successfully
@@ -268,15 +269,17 @@ services:
   postgres:
     image: tensorchord/pgvecto-rs:${POSTGRES_TAG:-pg14-v0.2.0}
     container_name: postgres
-    command: postgres -c shared_preload_libraries='vectors.so' -c shared_buffers=128MB -c effective_cache_size=256MB -c work_mem=8MB -c max_connections=50 -c synchronous_commit=off -c random_page_cost=1.1
+    command: postgres -c shared_preload_libraries='vectors.so' -c shared_buffers=128MB -c effective_cache_size=256MB -c work_mem=8MB -c max_connections=50 -c synchronous_commit=off -c random_page_cost=1.1 -c temp_tablespaces='cachehdd_temp'
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_SUPER_PASSWORD}
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
       - IMMICH_DB_PASSWORD=${IMMICH_DB_PASSWORD}
       - TZ=Europe/Berlin
+      - PGDATA=/var/lib/postgresql/data
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - /mnt/cachehdd/postgres-temp:/var/lib/postgresql/temp
       - ./init-db.sh:/docker-entrypoint-initdb.d/00-init-db.sh:ro
     networks:
       - potatostack
@@ -444,7 +447,7 @@ services:
     volumes:
       - /mnt/storage/kopia/repository:/repository
       - kopia-config:/app/config
-      - /mnt/storage/kopia/cache:/app/cache
+      - /mnt/cachehdd/kopia-cache:/app/cache
       - kopia-logs:/app/logs
       - vaultwarden-data:/data/vaultwarden:ro
       # OneDrive mirror folders
@@ -550,6 +553,8 @@ services:
       # Symlinks to slskd and transmission (shared via Syncthing)
       - /mnt/storage/downloads:/data/downloads
       - /mnt/storage/slskd-shared:/data/slskd-shared
+      # Cache HDD for file versioning (reduces main HDD writes)
+      - /mnt/cachehdd/syncthing-versions:/data/.stversions
     networks:
       - potatostack
     depends_on:
@@ -593,6 +598,7 @@ services:
       - filebrowser-database:/database
       # Mount entire storage tree for full access
       - /mnt/storage:/srv/storage
+      - /mnt/cachehdd:/srv/cachehdd
     networks:
       - potatostack
     depends_on:

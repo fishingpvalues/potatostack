@@ -5,6 +5,7 @@
 ################################################################################
 
 STORAGE_BASE="/mnt/storage"
+CACHE_BASE="/mnt/cachehdd"
 PUID=${PUID:-1000}
 PGID=${PGID:-1000}
 
@@ -14,13 +15,11 @@ echo "Initializing storage directories with SOTA structure..."
 # SOTA Directory Structure
 ################################################################################
 
-# VPN & P2P Downloads
+# VPN & P2P Downloads (final storage)
 echo "Creating VPN & P2P directories..."
 mkdir -p \
     "${STORAGE_BASE}/downloads" \
-    "${STORAGE_BASE}/transmission-incomplete" \
-    "${STORAGE_BASE}/slskd-shared" \
-    "${STORAGE_BASE}/slskd-incomplete"
+    "${STORAGE_BASE}/slskd-shared"
 
 # Syncthing P2P File Sync - Full OneDrive Mirror Structure
 echo "Creating Syncthing OneDrive mirror directories..."
@@ -50,26 +49,39 @@ mkdir -p \
     "${STORAGE_BASE}/syncthing/podcasts" \
     "${STORAGE_BASE}/syncthing/books" \
     "${STORAGE_BASE}/syncthing/shared" \
-    "${STORAGE_BASE}/syncthing/backup" \
-    "${STORAGE_BASE}/syncthing/.stversions"
+    "${STORAGE_BASE}/syncthing/backup"
 
 # Kopia Backup
 echo "Creating Kopia directories..."
 mkdir -p \
-    "${STORAGE_BASE}/kopia/repository" \
-    "${STORAGE_BASE}/kopia/cache"
+    "${STORAGE_BASE}/kopia/repository"
+
+################################################################################
+# Cache HDD Directories (500GB - High I/O operations)
+################################################################################
+echo "Creating Cache HDD directories for high-speed temporary operations..."
+mkdir -p \
+    "${CACHE_BASE}/transmission-incomplete" \
+    "${CACHE_BASE}/slskd-incomplete" \
+    "${CACHE_BASE}/kopia-cache" \
+    "${CACHE_BASE}/syncthing-versions" \
+    "${CACHE_BASE}/postgres-temp"
 
 # Set ownership
 echo "Setting ownership to ${PUID}:${PGID}..."
 chown -R ${PUID}:${PGID} "${STORAGE_BASE}"
+chown -R ${PUID}:${PGID} "${CACHE_BASE}"
 
 # Set permissions
 echo "Setting permissions..."
 chmod -R 755 "${STORAGE_BASE}"
+chmod -R 755 "${CACHE_BASE}"
 
-# Special permissions for Syncthing versioning
-chmod 775 "${STORAGE_BASE}/syncthing/.stversions"
+# Special permissions for versioning and temp directories
+chmod 775 "${CACHE_BASE}/syncthing-versions"
+chmod 775 "${CACHE_BASE}/postgres-temp"
 
 echo "✓ Storage initialization complete with full OneDrive mirror!"
-echo "✓ Created: VPN, P2P, Syncthing (OneDrive mirror + media folders), Kopia"
+echo "✓ Main HDD: VPN, P2P, Syncthing (OneDrive mirror + media folders), Kopia repository"
+echo "✓ Cache HDD: Incomplete downloads, Kopia cache, Syncthing versions, DB temp files"
 echo "✓ OneDrive folders: Desktop, Obsidian-Vault, Bilder, Dokumente, workdir, nvim, etc."
