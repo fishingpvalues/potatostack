@@ -150,7 +150,7 @@ services:
     container_name: gluetun-monitor
     logging: *default-logging
     user: "0:0"
-    command: sh /monitor.sh
+    entrypoint: sh /monitor.sh
     environment:
       - GLUETUN_URL=http://gluetun:8000
       - CHECK_INTERVAL=${GLUETUN_CHECK_INTERVAL:-10}
@@ -247,7 +247,7 @@ services:
     container_name: transmission
     logging: *default-logging
     network_mode: "service:gluetun"
-    entrypoint: /tr-init.sh
+    entrypoint: sh /tr-init.sh
     environment:
       - PUID=1000
       - PGID=1000
@@ -559,7 +559,7 @@ services:
     image: filebrowser/filebrowser:${FILEBROWSER_TAG:-latest}
     container_name: filebrowser
     logging: *default-logging
-    entrypoint: /init.sh
+    entrypoint: sh /init.sh
     ports:
       - "${HOST_BIND}:8181:80"
     environment:
