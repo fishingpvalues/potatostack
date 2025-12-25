@@ -1,31 +1,9 @@
-● Summary after reboot:
+- Syncthing cant create mkdir folder when i set folder for it to add for backup from my smartphone and then to /mnt/storage/syncthing/camera-sync/android it says mkdir PATH permission denied 
+- I dont know which folders and paths are mounted into the services and which paths for syncthing and kopia for example i have to enter there
+- vaultwarden port 8080 loads forever and i dont know what to enter in the android bitwarden app under selfhosted which URL which certificate etc.
 
-  ✅ Systemd service working - potatostack-light.service started successfully on boot
-  ✅ Most containers healthy:
-  - gluetun, syncthing, transmission, vaultwarden, autoheal - All healthy
-  - kopia, filebrowser, portainer - Still starting (normal, need more time)
+[WONTFIX] Filebrowser shows capacity of storage and cachehdd wrong
+- Reason: Docker bind mount limitation. FileBrowser reports the capacity of the container's root filesystem (overlay) when the root is set to a directory containing mountpoints. The capacity of the actual drives will be visible when navigating inside the respective folders, but the global usage bar may be incorrect.
 
-  ⚠️ Issues found:
-  1. Watchtower - Restarting due to rolling restart incompatibility with dependencies (fixed: WATCHTOWER_ROLLING_RESTART=false)
-  2. slskd - Unhealthy (healthcheck uses curl but image doesn't have it)
-  3. Homepage - Unhealthy (healthcheck uses curl but image doesn't have it)
-
-  Next steps:
-  - Fix healthchecks for slskd and homepage (use wget or remove healthcheck)
-  - Restart watchtower with fix
-
-───────────────────────────────────────────────────
-
-- filebrowser shows capacity of storage and cachehdd wrong 
-- homepage thinks 025-12-25T21:56:34.932Z] error: <credentialedProxyHandler> HTTP Error 401 calling http://gluetun:2234/api/v0/transfers/uploads
-[2025-12-25T21:56:36.632Z] warn: <resources> Drive not found for target: /mnt/storage
-[2025-12-25T21:56:37.732Z] warn: <resources> Drive not found for target: /mnt/cachehdd
-[2025-12-25T21:56:40.043Z] warn: <resources> Drive not found for target: /mnt/storage
-[2025-12-25T21:56:41.626Z] warn: <resources> Drive not found for target: /mnt/cachehdd
-[2025-12-25T21:56:43.437Z] warn: <resources> Drive not found for target: /mnt/storage
-[2025-12-25T21:56:48.041Z] error: <validateWidgetData> Invalid data for widget 'gluetun' endpoint 'publicip/ip':
-Expected:public_ip,country
-Parse error: none
-Data: {"type":"Buffer","data":[123,34,112,117,98,108,105,99,95,105,112,34,58,34,34,125,10]}
-[2025-12-25T21:56:48.831Z] error: <credentialedProxyHandler> HTTP Error 401 calling http://gluetun:2234/api/v0/application
-[2025-12-25T21:56:48.847Z] warn: <resources> Drive not found for target: /mnt/cachehdd
+[NOTE] Homepage Gluetun Widget "Invalid data"
+- Analysis: This error occurs when Gluetun has not yet established a VPN connection or fetched the public IP. It returns an empty IP string, which fails the Homepage widget validation. This is expected behavior during startup and should resolve once the VPN connects.
