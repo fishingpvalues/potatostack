@@ -2088,6 +2088,37 @@ services:
         limits:
           memory: 64M
 
+  ################################################################################
+  # Gluetun Monitor - VPN Connection Monitor & Auto-Restart
+  ################################################################################
+  gluetun-monitor:
+    image: alpine:latest
+    container_name: gluetun-monitor
+    logging: *default-logging
+    command: sh /monitor.sh
+    environment:
+      - GLUETUN_URL=http://gluetun:8000
+      - CHECK_INTERVAL=${GLUETUN_CHECK_INTERVAL:-10}
+      - RESTART_CONTAINERS=qbittorrent aria2 slskd
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./gluetun-monitor.sh:/monitor.sh:ro
+    networks:
+      - potatostack
+    depends_on:
+      gluetun:
+        condition: service_started
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.05"
+          memory: 16M
+        reservations:
+          memory: 8M
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+
   # Portainer - Container management UI
   portainer:
     image: portainer/portainer-ce:${PORTAINER_TAG:-latest}
