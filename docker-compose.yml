@@ -44,11 +44,34 @@ services:
     image: postgres:${POSTGRES_TAG:-16-alpine}
     container_name: postgres
     logging: *default-logging
+    shm_size: 256mb
     environment:
       <<: *common-env
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
       POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-nextcloud,firefly,authentik,gitea,immich,calibre,linkding,n8n,healthchecks,stirlingpdf,grafana,huginn,calcom,atuin}
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "effective_cache_size=768MB"
+      - "-c"
+      - "work_mem=8MB"
+      - "-c"
+      - "maintenance_work_mem=64MB"
+      - "-c"
+      - "max_connections=100"
+      - "-c"
+      - "checkpoint_completion_target=0.9"
+      - "-c"
+      - "wal_buffers=16MB"
+      - "-c"
+      - "default_statistics_target=100"
+      - "-c"
+      - "random_page_cost=1.1"
+      - "-c"
+      - "effective_io_concurrency=200"
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./scripts/init-postgres-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-postgres-multiple-dbs.sh:ro
@@ -72,6 +95,11 @@ services:
     image: mongo:${MONGO_TAG:-7}
     container_name: mongo
     logging: *default-logging
+    command:
+      - "mongod"
+      - "--wiredTigerCacheSizeGB=0.5"
+      - "--wiredTigerJournalCompressor=snappy"
+      - "--bind_ip_all"
     environment:
       <<: *common-env
       MONGO_INITDB_ROOT_USERNAME: root
@@ -99,7 +127,7 @@ services:
     image: redis:${REDIS_TAG:-7-alpine}
     container_name: redis
     logging: *default-logging
-    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --save 60 1000
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --save 60 1000 --appendonly yes --appendfsync everysec --auto-aof-rewrite-percentage 100 --auto-aof-rewrite-min-size 64mb
     volumes:
       - redis-data:/data
     networks:
@@ -244,6 +272,19 @@ services:
     image: postgres:${POSTGRES_TAG:-16-alpine}
     container_name: authentik-postgres
     logging: *default-logging
+    shm_size: 128mb
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_buffers=128MB"
+      - "-c"
+      - "effective_cache_size=384MB"
+      - "-c"
+      - "work_mem=4MB"
+      - "-c"
+      - "maintenance_work_mem=32MB"
+      - "-c"
+      - "max_connections=50"
     environment:
       POSTGRES_USER: authentik
       POSTGRES_PASSWORD: ${AUTHENTIK_DB_PASSWORD}
@@ -1030,6 +1071,19 @@ services:
     image: tensorchord/pgvecto-rs:${IMMICH_POSTGRES_TAG:-pg16-v0.2.0}
     container_name: immich-postgres
     logging: *default-logging
+    shm_size: 128mb
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_buffers=128MB"
+      - "-c"
+      - "effective_cache_size=384MB"
+      - "-c"
+      - "work_mem=8MB"
+      - "-c"
+      - "maintenance_work_mem=64MB"
+      - "-c"
+      - "max_connections=50"
     environment:
       POSTGRES_USER: immich
       POSTGRES_PASSWORD: ${IMMICH_DB_PASSWORD}
@@ -1051,7 +1105,7 @@ services:
     image: redis:${REDIS_TAG:-7-alpine}
     container_name: immich-redis
     logging: *default-logging
-    command: redis-server --save 60 1
+    command: redis-server --save 60 1 --appendonly yes --appendfsync everysec --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - immich-redis:/data
     networks:
@@ -1757,6 +1811,7 @@ services:
     image: redis:${REDIS_TAG:-7-alpine}
     container_name: sentry-redis
     logging: *default-logging
+    command: redis-server --save 60 1 --appendonly yes --appendfsync everysec --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - sentry-redis:/data
     networks:
@@ -1881,6 +1936,14 @@ services:
       ES_JAVA_OPTS: "-Xms512m -Xmx512m"
       xpack.security.enabled: "true"
       ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+      bootstrap.memory_lock: "true"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
     volumes:
       - elasticsearch-data:/usr/share/elasticsearch/data
     networks:
@@ -2101,10 +2164,10 @@ networks:
   potatostack:
     driver: bridge
     driver_opts:
-      com.docker.network.bridge.name: br-potato
+      com.docker.network.bridge.name: br-potato-main
     ipam:
       config:
-        - subnet: 172.21.0.0/16
+        - subnet: 172.22.0.0/16
 
 ################################################################################
 # VOLUMES
