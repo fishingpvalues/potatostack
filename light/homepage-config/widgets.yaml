@@ -27,6 +27,7 @@
     disk:
       - /
       - /mnt/storage
+      - /mnt/cachehdd
 
 - openmeteo:
     label: Berlin Weather
