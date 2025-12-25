@@ -961,7 +961,7 @@ services:
       <<: *common-env
     volumes:
       - audiobookshelf-config:/config
-      - audiobookshelf-metadata:/metadata
+      - /mnt/cachehdd/audiobookshelf/metadata:/metadata
       - /mnt/storage/media/audiobooks:/audiobooks
       - /mnt/storage/media/podcasts:/podcasts
     networks:
@@ -1056,7 +1056,7 @@ services:
       SLSKD_METRICS: "false"
     volumes:
       - slskd-config:/app
-      - slskd-logs:/app/logs
+      - /mnt/cachehdd/slskd/logs:/app/logs
       - /mnt/storage/slskd-shared:/var/slskd/shared
       - /mnt/cachehdd/slskd-incomplete:/var/slskd/incomplete
     depends_on:
@@ -2227,13 +2227,11 @@ volumes:
   jellyseerr-config:
   overseerr-config:
   audiobookshelf-config:
-  audiobookshelf-metadata:
 
   # Downloads
   qbittorrent-config:
   aria2-config:
   slskd-config:
-  slskd-logs:
 
   # Photos
   immich-postgres:
