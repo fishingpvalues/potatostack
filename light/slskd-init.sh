@@ -59,4 +59,4 @@ EOF
 fi
 
 # Continue with normal startup
-exec /slskd "$@"
+exec /usr/bin/tini -- ./start.sh "$@"

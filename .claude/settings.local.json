@@ -64,7 +64,9 @@
       "Bash(ip -4 addr show:*)",
       "Bash(sudo chmod:*)",
       "WebFetch(domain:docs.portainer.io)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(sshpass -p 'schneck0' ssh -o StrictHostKeyChecking=no daniel@192.168.178.40 'cd ~/light && docker ps --format \"\"table {{.Names}}\\\\t{{.Status}}\"\"')",
+      "WebFetch(domain:filebrowser.org)"
     ],
     "deny": [],
     "ask": []
