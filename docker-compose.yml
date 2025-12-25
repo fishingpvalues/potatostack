@@ -984,6 +984,7 @@ services:
     container_name: qbittorrent
     logging: *default-logging
     network_mode: "service:gluetun"
+    entrypoint: /qb-init.sh
     environment:
       <<: *common-env
       WEBUI_PORT: 8282
@@ -991,6 +992,7 @@ services:
       - qbittorrent-config:/config
       - /mnt/storage/downloads:/downloads
       - /mnt/cachehdd/qbittorrent-incomplete:/incomplete
+      - ./qbittorrent-init.sh:/qb-init.sh:ro
     depends_on:
       gluetun:
         condition: service_healthy

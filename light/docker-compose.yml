@@ -247,6 +247,7 @@ services:
     container_name: transmission
     logging: *default-logging
     network_mode: "service:gluetun"
+    entrypoint: /tr-init.sh
     environment:
       - PUID=1000
       - PGID=1000
@@ -258,6 +259,7 @@ services:
       - /mnt/storage/downloads:/downloads
       - /mnt/cachehdd/transmission-incomplete:/incomplete
       - transmission-watch:/watch
+      - ./transmission-init.sh:/tr-init.sh:ro
     depends_on:
       storage-init:
         condition: service_completed_successfully
@@ -557,17 +559,21 @@ services:
     image: filebrowser/filebrowser:${FILEBROWSER_TAG:-latest}
     container_name: filebrowser
     logging: *default-logging
+    entrypoint: /init.sh
     ports:
       - "${HOST_BIND}:8181:80"
     environment:
       - PUID=1000
       - PGID=1000
       - TZ=Europe/Berlin
+      - FILEBROWSER_ADMIN_USER=${FILEBROWSER_ADMIN_USER:-admin}
+      - FILEBROWSER_ADMIN_PASS=${FILEBROWSER_ADMIN_PASS:-adminadminadmin}
     volumes:
       - filebrowser-config:/config
       - filebrowser-database:/database
       - /mnt/storage:/srv/storage
       - /mnt/cachehdd:/srv/cachehdd
+      - ./filebrowser-init.sh:/init.sh:ro
     networks:
       - potatostack
     depends_on:
