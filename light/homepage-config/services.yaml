@@ -41,10 +41,6 @@
         description: File Manager (All Folders)
         server: docker-socket
         container: filebrowser
-        widget:
-          type: customapi
-          url: http://filebrowser:80/api/usage
-          method: GET
 
     - Syncthing:
         icon: syncthing.png
@@ -52,10 +48,6 @@
         description: OneDrive Mirror + P2P Sync
         server: docker-socket
         container: syncthing
-        widget:
-          type: syncthing
-          url: http://syncthing:8384
-          key: {{HOMEPAGE_VAR_SYNCTHING_KEY}}
 
     - Kopia:
         icon: kopia.png
@@ -63,11 +55,6 @@
         description: Backup Server
         server: docker-socket
         container: kopia
-        widget:
-          type: kopia
-          url: https://kopia:51515
-          username: {{HOMEPAGE_VAR_KOPIA_USER}}
-          password: {{HOMEPAGE_VAR_KOPIA_PASS}}
 
 - Security & Management:
     - Vaultwarden:
@@ -76,9 +63,6 @@
         description: Password Manager
         server: docker-socket
         container: vaultwarden
-        widget:
-          type: vaultwarden
-          url: http://vaultwarden:80
 
     - Portainer:
         icon: portainer.png
@@ -86,11 +70,6 @@
         description: Container Management
         server: docker-socket
         container: portainer
-        widget:
-          type: portainer
-          url: https://portainer:9443
-          env: 1
-          key: {{HOMEPAGE_VAR_PORTAINER_KEY}}
 
 - System Services:
     - Watchtower:
