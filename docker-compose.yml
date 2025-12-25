@@ -564,6 +564,7 @@ services:
     volumes:
       - syncthing-config:/config
       - /mnt/storage/syncthing:/data
+      - /mnt/cachehdd/syncthing-versions:/data/.stversions
     networks:
       - potatostack
     depends_on:
@@ -744,6 +745,7 @@ services:
       - sonarr-config:/config
       - /mnt/storage/media/tv:/tv
       - /mnt/storage/downloads:/downloads
+      - /mnt/cachehdd/qbittorrent-incomplete:/downloads/incomplete
     depends_on:
       - gluetun
       - storage-init
@@ -765,6 +767,7 @@ services:
       - radarr-config:/config
       - /mnt/storage/media/movies:/movies
       - /mnt/storage/downloads:/downloads
+      - /mnt/cachehdd/qbittorrent-incomplete:/downloads/incomplete
     depends_on:
       - gluetun
       - storage-init
@@ -786,6 +789,7 @@ services:
       - lidarr-config:/config
       - /mnt/storage/media/music:/music
       - /mnt/storage/downloads:/downloads
+      - /mnt/cachehdd/qbittorrent-incomplete:/downloads/incomplete
     depends_on:
       - gluetun
       - storage-init
@@ -807,6 +811,7 @@ services:
       - readarr-config:/config
       - /mnt/storage/media/books:/books
       - /mnt/storage/downloads:/downloads
+      - /mnt/cachehdd/qbittorrent-incomplete:/downloads/incomplete
     depends_on:
       - gluetun
       - storage-init
@@ -1011,6 +1016,7 @@ services:
     volumes:
       - aria2-config:/config
       - /mnt/storage/downloads:/downloads
+      - /mnt/cachehdd/aria2-incomplete:/incomplete
     depends_on:
       - gluetun
       - storage-init
@@ -1152,7 +1158,7 @@ services:
     environment:
       <<: *common-env
     volumes:
-      - immich-ml-cache:/cache
+      - /mnt/cachehdd/immich-ml-cache:/cache
     networks:
       - potatostack
     restart: unless-stopped
@@ -1180,7 +1186,7 @@ services:
       - '--web.console.templates=/usr/share/prometheus/consoles'
     volumes:
       - ./config/prometheus:/etc/prometheus
-      - prometheus-data:/prometheus
+      - /mnt/cachehdd/prometheus/data:/prometheus
     networks:
       - potatostack
     restart: unless-stopped
@@ -1242,7 +1248,7 @@ services:
     command: -config.file=/etc/loki/loki.yml
     volumes:
       - ./config/loki:/etc/loki
-      - loki-data:/loki
+      - /mnt/cachehdd/loki/data:/loki
     networks:
       - potatostack
     restart: unless-stopped
@@ -1354,8 +1360,8 @@ services:
       - apparmor:unconfined
     volumes:
       - netdata-config:/etc/netdata
-      - netdata-lib:/var/lib/netdata
-      - netdata-cache:/var/cache/netdata
+      - /mnt/cachehdd/netdata/lib:/var/lib/netdata
+      - /mnt/cachehdd/netdata/cache:/var/cache/netdata
       - /etc/passwd:/host/etc/passwd:ro
       - /etc/group:/host/etc/group:ro
       - /proc:/host/proc:ro
@@ -1909,6 +1915,7 @@ services:
     volumes:
       - pinchflat-config:/config
       - /mnt/storage/media/youtube:/downloads
+      - /mnt/cachehdd/pinchflat-incomplete:/incomplete
     networks:
       - potatostack
     depends_on:
@@ -1945,7 +1952,7 @@ services:
         soft: 65536
         hard: 65536
     volumes:
-      - elasticsearch-data:/usr/share/elasticsearch/data
+      - /mnt/cachehdd/elasticsearch/data:/usr/share/elasticsearch/data
     networks:
       - potatostack
     restart: unless-stopped
@@ -1991,7 +1998,7 @@ services:
     volumes:
       - ./config/logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
       - ./config/logstash/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
-      - logstash-data:/usr/share/logstash/data
+      - /mnt/cachehdd/logstash/data:/usr/share/logstash/data
     networks:
       - potatostack
     depends_on:
@@ -2231,15 +2238,10 @@ volumes:
   # Photos
   immich-postgres:
   immich-redis:
-  immich-ml-cache:
 
   # Monitoring
-  prometheus-data:
   grafana-data:
-  loki-data:
   netdata-config:
-  netdata-lib:
-  netdata-cache:
   uptime-kuma-data:
 
   # Automation
@@ -2269,10 +2271,6 @@ volumes:
   octobot-tentacles:
   octobot-logs:
   pinchflat-config:
-
-  # Elasticsearch
-  elasticsearch-data:
-  logstash-data:
 
   # Dashboard
   glance-data:

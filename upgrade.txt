@@ -39,4 +39,5 @@ APPS:
 - webui-aria2 downloader all behind gluetuin 
 - n8n make workflows for this stack 
 - pinchflat
-- make sure slskd and all non blocking services from light stack are added as well which are not overlapping with other services and then also rightly configured fo rexamlpe slskd and qbittorrent behin dgluetun etc 
+- make sure slskd and all non blocking services from light stack are added as well which are not overlapping with other services and then also rightly configured fo rexamlpe slskd and qbittorrent behin dgluetun etc
+- furthetr check cachehdd incoprotation like in light stack that it is the same in main stack with all cache and heavy IO operationsa re performed on this hdd because it is faster and then i want that 
