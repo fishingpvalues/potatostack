@@ -393,11 +393,8 @@ services:
       - /mnt/storage/syncthing/Bilder:/data/syncthing-Bilder:ro
       - /mnt/storage/syncthing/Dokumente:/data/syncthing-Dokumente:ro
       - /mnt/storage/syncthing/workdir:/data/syncthing-workdir:ro
-      - /mnt/storage/syncthing/nvim:/data/syncthing-nvim:ro
-      - /mnt/storage/syncthing/Microsoft-Copilot-Chat-Dateien:/data/syncthing-Microsoft-Copilot-Chat-Dateien:ro
       - /mnt/storage/syncthing/Attachments:/data/syncthing-Attachments:ro
       - /mnt/storage/syncthing/Privates:/data/syncthing-Privates:ro
-      - /mnt/storage/syncthing/Studium:/data/syncthing-Studium:ro
       - /mnt/storage/syncthing/Berufliches:/data/syncthing-Berufliches:ro
       # Media folders
       - /mnt/storage/syncthing/camera-sync:/data/syncthing-camera-sync:ro
@@ -464,11 +461,8 @@ services:
       - /mnt/storage/syncthing/Bilder:/data/Bilder
       - /mnt/storage/syncthing/Dokumente:/data/Dokumente
       - /mnt/storage/syncthing/workdir:/data/workdir
-      - /mnt/storage/syncthing/nvim:/data/nvim
-      - /mnt/storage/syncthing/Microsoft-Copilot-Chat-Dateien:/data/Microsoft-Copilot-Chat-Dateien
       - /mnt/storage/syncthing/Attachments:/data/Attachments
       - /mnt/storage/syncthing/Privates:/data/Privates
-      - /mnt/storage/syncthing/Studium:/data/Studium
       - /mnt/storage/syncthing/Berufliches:/data/Berufliches
       # Additional media folders
       - /mnt/storage/syncthing/camera-sync:/data/camera-sync

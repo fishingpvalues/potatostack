@@ -29,11 +29,8 @@ mkdir -p \
     "${STORAGE_BASE}/syncthing/Bilder" \
     "${STORAGE_BASE}/syncthing/Dokumente" \
     "${STORAGE_BASE}/syncthing/workdir" \
-    "${STORAGE_BASE}/syncthing/nvim" \
-    "${STORAGE_BASE}/syncthing/Microsoft-Copilot-Chat-Dateien" \
     "${STORAGE_BASE}/syncthing/Attachments" \
     "${STORAGE_BASE}/syncthing/Privates" \
-    "${STORAGE_BASE}/syncthing/Studium" \
     "${STORAGE_BASE}/syncthing/Berufliches" \
     "${STORAGE_BASE}/syncthing/camera-sync/android" \
     "${STORAGE_BASE}/syncthing/camera-sync/ios" \
@@ -82,4 +79,4 @@ chmod 775 "${CACHE_BASE}/syncthing-versions"
 echo "✓ Storage initialization complete with full OneDrive mirror!"
 echo "✓ Main HDD: VPN, P2P, Syncthing (OneDrive mirror + media folders), Kopia repository"
 echo "✓ Cache HDD: Incomplete downloads, Kopia cache, Syncthing file versioning"
-echo "✓ OneDrive folders: Desktop, Obsidian-Vault, Bilder, Dokumente, workdir, nvim, etc."
+echo "✓ OneDrive folders: Desktop, Obsidian-Vault, Bilder, Dokumente, workdir, Attachments, Privates, Berufliches"
