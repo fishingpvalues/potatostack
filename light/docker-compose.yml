@@ -22,9 +22,12 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
+      - SLSKD_API_KEY=${SLSKD_API_KEY}
+      - SYNCTHING_API_KEY=${SYNCTHING_API_KEY}
     volumes:
       - /mnt/storage:/mnt/storage
       - /mnt/cachehdd:/mnt/cachehdd
+      - shared-keys:/keys
       - ./init-storage.sh:/init-storage.sh:ro
     network_mode: none
     restart: "no"
@@ -41,6 +44,7 @@ services:
     container_name: homepage
     logging: *default-logging
     user: "0:0"
+    entrypoint: sh /homepage-init.sh
     ports:
       - "${HOST_BIND}:3000:3000"
     environment:
@@ -62,8 +66,13 @@ services:
       - ./homepage-config/docker.yaml:/app/config/docker.yaml:ro
       - ./homepage-config/custom.css:/app/config/custom.css:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - shared-keys:/keys:ro
+      - ./homepage-init.sh:/homepage-init.sh:ro
     networks:
       - potatostack
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
     restart: unless-stopped
     deploy:
       resources:
@@ -285,6 +294,7 @@ services:
     container_name: slskd
     logging: *default-logging
     network_mode: "service:gluetun"
+    entrypoint: sh /init.sh
     environment:
       - TZ=Europe/Berlin
       - SLSKD_HTTP_PORT=2234
@@ -294,11 +304,14 @@ services:
       - SLSKD_SOULSEEK_USERNAME=${SLSKD_SOULSEEK_USERNAME}
       - SLSKD_SOULSEEK_PASSWORD=${SLSKD_SOULSEEK_PASSWORD}
       - SLSKD_METRICS=false
+      - SLSKD_API_KEY=${SLSKD_API_KEY}
     volumes:
       - slskd-config:/app
       - slskd-logs:/app/logs
       - /mnt/storage/slskd-shared:/var/slskd/shared
       - /mnt/cachehdd/slskd-incomplete:/var/slskd/incomplete
+      - shared-keys:/keys:ro
+      - ./slskd-init.sh:/init.sh:ro
     depends_on:
       storage-init:
         condition: service_completed_successfully
@@ -490,6 +503,7 @@ services:
     container_name: syncthing
     logging: *default-logging
     hostname: ${SYNCTHING_HOSTNAME:-potatostack-sync}
+    entrypoint: sh /syncthing-init.sh
     ports:
       - "${HOST_BIND}:8384:8384"
       - "${HOST_BIND}:22000:22000/tcp"
@@ -500,8 +514,11 @@ services:
       - PGID=1000
       - TZ=Europe/Berlin
       - UMASK=022
+      - SYNCTHING_API_KEY=${SYNCTHING_API_KEY}
     volumes:
       - syncthing-config:/config
+      - shared-keys:/keys:ro
+      - ./syncthing-init.sh:/syncthing-init.sh:ro
       # OneDrive mirror structure - ALL folders
       - /mnt/storage/syncthing/Desktop:/data/Desktop
       - /mnt/storage/syncthing/Obsidian-Vault:/data/Obsidian-Vault
@@ -613,6 +630,9 @@ networks:
 # Volumes
 ################################################################################
 volumes:
+  # Shared
+  shared-keys:
+
   # VPN & P2P
   gluetun-config:
   transmission-config:

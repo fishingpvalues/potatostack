@@ -56,6 +56,11 @@
         description: Backup Server
         server: docker-socket
         container: kopia
+        widget:
+          type: kopia
+          url: https://{{HOMEPAGE_VAR_HOST}}:51515
+          username: {{HOMEPAGE_VAR_KOPIA_USER}}
+          password: {{HOMEPAGE_VAR_KOPIA_PASS}}
 
 - Security & Management:
     - Vaultwarden:
