@@ -437,8 +437,8 @@ services:
       - --tls-generate-rsa-key-size=2048
       - --server-username=${KOPIA_SERVER_USER}
       - --server-password=${KOPIA_SERVER_PASSWORD}
-      - --log-level=warn
-      - --file-log-level=warn
+      - --log-level=warning
+      - --file-log-level=warning
       - --override-hostname=kopia-server
       - --override-username=all-users
     volumes:
