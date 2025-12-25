@@ -39,3 +39,4 @@ APPS:
 - webui-aria2 downloader all behind gluetuin 
 - n8n make workflows for this stack 
 - pinchflat
+- make sure slskd and all non blocking services from light stack are added as well which are not overlapping with other services and then also rightly configured fo rexamlpe slskd and qbittorrent behin dgluetun etc 

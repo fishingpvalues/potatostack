@@ -48,7 +48,7 @@ services:
       <<: *common-env
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-nextcloud,firefly,authentik,gitea,immich,calibre,linkding,n8n,healthchecks,stirlingpdf}
+      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-nextcloud,firefly,authentik,gitea,immich,calibre,linkding,n8n,healthchecks,stirlingpdf,grafana,huginn,calcom,atuin}
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./scripts/init-postgres-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-postgres-multiple-dbs.sh:ro
@@ -380,11 +380,13 @@ services:
       - "${HOST_BIND:-192.168.178.40}:6767:6767"     # Bazarr
       - "${HOST_BIND:-192.168.178.40}:8787:8787"     # Readarr
       - "${HOST_BIND:-192.168.178.40}:8686:8686"     # Lidarr
-      - "${HOST_BIND:-192.168.178.40}:8282:8282"     # qBittorrent
-      - "${HOST_BIND:-192.168.178.40}:51413:51413"   # qBittorrent
+      - "${HOST_BIND:-192.168.178.40}:8282:8282"     # qBittorrent WebUI
+      - "${HOST_BIND:-192.168.178.40}:51413:51413"   # qBittorrent peer
       - "${HOST_BIND:-192.168.178.40}:51413:51413/udp"
       - "${HOST_BIND:-192.168.178.40}:6800:6800"     # aria2 RPC
       - "${HOST_BIND:-192.168.178.40}:6880:80"       # aria2 WebUI
+      - "${HOST_BIND:-192.168.178.40}:2234:2234"     # slskd WebUI
+      - "${HOST_BIND:-192.168.178.40}:50000:50000"   # slskd peer
     environment:
       <<: *common-env
       VPN_SERVICE_PROVIDER: ${VPN_PROVIDER:-surfshark}
@@ -393,7 +395,7 @@ services:
       OPENVPN_PASSWORD: ${VPN_PASSWORD}
       SERVER_COUNTRIES: ${VPN_COUNTRY:-Germany}
       FIREWALL_OUTBOUND_SUBNETS: ${LAN_NETWORK:-192.168.178.0/24}
-      FIREWALL_VPN_INPUT_PORTS: 51413,6800
+      FIREWALL_VPN_INPUT_PORTS: 51413,6800,50000
       HTTP_CONTROL_SERVER_ADDRESS: :8000
     volumes:
       - gluetun-config:/gluetun
@@ -991,6 +993,33 @@ services:
       resources:
         limits:
           memory: 64M
+
+  # slskd - Soulseek P2P client for music sharing
+  slskd:
+    image: ghcr.io/slskd/slskd:${SLSKD_TAG:-latest}
+    container_name: slskd
+    logging: *default-logging
+    network_mode: "service:gluetun"
+    environment:
+      <<: *common-env
+      SLSKD_HTTP_PORT: 2234
+      SLSKD_SLSK_LISTEN_PORT: 50000
+      SLSKD_USERNAME: ${SLSKD_USER:-admin}
+      SLSKD_PASSWORD: ${SLSKD_PASSWORD}
+      SLSKD_METRICS: "false"
+    volumes:
+      - slskd-config:/app
+      - slskd-logs:/app/logs
+      - /mnt/storage/slskd-shared:/var/slskd/shared
+      - /mnt/cachehdd/slskd-incomplete:/var/slskd/incomplete
+    depends_on:
+      - gluetun
+      - storage-init
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   ################################################################################
   # PHOTO MANAGEMENT
@@ -1883,6 +1912,33 @@ services:
         limits:
           memory: 1G
 
+  logstash:
+    image: docker.elastic.co/logstash/logstash:${LOGSTASH_TAG:-8.11.0}
+    container_name: logstash
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:5044:5044"
+      - "${HOST_BIND:-192.168.178.40}:9600:9600"
+    environment:
+      <<: *common-env
+      LS_JAVA_OPTS: "-Xms256m -Xmx256m"
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      ELASTICSEARCH_USERNAME: elastic
+      ELASTICSEARCH_PASSWORD: ${ELASTIC_PASSWORD}
+    volumes:
+      - ./config/logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+      - ./config/logstash/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - logstash-data:/usr/share/logstash/data
+    networks:
+      - potatostack
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
   ################################################################################
   # DASHBOARD
   ################################################################################
@@ -1982,6 +2038,62 @@ services:
         limits:
           memory: 256M
 
+  # Kopia - Fast and secure backup server
+  kopia:
+    image: kopia/kopia:${KOPIA_TAG:-latest}
+    container_name: kopia
+    logging: *default-logging
+    hostname: kopia-server
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:51515:51515"
+    environment:
+      <<: *common-env
+      KOPIA_PASSWORD: ${KOPIA_PASSWORD}
+      KOPIA_SERVER_USER: ${KOPIA_SERVER_USER:-admin}
+      KOPIA_SERVER_PASSWORD: ${KOPIA_SERVER_PASSWORD}
+      KOPIA_CONFIG_PATH: /app/config/repository.config
+      KOPIA_CACHE_DIRECTORY: /app/cache
+      KOPIA_LOG_DIR: /app/logs
+    command:
+      - server
+      - start
+      - --address=0.0.0.0:51515
+      - --tls-generate-cert
+      - --tls-generate-rsa-key-size=2048
+      - --server-username=${KOPIA_SERVER_USER:-admin}
+      - --server-password=${KOPIA_SERVER_PASSWORD}
+      - --log-level=warn
+      - --file-log-level=warn
+      - --override-hostname=kopia-server
+      - --override-username=all-users
+    volumes:
+      - /mnt/storage/kopia/repository:/repository
+      - kopia-config:/app/config
+      - /mnt/cachehdd/kopia-cache:/app/cache
+      - kopia-logs:/app/logs
+      # Backup targets
+      - vaultwarden-data:/data/vaultwarden:ro
+      - /mnt/storage/syncthing:/data/syncthing:ro
+      - /mnt/storage/downloads:/data/downloads:ro
+      - /mnt/storage/slskd-shared:/data/slskd-shared:ro
+      - /mnt/storage/photos:/data/photos:ro
+      - /mnt/storage/media:/data/media:ro
+    networks:
+      - potatostack
+    depends_on:
+      - storage-init
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "https://127.0.0.1:51515/api/v1/repo/status", "--no-check-certificate"]
+      interval: 120s
+      timeout: 20s
+      retries: 3
+      start_period: 60s
+
 ################################################################################
 # NETWORKS
 ################################################################################
@@ -2050,6 +2162,8 @@ volumes:
   # Downloads
   qbittorrent-config:
   aria2-config:
+  slskd-config:
+  slskd-logs:
 
   # Photos
   immich-postgres:
@@ -2095,6 +2209,7 @@ volumes:
 
   # Elasticsearch
   elasticsearch-data:
+  logstash-data:
 
   # Dashboard
   glance-data:
@@ -2102,3 +2217,7 @@ volumes:
   # System
   diun-data:
   portainer-data:
+
+  # Backups
+  kopia-config:
+  kopia-logs:

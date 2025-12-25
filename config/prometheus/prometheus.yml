@@ -1,59 +1,86 @@
-# Prometheus Configuration - SOTA 2025
-# Scrapes metrics from all PotatoStack services
-
 global:
-  scrape_interval: 30s
-  evaluation_interval: 30s
-  scrape_timeout: 10s
+  scrape_interval: 15s
+  evaluation_interval: 15s
   external_labels:
-    monitor: 'potatostack'
+    cluster: 'potatostack'
     environment: 'homelab'
 
-# Scrape configurations
+# Alertmanager configuration (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+# rule_files:
+#   - "alerts/*.yml"
+
 scrape_configs:
-  # Prometheus self-monitoring
+  # Prometheus itself
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
-        labels:
-          service: 'prometheus'
 
-  # System metrics
+  # Node Exporter - System metrics
   - job_name: 'node-exporter'
     static_configs:
       - targets: ['node-exporter:9100']
         labels:
-          service: 'node-exporter'
-          type: 'system'
+          instance: 'potatostack-host'
 
-  # Container metrics
+  # cAdvisor - Container metrics
   - job_name: 'cadvisor'
     static_configs:
       - targets: ['cadvisor:8080']
         labels:
-          service: 'cadvisor'
-          type: 'containers'
+          instance: 'potatostack-host'
 
-  # Network/Router metrics
+  # Fritzbox Exporter - Router metrics
   - job_name: 'fritzbox'
     static_configs:
       - targets: ['fritzbox-exporter:9787']
         labels:
-          service: 'fritzbox'
-          type: 'network'
+          instance: 'fritz.box'
 
-  # Comprehensive system monitoring
-  - job_name: 'netdata'
-    static_configs:
-      - targets: ['netdata:19999']
-        labels:
-          service: 'netdata'
-          type: 'system'
-
-  # Traefik reverse proxy metrics
+  # Traefik - Reverse proxy metrics
   - job_name: 'traefik'
     static_configs:
       - targets: ['traefik:8080']
-        labels:
-          service: 'traefik'
-          type: 'proxy'
+
+  # Elasticsearch
+  - job_name: 'elasticsearch'
+    static_configs:
+      - targets: ['elasticsearch:9200']
+    metrics_path: '/_prometheus/metrics'
+    basic_auth:
+      username: 'elastic'
+      password: '${ELASTIC_PASSWORD}'
+
+  # Netdata - Additional system metrics
+  - job_name: 'netdata'
+    static_configs:
+      - targets: ['netdata:19999']
+    metrics_path: '/api/v1/allmetrics'
+    params:
+      format: ['prometheus']
+
+  # Grafana
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+
+  # Docker daemon metrics (if enabled on host)
+  # Requires dockerd to be configured with metrics address
+  # - job_name: 'docker'
+  #   static_configs:
+  #     - targets: ['host.docker.internal:9323']
+
+  # Gluetun VPN
+  - job_name: 'gluetun'
+    static_configs:
+      - targets: ['gluetun:8000']
+
+# Optional: Loki as a remote write target
+# remote_write:
+#   - url: http://loki:3100/loki/api/v1/push
