@@ -59,7 +59,10 @@
       "Bash(jq:*)",
       "Bash(mv:*)",
       "mcp__plugin_context7_context7__resolve-library-id",
-      "mcp__plugin_context7_context7__get-library-docs"
+      "mcp__plugin_context7_context7__get-library-docs",
+      "Bash(sysctl:*)",
+      "Bash(ip -4 addr show:*)",
+      "Bash(sudo chmod:*)"
     ],
     "deny": [],
     "ask": []
