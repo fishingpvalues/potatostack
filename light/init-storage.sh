@@ -80,3 +80,36 @@ echo "✓ Storage initialization complete with full OneDrive mirror!"
 echo "✓ Main HDD: VPN, P2P, Syncthing (OneDrive mirror + media folders), Kopia repository"
 echo "✓ Cache HDD: Incomplete downloads, Kopia cache, Syncthing file versioning"
 echo "✓ OneDrive folders: Desktop, Obsidian-Vault, Bilder, Dokumente, workdir, Attachments, Privates, Berufliches"
+
+################################################################################
+# Generate API Keys for Homepage Widget Integration
+################################################################################
+echo ""
+echo "Generating API keys for Homepage widgets..."
+
+# Install openssl if not available
+apk add --no-cache openssl >/dev/null 2>&1
+
+# Generate slskd API key if not set
+if [ -z "$SLSKD_API_KEY" ] || [ ! -f "/keys/slskd-api-key" ]; then
+    SLSKD_API_KEY=$(openssl rand -base64 48 | tr -d '\n')
+    echo "$SLSKD_API_KEY" > /keys/slskd-api-key
+    echo "✓ Generated slskd API key"
+else
+    echo "$SLSKD_API_KEY" > /keys/slskd-api-key
+    echo "✓ Using existing slskd API key from env"
+fi
+
+# Generate Syncthing API key if not set
+if [ -z "$SYNCTHING_API_KEY" ] || [ ! -f "/keys/syncthing-api-key" ]; then
+    SYNCTHING_API_KEY=$(openssl rand -hex 32 | tr -d '\n')
+    echo "$SYNCTHING_API_KEY" > /keys/syncthing-api-key
+    echo "✓ Generated Syncthing API key"
+else
+    echo "$SYNCTHING_API_KEY" > /keys/syncthing-api-key
+    echo "✓ Using existing Syncthing API key from env"
+fi
+
+chmod 644 /keys/*
+echo ""
+echo "✓ API keys ready at /keys/ for all containers"
