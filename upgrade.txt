@@ -1,8 +1,8 @@
-We have light stack which is the minimal configuration i want on Mini PC this one with k9s, kind, minikube or vanilla kubernetes choose best. additionally, i want these services which complement some of the others and  remove some as well. I want tthat you leave the folder light stack as is (ignore) and delete old files from the main stack and then update the stack with the list under. i want yiu to read light stack for the folder strcute and hdds to mount and then fully integrate all of them dand update env example 
+We have light stack which is the minimal configuration i want on Mini PC this one with docker compose additionally, i want these services which complement some of the others and  remove some as well. I want tthat you leave the folder light stack as is (ignore) and delete old files from the main stack and then update the stack with the list under. i want yiu to read light stack for the folder strcute and hdds to mount and then fully integrate all of them dand update env example and make sure all apps are well integrated and all from this list are here i want al services to use different onstances of the same db like what they need redis postgres or mongo 
 
 HARDWARE: Mini PC with 16GB RAM+ , SSD, CPU 4 core min, 1GB ehternet, no dedicated gpu
-INGRESS AND EGRESS: I have a domain at mittwald container hosting I want there a container to run with wg quick or so which is connected to my Fritzbox at all times and from here I want to connect to the public domain of mittwald container is that possible? is that safe and sota or should I use something else? which container is suitable for this? maybe I just need it as a proxy or routing idk this topics it should serve as a mouth for the data to enter and exit to the end devices so that my Fritzbox home network is only reachable and protected. i need either a public key for ach devic ewebfetch ftrizbox settings how to set this up with wireguard or if there is another silution for each devic so that the vpn connection is sstablished automatically or auth is preserved and fritzbox is exposed to www with firewall and waterproff i dont know whats best read all and webfetch best soluton for thos i want andrid etc to be connected and then update with syncthing etc and i want ideally not to manually establish a vpn wireguard connection everytime and not be 
-the list.txt apps are mandatory
+INGRESS AND EGRESS: duckdns fritzbox and tailscale together check owtailscaleworks.txt and make sure all s implemented here 
+APPS:
 - Postgres as DB
 - maybe mongo
 - Redis as DB both fully integrated
@@ -15,7 +15,7 @@ the list.txt apps are mandatory
 - remove filebrowser
 - Add fritzbox exporter
 - add immich
-- add RR stack add jellyfin, radarr, etc. full stack SOTA 2025 for all my syncthing files it should scan those etc. and moderate them fully integrated sonarr radarr audiobookshelf jellyseerr propwlarr opverseerr lidarrrbazarr readarrmaintainerr
+- add RR stack add jellyfin, radarr, etc. full stack SOTA 2025 for all my syncthing files it should scan those etc. and moderate them fully integrated sonarr radarr audiobookshelf jellyseerr propwlarr opverseerr lidarrrbazarr readarrmaintainerr i want complete rr stack all SOTA webfetch all and integrate all
 - netdata
 - tailscale for this stack
 - openwebui
@@ -37,7 +37,5 @@ the list.txt apps are mandatory
 - drawio and excalidraw
 - remove transmission and add qbittorrent all behind gluetun
 - webui-aria2 downloader all behind gluetuin 
-- - full automated exposed with fritzbox wireguard vpn its all only reachable via wireguard VPN from end devices its one home network not exposed
-- nginx with domain and subdomains for all serviceds maybne more SOTA make all with traefik and nginx proxy manager??
 - n8n make workflows for this stack 
 - pinchflat
