@@ -30,9 +30,9 @@
       - /mnt/cachehdd
 
 - openmeteo:
-    label: Berlin Weather
-    latitude: 52.52
-    longitude: 13.40
+    label: Bielefeld Weather
+    latitude: 52.03
+    longitude: 8.53
     units: metric
     cache: 5
     format:

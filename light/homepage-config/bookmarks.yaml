@@ -1,33 +1,33 @@
 ---
 - Dev:
     - GitHub:
-        - icon: github.png
+        - icon: https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/github.png
           href: https://github.com
     - GitLab:
-        - icon: gitlab.png
+        - icon: https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/gitlab.png
           href: https://gitlab.com
     - Docker Hub:
-        - icon: docker.png
+        - icon: https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/docker.png
           href: https://hub.docker.com
 
 - Documentation:
     - Gluetun Wiki:
-        - icon: gluetun.png
+        - icon: https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/gluetun.png
           href: https://github.com/qdm12/gluetun-wiki
     - Homepage Docs:
-        - icon: homepage.png
+        - icon: https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/homepage.png
           href: https://gethomepage.dev
     - Surfshark:
-        - icon: surfshark.png
+        - icon: https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/surfshark.png
           href: https://my.surfshark.com
 
 - Media:
     - YouTube:
-        - icon: youtube.png
+        - icon: https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/youtube.png
           href: https://youtube.com
     - Reddit:
-        - icon: reddit.png
+        - icon: https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/reddit.png
           href: https://reddit.com
     - Hacker News:
-        - icon: hackernews.png
+        - icon: https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/hackernews.png
           href: https://news.ycombinator.com

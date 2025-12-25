@@ -9,6 +9,7 @@
         widget:
           type: gluetun
           url: http://gluetun:8000
+          version: 2
 
     - Transmission:
         icon: transmission.png
@@ -32,7 +33,7 @@
         widget:
           type: slskd
           url: http://gluetun:2234
-          apikey: {{HOMEPAGE_VAR_SLSKD_KEY}}
+          key: {{HOMEPAGE_VAR_SLSKD_KEY}}
 
 - Media & Storage:
     - FileBrowser:
