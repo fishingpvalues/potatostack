@@ -64,23 +64,87 @@ mkdir -p \
     "${CACHE_BASE}/kopia-cache" \
     "${CACHE_BASE}/syncthing-versions"
 
+################################################################################
+# Swap File Setup (2GB on Cache HDD)
+################################################################################
+SWAP_FILE="${CACHE_BASE}/swapfile"
+SWAP_SIZE="2G"
+
+echo ""
+echo "Setting up 2GB swap on cache HDD..."
+
+# Check if swap file already exists and is the right size
+if [ -f "$SWAP_FILE" ]; then
+    CURRENT_SIZE=$(stat -c%s "$SWAP_FILE" 2>/dev/null || echo "0")
+    EXPECTED_SIZE=$((2 * 1024 * 1024 * 1024))  # 2GB in bytes
+
+    if [ "$CURRENT_SIZE" -eq "$EXPECTED_SIZE" ]; then
+        echo "✓ Swap file already exists (2GB)"
+    else
+        echo "⚠ Swap file exists but wrong size, recreating..."
+        swapoff "$SWAP_FILE" 2>/dev/null || true
+        rm -f "$SWAP_FILE"
+    fi
+fi
+
+# Create swap file if it doesn't exist
+if [ ! -f "$SWAP_FILE" ]; then
+    echo "Creating 2GB swap file (this may take a moment)..."
+    dd if=/dev/zero of="$SWAP_FILE" bs=1M count=2048 2>&1 | grep -E '(copied|bytes)' || true
+    chmod 600 "$SWAP_FILE"
+    echo "✓ Swap file created"
+fi
+
+# Initialize as swap if not already
+if ! file "$SWAP_FILE" 2>/dev/null | grep -q "swap file"; then
+    echo "Initializing swap file..."
+    mkswap "$SWAP_FILE"
+    echo "✓ Swap file initialized"
+fi
+
+# Enable swap if not already enabled
+if ! swapon --show 2>/dev/null | grep -q "$SWAP_FILE"; then
+    echo "Enabling swap..."
+    if swapon "$SWAP_FILE" 2>/dev/null; then
+        echo "✓ Swap enabled: 2GB active"
+    else
+        echo "⚠ Could not enable swap (may need host privileges)"
+        echo "  Run on host: sudo swapon $SWAP_FILE"
+    fi
+else
+    echo "✓ Swap already enabled"
+fi
+
+# Show swap status
+echo "Current swap status:"
+swapon --show 2>/dev/null || free -h | grep -i swap
+
 # Set ownership
 echo "Setting ownership to ${PUID}:${PGID}..."
 chown -R ${PUID}:${PGID} "${STORAGE_BASE}"
-chown -R ${PUID}:${PGID} "${CACHE_BASE}"
+# Set ownership but exclude swapfile (must stay root:root)
+find "${CACHE_BASE}" -not -name "swapfile" -exec chown ${PUID}:${PGID} {} + 2>/dev/null || chown -R ${PUID}:${PGID} "${CACHE_BASE}"
 
 # Set permissions
 echo "Setting permissions..."
 chmod -R 755 "${STORAGE_BASE}"
-chmod -R 755 "${CACHE_BASE}"
+# Set permissions but keep swapfile at 600
+find "${CACHE_BASE}" -not -name "swapfile" -exec chmod 755 {} + 2>/dev/null || true
+chmod -R 755 "${CACHE_BASE}" 2>/dev/null || true
+# Ensure swapfile stays 600 root:root
+if [ -f "$SWAP_FILE" ]; then
+    chown root:root "$SWAP_FILE"
+    chmod 600 "$SWAP_FILE"
+fi
 
 # Special permissions for versioning directories
 chmod 775 "${CACHE_BASE}/syncthing-versions"
 
 echo "✓ Storage initialization complete with full OneDrive mirror!"
 echo "✓ Main HDD: VPN, P2P, Syncthing (OneDrive mirror + media folders), Kopia repository"
-echo "✓ Cache HDD: Incomplete downloads, Kopia cache, Syncthing file versioning"
+echo "✓ Cache HDD: Incomplete downloads, Kopia cache, Syncthing file versioning, 2GB swap"
 echo "✓ OneDrive folders: Desktop, Obsidian-Vault, Bilder, Dokumente, workdir, Attachments, Privates, Berufliches"
+echo "✓ Swap: 2GB on cache HDD - reduces OOM errors"
 
 ################################################################################
 # Generate API Keys for Homepage Widget Integration

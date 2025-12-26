@@ -41,10 +41,12 @@
 
 [FIXED] OOM (Out of Memory) errors
 - Solution: See OOM_FIX.md for complete analysis
-- Added 64M memory limit to storage-init container (was unlimited)
+- Added 128M memory limit to storage-init container (was unlimited)
+- **AUTOMATIC SWAP**: 2GB swap now auto-created on cache HDD every startup!
 - Process: apk installing openssl in storage-init was hitting cgroup limits
-- Recommendation: Enable 2GB swap space (see OOM_FIX.md)
-- Modified docker-compose.yml to add memory limits to storage-init
+- Swap location: /mnt/cachehdd/swapfile (2GB, automatically enabled)
+- Modified docker-compose.yml: added memory limits + SYS_ADMIN capability
+- Modified init-storage.sh: automatic swap creation, initialization, enablement
 
 Error logs (for reference):
 2025-12-25T21:00:52 - Killed process 311978 (apk) - 15.7MB RSS

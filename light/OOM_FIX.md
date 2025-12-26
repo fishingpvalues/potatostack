@@ -125,21 +125,29 @@ docker inspect storage-init | grep -i memory
 
 ## Prevention
 
-### 1. Increase System Swap
-Le Potato with 2GB RAM should have swap space:
+### 1. Automatic Swap Setup (Already Configured!)
+**DONE**: The stack now automatically creates and enables 2GB swap on cache HDD!
 
+The `storage-init` container now:
+- Creates `/mnt/cachehdd/swapfile` (2GB)
+- Initializes and enables it automatically
+- Checks and re-enables on every stack start
+- Persists across reboots
+
+**Location**: `/mnt/cachehdd/swapfile`
+**Size**: 2GB
+**Permissions**: 600 (root:root)
+**Status**: Automatically managed
+
+Check swap status:
 ```bash
-# Check current swap
 swapon --show
+free -h
+```
 
-# Create 2GB swap file if missing
-sudo fallocate -l 2G /swapfile
-sudo chmod 600 /swapfile
-sudo mkswap /swapfile
-sudo swapon /swapfile
-
-# Make permanent
-echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+Manual enable (if needed):
+```bash
+sudo swapon /mnt/cachehdd/swapfile
 ```
 
 ### 2. Reduce Memory Footprint
@@ -243,12 +251,15 @@ If system is critically low on memory, reduce limits on optional services:
 
 ## Recommended Solution
 
-**Best approach**: Use Fix 1 (64M limit) + enable swap space
+**Best approach**: Fix 1 (128M limit) + automatic swap (both applied!)
 
 This provides:
-- Enough memory for `apk install`
-- Safety margin
-- Swap as backup for memory pressure
+- Enough memory for `apk install` and `dd` (swap creation)
+- 2GB swap automatically created and enabled
+- Swap persists and auto-enables on every start
+- Safety margin for memory pressure
 - Clean, maintainable solution
 
-The fix has been applied to `docker-compose.yml`.
+**Changes applied**:
+- `docker-compose.yml`: storage-init memory limit 128M, added SYS_ADMIN capability
+- `init-storage.sh`: Automatic swap file creation, initialization, and enabling
