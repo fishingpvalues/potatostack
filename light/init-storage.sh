@@ -101,15 +101,18 @@ if [ ! -f "$SWAP_FILE" ]; then
     echo "✓ Swap file created"
 fi
 
-# Initialize as swap if not already
-if ! file "$SWAP_FILE" 2>/dev/null | grep -q "swap file"; then
-    echo "Initializing swap file..."
-    mkswap "$SWAP_FILE"
-    echo "✓ Swap file initialized"
-fi
+# Check if swap is already enabled
+if swapon --show 2>/dev/null | grep -q "$SWAP_FILE"; then
+    echo "✓ Swap already enabled: 2GB active"
+else
+    # Initialize as swap if not already
+    if ! file "$SWAP_FILE" 2>/dev/null | grep -q "swap file"; then
+        echo "Initializing swap file..."
+        mkswap "$SWAP_FILE"
+        echo "✓ Swap file initialized"
+    fi
 
-# Enable swap if not already enabled
-if ! swapon --show 2>/dev/null | grep -q "$SWAP_FILE"; then
+    # Enable swap
     echo "Enabling swap..."
     if swapon "$SWAP_FILE" 2>/dev/null; then
         echo "✓ Swap enabled: 2GB active"
@@ -117,8 +120,6 @@ if ! swapon --show 2>/dev/null | grep -q "$SWAP_FILE"; then
         echo "⚠ Could not enable swap (may need host privileges)"
         echo "  Run on host: sudo swapon $SWAP_FILE"
     fi
-else
-    echo "✓ Swap already enabled"
 fi
 
 # Show swap status
