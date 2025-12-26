@@ -158,13 +158,20 @@ echo "✓ Swap: 2GB on cache HDD - reduces OOM errors"
 echo ""
 echo "Generating API keys for Homepage widgets..."
 
-# Install openssl if not available
-echo "Installing required packages..."
-apk add --no-cache openssl util-linux >/dev/null 2>&1 || echo "⚠ Package installation had issues"
+# Generate random key using /dev/urandom (no openssl needed)
+generate_key() {
+    # Generate 48 bytes from /dev/urandom, encode as base64
+    head -c 48 /dev/urandom | base64 | tr -d '\n='
+}
+
+generate_hex_key() {
+    # Generate 32 bytes from /dev/urandom, encode as hex
+    head -c 32 /dev/urandom | hexdump -ve '1/1 "%.2x"' | tr -d '\n'
+}
 
 # Generate slskd API key if not set
 if [ -z "$SLSKD_API_KEY" ] || [ ! -f "/keys/slskd-api-key" ]; then
-    SLSKD_API_KEY=$(openssl rand -base64 48 | tr -d '\n')
+    SLSKD_API_KEY=$(generate_key)
     echo "$SLSKD_API_KEY" > /keys/slskd-api-key
     echo "✓ Generated slskd API key"
 else
@@ -174,7 +181,7 @@ fi
 
 # Generate Syncthing API key if not set
 if [ -z "$SYNCTHING_API_KEY" ] || [ ! -f "/keys/syncthing-api-key" ]; then
-    SYNCTHING_API_KEY=$(openssl rand -hex 32 | tr -d '\n')
+    SYNCTHING_API_KEY=$(generate_hex_key)
     echo "$SYNCTHING_API_KEY" > /keys/syncthing-api-key
     echo "✓ Generated Syncthing API key"
 else
