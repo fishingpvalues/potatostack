@@ -19,6 +19,8 @@ services:
     image: alpine:latest
     container_name: storage-init
     command: sh /init-storage.sh
+    cap_add:
+      - SYS_ADMIN
     environment:
       - PUID=1000
       - PGID=1000
@@ -34,9 +36,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 64M
+          memory: 128M
         reservations:
-          memory: 32M
+          memory: 64M
     labels:
       - "com.centurylinklabs.watchtower.enable=false"
 

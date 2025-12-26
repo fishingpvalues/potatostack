@@ -173,19 +173,26 @@ docker compose restart slskd
 
 **Code Changes**:
 - Added memory limits to `storage-init` container:
-  - Limit: 64M (sufficient for apk install)
-  - Reservation: 32M
+  - Limit: 128M (for apk install + swap creation)
+  - Reservation: 64M
+  - Added SYS_ADMIN capability for swap management
+- **Automatic swap setup**: 2GB swap file auto-created on cache HDD
+  - Created at `/mnt/cachehdd/swapfile`
+  - Automatically enabled on every stack start
+  - Reduces OOM errors permanently
 
 **Files Created**:
 - `OOM_FIX.md` - Complete analysis and solutions
 
 **Files Modified**:
-- `docker-compose.yml` - storage-init memory limits
+- `docker-compose.yml` - storage-init memory limits and capabilities
+- `init-storage.sh` - Added automatic swap creation and enablement
 
-**Additional Recommendations** (in OOM_FIX.md):
-- Enable 2GB swap space
-- Monitor memory usage
-- Alternative: Pre-generate API keys (avoid apk install)
+**Swap Details**:
+- Size: 2GB (on cache HDD for performance)
+- Location: `/mnt/cachehdd/swapfile`
+- Management: Fully automatic
+- Persistence: Enabled on every start
 
 ---
 
@@ -217,9 +224,11 @@ docker compose restart slskd
 ### Modified Files:
 1. `docker-compose.yml`:
    - Vaultwarden: memory limits (128M), healthcheck (10 retries, 120s start)
-   - storage-init: memory limits (64M)
+   - storage-init: memory limits (128M/64M), added SYS_ADMIN capability for swap
 2. `init-storage.sh`:
    - Added `Privates/porn` folder
+   - Added automatic 2GB swap file creation and enablement on cache HDD
+   - Swap persists and auto-enables on every stack start
 
 ---
 
