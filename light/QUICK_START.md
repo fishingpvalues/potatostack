@@ -10,8 +10,8 @@ Complete solution to download your OneDrive and migrate to Syncthing:
 cd ~/light
 chmod +x *.sh
 
-# 1. Install OneDrive client (~15 min)
-./install-onedrive-client.sh
+# 1. Install OneDrive client (~2 min - EASY!)
+./install-onedrive-simple.sh  # Precompiled package from Ubuntu
 
 # 2. Setup and authenticate (~5 min, requires browser)
 ./setup-onedrive-sync.sh
