@@ -1,7 +1,11 @@
-- Syncthing cant create mkdir folder when i set folder for it to add for backup from my smartphone and then to /mnt/storage/syncthing/camera-sync/android it says mkdir PATH permission denied 
+- Syncthing cant create mkdir folder when i set folder for it to add for backup from my smartphone and then to /mnt/storage/syncthing/camera-sync/android it says mkdir PATH permission denied I need help to understand how to set this up like which folders it sees what to enter etc 
 - I dont know which folders and paths are mounted into the services and which paths for syncthing and kopia for example i have to enter there
 - vaultwarden port 8080 loads forever and i dont know what to enter in the android bitwarden app under selfhosted which URL which certificate etc.
-
+- create porn folder at right place 
+- I need a good way to download all from OneDrive and move it in folder OneDrive new to create on mnt storage also the private vault stuff and then move in syncthing folder 
+- symlink certain syncthing folders to Soulseek to share like music books audiobooks
+- is syncthing settings devices etc preserved when it crashes? it has all to be preserved all config stuff and settings!! 
+- 
 [WONTFIX] Filebrowser shows capacity of storage and cachehdd wrong
 - Reason: Docker bind mount limitation. FileBrowser reports the capacity of the container's root filesystem (overlay) when the root is set to a directory containing mountpoints. The capacity of the actual drives will be visible when navigating inside the respective folders, but the global usage bar may be incorrect.
 
