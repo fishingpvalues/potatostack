@@ -67,7 +67,9 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(sshpass -p 'schneck0' ssh -o StrictHostKeyChecking=no daniel@192.168.178.40 'cd ~/light && docker ps --format \"\"table {{.Names}}\\\\t{{.Status}}\"\"')",
       "WebFetch(domain:filebrowser.org)",
-      "Bash(ssh daniel@192.168.178.40:*)"
+      "Bash(ssh daniel@192.168.178.40:*)",
+      "WebFetch(domain:software.opensuse.org)",
+      "WebFetch(domain:packages.ubuntu.com)"
     ],
     "deny": [],
     "ask": []

@@ -34,22 +34,25 @@ Your OneDrive structure → Syncthing folders:
 
 ## Step-by-Step Process
 
-### Step 1: Install OneDrive Client (~10-15 minutes)
+### Step 1: Install OneDrive Client (~2 minutes)
 
+**RECOMMENDED - Simple Method (Precompiled)**:
 ```bash
 cd ~/light
-chmod +x install-onedrive-client.sh
-./install-onedrive-client.sh
+chmod +x install-onedrive-simple.sh
+./install-onedrive-simple.sh
 ```
 
 **What it does**:
-- Installs build dependencies
-- Installs D compiler (DMD)
-- Clones abraunegg/onedrive repository
-- Compiles from source
-- Installs to system
+- Installs onedrive 2.4.25 from Ubuntu repository
+- ARM64 precompiled binary (no building needed!)
+- Takes ~2 minutes
 
-**Requirements**: 2GB RAM + Swap (you have this from storage-init)
+**Alternative - Build from Source (~15 minutes)**:
+```bash
+./install-onedrive-client.sh
+```
+Use this if you need the latest version. Requires LDC compiler (DMD doesn't support ARM64).
 
 ### Step 2: Setup and Authenticate (~5 minutes)
 
@@ -136,10 +139,10 @@ Copy everything from `https://` to the end.
 ## Complete Workflow
 
 ```bash
-# 1. Install (one-time, ~15 min)
+# 1. Install (one-time, ~2 min)
 cd ~/light
 chmod +x *.sh
-./install-onedrive-client.sh
+./install-onedrive-simple.sh  # RECOMMENDED: Precompiled package
 
 # 2. Authenticate (~5 min)
 ./setup-onedrive-sync.sh
