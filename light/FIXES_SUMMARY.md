@@ -217,9 +217,14 @@ docker compose restart slskd
 2. `VAULTWARDEN_SETUP.md` - Vaultwarden configuration guide
 3. `SYNCTHING_PERSISTENCE.md` - Persistence explanation
 4. `OOM_FIX.md` - OOM error analysis and fixes
-5. `onedrive-migration.sh` - OneDrive migration script
-6. `setup-soulseek-symlinks.sh` - Soulseek symlink setup
-7. `FIXES_SUMMARY.md` - This file
+5. `ONEDRIVE_MIGRATION_GUIDE.md` - Complete OneDrive migration guide
+6. `install-onedrive-client.sh` - OneDrive client installation
+7. `setup-onedrive-sync.sh` - OneDrive authentication setup
+8. `download-onedrive.sh` - OneDrive download script
+9. `migrate-onedrive-to-syncthing.sh` - Migration to Syncthing
+10. `onedrive-migration.sh` - Simple rsync alternative
+11. `setup-soulseek-symlinks.sh` - Soulseek symlink setup
+12. `FIXES_SUMMARY.md` - This file
 
 ### Modified Files:
 1. `docker-compose.yml`:
