@@ -31,6 +31,7 @@ mkdir -p \
     "${STORAGE_BASE}/syncthing/workdir" \
     "${STORAGE_BASE}/syncthing/Attachments" \
     "${STORAGE_BASE}/syncthing/Privates" \
+    "${STORAGE_BASE}/syncthing/Privates/porn" \
     "${STORAGE_BASE}/syncthing/Berufliches" \
     "${STORAGE_BASE}/syncthing/camera-sync/android" \
     "${STORAGE_BASE}/syncthing/camera-sync/ios" \
