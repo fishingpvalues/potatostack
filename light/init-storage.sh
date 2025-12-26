@@ -90,7 +90,13 @@ fi
 # Create swap file if it doesn't exist
 if [ ! -f "$SWAP_FILE" ]; then
     echo "Creating 2GB swap file (this may take a moment)..."
-    dd if=/dev/zero of="$SWAP_FILE" bs=1M count=2048 2>&1 | grep -E '(copied|bytes)' || true
+    # Use fallocate if available (fast, low memory), otherwise dd with small blocks
+    if command -v fallocate >/dev/null 2>&1; then
+        fallocate -l 2G "$SWAP_FILE" 2>&1
+    else
+        # Use small block size to avoid OOM
+        dd if=/dev/zero of="$SWAP_FILE" bs=1024 count=2097152 2>&1 | tail -1 || true
+    fi
     chmod 600 "$SWAP_FILE"
     echo "✓ Swap file created"
 fi
@@ -153,7 +159,8 @@ echo ""
 echo "Generating API keys for Homepage widgets..."
 
 # Install openssl if not available
-apk add --no-cache openssl >/dev/null 2>&1
+echo "Installing required packages..."
+apk add --no-cache openssl util-linux >/dev/null 2>&1 || echo "⚠ Package installation had issues"
 
 # Generate slskd API key if not set
 if [ -z "$SLSKD_API_KEY" ] || [ ! -f "/keys/slskd-api-key" ]; then
