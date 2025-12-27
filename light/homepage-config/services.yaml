@@ -65,7 +65,7 @@
 - Security & Management:
     - Vaultwarden:
         icon: vaultwarden.png
-        href: http://{{HOMEPAGE_VAR_HOST}}:8080
+        href: https://{{HOMEPAGE_VAR_HOST}}:8443
         description: Password Manager
         server: docker-socket
         container: vaultwarden
