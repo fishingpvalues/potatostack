@@ -1,0 +1,61 @@
+################################################################################
+# Alertmanager Configuration
+# Routes alerts to Discord, Telegram, or Email
+################################################################################
+
+global:
+  resolve_timeout: 5m
+
+# Route configuration
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  receiver: 'default'
+
+  routes:
+    # Critical alerts go immediately
+    - match:
+        severity: critical
+      receiver: 'critical'
+      repeat_interval: 5m
+
+    # Warning alerts
+    - match:
+        severity: warning
+      receiver: 'warning'
+      repeat_interval: 1h
+
+# Receivers configuration
+receivers:
+  - name: 'default'
+    discord_configs:
+      - webhook_url: '${DISCORD_WEBHOOK}'
+        title: '🔔 {{ .GroupLabels.alertname }}'
+        message: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+
+  - name: 'critical'
+    discord_configs:
+      - webhook_url: '${DISCORD_WEBHOOK}'
+        title: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
+        message: '{{ range .Alerts }}{{ .Annotations.summary }}\n{{ .Annotations.description }}{{ end }}'
+    telegram_configs:
+      - bot_token: '${TELEGRAM_BOT_TOKEN}'
+        chat_id: ${TELEGRAM_CHAT_ID}
+        parse_mode: 'HTML'
+        message: '🚨 <b>CRITICAL</b>: {{ .GroupLabels.alertname }}\n{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+
+  - name: 'warning'
+    discord_configs:
+      - webhook_url: '${DISCORD_WEBHOOK}'
+        title: '⚠️ WARNING: {{ .GroupLabels.alertname }}'
+        message: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+
+# Inhibit rules - don't send warning if critical is firing
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'cluster', 'service']
