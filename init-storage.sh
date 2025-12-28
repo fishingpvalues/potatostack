@@ -30,11 +30,35 @@ mkdir -p /mnt/storage/media/youtube
 mkdir -p /mnt/cachehdd/qbittorrent-incomplete
 mkdir -p /mnt/cachehdd/jellyfin-cache
 mkdir -p /mnt/cachehdd/kopia-cache
+mkdir -p /mnt/cachehdd/immich-ml-cache
+mkdir -p /mnt/cachehdd/loki/data
+mkdir -p /mnt/cachehdd/slskd/logs
+mkdir -p /mnt/cachehdd/slskd-incomplete
+
+# SSD directories (for high-I/O database and application data)
+mkdir -p /mnt/ssd/docker-data/postgres
+mkdir -p /mnt/ssd/docker-data/mongo
+mkdir -p /mnt/ssd/docker-data/mongo-config
+mkdir -p /mnt/ssd/docker-data/redis-cache
+mkdir -p /mnt/ssd/docker-data/immich-postgres
+mkdir -p /mnt/ssd/docker-data/gitea
+mkdir -p /mnt/ssd/docker-data/n8n
+mkdir -p /mnt/ssd/docker-data/paperless-data
+mkdir -p /mnt/ssd/docker-data/crowdsec-db
+mkdir -p /mnt/ssd/docker-data/crowdsec-config
+mkdir -p /mnt/ssd/docker-data/sentry
+
+# Paperless directories on HDD storage
+mkdir -p /mnt/storage/paperless/media
+mkdir -p /mnt/storage/paperless/consume
+mkdir -p /mnt/storage/paperless/export
+mkdir -p /mnt/storage/slskd-shared
 
 echo "Setting permissions..."
 
 # Set ownership to PUID:PGID (1000:1000 by default)
 chown -R ${PUID:-1000}:${PGID:-1000} /mnt/storage
 chown -R ${PUID:-1000}:${PGID:-1000} /mnt/cachehdd
+chown -R ${PUID:-1000}:${PGID:-1000} /mnt/ssd/docker-data
 
 echo "Storage initialization complete!"
