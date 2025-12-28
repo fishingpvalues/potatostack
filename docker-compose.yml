@@ -153,12 +153,14 @@ services:
           cpus: '0.25'
           memory: 128M
 
-  # Redis Shared Cache - SOTA 2025 for services speedup
+  # Redis Shared Cache - SOTA 2025 consolidated (N8n, Gitea, Immich, Paperless, Sentry)
   redis-cache:
     image: redis:${REDIS_TAG:-7-alpine}
     container_name: redis-cache
     logging: *default-logging
-    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lfu --activedefrag yes --lazyfree-lazy-eviction yes --lazyfree-lazy-expire yes --save "" --appendonly no
+    command: redis-server --maxmemory 1gb --maxmemory-policy allkeys-lfu --databases 16 --activedefrag yes --lazyfree-lazy-eviction yes --lazyfree-lazy-expire yes --lazyfree-lazy-server-del yes --save 60 1000 --appendonly yes --appendfsync everysec
+    volumes:
+      - redis-cache-data:/data
     networks:
       - potatostack
     restart: unless-stopped
@@ -171,10 +173,10 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 512M
+          memory: 1G
         reservations:
-          cpus: '0.1'
-          memory: 256M
+          cpus: '0.25'
+          memory: 512M
 
   ################################################################################
   # SECURITY & INTRUSION PREVENTION
@@ -950,7 +952,11 @@ services:
     #   - "107"  # render group - adjust to match your system
     # devices:
     #   - /dev/dri/renderD128:/dev/dri/renderD128
-    #   - /dev/dri/card0:/dev/dri/card0
+    devices:
+      - /dev/dri/renderD128:/dev/dri/renderD128
+      - /dev/dri/card0:/dev/dri/card0
+    group_add:
+      - "109"
     volumes:
       - jellyfin-config:/config
       - /mnt/storage/media/tv:/data/tvshows
@@ -966,10 +972,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'
+          cpus: '1.5'
           memory: 2G
         reservations:
-          cpus: '1.0'
+          cpus: '0.75'
           memory: 1G
 
   # Jellyseerr - Media request management for Jellyfin
@@ -983,26 +989,6 @@ services:
       <<: *common-env
     volumes:
       - jellyseerr-config:/app/config
-    networks:
-      - potatostack
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 256M
-
-  # Overseerr - Alternative media request management
-  overseerr:
-    image: lscr.io/linuxserver/overseerr:${OVERSEERR_TAG:-latest}
-    container_name: overseerr
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.40}:5056:5055"
-    environment:
-      <<: *common-env
-    volumes:
-      - overseerr-config:/config
     networks:
       - potatostack
     restart: unless-stopped
@@ -1224,22 +1210,6 @@ services:
           cpus: '1.0'
           memory: 512M
 
-  immich-redis:
-    image: redis:${REDIS_TAG:-7-alpine}
-    container_name: immich-redis
-    logging: *default-logging
-    command: redis-server --save 60 1 --appendonly yes --appendfsync everysec --maxmemory 256mb --maxmemory-policy allkeys-lru
-    volumes:
-      - immich-redis:/data
-    networks:
-      - potatostack
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 256M
-
   immich-server:
     image: ghcr.io/immich-app/immich-server:${IMMICH_TAG:-release}
     container_name: immich-server
@@ -1252,7 +1222,8 @@ services:
       DB_USERNAME: immich
       DB_PASSWORD: ${IMMICH_DB_PASSWORD}
       DB_DATABASE_NAME: immich
-      REDIS_HOSTNAME: immich-redis
+      REDIS_HOSTNAME: redis-cache
+      REDIS_DBINDEX: 0
       UPLOAD_LOCATION: /usr/src/app/upload
     volumes:
       - /mnt/storage/photos:/usr/src/app/upload
@@ -1261,7 +1232,7 @@ services:
       - potatostack
     depends_on:
       - immich-postgres
-      - immich-redis
+      - redis-cache
       - storage-init
     restart: unless-stopped
     deploy:
@@ -1284,8 +1255,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'
+          cpus: '1.0'
           memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
 
   ################################################################################
   # MONITORING & OBSERVABILITY
@@ -1554,8 +1528,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'
+          cpus: '0.75'
           memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 512M
 
   # Linkding - Bookmark manager
   linkding:
@@ -1739,22 +1716,6 @@ services:
       - "traefik.http.services.memos.loadbalancer.server.port=5230"
 
   # Paperless-ngx - Document management system (SOTA 2025)
-  paperless-redis:
-    image: redis:${REDIS_TAG:-7-alpine}
-    container_name: paperless-redis
-    logging: *default-logging
-    command: redis-server --save 60 1 --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
-    volumes:
-      - paperless-redis:/data
-    networks:
-      - potatostack
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 256M
-
   paperless-ngx:
     image: ghcr.io/paperless-ngx/paperless-ngx:${PAPERLESS_TAG:-latest}
     container_name: paperless-ngx
@@ -1763,7 +1724,7 @@ services:
       - "${HOST_BIND:-192.168.178.40}:8092:8000"
     environment:
       <<: *common-env
-      PAPERLESS_REDIS: redis://paperless-redis:6379
+      PAPERLESS_REDIS: redis://redis-cache:6379/1
       PAPERLESS_DBHOST: postgres
       PAPERLESS_DBNAME: paperless
       PAPERLESS_DBUSER: postgres
@@ -1783,7 +1744,7 @@ services:
       - potatostack
     depends_on:
       - postgres
-      - paperless-redis
+      - redis-cache
       - storage-init
     restart: unless-stopped
     healthcheck:
@@ -1794,10 +1755,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'
+          cpus: '1.0'
           memory: 2G
         reservations:
-          cpus: '1.0'
+          cpus: '0.5'
           memory: 1G
     labels:
       - "traefik.enable=true"
@@ -1910,59 +1871,6 @@ services:
           cpus: '0.25'
           memory: 256M
 
-  # Drone CI - Alternative CI/CD
-  drone:
-    image: drone/drone:${DRONE_TAG:-latest}
-    container_name: drone
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.40}:8089:80"
-    environment:
-      <<: *common-env
-      DRONE_GITEA_SERVER: http://gitea:3000
-      DRONE_GITEA_CLIENT_ID: ${DRONE_GITEA_CLIENT_ID}
-      DRONE_GITEA_CLIENT_SECRET: ${DRONE_GITEA_CLIENT_SECRET}
-      DRONE_RPC_SECRET: ${DRONE_RPC_SECRET}
-      DRONE_SERVER_HOST: drone.${HOST_DOMAIN:-local.domain}
-      DRONE_SERVER_PROTO: https
-      DRONE_USER_CREATE: username:${DRONE_ADMIN_USER},admin:true
-    volumes:
-      - drone-data:/data
-    networks:
-      - potatostack
-    depends_on:
-      - gitea
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 256M
-
-  drone-runner:
-    image: drone/drone-runner-docker:${DRONE_RUNNER_TAG:-latest}
-    container_name: drone-runner
-    logging: *default-logging
-    environment:
-      <<: *common-env
-      DRONE_RPC_PROTO: http
-      DRONE_RPC_HOST: drone
-      DRONE_RPC_SECRET: ${DRONE_RPC_SECRET}
-      DRONE_RUNNER_CAPACITY: 2
-      DRONE_RUNNER_NAME: docker-runner
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - potatostack
-    depends_on:
-      - drone
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 256M
-
   # Sentry - Error tracking
   sentry-postgres:
     image: postgres:${POSTGRES_TAG:-16-alpine}
@@ -1986,22 +1894,6 @@ services:
           cpus: '1.0'
           memory: 512M
 
-  sentry-redis:
-    image: redis:${REDIS_TAG:-7-alpine}
-    container_name: sentry-redis
-    logging: *default-logging
-    command: redis-server --save 60 1 --appendonly yes --appendfsync everysec --maxmemory 256mb --maxmemory-policy allkeys-lru
-    volumes:
-      - sentry-redis:/data
-    networks:
-      - potatostack
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 256M
-
   sentry:
     image: sentry:${SENTRY_TAG:-latest}
     container_name: sentry
@@ -2014,20 +1906,24 @@ services:
       SENTRY_POSTGRES_HOST: sentry-postgres
       SENTRY_DB_USER: sentry
       SENTRY_DB_PASSWORD: ${SENTRY_DB_PASSWORD}
-      SENTRY_REDIS_HOST: sentry-redis
+      SENTRY_REDIS_HOST: redis-cache
+      SENTRY_REDIS_DB: 2
     volumes:
       - sentry-data:/var/lib/sentry/files
     networks:
       - potatostack
     depends_on:
       - sentry-postgres
-      - sentry-redis
+      - redis-cache
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          cpus: '2.0'
+          cpus: '1.0'
           memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
   ################################################################################
   # AI & SPECIAL APPLICATIONS
@@ -2185,45 +2081,6 @@ services:
       - "traefik.http.routers.dockge.tls=true"
       - "traefik.http.services.dockge.loadbalancer.server.port=5001"
 
-  # Komodo - Modern container management (SOTA 2025/2026)
-  komodo:
-    image: ghcr.io/mbecker20/komodo:${KOMODO_TAG:-latest}
-    container_name: komodo
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.40}:9120:9120"
-    environment:
-      KOMODO_HOST: "0.0.0.0"
-      KOMODO_PORT: "9120"
-      KOMODO_DATABASE_URL: "mongodb://root:${MONGO_ROOT_PASSWORD}@mongo:27017/komodo?authSource=admin"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - komodo-data:/data
-    networks:
-      - potatostack
-    depends_on:
-      - mongo
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:9120/ || exit 1"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-        reservations:
-          cpus: '0.25'
-          memory: 256M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.komodo.rule=Host(`komodo.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.komodo.entrypoints=websecure"
-      - "traefik.http.routers.komodo.tls=true"
-      - "traefik.http.services.komodo.loadbalancer.server.port=9120"
-
   ################################################################################
   # ENTERPRISE SECURITY & SECRETS MANAGEMENT
   ################################################################################
@@ -2323,132 +2180,6 @@ services:
         reservations:
           cpus: '0.25'
           memory: 256M
-
-  ################################################################################
-  # ENTERPRISE OBSERVABILITY - APM & DISTRIBUTED TRACING
-  ################################################################################
-
-  # SigNoz ClickHouse - Time-series database for observability
-  signoz-clickhouse:
-    image: clickhouse/clickhouse-server:${CLICKHOUSE_TAG:-23.11-alpine}
-    container_name: signoz-clickhouse
-    logging: *default-logging
-    environment:
-      <<: *common-env
-    volumes:
-      - signoz-clickhouse-data:/var/lib/clickhouse/
-      - ./config/signoz/clickhouse-config.xml:/etc/clickhouse-server/config.d/logging.xml:ro
-      - ./config/signoz/clickhouse-users.xml:/etc/clickhouse-server/users.d/logging.xml:ro
-    networks:
-      - potatostack
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 2G
-        reservations:
-          cpus: '1.0'
-          memory: 1G
-
-  # SigNoz OpenTelemetry Collector - Telemetry data collection
-  signoz-otel-collector:
-    image: signoz/signoz-otel-collector:${SIGNOZ_TAG:-0.88.11}
-    container_name: signoz-otel-collector
-    logging: *default-logging
-    command: ["--config=/etc/otel-collector-config.yaml"]
-    environment:
-      <<: *common-env
-    volumes:
-      - ./config/signoz/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
-    ports:
-      - "${HOST_BIND:-192.168.178.40}:4317:4317"   # OTLP gRPC
-      - "${HOST_BIND:-192.168.178.40}:4318:4318"   # OTLP HTTP
-    networks:
-      - potatostack
-    depends_on:
-      - signoz-clickhouse
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 512M
-        reservations:
-          cpus: '0.5'
-          memory: 256M
-
-  # SigNoz Query Service - Query and aggregation layer
-  signoz-query-service:
-    image: signoz/query-service:${SIGNOZ_TAG:-0.88.11}
-    container_name: signoz-query-service
-    logging: *default-logging
-    command: ["-config=/root/config/prometheus.yml"]
-    environment:
-      <<: *common-env
-      ClickHouseUrl: tcp://signoz-clickhouse:9000
-      STORAGE: clickhouse
-      GODEBUG: netdns=go
-      TELEMETRY_ENABLED: "true"
-      DEPLOYMENT_TYPE: docker-standalone-amd
-    volumes:
-      - ./config/signoz/prometheus.yml:/root/config/prometheus.yml:ro
-      - signoz-dashboards:/root/config/dashboards
-    ports:
-      - "${HOST_BIND:-192.168.178.40}:8080:8080"
-    networks:
-      - potatostack
-    depends_on:
-      - signoz-clickhouse
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8080/api/v1/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 1G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
-
-  # SigNoz Frontend - Web UI for observability
-  signoz-frontend:
-    image: signoz/frontend:${SIGNOZ_TAG:-0.88.11}
-    container_name: signoz-frontend
-    logging: *default-logging
-    environment:
-      <<: *common-env
-      FRONTEND_API_ENDPOINT: http://signoz-query-service:8080
-    ports:
-      - "${HOST_BIND:-192.168.178.40}:3301:3301"
-    networks:
-      - potatostack
-    depends_on:
-      - signoz-query-service
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-        reservations:
-          cpus: '0.25'
-          memory: 256M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.signoz.rule=Host(`observability.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.signoz.entrypoints=websecure"
-      - "traefik.http.routers.signoz.tls=true"
-      - "traefik.http.services.signoz.loadbalancer.server.port=3301"
 
   # Alertmanager - Alert routing and management
   alertmanager:
@@ -2657,6 +2388,7 @@ volumes:
   postgres-data:
   mongo-data:
   mongo-config:
+  redis-cache-data:
 
   # Authentication
   authentik-postgres:
@@ -2686,7 +2418,6 @@ volumes:
   maintainerr-data:
   jellyfin-config:
   jellyseerr-config:
-  overseerr-config:
   audiobookshelf-config:
 
   # Downloads
@@ -2696,7 +2427,6 @@ volumes:
 
   # Photos
   immich-postgres:
-  immich-redis:
 
   # Monitoring
   uptime-kuma-data:
@@ -2716,9 +2446,7 @@ volumes:
   # Development
   gitea-data:
   gitea-runner-data:
-  drone-data:
   sentry-postgres:
-  sentry-redis:
   sentry-data:
 
   # AI & Special
@@ -2749,7 +2477,6 @@ volumes:
   actual-data:
 
   # Utilities
-  paperless-redis:
   paperless-data:
   paperless-media:
   pingvin-data:
@@ -2769,9 +2496,4 @@ volumes:
   trivy-cache:
 
   # Enterprise Observability
-  signoz-clickhouse-data:
-  signoz-dashboards:
   alertmanager-data:
-
-  # Enterprise Container Management
-  komodo-data:
