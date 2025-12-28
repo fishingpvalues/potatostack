@@ -1,0 +1,69 @@
+################################################################################
+# OpenTelemetry Collector Configuration for SigNoz
+################################################################################
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  # Prometheus metrics scraping
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'otel-collector'
+          scrape_interval: 30s
+          static_configs:
+            - targets: ['localhost:8888']
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 400
+
+  resource:
+    attributes:
+      - key: service.name
+        value: potatostack
+        action: insert
+
+exporters:
+  clickhouse:
+    endpoint: tcp://signoz-clickhouse:9000?database=signoz_traces
+    ttl_days: 7
+    traces_table_name: signoz_traces
+    logs_table_name: signoz_logs
+    metrics_table_name: signoz_metrics
+
+  logging:
+    loglevel: info
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [clickhouse, logging]
+
+    metrics:
+      receivers: [otlp, prometheus]
+      processors: [memory_limiter, batch, resource]
+      exporters: [clickhouse]
+
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [clickhouse, logging]
+
+  telemetry:
+    logs:
+      level: "info"
+    metrics:
+      address: 0.0.0.0:8888

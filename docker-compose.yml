@@ -32,8 +32,6 @@ services:
       - ./init-storage.sh:/init-storage.sh:ro
     network_mode: none
     restart: "no"
-    labels:
-      - "com.centurylinklabs.watchtower.enable=false"
 
   ################################################################################
   # CORE DATABASES
@@ -49,7 +47,7 @@ services:
       <<: *common-env
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-nextcloud,firefly,authentik,gitea,immich,calibre,linkding,n8n,healthchecks,stirlingpdf,grafana,huginn,calcom,atuin}
+      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-nextcloud,authentik,gitea,immich,calibre,linkding,n8n,healthchecks,stirlingpdf,calcom,atuin,homarr,paperless,pingvin}
     command:
       - "postgres"
       - "-c"
@@ -86,8 +84,10 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 1G
         reservations:
+          cpus: '0.5'
           memory: 512M
 
   # MongoDB - Document database
@@ -118,8 +118,10 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '2.0'
           memory: 1G
         reservations:
+          cpus: '0.5'
           memory: 512M
 
   # Redis - Cache and session storage
@@ -141,8 +143,10 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 512M
         reservations:
+          cpus: '0.25'
           memory: 256M
 
   # Adminer - Database management UI
@@ -165,7 +169,63 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 128M
+
+  ################################################################################
+  # SECURITY & INTRUSION PREVENTION
+  ################################################################################
+
+  # CrowdSec - Modern IPS/IDS with community threat intelligence (SOTA 2025)
+  crowdsec:
+    image: crowdsecurity/crowdsec:${CROWDSEC_TAG:-latest}
+    container_name: crowdsec
+    logging: *default-logging
+    environment:
+      <<: *common-env
+      COLLECTIONS: "crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors crowdsecurity/nginx crowdsecurity/linux"
+      GID: "1000"
+    volumes:
+      - crowdsec-db:/var/lib/crowdsec/data/
+      - crowdsec-config:/etc/crowdsec/
+      - /var/log:/var/log:ro
+      - traefik-logs:/var/log/traefik:ro
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "cscli", "version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  # CrowdSec Traefik Bouncer - Blocks malicious IPs at reverse proxy level
+  crowdsec-traefik-bouncer:
+    image: fbonalair/traefik-crowdsec-bouncer:${CROWDSEC_BOUNCER_TAG:-latest}
+    container_name: crowdsec-traefik-bouncer
+    logging: *default-logging
+    environment:
+      CROWDSEC_BOUNCER_API_KEY: ${CROWDSEC_BOUNCER_KEY}
+      CROWDSEC_AGENT_HOST: crowdsec:8080
+      GIN_MODE: release
+    networks:
+      - potatostack
+    depends_on:
+      - crowdsec
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 64M
 
   ################################################################################
   # REVERSE PROXY & SSL
@@ -234,33 +294,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
-
-  # Nginx Proxy Manager - Alternative reverse proxy with UI
-  npm:
-    image: jc21/nginx-proxy-manager:${NPM_TAG:-latest}
-    container_name: npm
-    logging: *default-logging
-    ports:
-      - "81:81"      # Admin UI
-      - "8081:80"    # HTTP
-      - "4443:443"   # HTTPS
-    environment:
-      <<: *common-env
-    volumes:
-      - npm-data:/data
-      - npm-letsencrypt:/etc/letsencrypt
-    networks:
-      - potatostack
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:81"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-    deploy:
-      resources:
-        limits:
+          cpus: '0.25'
           memory: 256M
 
   ################################################################################
@@ -302,6 +336,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 512M
 
   authentik-server:
@@ -331,6 +366,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '2.0'
           memory: 1G
 
   authentik-worker:
@@ -356,6 +392,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 512M
 
   # Vaultwarden - Password manager and 2FA aggregator
@@ -388,6 +425,11 @@ services:
       interval: 60s
       timeout: 10s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.vaultwarden.rule=Host(`vault.${HOST_DOMAIN:-local.domain}`)"
@@ -395,10 +437,48 @@ services:
       - "traefik.http.routers.vaultwarden.tls=true"
       - "traefik.http.services.vaultwarden.loadbalancer.server.port=80"
       - "traefik.http.routers.vaultwarden.middlewares=security-headers@docker"
+
+  ################################################################################
+  # DNS & AD BLOCKING
+  ################################################################################
+
+  # AdGuard Home - DNS-level ad blocking with encrypted DNS (SOTA 2025)
+  adguardhome:
+    image: adguard/adguardhome:${ADGUARD_TAG:-latest}
+    container_name: adguardhome
+    logging: *default-logging
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "${HOST_BIND:-192.168.178.40}:3053:3000"
+      - "${HOST_BIND:-192.168.178.40}:8053:80"
+    environment:
+      <<: *common-env
+    volumes:
+      - adguard-work:/opt/adguardhome/work
+      - adguard-conf:/opt/adguardhome/conf
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:80/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.adguard.rule=Host(`dns.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.adguard.entrypoints=websecure"
+      - "traefik.http.routers.adguard.tls=true"
+      - "traefik.http.services.adguard.loadbalancer.server.port=80"
 
   ################################################################################
   # VPN & NETWORKING
@@ -438,6 +518,9 @@ services:
       FIREWALL_OUTBOUND_SUBNETS: ${LAN_NETWORK:-192.168.178.0/24}
       FIREWALL_VPN_INPUT_PORTS: 51413,6800,50000
       HTTP_CONTROL_SERVER_ADDRESS: :8000
+      LOG_LEVEL: info
+      HEALTH_VPN_DURATION_INITIAL: 60s
+      HEALTH_VPN_DURATION_ADDITION: 10s
     volumes:
       - gluetun-config:/gluetun
     networks:
@@ -448,10 +531,17 @@ services:
       interval: 120s
       timeout: 10s
       retries: 3
+      start_period: 120s
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    labels:
+      - "autoheal=true"
 
   # Tailscale - Mesh VPN for remote access (SOTA 2025 - easiest option)
   tailscale:
@@ -475,40 +565,8 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 256M
-
-  # WireGuard Server - For VPS gateway connection and advanced users
-  # Use this for public domain access via VPS or direct client connections
-  wireguard-server:
-    image: lscr.io/linuxserver/wireguard:${WIREGUARD_TAG:-latest}
-    container_name: wireguard-server
-    logging: *default-logging
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-    environment:
-      <<: *common-env
-      SERVERURL: ${WIREGUARD_SERVERURL:-auto}
-      SERVERPORT: ${WIREGUARD_SERVERPORT:-51820}
-      PEERS: ${WIREGUARD_PEERS:-vps,android,laptop,tablet}
-      PEERDNS: ${WIREGUARD_PEERDNS:-auto}
-      INTERNAL_SUBNET: ${WIREGUARD_INTERNAL_SUBNET:-10.13.13.0/24}
-      ALLOWEDIPS: ${WIREGUARD_ALLOWEDIPS:-0.0.0.0/0}
-      LOG_CONFS: ${WIREGUARD_LOG_CONFS:-true}
-    volumes:
-      - wireguard-config:/config
-      - /lib/modules:/lib/modules:ro
-    ports:
-      - "${WIREGUARD_SERVERPORT:-51820}:51820/udp"
-    sysctls:
-      - net.ipv4.conf.all.src_valid_mark=1
-    networks:
-      - potatostack
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 128M
 
   ################################################################################
   # CLOUD STORAGE & FILE SYNC
@@ -545,9 +603,8 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 512M
-    labels:
-      - "com.centurylinklabs.watchtower.enable=false"
 
   # Syncthing - P2P file sync
   syncthing:
@@ -576,139 +633,50 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 512M
 
   ################################################################################
   # KNOWLEDGE MANAGEMENT
   ################################################################################
 
-  # CouchDB - For Obsidian LiveSync (SOTA 2025 self-hosted sync)
-  couchdb:
-    image: couchdb:${COUCHDB_TAG:-latest}
-    container_name: couchdb
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.40}:5984:5984"
-    environment:
-      <<: *common-env
-      COUCHDB_USER: ${COUCHDB_USER:-admin}
-      COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
-    volumes:
-      - couchdb-data:/opt/couchdb/data
-      - couchdb-config:/opt/couchdb/etc/local.d
-    networks:
-      - potatostack
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5984/_up"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
-
-  # CouchDB Setup - Initialize database for Obsidian LiveSync
-  couchdb-setup:
-    image: curlimages/curl:${CURL_TAG:-latest}
-    container_name: couchdb-setup
-    command: >
-      sh -c '
-        sleep 10 &&
-        curl -X PUT http://${COUCHDB_USER:-admin}:${COUCHDB_PASSWORD}@couchdb:5984/obsidian &&
-        curl -X PUT http://${COUCHDB_USER:-admin}:${COUCHDB_PASSWORD}@couchdb:5984/_users &&
-        curl -X PUT http://${COUCHDB_USER:-admin}:${COUCHDB_PASSWORD}@couchdb:5984/_replicator &&
-        curl -X PUT http://${COUCHDB_USER:-admin}:${COUCHDB_PASSWORD}@couchdb:5984/_global_changes
-      '
-    depends_on:
-      - couchdb
-    networks:
-      - potatostack
-    restart: "no"
-
   ################################################################################
   # FINANCE
   ################################################################################
 
-  # Firefly III - Financial management with Deutsche Bank CSV support
-  firefly-db:
-    image: postgres:${POSTGRES_TAG:-16-alpine}
-    container_name: firefly-db
+  # Actual Budget - Modern budgeting with bank sync (SOTA 2025)
+  actual-budget:
+    image: actualbudget/actual-server:${ACTUAL_TAG:-latest}
+    container_name: actual-budget
     logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:5006:5006"
     environment:
-      POSTGRES_USER: firefly
-      POSTGRES_PASSWORD: ${FIREFLY_DB_PASSWORD}
-      POSTGRES_DB: firefly
+      <<: *common-env
     volumes:
-      - firefly-db:/var/lib/postgresql/data
+      - actual-data:/data
     networks:
       - potatostack
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U firefly"]
-      interval: 30s
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:5006/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
     deploy:
       resources:
         limits:
-          memory: 512M
-
-  firefly:
-    image: fireflyiii/core:${FIREFLY_TAG:-latest}
-    container_name: firefly
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.40}:8083:8080"
-    environment:
-      <<: *common-env
-      APP_KEY: ${FIREFLY_APP_KEY}
-      DB_HOST: firefly-db
-      DB_PORT: 5432
-      DB_CONNECTION: pgsql
-      DB_DATABASE: firefly
-      DB_USERNAME: firefly
-      DB_PASSWORD: ${FIREFLY_DB_PASSWORD}
-      TRUSTED_PROXIES: "**"
-      APP_URL: https://firefly.${HOST_DOMAIN:-local.domain}
-    volumes:
-      - firefly-upload:/var/www/html/storage/upload
-    networks:
-      - potatostack
-    depends_on:
-      - firefly-db
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-
-  # Firefly III Data Importer - CSV import tool
-  firefly-importer:
-    image: fireflyiii/data-importer:${FIREFLY_IMPORTER_TAG:-latest}
-    container_name: firefly-importer
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.40}:8084:8080"
-    environment:
-      <<: *common-env
-      FIREFLY_III_URL: http://firefly:8080
-      VANITY_URL: https://firefly.${HOST_DOMAIN:-local.domain}
-      FIREFLY_III_ACCESS_TOKEN: ${FIREFLY_ACCESS_TOKEN}
-      NORDIGEN_ID: ${NORDIGEN_ID:-}
-      NORDIGEN_KEY: ${NORDIGEN_KEY:-}
-      SPECTRE_APP_ID: ${SPECTRE_APP_ID:-}
-      SPECTRE_SECRET: ${SPECTRE_SECRET:-}
-    networks:
-      - potatostack
-    depends_on:
-      - firefly
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
+          cpus: '0.25'
           memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.actual.rule=Host(`budget.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.actual.entrypoints=websecure"
+      - "traefik.http.routers.actual.tls=true"
+      - "traefik.http.services.actual.loadbalancer.server.port=5006"
 
   ################################################################################
   # MEDIA MANAGEMENT - *ARR STACK
@@ -725,13 +693,28 @@ services:
     volumes:
       - prowlarr-config:/config
     depends_on:
-      - gluetun
-      - storage-init
+      gluetun:
+        condition: service_healthy
+        restart: true
+      storage-init:
+        condition: service_completed_successfully
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:9696/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    labels:
+      - "autoheal=true"
 
   # Sonarr - TV show management
   sonarr:
@@ -747,13 +730,28 @@ services:
       - /mnt/storage/downloads:/downloads
       - /mnt/cachehdd/qbittorrent-incomplete:/downloads/incomplete
     depends_on:
-      - gluetun
-      - storage-init
+      gluetun:
+        condition: service_healthy
+        restart: true
+      storage-init:
+        condition: service_completed_successfully
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8989/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    labels:
+      - "autoheal=true"
 
   # Radarr - Movie management
   radarr:
@@ -769,13 +767,28 @@ services:
       - /mnt/storage/downloads:/downloads
       - /mnt/cachehdd/qbittorrent-incomplete:/downloads/incomplete
     depends_on:
-      - gluetun
-      - storage-init
+      gluetun:
+        condition: service_healthy
+        restart: true
+      storage-init:
+        condition: service_completed_successfully
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:7878/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    labels:
+      - "autoheal=true"
 
   # Lidarr - Music management
   lidarr:
@@ -791,13 +804,28 @@ services:
       - /mnt/storage/downloads:/downloads
       - /mnt/cachehdd/qbittorrent-incomplete:/downloads/incomplete
     depends_on:
-      - gluetun
-      - storage-init
+      gluetun:
+        condition: service_healthy
+        restart: true
+      storage-init:
+        condition: service_completed_successfully
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8686/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    labels:
+      - "autoheal=true"
 
   # Readarr - Ebook management
   readarr:
@@ -813,13 +841,28 @@ services:
       - /mnt/storage/downloads:/downloads
       - /mnt/cachehdd/qbittorrent-incomplete:/downloads/incomplete
     depends_on:
-      - gluetun
-      - storage-init
+      gluetun:
+        condition: service_healthy
+        restart: true
+      storage-init:
+        condition: service_completed_successfully
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8787/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    labels:
+      - "autoheal=true"
 
   # Bazarr - Subtitle management
   bazarr:
@@ -834,15 +877,32 @@ services:
       - /mnt/storage/media/movies:/movies
       - /mnt/storage/media/tv:/tv
     depends_on:
-      - gluetun
-      - sonarr
-      - radarr
-      - storage-init
+      gluetun:
+        condition: service_healthy
+        restart: true
+      sonarr:
+        condition: service_started
+      radarr:
+        condition: service_started
+      storage-init:
+        condition: service_completed_successfully
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:6767/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    labels:
+      - "autoheal=true"
 
   # Maintainerr - Media library cleanup
   maintainerr:
@@ -861,6 +921,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 256M
 
   ################################################################################
@@ -898,18 +959,13 @@ services:
     depends_on:
       - storage-init
     restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.jellyfin.rule=Host(`jellyfin.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.jellyfin.entrypoints=websecure"
-      - "traefik.http.routers.jellyfin.tls=true"
-      - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
-      - "traefik.http.routers.jellyfin.middlewares=security-headers@docker"
     deploy:
       resources:
         limits:
+          cpus: '2.0'
           memory: 2G
         reservations:
+          cpus: '1.0'
           memory: 1G
 
   # Jellyseerr - Media request management for Jellyfin
@@ -929,6 +985,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 256M
 
   # Overseerr - Alternative media request management
@@ -948,6 +1005,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 256M
 
   # Audiobookshelf - Audiobook and podcast server
@@ -972,6 +1030,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 512M
 
   ################################################################################
@@ -1009,7 +1068,11 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
     labels:
       - "autoheal=true"
 
@@ -1031,13 +1094,28 @@ services:
       - /mnt/storage/downloads:/downloads
       - /mnt/cachehdd/aria2-incomplete:/incomplete
     depends_on:
-      - gluetun
-      - storage-init
+      gluetun:
+        condition: service_healthy
+        restart: true
+      storage-init:
+        condition: service_completed_successfully
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:6800/jsonrpc || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    labels:
+      - "autoheal=true"
 
   # AriaNg - Aria2 web UI
   ariang:
@@ -1052,6 +1130,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.1'
           memory: 64M
 
   # slskd - Soulseek P2P client for music sharing
@@ -1060,6 +1139,7 @@ services:
     container_name: slskd
     logging: *default-logging
     network_mode: "service:gluetun"
+    entrypoint: sh /init.sh
     environment:
       <<: *common-env
       SLSKD_HTTP_PORT: 2234
@@ -1069,11 +1149,13 @@ services:
       SLSKD_SOULSEEK_USERNAME: ${SLSKD_SOULSEEK_USERNAME}
       SLSKD_SOULSEEK_PASSWORD: ${SLSKD_SOULSEEK_PASSWORD}
       SLSKD_METRICS: "false"
+      SLSKD_API_KEY: ${SLSKD_API_KEY}
     volumes:
       - slskd-config:/app
       - /mnt/cachehdd/slskd/logs:/app/logs
       - /mnt/storage/slskd-shared:/var/slskd/shared
       - /mnt/cachehdd/slskd-incomplete:/var/slskd/incomplete
+      - ./slskd-init.sh:/init.sh:ro
     depends_on:
       gluetun:
         condition: service_healthy
@@ -1082,7 +1164,7 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:2234/ || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:2234/ || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -1090,7 +1172,11 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
     labels:
       - "autoheal=true"
 
@@ -1131,6 +1217,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 512M
 
   immich-redis:
@@ -1146,6 +1233,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 256M
 
   immich-server:
@@ -1175,6 +1263,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '2.0'
           memory: 2G
 
   immich-machine-learning:
@@ -1191,78 +1280,12 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '2.0'
           memory: 2G
 
   ################################################################################
   # MONITORING & OBSERVABILITY
   ################################################################################
-
-  # Prometheus - Metrics collection
-  prometheus:
-    image: prom/prometheus:${PROMETHEUS_TAG:-latest}
-    container_name: prometheus
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.40}:9090:9090"
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=${PROMETHEUS_RETENTION_DAYS:-30d}'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-    volumes:
-      - ./config/prometheus:/etc/prometheus
-      - /mnt/cachehdd/prometheus/data:/prometheus
-    networks:
-      - potatostack
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-
-  # Grafana - Visualization and dashboards (SOTA 2025 provisioning)
-  grafana:
-    image: grafana/grafana:${GRAFANA_TAG:-latest}
-    container_name: grafana
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.40}:3000:3000"
-    environment:
-      <<: *common-env
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
-      GF_INSTALL_PLUGINS: ${GRAFANA_PLUGINS:-}
-      GF_SERVER_ROOT_URL: https://grafana.${HOST_DOMAIN:-local.domain}
-      GF_DATABASE_TYPE: postgres
-      GF_DATABASE_HOST: postgres:5432
-      GF_DATABASE_NAME: grafana
-      GF_DATABASE_USER: postgres
-      GF_DATABASE_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
-      GF_FEATURE_TOGGLES_ENABLE: traceqlEditor
-    volumes:
-      - grafana-data:/var/lib/grafana
-      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:rw
-    networks:
-      - potatostack
-    depends_on:
-      - prometheus
-      - postgres
-    restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=Host(`grafana.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.grafana.entrypoints=websecure"
-      - "traefik.http.routers.grafana.tls=true"
-      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 256M
 
   # Loki - Log aggregation
   loki:
@@ -1281,6 +1304,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 512M
 
   # Promtail - Log collector
@@ -1301,55 +1325,8 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 128M
-
-  # Node Exporter - System metrics
-  node-exporter:
-    image: prom/node-exporter:${NODE_EXPORTER_TAG:-latest}
-    container_name: node-exporter
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.40}:9100:9100"
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--path.rootfs=/rootfs'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    networks:
-      - potatostack
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-
-  # cAdvisor - Container metrics
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:${CADVISOR_TAG:-latest}
-    container_name: cadvisor
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.40}:9200:8080"
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /var/lib/docker:/var/lib/docker:ro
-      - /dev/disk:/dev/disk:ro
-    devices:
-      - /dev/kmsg:/dev/kmsg
-    privileged: true
-    networks:
-      - potatostack
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 256M
 
   # Fritzbox Exporter - Router metrics
   fritzbox-exporter:
@@ -1368,30 +1345,52 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 128M
 
-  # Netdata - Real-time performance monitoring
-  netdata:
-    image: netdata/netdata:${NETDATA_TAG:-latest}
-    container_name: netdata
+  # Beszel - Lightweight monitoring for systems and Docker (SOTA 2025)
+  beszel:
+    image: henrygd/beszel:${BESZEL_TAG:-latest}
+    container_name: beszel
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:19999:19999"
+      - "${HOST_BIND:-192.168.178.40}:8090:8090"
     environment:
       <<: *common-env
-    cap_add:
-      - SYS_PTRACE
-      - SYS_ADMIN
-    security_opt:
-      - apparmor:unconfined
     volumes:
-      - netdata-config:/etc/netdata
-      - /mnt/cachehdd/netdata/lib:/var/lib/netdata
-      - /mnt/cachehdd/netdata/cache:/var/cache/netdata
-      - /etc/passwd:/host/etc/passwd:ro
-      - /etc/group:/host/etc/group:ro
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
+      - beszel-data:/app/beszel_data
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:8090/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.beszel.rule=Host(`monitor.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.beszel.entrypoints=websecure"
+      - "traefik.http.routers.beszel.tls=true"
+      - "traefik.http.services.beszel.loadbalancer.server.port=8090"
+
+  # Beszel Agent - Monitoring agent for remote systems
+  beszel-agent:
+    image: henrygd/beszel-agent:${BESZEL_TAG:-latest}
+    container_name: beszel-agent
+    logging: *default-logging
+    environment:
+      PORT: 45876
+      KEY: ${BESZEL_AGENT_KEY}
+    volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - potatostack
@@ -1399,7 +1398,8 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          cpus: '0.1'
+          memory: 64M
 
   # Uptime Kuma - Uptime monitoring
   uptime-kuma:
@@ -1424,6 +1424,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 256M
 
   ################################################################################
@@ -1463,35 +1464,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
-
-  # Huginn - Self-hosted automation
-  huginn:
-    image: ghcr.io/huginn/huginn:${HUGINN_TAG:-latest}
-    container_name: huginn
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.40}:3002:3000"
-    environment:
-      <<: *common-env
-      DATABASE_ADAPTER: postgresql
-      DATABASE_HOST: postgres
-      DATABASE_NAME: huginn
-      DATABASE_USERNAME: postgres
-      DATABASE_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      APP_SECRET_TOKEN: ${HUGINN_SECRET_TOKEN}
-      DOMAIN: huginn.${HOST_DOMAIN:-local.domain}
-      INVITATION_CODE: ${HUGINN_INVITATION_CODE}
-    volumes:
-      - huginn-data:/var/lib/huginn
-    networks:
-      - potatostack
-    depends_on:
-      - postgres
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
+          cpus: '1.0'
           memory: 512M
 
   # Healthchecks - Cron monitoring
@@ -1524,6 +1497,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 256M
 
   ################################################################################
@@ -1548,6 +1522,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 128M
 
   # Stirling PDF - PDF tools
@@ -1571,6 +1546,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '2.0'
           memory: 1G
 
   # Linkding - Bookmark manager
@@ -1600,6 +1576,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 256M
 
   # Cal.com - Calendar scheduling
@@ -1623,6 +1600,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 512M
 
   # Code Server - VS Code in browser
@@ -1647,24 +1625,8 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '2.0'
           memory: 1G
-
-  # Draw.io - Diagramming tool
-  drawio:
-    image: jgraph/drawio:${DRAWIO_TAG:-latest}
-    container_name: drawio
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.40}:8087:8080"
-    environment:
-      <<: *common-env
-    networks:
-      - potatostack
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 256M
 
   # Excalidraw - Sketching tool
   excalidraw:
@@ -1681,6 +1643,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 128M
 
   # Atuin - Shell history sync
@@ -1704,7 +1667,170 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 256M
+
+  # IT-Tools - Collection of handy online tools (SOTA 2025)
+  it-tools:
+    image: corentinth/it-tools:${IT_TOOLS_TAG:-latest}
+    container_name: it-tools
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8091:80"
+    environment:
+      <<: *common-env
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:80/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ittools.rule=Host(`tools.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.ittools.entrypoints=websecure"
+      - "traefik.http.routers.ittools.tls=true"
+      - "traefik.http.services.ittools.loadbalancer.server.port=80"
+
+  # Memos - Lightweight note-taking (SOTA 2025)
+  memos:
+    image: neosmemo/memos:${MEMOS_TAG:-latest}
+    container_name: memos
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:5230:5230"
+    environment:
+      <<: *common-env
+    volumes:
+      - memos-data:/var/opt/memos
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:5230/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.memos.rule=Host(`memos.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.memos.entrypoints=websecure"
+      - "traefik.http.routers.memos.tls=true"
+      - "traefik.http.services.memos.loadbalancer.server.port=5230"
+
+  # Paperless-ngx - Document management system (SOTA 2025)
+  paperless-redis:
+    image: redis:${REDIS_TAG:-7-alpine}
+    container_name: paperless-redis
+    logging: *default-logging
+    command: redis-server --save 60 1 --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - paperless-redis:/data
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+
+  paperless-ngx:
+    image: ghcr.io/paperless-ngx/paperless-ngx:${PAPERLESS_TAG:-latest}
+    container_name: paperless-ngx
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8092:8000"
+    environment:
+      <<: *common-env
+      PAPERLESS_REDIS: redis://paperless-redis:6379
+      PAPERLESS_DBHOST: postgres
+      PAPERLESS_DBNAME: paperless
+      PAPERLESS_DBUSER: postgres
+      PAPERLESS_DBPASS: ${POSTGRES_SUPER_PASSWORD}
+      PAPERLESS_URL: https://docs.${HOST_DOMAIN:-local.domain}
+      PAPERLESS_SECRET_KEY: ${PAPERLESS_SECRET_KEY}
+      PAPERLESS_ADMIN_USER: ${PAPERLESS_ADMIN_USER:-admin}
+      PAPERLESS_ADMIN_PASSWORD: ${PAPERLESS_ADMIN_PASSWORD}
+      PAPERLESS_OCR_LANGUAGE: deu+eng
+      PAPERLESS_TIME_ZONE: Europe/Berlin
+    volumes:
+      - paperless-data:/usr/src/paperless/data
+      - paperless-media:/usr/src/paperless/media
+      - /mnt/storage/paperless/consume:/usr/src/paperless/consume
+      - /mnt/storage/paperless/export:/usr/src/paperless/export
+    networks:
+      - potatostack
+    depends_on:
+      - postgres
+      - paperless-redis
+      - storage-init
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8000/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.paperless.rule=Host(`docs.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.paperless.entrypoints=websecure"
+      - "traefik.http.routers.paperless.tls=true"
+      - "traefik.http.services.paperless.loadbalancer.server.port=8000"
+
+  # Pingvin Share - Secure file sharing (SOTA 2025)
+  pingvin-share:
+    image: stonith404/pingvin-share:${PINGVIN_TAG:-latest}
+    container_name: pingvin-share
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:3007:3000"
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgresql://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/pingvin
+    volumes:
+      - pingvin-data:/opt/app/backend/data
+    networks:
+      - potatostack
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:3000/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pingvin.rule=Host(`share.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.pingvin.entrypoints=websecure"
+      - "traefik.http.routers.pingvin.tls=true"
+      - "traefik.http.services.pingvin.loadbalancer.server.port=3000"
 
   ################################################################################
   # DEVELOPMENT & GIT
@@ -1741,6 +1867,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 512M
 
   # Gitea Runner - CI/CD for Gitea
@@ -1764,6 +1891,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 256M
 
   # Drone CI - Alternative CI/CD
@@ -1792,6 +1920,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 256M
 
   drone-runner:
@@ -1815,6 +1944,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 256M
 
   # Sentry - Error tracking
@@ -1837,6 +1967,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 512M
 
   sentry-redis:
@@ -1852,6 +1983,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 256M
 
   sentry:
@@ -1878,6 +2010,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '2.0'
           memory: 1G
 
   ################################################################################
@@ -1905,6 +2038,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '2.0'
           memory: 1G
 
   # OctoBot - AI crypto trading
@@ -1927,6 +2061,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 512M
 
   # Pinchflat - YouTube downloader
@@ -1950,114 +2085,393 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '1.0'
           memory: 512M
 
   ################################################################################
-  # ELASTICSEARCH STACK
+  # DASHBOARD & CONTAINER MANAGEMENT
   ################################################################################
 
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTICSEARCH_TAG:-8.11.0}
-    container_name: elasticsearch
+  # Homarr - Modern drag-and-drop dashboard with 30+ integrations (SOTA 2025)
+  homarr:
+    image: ghcr.io/homarr-labs/homarr:${HOMARR_TAG:-latest}
+    container_name: homarr
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:9200:9200"
-      - "${HOST_BIND:-192.168.178.40}:9300:9300"
+      - "${HOST_BIND:-192.168.178.40}:7575:7575"
     environment:
       <<: *common-env
-      discovery.type: single-node
-      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
-      xpack.security.enabled: "true"
-      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
-      bootstrap.memory_lock: "true"
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-      nofile:
-        soft: 65536
-        hard: 65536
+      SECRET_ENCRYPTION_KEY: ${HOMARR_SECRET_KEY}
+      DATABASE_URL: postgresql://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/homarr
     volumes:
-      - /mnt/cachehdd/elasticsearch/data:/usr/share/elasticsearch/data
-    networks:
-      - potatostack
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-
-  kibana:
-    image: docker.elastic.co/kibana/kibana:${KIBANA_TAG:-8.11.0}
-    container_name: kibana
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.40}:5601:5601"
-    environment:
-      <<: *common-env
-      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
-      ELASTICSEARCH_USERNAME: elastic
-      ELASTICSEARCH_PASSWORD: ${ELASTIC_PASSWORD}
+      - homarr-data:/app/data/configs
+      - homarr-icons:/app/public/icons
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - potatostack
     depends_on:
-      - elasticsearch
+      - postgres
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:7575/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.homarr.rule=Host(`home.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.homarr.entrypoints=websecure"
+      - "traefik.http.routers.homarr.tls=true"
+      - "traefik.http.services.homarr.loadbalancer.server.port=7575"
+
+  # Dockge - Modern Docker Compose stack manager (SOTA 2025)
+  dockge:
+    image: louislam/dockge:${DOCKGE_TAG:-latest}
+    container_name: dockge
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:5001:5001"
+    environment:
+      <<: *common-env
+      DOCKGE_STACKS_DIR: /opt/stacks
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - dockge-data:/app/data
+      - /opt/stacks:/opt/stacks
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:5001/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dockge.rule=Host(`dockge.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.dockge.entrypoints=websecure"
+      - "traefik.http.routers.dockge.tls=true"
+      - "traefik.http.services.dockge.loadbalancer.server.port=5001"
+
+  # Komodo - Modern container management (SOTA 2025/2026)
+  komodo:
+    image: ghcr.io/mbecker20/komodo:${KOMODO_TAG:-latest}
+    container_name: komodo
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:9120:9120"
+    environment:
+      KOMODO_HOST: "0.0.0.0"
+      KOMODO_PORT: "9120"
+      KOMODO_DATABASE_URL: "mongodb://root:${MONGO_ROOT_PASSWORD}@mongo:27017/komodo?authSource=admin"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - komodo-data:/data
+    networks:
+      - potatostack
+    depends_on:
+      - mongo
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:9120/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.komodo.rule=Host(`komodo.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.komodo.entrypoints=websecure"
+      - "traefik.http.routers.komodo.tls=true"
+      - "traefik.http.services.komodo.loadbalancer.server.port=9120"
+
+  ################################################################################
+  # ENTERPRISE SECURITY & SECRETS MANAGEMENT
+  ################################################################################
+
+  # HashiCorp Vault - Enterprise secrets management
+  vault:
+    image: hashicorp/vault:${VAULT_TAG:-latest}
+    container_name: vault
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8200:8200"
+    environment:
+      VAULT_ADDR: http://0.0.0.0:8200
+      VAULT_API_ADDR: http://0.0.0.0:8200
+      VAULT_LOCAL_CONFIG: '{"backend":{"file":{"path":"/vault/data"}},"default_lease_ttl":"168h","max_lease_ttl":"720h","ui":true,"listener":{"tcp":{"address":"0.0.0.0:8200","tls_disable":1}}}'
+    volumes:
+      - vault-data:/vault/data
+      - vault-logs:/vault/logs
+    cap_add:
+      - IPC_LOCK
+    command: server
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.vault.rule=Host(`vault.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.vault.entrypoints=websecure"
+      - "traefik.http.routers.vault.tls=true"
+      - "traefik.http.services.vault.loadbalancer.server.port=8200"
+
+  # Fail2Ban - Intrusion prevention
+  fail2ban:
+    image: crazymax/fail2ban:${FAIL2BAN_TAG:-latest}
+    container_name: fail2ban
+    logging: *default-logging
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      <<: *common-env
+      F2B_DB_PURGE_AGE: 30d
+      F2B_LOG_LEVEL: INFO
+      F2B_IPTABLES_CHAIN: DOCKER-USER
+    volumes:
+      - fail2ban-data:/data
+      - /var/log:/var/log:ro
+      - traefik-logs:/var/log/traefik:ro
     restart: unless-stopped
     deploy:
       resources:
         limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+  # Trivy - Vulnerability scanner
+  trivy:
+    image: aquasec/trivy:${TRIVY_TAG:-latest}
+    container_name: trivy
+    logging: *default-logging
+    command: ["server", "--listen", "0.0.0.0:8081"]
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8081:8081"
+    environment:
+      <<: *common-env
+      TRIVY_LISTEN: "0.0.0.0:8081"
+      TRIVY_CACHE_DIR: /root/.cache/trivy
+    volumes:
+      - trivy-cache:/root/.cache/
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  ################################################################################
+  # ENTERPRISE OBSERVABILITY - APM & DISTRIBUTED TRACING
+  ################################################################################
+
+  # SigNoz ClickHouse - Time-series database for observability
+  signoz-clickhouse:
+    image: clickhouse/clickhouse-server:${CLICKHOUSE_TAG:-23.11-alpine}
+    container_name: signoz-clickhouse
+    logging: *default-logging
+    environment:
+      <<: *common-env
+    volumes:
+      - signoz-clickhouse-data:/var/lib/clickhouse/
+      - ./config/signoz/clickhouse-config.xml:/etc/clickhouse-server/config.d/logging.xml:ro
+      - ./config/signoz/clickhouse-users.xml:/etc/clickhouse-server/users.d/logging.xml:ro
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
           memory: 1G
 
-  logstash:
-    image: docker.elastic.co/logstash/logstash:${LOGSTASH_TAG:-8.11.0}
-    container_name: logstash
+  # SigNoz OpenTelemetry Collector - Telemetry data collection
+  signoz-otel-collector:
+    image: signoz/signoz-otel-collector:${SIGNOZ_TAG:-0.88.11}
+    container_name: signoz-otel-collector
     logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.40}:5044:5044"
-      - "${HOST_BIND:-192.168.178.40}:9600:9600"
+    command: ["--config=/etc/otel-collector-config.yaml"]
     environment:
       <<: *common-env
-      LS_JAVA_OPTS: "-Xms256m -Xmx256m"
-      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
-      ELASTICSEARCH_USERNAME: elastic
-      ELASTICSEARCH_PASSWORD: ${ELASTIC_PASSWORD}
     volumes:
-      - ./config/logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
-      - ./config/logstash/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
-      - /mnt/cachehdd/logstash/data:/usr/share/logstash/data
+      - ./config/signoz/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:4317:4317"   # OTLP gRPC
+      - "${HOST_BIND:-192.168.178.40}:4318:4318"   # OTLP HTTP
     networks:
       - potatostack
     depends_on:
-      - elasticsearch
+      - signoz-clickhouse
     restart: unless-stopped
     deploy:
       resources:
         limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # SigNoz Query Service - Query and aggregation layer
+  signoz-query-service:
+    image: signoz/query-service:${SIGNOZ_TAG:-0.88.11}
+    container_name: signoz-query-service
+    logging: *default-logging
+    command: ["-config=/root/config/prometheus.yml"]
+    environment:
+      <<: *common-env
+      ClickHouseUrl: tcp://signoz-clickhouse:9000
+      STORAGE: clickhouse
+      GODEBUG: netdns=go
+      TELEMETRY_ENABLED: "true"
+      DEPLOYMENT_TYPE: docker-standalone-amd
+    volumes:
+      - ./config/signoz/prometheus.yml:/root/config/prometheus.yml:ro
+      - signoz-dashboards:/root/config/dashboards
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8080:8080"
+    networks:
+      - potatostack
+    depends_on:
+      - signoz-clickhouse
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8080/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
           memory: 512M
 
-  ################################################################################
-  # DASHBOARD
-  ################################################################################
-
-  # Glance - Modern dashboard (replacing Homepage)
-  glance:
-    image: glanceapp/glance:${GLANCE_TAG:-latest}
-    container_name: glance
+  # SigNoz Frontend - Web UI for observability
+  signoz-frontend:
+    image: signoz/frontend:${SIGNOZ_TAG:-0.88.11}
+    container_name: signoz-frontend
     logging: *default-logging
+    environment:
+      <<: *common-env
+      FRONTEND_API_ENDPOINT: http://signoz-query-service:8080
     ports:
-      - "${HOST_BIND:-192.168.178.40}:3006:8080"
+      - "${HOST_BIND:-192.168.178.40}:3301:3301"
+    networks:
+      - potatostack
+    depends_on:
+      - signoz-query-service
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.signoz.rule=Host(`observability.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.signoz.entrypoints=websecure"
+      - "traefik.http.routers.signoz.tls=true"
+      - "traefik.http.services.signoz.loadbalancer.server.port=3301"
+
+  # Alertmanager - Alert routing and management
+  alertmanager:
+    image: prom/alertmanager:${ALERTMANAGER_TAG:-latest}
+    container_name: alertmanager
+    logging: *default-logging
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://alertmanager.${HOST_DOMAIN:-local.domain}'
     environment:
       <<: *common-env
     volumes:
-      - ./config/glance/glance.yml:/app/glance.yml:ro
-      - glance-data:/app/data
+      - ./config/alertmanager:/etc/alertmanager:ro
+      - alertmanager-data:/alertmanager
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:9093:9093"
     networks:
       - potatostack
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     deploy:
       resources:
         limits:
-          memory: 256M
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.alertmanager.rule=Host(`alerts.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.alertmanager.entrypoints=websecure"
+      - "traefik.http.routers.alertmanager.tls=true"
+      - "traefik.http.services.alertmanager.loadbalancer.server.port=9093"
 
   ################################################################################
   # SYSTEM UTILITIES
@@ -2093,6 +2507,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.25'
           memory: 128M
 
   # Autoheal - Container health recovery
@@ -2104,6 +2519,7 @@ services:
       AUTOHEAL_CONTAINER_LABEL: autoheal
       AUTOHEAL_INTERVAL: 60
       AUTOHEAL_START_PERIOD: 300
+      AUTOHEAL_DEFAULT_STOP_TIMEOUT: 10
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
@@ -2112,13 +2528,17 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '0.1'
           memory: 64M
+        reservations:
+          cpus: '0.05'
+          memory: 32M
 
   ################################################################################
   # Gluetun Monitor - VPN Connection Monitor & Auto-Restart
   ################################################################################
   gluetun-monitor:
-    image: alpine:latest
+    image: alpine:${ALPINE_TAG:-3.21}
     container_name: gluetun-monitor
     logging: *default-logging
     user: "0:0"
@@ -2142,30 +2562,8 @@ services:
           cpus: "0.05"
           memory: 16M
         reservations:
+          cpus: '0.025'
           memory: 8M
-    labels:
-      - "com.centurylinklabs.watchtower.enable=false"
-
-  # Portainer - Container management UI
-  portainer:
-    image: portainer/portainer-ce:${PORTAINER_TAG:-latest}
-    container_name: portainer
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.40}:9443:9443"
-    environment:
-      <<: *common-env
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - portainer-data:/data
-    networks:
-      - potatostack
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-
   # Kopia - Fast and secure backup server
   kopia:
     image: kopia/kopia:${KOPIA_TAG:-latest}
@@ -2214,6 +2612,7 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '2.0'
           memory: 1G
     healthcheck:
       test: ["CMD", "curl", "-fk", "https://127.0.0.1:51515/api/v1/repo/status"]
@@ -2253,25 +2652,14 @@ volumes:
 
   # Reverse Proxy
   traefik-certs:
-  npm-data:
-  npm-letsencrypt:
 
   # VPN
   gluetun-config:
   tailscale-data:
-  wireguard-config:
 
   # Cloud Storage
   nextcloud-aio-mastercontainer:
   syncthing-config:
-
-  # Knowledge Management
-  couchdb-data:
-  couchdb-config:
-
-  # Finance
-  firefly-db:
-  firefly-upload:
 
   # Media Management
   prowlarr-config:
@@ -2296,13 +2684,10 @@ volumes:
   immich-redis:
 
   # Monitoring
-  grafana-data:
-  netdata-config:
   uptime-kuma-data:
 
   # Automation
   n8n-data:
-  huginn-data:
   healthchecks-data:
 
   # Utilities
@@ -2328,13 +2713,50 @@ volumes:
   octobot-logs:
   pinchflat-config:
 
-  # Dashboard
-  glance-data:
+  # Dashboard & Container Management
+  homarr-data:
+  homarr-icons:
+  dockge-data:
+
+  # Security
+  crowdsec-db:
+  crowdsec-config:
+  traefik-logs:
+
+  # DNS & Ad Blocking
+  adguard-work:
+  adguard-conf:
+
+  # Monitoring
+  beszel-data:
+
+  # Finance
+  actual-data:
+
+  # Utilities
+  paperless-redis:
+  paperless-data:
+  paperless-media:
+  pingvin-data:
+  memos-data:
 
   # System
   diun-data:
-  portainer-data:
 
   # Backups
   kopia-config:
   kopia-logs:
+
+  # Enterprise Security & Secrets
+  vault-data:
+  vault-logs:
+  fail2ban-data:
+  trivy-cache:
+
+  # Enterprise Observability
+  signoz-clickhouse-data:
+  signoz-dashboards:
+  alertmanager-data:
+
+  # Enterprise Container Management
+  komodo-data:

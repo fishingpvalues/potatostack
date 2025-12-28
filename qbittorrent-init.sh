@@ -5,32 +5,30 @@
 
 CONFIG_FILE="/config/qBittorrent/qBittorrent.conf"
 
-# Wait for config directory to exist
+# Wait for config directory
 mkdir -p /config/qBittorrent
 
-# If config doesn't exist or needs updating
-if [ ! -f "$CONFIG_FILE" ] || ! grep -q "TempPathEnabled=true" "$CONFIG_FILE"; then
+# Configure incomplete directory if config exists
+if [ -f "$CONFIG_FILE" ]; then
     echo "Configuring qBittorrent incomplete directory..."
 
-    # Backup existing config
-    [ -f "$CONFIG_FILE" ] && cp "$CONFIG_FILE" "${CONFIG_FILE}.bak"
+    # Backup config
+    cp "$CONFIG_FILE" "${CONFIG_FILE}.bak"
 
-    # Set incomplete directory settings
-    if [ -f "$CONFIG_FILE" ]; then
-        # Update existing config
-        sed -i '/\[Preferences\]/a Downloads\\TempPath=/incomplete\nDownloads\\TempPathEnabled=true\nDownloads\\SavePath=/downloads' "$CONFIG_FILE"
+    # Use crudini or sed to update config
+    if command -v crudini >/dev/null 2>&1; then
+        crudini --set "$CONFIG_FILE" BitTorrent "Session\DefaultSavePath" "/downloads"
+        crudini --set "$CONFIG_FILE" BitTorrent "Session\TempPath" "/incomplete"
+        crudini --set "$CONFIG_FILE" BitTorrent "Session\TempPathEnabled" "true"
     else
-        # Create new config with incomplete settings
-        cat > "$CONFIG_FILE" <<'EOF'
-[Preferences]
-Downloads\SavePath=/downloads
-Downloads\TempPath=/incomplete
-Downloads\TempPathEnabled=true
-EOF
+        # Fallback to sed
+        sed -i 's|Session\\DefaultSavePath=.*|Session\\DefaultSavePath=/downloads|g' "$CONFIG_FILE"
+        sed -i 's|Session\\TempPath=.*|Session\\TempPath=/incomplete|g' "$CONFIG_FILE"
+        sed -i 's|Session\\TempPathEnabled=.*|Session\\TempPathEnabled=true|g' "$CONFIG_FILE"
     fi
 
     echo "✓ qBittorrent configured to use /incomplete for temporary files"
 fi
 
 # Continue with normal startup
-exec /init
+exec /init "$@"

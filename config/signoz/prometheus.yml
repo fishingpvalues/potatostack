@@ -1,0 +1,20 @@
+################################################################################
+# Prometheus Configuration for SigNoz Query Service
+################################################################################
+
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+scrape_configs:
+  - job_name: 'signoz-clickhouse'
+    static_configs:
+      - targets: ['signoz-clickhouse:9000']
+
+  - job_name: 'signoz-otel-collector'
+    static_configs:
+      - targets: ['signoz-otel-collector:8888']
+
+  - job_name: 'signoz-query-service'
+    static_configs:
+      - targets: ['localhost:8080']
