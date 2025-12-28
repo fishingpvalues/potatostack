@@ -37,9 +37,9 @@ services:
   # CORE DATABASES
   ################################################################################
 
-  # PostgreSQL - Primary database for multiple services (SOTA 2025)
+  # PostgreSQL - Primary database with pgvector for embeddings (SOTA 2025)
   postgres:
-    image: postgres:${POSTGRES_TAG:-16-alpine}
+    image: pgvector/pgvector:${POSTGRES_TAG:-pg16-alpine}
     container_name: postgres
     logging: *default-logging
     shm_size: 1gb
@@ -47,7 +47,7 @@ services:
       <<: *common-env
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-nextcloud,authentik,gitea,immich,calibre,linkding,n8n,healthchecks,stirlingpdf,calcom,atuin,homarr,paperless,pingvin,sentry}
+      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-nextcloud,authentik,gitea,immich,calibre,linkding,n8n,healthchecks,stirlingpdf,calcom,atuin,homarr,paperless,pingvin,sentry,openwebui}
     command:
       - "postgres"
       - "-c"
@@ -79,6 +79,9 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./scripts/init-postgres-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-postgres-multiple-dbs.sh:ro
+    tmpfs:
+      - /tmp:exec,mode=1777
+      - /var/run/postgresql:exec,mode=1777
     networks:
       - potatostack
     restart: unless-stopped
@@ -160,29 +163,6 @@ services:
           cpus: '0.5'
           memory: 512M
 
-  # Adminer - Database management UI
-  adminer:
-    image: adminer:${ADMINER_TAG:-latest}
-    container_name: adminer
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.40}:8090:8080"
-    environment:
-      <<: *common-env
-      ADMINER_DEFAULT_SERVER: postgres
-      ADMINER_DESIGN: nette
-    networks:
-      - potatostack
-    restart: unless-stopped
-    depends_on:
-      - postgres
-      - mongo
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 128M
-
   # Redis Shared Cache - SOTA 2025 consolidated (N8n, Gitea, Immich, Paperless, Sentry)
   redis-cache:
     image: redis:${REDIS_TAG:-7-alpine}
@@ -191,6 +171,8 @@ services:
     command: redis-server --maxmemory 1gb --maxmemory-policy allkeys-lfu --databases 16 --activedefrag yes --lazyfree-lazy-eviction yes --lazyfree-lazy-expire yes --lazyfree-lazy-server-del yes --save 60 1000 --appendonly yes --appendfsync everysec
     volumes:
       - redis-cache-data:/data
+    tmpfs:
+      - /tmp:exec,mode=1777
     networks:
       - potatostack
     restart: unless-stopped
@@ -957,6 +939,9 @@ services:
       - /mnt/storage/media/music:/data/music
       - /mnt/storage/media/audiobooks:/data/audiobooks
       - /mnt/cachehdd/jellyfin-cache:/cache
+    tmpfs:
+      - /tmp:exec,mode=1777,size=500m
+      - /transcode:exec,mode=1777,size=2g
     networks:
       - potatostack
     depends_on:
@@ -1116,53 +1101,6 @@ services:
           cpus: '0.1'
           memory: 64M
 
-  # slskd - Soulseek P2P client for music sharing
-  slskd:
-    image: ghcr.io/slskd/slskd:${SLSKD_TAG:-latest}
-    container_name: slskd
-    logging: *default-logging
-    network_mode: "service:gluetun"
-    entrypoint: sh /init.sh
-    environment:
-      <<: *common-env
-      SLSKD_HTTP_PORT: 2234
-      SLSKD_SLSK_LISTEN_PORT: 50000
-      SLSKD_USERNAME: ${SLSKD_USER:-admin}
-      SLSKD_PASSWORD: ${SLSKD_PASSWORD}
-      SLSKD_SOULSEEK_USERNAME: ${SLSKD_SOULSEEK_USERNAME}
-      SLSKD_SOULSEEK_PASSWORD: ${SLSKD_SOULSEEK_PASSWORD}
-      SLSKD_METRICS: "false"
-      SLSKD_API_KEY: ${SLSKD_API_KEY}
-    volumes:
-      - slskd-config:/app
-      - /mnt/cachehdd/slskd/logs:/app/logs
-      - /mnt/storage/slskd-shared:/var/slskd/shared
-      - /mnt/cachehdd/slskd-incomplete:/var/slskd/incomplete
-      - ./slskd-init.sh:/init.sh:ro
-    depends_on:
-      gluetun:
-        condition: service_healthy
-        restart: true
-      storage-init:
-        condition: service_completed_successfully
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:2234/ || exit 1"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 512M
-        reservations:
-          cpus: '0.25'
-          memory: 256M
-    labels:
-      - "autoheal=true"
-
   ################################################################################
   # PHOTO MANAGEMENT
   ################################################################################
@@ -1244,6 +1182,8 @@ services:
       - /mnt/cachehdd/immich-ml-cache:/cache
     networks:
       - potatostack
+    tmpfs:
+      - /tmp:exec,mode=1777,size=500m
     restart: unless-stopped
     deploy:
       resources:
@@ -1292,26 +1232,6 @@ services:
       - potatostack
     depends_on:
       - loki
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 128M
-
-  # Fritzbox Exporter - Router metrics
-  fritzbox-exporter:
-    image: pdreker/fritz_exporter:${FRITZBOX_EXPORTER_TAG:-latest}
-    container_name: fritzbox-exporter
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.40}:9787:9787"
-    environment:
-      FRITZ_USERNAME: ${FRITZ_USERNAME:-}
-      FRITZ_PASSWORD: ${FRITZ_PASSWORD}
-      FRITZ_HOSTNAME: ${FRITZ_HOSTNAME:-fritz.box}
-    networks:
-      - potatostack
     restart: unless-stopped
     deploy:
       resources:
@@ -1739,6 +1659,8 @@ services:
       - postgres
       - redis-cache
       - storage-init
+    tmpfs:
+      - /tmp:exec,mode=1777,size=1g
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://127.0.0.1:8000/ || exit 1"]
@@ -1911,10 +1833,14 @@ services:
       <<: *common-env
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       WEBUI_SECRET_KEY: ${OPEN_WEBUI_SECRET_KEY}
+      DATABASE_URL: postgresql://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/openwebui
+      VECTOR_DB: pgvector
     volumes:
       - open-webui-data:/app/backend/data
     networks:
       - potatostack
+    depends_on:
+      - postgres
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
@@ -1923,29 +1849,6 @@ services:
         limits:
           cpus: '2.0'
           memory: 1G
-
-  # OctoBot - AI crypto trading
-  octobot:
-    image: drakkarsoftware/octobot:${OCTOBOT_TAG:-latest}
-    container_name: octobot
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.40}:5001:5001"
-    environment:
-      <<: *common-env
-      CONFIG_PATH: /octobot/user/config.json
-    volumes:
-      - octobot-data:/octobot/user
-      - octobot-tentacles:/octobot/tentacles
-      - octobot-logs:/octobot/logs
-    networks:
-      - potatostack
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 512M
 
   # Pinchflat - YouTube downloader
   pinchflat:
