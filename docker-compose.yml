@@ -47,7 +47,7 @@ services:
       <<: *common-env
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-nextcloud,authentik,gitea,immich,calibre,linkding,n8n,healthchecks,stirlingpdf,calcom,atuin,homarr,paperless,pingvin}
+      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-nextcloud,authentik,gitea,immich,calibre,linkding,n8n,healthchecks,stirlingpdf,calcom,atuin,homarr,paperless,pingvin,sentry}
     command:
       - "postgres"
       - "-c"
@@ -96,9 +96,39 @@ services:
           cpus: '0.5'
           memory: 512M
 
+  # PgBouncer - PostgreSQL connection pooling (SOTA 2025)
+  pgbouncer:
+    image: edoburu/pgbouncer:${PGBOUNCER_TAG:-latest}
+    container_name: pgbouncer
+    logging: *default-logging
+    environment:
+      DATABASE_URL: postgres://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/postgres
+      POOL_MODE: transaction
+      DEFAULT_POOL_SIZE: 50
+      MAX_CLIENT_CONN: 200
+      MAX_DB_CONNECTIONS: 100
+    networks:
+      - potatostack
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-p", "5432"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
   # MongoDB - Document database (SOTA 2025)
   mongo:
-    image: mongo:${MONGO_TAG:-7}
+    image: mongo:${MONGO_TAG:-7-jammy}
     container_name: mongo
     logging: *default-logging
     command:
@@ -308,43 +338,6 @@ services:
   ################################################################################
 
   # Authentik - SSO and 2FA provider (SOTA 2025 - no Redis needed in v2025.10+)
-  authentik-postgres:
-    image: postgres:${POSTGRES_TAG:-16-alpine}
-    container_name: authentik-postgres
-    logging: *default-logging
-    shm_size: 128mb
-    command:
-      - "postgres"
-      - "-c"
-      - "shared_buffers=128MB"
-      - "-c"
-      - "effective_cache_size=384MB"
-      - "-c"
-      - "work_mem=4MB"
-      - "-c"
-      - "maintenance_work_mem=32MB"
-      - "-c"
-      - "max_connections=50"
-    environment:
-      POSTGRES_USER: authentik
-      POSTGRES_PASSWORD: ${AUTHENTIK_DB_PASSWORD}
-      POSTGRES_DB: authentik
-    volumes:
-      - authentik-postgres:/var/lib/postgresql/data
-    networks:
-      - potatostack
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U authentik"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 512M
-
   authentik-server:
     image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-latest}
     container_name: authentik-server
@@ -355,10 +348,10 @@ services:
       - "${HOST_BIND:-192.168.178.40}:9443:9443"
     environment:
       <<: *common-env
-      AUTHENTIK_POSTGRESQL__HOST: authentik-postgres
-      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__HOST: postgres
+      AUTHENTIK_POSTGRESQL__USER: postgres
       AUTHENTIK_POSTGRESQL__NAME: authentik
-      AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_DB_PASSWORD}
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${POSTGRES_SUPER_PASSWORD}
       AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
       AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
     volumes:
@@ -367,7 +360,7 @@ services:
     networks:
       - potatostack
     depends_on:
-      - authentik-postgres
+      - postgres
     restart: unless-stopped
     deploy:
       resources:
@@ -382,10 +375,10 @@ services:
     command: worker
     environment:
       <<: *common-env
-      AUTHENTIK_POSTGRESQL__HOST: authentik-postgres
-      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__HOST: postgres
+      AUTHENTIK_POSTGRESQL__USER: postgres
       AUTHENTIK_POSTGRESQL__NAME: authentik
-      AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_DB_PASSWORD}
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${POSTGRES_SUPER_PASSWORD}
       AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
     volumes:
       - authentik-media:/media
@@ -393,7 +386,7 @@ services:
     networks:
       - potatostack
     depends_on:
-      - authentik-postgres
+      - postgres
     restart: unless-stopped
     deploy:
       resources:
@@ -1872,28 +1865,6 @@ services:
           memory: 256M
 
   # Sentry - Error tracking
-  sentry-postgres:
-    image: postgres:${POSTGRES_TAG:-16-alpine}
-    container_name: sentry-postgres
-    logging: *default-logging
-    environment:
-      POSTGRES_USER: sentry
-      POSTGRES_PASSWORD: ${SENTRY_DB_PASSWORD}
-      POSTGRES_DB: sentry
-    volumes:
-      - sentry-postgres:/var/lib/postgresql/data
-    networks:
-      - potatostack
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sentry"]
-      interval: 30s
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 512M
-
   sentry:
     image: sentry:${SENTRY_TAG:-latest}
     container_name: sentry
@@ -1903,9 +1874,9 @@ services:
     environment:
       <<: *common-env
       SENTRY_SECRET_KEY: ${SENTRY_SECRET_KEY}
-      SENTRY_POSTGRES_HOST: sentry-postgres
-      SENTRY_DB_USER: sentry
-      SENTRY_DB_PASSWORD: ${SENTRY_DB_PASSWORD}
+      SENTRY_POSTGRES_HOST: postgres
+      SENTRY_DB_USER: postgres
+      SENTRY_DB_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
       SENTRY_REDIS_HOST: redis-cache
       SENTRY_REDIS_DB: 2
     volumes:
@@ -1913,7 +1884,7 @@ services:
     networks:
       - potatostack
     depends_on:
-      - sentry-postgres
+      - postgres
       - redis-cache
     restart: unless-stopped
     deploy:
@@ -2391,7 +2362,6 @@ volumes:
   redis-cache-data:
 
   # Authentication
-  authentik-postgres:
   authentik-media:
   authentik-custom-templates:
   authentik-certs:
@@ -2446,7 +2416,6 @@ volumes:
   # Development
   gitea-data:
   gitea-runner-data:
-  sentry-postgres:
   sentry-data:
 
   # AI & Special
