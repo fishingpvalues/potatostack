@@ -37,12 +37,12 @@ services:
   # CORE DATABASES
   ################################################################################
 
-  # PostgreSQL - Primary database for multiple services
+  # PostgreSQL - Primary database for multiple services (SOTA 2025)
   postgres:
     image: postgres:${POSTGRES_TAG:-16-alpine}
     container_name: postgres
     logging: *default-logging
-    shm_size: 256mb
+    shm_size: 1gb
     environment:
       <<: *common-env
       POSTGRES_USER: postgres
@@ -51,13 +51,13 @@ services:
     command:
       - "postgres"
       - "-c"
-      - "shared_buffers=256MB"
+      - "shared_buffers=1GB"
       - "-c"
-      - "effective_cache_size=768MB"
+      - "effective_cache_size=3GB"
       - "-c"
-      - "work_mem=8MB"
+      - "work_mem=16MB"
       - "-c"
-      - "maintenance_work_mem=64MB"
+      - "maintenance_work_mem=256MB"
       - "-c"
       - "max_connections=100"
       - "-c"
@@ -70,6 +70,12 @@ services:
       - "random_page_cost=1.1"
       - "-c"
       - "effective_io_concurrency=200"
+      - "-c"
+      - "max_worker_processes=8"
+      - "-c"
+      - "max_parallel_workers=4"
+      - "-c"
+      - "max_parallel_workers_per_gather=2"
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./scripts/init-postgres-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-postgres-multiple-dbs.sh:ro
@@ -90,14 +96,14 @@ services:
           cpus: '0.5'
           memory: 512M
 
-  # MongoDB - Document database
+  # MongoDB - Document database (SOTA 2025)
   mongo:
     image: mongo:${MONGO_TAG:-7}
     container_name: mongo
     logging: *default-logging
     command:
       - "mongod"
-      - "--wiredTigerCacheSizeGB=0.5"
+      - "--wiredTigerCacheSizeGB=1.5"
       - "--wiredTigerJournalCompressor=snappy"
       - "--bind_ip_all"
     environment:
@@ -124,31 +130,6 @@ services:
           cpus: '0.5'
           memory: 512M
 
-  # Redis - Cache and session storage
-  redis:
-    image: redis:${REDIS_TAG:-7-alpine}
-    container_name: redis
-    logging: *default-logging
-    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --save 60 1000 --appendonly yes --appendfsync everysec --auto-aof-rewrite-percentage 100 --auto-aof-rewrite-min-size 64mb
-    volumes:
-      - redis-data:/data
-    networks:
-      - potatostack
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 512M
-        reservations:
-          cpus: '0.25'
-          memory: 256M
-
   # Adminer - Database management UI
   adminer:
     image: adminer:${ADMINER_TAG:-latest}
@@ -171,6 +152,29 @@ services:
         limits:
           cpus: '0.25'
           memory: 128M
+
+  # Redis Shared Cache - SOTA 2025 for services speedup
+  redis-cache:
+    image: redis:${REDIS_TAG:-7-alpine}
+    container_name: redis-cache
+    logging: *default-logging
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lfu --activedefrag yes --lazyfree-lazy-eviction yes --lazyfree-lazy-expire yes --save "" --appendonly no
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 256M
 
   ################################################################################
   # SECURITY & INTRUSION PREVENTION
@@ -1454,12 +1458,16 @@ services:
       DB_POSTGRESDB_DATABASE: n8n
       DB_POSTGRESDB_USER: postgres
       DB_POSTGRESDB_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+      EXECUTIONS_MODE: queue
+      QUEUE_BULL_REDIS_HOST: redis-cache
+      QUEUE_BULL_REDIS_PORT: 6379
     volumes:
       - n8n-data:/home/node/.n8n
     networks:
       - potatostack
     depends_on:
       - postgres
+      - redis-cache
     restart: unless-stopped
     deploy:
       resources:
@@ -1855,6 +1863,13 @@ services:
       GITEA__server__ROOT_URL: https://git.${HOST_DOMAIN:-local.domain}/
       GITEA__server__SSH_DOMAIN: git.${HOST_DOMAIN:-local.domain}
       GITEA__security__INSTALL_LOCK: "true"
+      GITEA__cache__ENABLED: "true"
+      GITEA__cache__ADAPTER: redis
+      GITEA__cache__HOST: redis://redis-cache:6379/0
+      GITEA__session__PROVIDER: redis
+      GITEA__session__PROVIDER_CONFIG: redis-cache:6379
+      GITEA__queue__TYPE: redis
+      GITEA__queue__CONN_STR: redis://redis-cache:6379/1
     volumes:
       - gitea-data:/data
       - /etc/timezone:/etc/timezone:ro
@@ -1863,6 +1878,7 @@ services:
       - potatostack
     depends_on:
       - postgres
+      - redis-cache
     restart: unless-stopped
     deploy:
       resources:
@@ -2641,7 +2657,6 @@ volumes:
   postgres-data:
   mongo-data:
   mongo-config:
-  redis-data:
 
   # Authentication
   authentik-postgres:
