@@ -1,86 +1,129 @@
 global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
+  scrape_interval: 30s
+  evaluation_interval: 30s
   external_labels:
-    cluster: 'potatostack'
-    environment: 'homelab'
+    cluster: 'potatostack-main'
+    environment: 'production'
+    replica: 'primary'
 
-# Alertmanager configuration (optional)
-# alerting:
-#   alertmanagers:
-#     - static_configs:
-#         - targets:
-#           - alertmanager:9093
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
 
-# Load rules once and periodically evaluate them
-# rule_files:
-#   - "alerts/*.yml"
+# Load alert rules
+rule_files:
+  - '/etc/prometheus/alerts/*.yml'
 
+# Scrape configurations - ALL services with metrics
 scrape_configs:
-  # Prometheus itself
+  # Prometheus self-monitoring
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
 
-  # Node Exporter - System metrics
-  - job_name: 'node-exporter'
+  # Thanos components
+  - job_name: 'thanos-sidecar'
     static_configs:
-      - targets: ['node-exporter:9100']
-        labels:
-          instance: 'potatostack-host'
-
-  # cAdvisor - Container metrics
-  - job_name: 'cadvisor'
+      - targets: ['thanos-sidecar:10902']
+  
+  - job_name: 'thanos-query'
     static_configs:
-      - targets: ['cadvisor:8080']
-        labels:
-          instance: 'potatostack-host'
-
-  # Fritzbox Exporter - Router metrics
-  - job_name: 'fritzbox'
+      - targets: ['thanos-query:10902']
+  
+  - job_name: 'thanos-store'
     static_configs:
-      - targets: ['fritzbox-exporter:9787']
-        labels:
-          instance: 'fritz.box'
+      - targets: ['thanos-store:10902']
+  
+  - job_name: 'thanos-compactor'
+    static_configs:
+      - targets: ['thanos-compactor:10902']
 
-  # Traefik - Reverse proxy metrics
+  # Traefik reverse proxy metrics
   - job_name: 'traefik'
     static_configs:
       - targets: ['traefik:8080']
+    metrics_path: '/metrics'
 
-  # Elasticsearch
-  - job_name: 'elasticsearch'
+  # CrowdSec IPS metrics  
+  - job_name: 'crowdsec'
     static_configs:
-      - targets: ['elasticsearch:9200']
-    metrics_path: '/_prometheus/metrics'
-    basic_auth:
-      username: 'elastic'
-      password: '${ELASTIC_PASSWORD}'
+      - targets: ['crowdsec:6060']
+    metrics_path: '/metrics'
 
-  # Netdata - Additional system metrics
+  # Miniflux RSS reader metrics
+  - job_name: 'miniflux'
+    static_configs:
+      - targets: ['miniflux:8080']
+    metrics_path: '/metrics'
+
+  # Netdata real-time monitoring
   - job_name: 'netdata'
     static_configs:
       - targets: ['netdata:19999']
     metrics_path: '/api/v1/allmetrics'
     params:
       format: ['prometheus']
+    honor_labels: true
+
+  # Alertmanager
+  - job_name: 'alertmanager'
+    static_configs:
+      - targets: ['alertmanager:9093']
+
+  # Loki log aggregation
+  - job_name: 'loki'
+    static_configs:
+      - targets: ['loki:3100']
+    metrics_path: '/metrics'
 
   # Grafana
   - job_name: 'grafana'
     static_configs:
       - targets: ['grafana:3000']
+    metrics_path: '/metrics'
 
-  # Docker daemon metrics (if enabled on host)
-  # Requires dockerd to be configured with metrics address
-  # - job_name: 'docker'
+  # PostgreSQL via postgres_exporter (if added)
+  # - job_name: 'postgres'
   #   static_configs:
-  #     - targets: ['host.docker.internal:9323']
+  #     - targets: ['postgres-exporter:9187']
 
-  # Gluetun VPN
-  - job_name: 'gluetun'
+  # Redis via redis_exporter (if added)
+  # - job_name: 'redis'
+  #   static_configs:
+  #     - targets: ['redis-exporter:9121']
+
+  # MongoDB via mongodb_exporter (if added)
+  # - job_name: 'mongodb'
+  #   static_configs:
+  #     - targets: ['mongodb-exporter:9216']
+
+  # Docker containers via cAdvisor (recommended)
+  - job_name: 'cadvisor'
     static_configs:
-      - targets: ['gluetun:8000']
+      - targets: ['cadvisor:8080']
+    metric_relabel_configs:
+      # Drop high-cardinality metrics
+      - source_labels: [__name__]
+        regex: 'container_.*'
+        action: keep
+      - source_labels: [id]
+        regex: '/docker/.*'
+        action: keep
 
-# Optional: Loki as a remote write target
+  # Node Exporter (for host metrics if added)
+  # - job_name: 'node'
+  #   static_configs:
+  #     - targets: ['node-exporter:9100']
+
+# Storage optimization for 16GB RAM system
+storage:
+  tsdb:
+    max-block-duration: 2h
+    min-block-duration: 2h
+
+# Remote write to Thanos (optional - using sidecar instead)
 # remote_write:
-#   - url: http://loki:3100/loki/api/v1/push
+#   - url: http://thanos-receive:19291/api/v1/receive

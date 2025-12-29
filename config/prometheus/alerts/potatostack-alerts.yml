@@ -1,0 +1,116 @@
+groups:
+  - name: PotatoStack Infrastructure
+    interval: 30s
+    rules:
+      # High RAM usage alert
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          component: infrastructure
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is above 85% (current: {{ $value }}%)"
+
+      # Container down alert
+      - alert: ContainerDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: docker
+        annotations:
+          summary: "Container {{ $labels.instance }} is down"
+          description: "Container {{ $labels.job }} has been down for more than 2 minutes"
+
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 5m
+        labels:
+          severity: warning
+          component: infrastructure
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is above 90% for 5 minutes"
+
+      # Disk space low
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
+        for: 5m
+        labels:
+          severity: warning
+          component: storage
+        annotations:
+          summary: "Low disk space on root partition"
+          description: "Disk space is below 15% (current: {{ $value }}%)"
+
+      # Thanos compaction failing
+      - alert: ThanosCompactionFailing
+        expr: rate(thanos_compact_iterations_failed_total[1h]) > 0
+        for: 15m
+        labels:
+          severity: warning
+          component: thanos
+        annotations:
+          summary: "Thanos compaction is failing"
+          description: "Thanos compactor has failed {{ $value }} times in the last hour"
+
+      # Too many restarts
+      - alert: ContainerRestartingTooOften
+        expr: rate(kube_pod_container_status_restarts_total[1h]) > 5
+        for: 15m
+        labels:
+          severity: warning
+          component: docker
+        annotations:
+          summary: "Container {{ $labels.container }} is restarting frequently"
+          description: "Container has restarted {{ $value }} times in the last hour"
+
+  - name: Application Health
+    interval: 60s
+    rules:
+      # VPN connection down
+      - alert: VPNConnectionDown
+        expr: up{job="gluetun"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: vpn
+        annotations:
+          summary: "VPN connection is down"
+          description: "Gluetun VPN has been down for more than 2 minutes"
+
+      # CrowdSec not running
+      - alert: CrowdSecDown
+        expr: up{job="crowdsec"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: security
+        annotations:
+          summary: "CrowdSec IPS is down"
+          description: "CrowdSec has been down for more than 5 minutes - no intrusion prevention!"
+
+      # Database connection issues
+      - alert: PostgresDown
+        expr: up{job="postgres"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL database has been down for more than 2 minutes"
+
+      # Backup failures
+      - alert: BackupFailing
+        expr: kopia_snapshot_errors_total > 0
+        for: 1h
+        labels:
+          severity: warning
+          component: backup
+        annotations:
+          summary: "Backup is failing"
+          description: "Kopia backup has encountered errors"
