@@ -1,65 +1,47 @@
-# Grafana Datasource Provisioning - SOTA 2025
-# Auto-provisions Prometheus, Loki, and Elasticsearch datasources
-
 apiVersion: 1
 
 datasources:
-  # Prometheus - Metrics collection
+  # Thanos Query - Primary datasource for long-term metrics (SOTA 2025)
+  - name: Thanos
+    type: prometheus
+    access: proxy
+    url: http://thanos-query:10902
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: 30s
+      queryTimeout: 60s
+      httpMethod: POST
+
+  # Prometheus - Short-term high-resolution metrics (7 days)
   - name: Prometheus
     type: prometheus
     access: proxy
-    uid: prometheus-uid
     url: http://prometheus:9090
-    isDefault: true
+    isDefault: false
+    editable: true
     jsonData:
-      httpMethod: POST
-      manageAlerts: true
-      allowAsRecordingRulesTarget: true
-      prometheusType: Prometheus
-      cacheLevel: 'High'
       timeInterval: 30s
-      incrementalQueryOverlapWindow: 10m
-      # Enable exemplar support for tracing integration
-      exemplarTraceIdDestinations:
-        - name: traceID
-          datasourceUid: loki-uid
-    version: 1
-    editable: false
+      queryTimeout: 30s
 
   # Loki - Log aggregation
   - name: Loki
     type: loki
     access: proxy
-    uid: loki-uid
     url: http://loki:3100
+    editable: true
     jsonData:
       maxLines: 1000
       derivedFields:
-        # Extract trace IDs from logs for correlation
-        - datasourceUid: prometheus-uid
+        - datasourceUid: Thanos
           matcherRegex: "traceID=(\\w+)"
           name: TraceID
           url: '$${__value.raw}'
-    version: 1
-    editable: false
 
-  # Elasticsearch - Search and analytics
-  - name: Elasticsearch
-    type: elasticsearch
+  # Alertmanager - Alerts datasource
+  - name: Alertmanager
+    type: alertmanager
     access: proxy
-    uid: elasticsearch-uid
-    url: http://elasticsearch:9200
-    database: '[logs-]YYYY.MM.DD'
+    url: http://alertmanager:9093
     jsonData:
-      esVersion: '8.11.0'
-      timeField: '@timestamp'
-      logMessageField: message
-      logLevelField: level
-      interval: Daily
-      timeInterval: 30s
-    basicAuth: true
-    basicAuthUser: elastic
-    secureJsonData:
-      basicAuthPassword: ${ELASTIC_PASSWORD}
-    version: 1
-    editable: false
+      implementation: prometheus

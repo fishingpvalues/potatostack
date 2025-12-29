@@ -48,7 +48,7 @@ services:
       <<: *common-env
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-nextcloud,authentik,gitea,immich,calibre,linkding,n8n,healthchecks,stirlingpdf,calcom,atuin,homarr,paperless,pingvin,sentry,openwebui}
+      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-nextcloud,authentik,gitea,immich,calibre,linkding,n8n,healthchecks,stirlingpdf,calcom,atuin,homarr,paperless,pingvin,sentry,openwebui,miniflux,grafana}
     command:
       - "postgres"
       - "-c"
@@ -200,10 +200,13 @@ services:
     image: crowdsecurity/crowdsec:${CROWDSEC_TAG:-latest}
     container_name: crowdsec
     logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:6060:6060"  # Prometheus metrics
     environment:
       <<: *common-env
       COLLECTIONS: "crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors crowdsecurity/nginx crowdsecurity/linux"
       GID: "1000"
+      METRICS_ENABLED: "true"
     volumes:
       - /mnt/ssd/docker-data/crowdsec-db:/var/lib/crowdsec/data/
       - /mnt/ssd/docker-data/crowdsec-config:/etc/crowdsec/
@@ -621,6 +624,56 @@ services:
   ################################################################################
   # KNOWLEDGE MANAGEMENT
   ################################################################################
+
+  ################################################################################
+  # RSS & NEWS AGGREGATION
+  ################################################################################
+
+  # Miniflux - Minimalist RSS reader with Postgres backend (SOTA 2025)
+  miniflux:
+    image: miniflux/miniflux:${MINIFLUX_TAG:-latest}
+    container_name: miniflux
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8093:8080"
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgres://postgres:${POSTGRES_SUPER_PASSWORD}@pgbouncer:5432/miniflux?sslmode=disable
+      RUN_MIGRATIONS: "1"
+      CREATE_ADMIN: "1"
+      ADMIN_USERNAME: ${MINIFLUX_ADMIN_USER:-admin}
+      ADMIN_PASSWORD: ${MINIFLUX_ADMIN_PASSWORD}
+      BASE_URL: https://rss.${HOST_DOMAIN:-local.domain}
+      POLLING_FREQUENCY: 60
+      BATCH_SIZE: 100
+      WORKER_POOL_SIZE: 5
+      METRICS_COLLECTOR: "1"
+      METRICS_ALLOWED_NETWORKS: 172.22.0.0/16
+    networks:
+      - potatostack
+    depends_on:
+      - postgres
+      - pgbouncer
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/usr/bin/miniflux", "-healthcheck", "auto"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.miniflux.rule=Host(`rss.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.miniflux.entrypoints=websecure"
+      - "traefik.http.routers.miniflux.tls=true"
+      - "traefik.http.services.miniflux.loadbalancer.server.port=8080"
 
   ################################################################################
   # FINANCE
@@ -1247,6 +1300,314 @@ services:
   ################################################################################
   # MONITORING & OBSERVABILITY
   ################################################################################
+
+  # Prometheus - Metrics collection and time-series database (SOTA 2025)
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_TAG:-latest}
+    container_name: prometheus
+    logging: *default-logging
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'
+      - '--storage.tsdb.retention.size=5GB'
+      - '--storage.tsdb.min-block-duration=2h'
+      - '--storage.tsdb.max-block-duration=2h'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:9090:9090"
+    environment:
+      <<: *common-env
+    volumes:
+      - ./config/prometheus:/etc/prometheus:ro
+      - /mnt/cachehdd/prometheus:/prometheus
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.prometheus.entrypoints=websecure"
+      - "traefik.http.routers.prometheus.tls=true"
+      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+
+  # Thanos Sidecar - Long-term metrics storage (SOTA 2025)
+  thanos-sidecar:
+    image: quay.io/thanos/thanos:${THANOS_TAG:-latest}
+    container_name: thanos-sidecar
+    logging: *default-logging
+    command:
+      - 'sidecar'
+      - '--tsdb.path=/prometheus'
+      - '--prometheus.url=http://prometheus:9090'
+      - '--grpc-address=0.0.0.0:10901'
+      - '--http-address=0.0.0.0:10902'
+      - '--objstore.config-file=/etc/thanos/bucket.yml'
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:10902:10902"
+    environment:
+      <<: *common-env
+    volumes:
+      - /mnt/cachehdd/prometheus:/prometheus
+      - ./config/thanos:/etc/thanos:ro
+    networks:
+      - potatostack
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  # Thanos Store - Long-term storage gateway
+  thanos-store:
+    image: quay.io/thanos/thanos:${THANOS_TAG:-latest}
+    container_name: thanos-store
+    logging: *default-logging
+    command:
+      - 'store'
+      - '--data-dir=/var/thanos/store'
+      - '--grpc-address=0.0.0.0:10901'
+      - '--http-address=0.0.0.0:10902'
+      - '--objstore.config-file=/etc/thanos/bucket.yml'
+    volumes:
+      - thanos-store-data:/var/thanos/store
+      - ./config/thanos:/etc/thanos:ro
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  # Thanos Query - Unified query interface
+  thanos-query:
+    image: quay.io/thanos/thanos:${THANOS_TAG:-latest}
+    container_name: thanos-query
+    logging: *default-logging
+    command:
+      - 'query'
+      - '--grpc-address=0.0.0.0:10901'
+      - '--http-address=0.0.0.0:10902'
+      - '--store=thanos-sidecar:10901'
+      - '--store=thanos-store:10901'
+      - '--query.replica-label=replica'
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:10903:10902"
+    networks:
+      - potatostack
+    depends_on:
+      - thanos-sidecar
+      - thanos-store
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:10902/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.thanos.rule=Host(`thanos.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.thanos.entrypoints=websecure"
+      - "traefik.http.routers.thanos.tls=true"
+      - "traefik.http.services.thanos.loadbalancer.server.port=10902"
+
+  # Thanos Compactor - Metrics compaction and downsampling
+  thanos-compactor:
+    image: quay.io/thanos/thanos:${THANOS_TAG:-latest}
+    container_name: thanos-compactor
+    logging: *default-logging
+    command:
+      - 'compact'
+      - '--data-dir=/var/thanos/compact'
+      - '--objstore.config-file=/etc/thanos/bucket.yml'
+      - '--http-address=0.0.0.0:10902'
+      - '--wait'
+      - '--retention.resolution-raw=30d'
+      - '--retention.resolution-5m=90d'
+      - '--retention.resolution-1h=365d'
+    volumes:
+      - thanos-compact-data:/var/thanos/compact
+      - ./config/thanos:/etc/thanos:ro
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  # Grafana - Metrics visualization and dashboards (SOTA 2025)
+  grafana:
+    image: grafana/grafana:${GRAFANA_TAG:-latest}
+    container_name: grafana
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:3002:3000"
+    environment:
+      <<: *common-env
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel
+      GF_SERVER_ROOT_URL: https://grafana.${HOST_DOMAIN:-local.domain}
+      GF_DATABASE_TYPE: postgres
+      GF_DATABASE_HOST: pgbouncer:5432
+      GF_DATABASE_NAME: grafana
+      GF_DATABASE_USER: postgres
+      GF_DATABASE_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+      GF_DATABASE_SSL_MODE: disable
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - potatostack
+    depends_on:
+      - postgres
+      - pgbouncer
+      - prometheus
+      - loki
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls=true"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+
+  # cAdvisor - Container metrics for Prometheus (SOTA 2025)
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:${CADVISOR_TAG:-latest}
+    container_name: cadvisor
+    logging: *default-logging
+    privileged: true
+    devices:
+      - /dev/kmsg
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8089:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    command:
+      - '--housekeeping_interval=30s'
+      - '--docker_only=true'
+      - '--disable_metrics=percpu,sched,tcp,udp,disk,diskIO,accelerator,hugetlb,referenced_memory,cpu_topology,resctrl'
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  # Netdata - Real-time system monitoring (SOTA 2025 - ultra-lightweight)
+  netdata:
+    image: netdata/netdata:${NETDATA_TAG:-latest}
+    container_name: netdata
+    logging: *default-logging
+    hostname: potatostack-main
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:19999:19999"
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    environment:
+      <<: *common-env
+      NETDATA_CLAIM_TOKEN: ${NETDATA_CLAIM_TOKEN:-}
+      NETDATA_CLAIM_ROOMS: ${NETDATA_CLAIM_ROOMS:-}
+      NETDATA_CLAIM_URL: https://app.netdata.cloud
+      DOCKER_HOST: /var/run/docker.sock
+    volumes:
+      - netdata-config:/etc/netdata
+      - netdata-lib:/var/lib/netdata
+      - netdata-cache:/var/cache/netdata
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:19999/api/v1/info || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.netdata.rule=Host(`netdata.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.netdata.entrypoints=websecure"
+      - "traefik.http.routers.netdata.tls=true"
+      - "traefik.http.services.netdata.loadbalancer.server.port=19999"
 
   # Loki - Log aggregation
   loki:
@@ -2353,6 +2714,13 @@ volumes:
 
   # Monitoring
   uptime-kuma-data:
+  prometheus-data:
+  grafana-data:
+  netdata-config:
+  netdata-lib:
+  netdata-cache:
+  thanos-store-data:
+  thanos-compact-data:
 
   # Automation
   n8n-data:

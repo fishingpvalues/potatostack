@@ -1,254 +1,250 @@
-# PotatoStack Main - Complete Self-Hosted Stack
+# PotatoStack - Production Self-Hosted Infrastructure
 
-**Comprehensive Docker Compose stack for Mini PC (16GB RAM)**
+**Intel N250 Mini PC | 16GB RAM | SOTA 2025**
 
-## Overview
+Complete self-hosted stack with 100 services optimized for low-power hardware.
 
-Upgraded from Kubernetes to Docker Compose with all requested services from `upgrade.txt`.
+## Quick Stats
 
-## Hardware Requirements
+- **Services**: 100 total
+- **RAM Usage**: 12.5-14GB peak (out of 16GB)
+- **Storage**: SSD (Docker data) + HDD (media/cache)
+- **Monitoring**: Prometheus + Thanos (1yr retention) + Grafana
 
-- **RAM**: 16GB minimum
-- **CPU**: 4+ cores
-- **Storage**: SSD + HDD recommended
-  - `/mnt/storage` - Main storage (HDD)
-  - `/mnt/cachehdd` - Cache storage (HDD/SSD)
-- **Network**: 1GB Ethernet
+## Core Components
 
-## Included Services (60+ containers)
+### Databases
+- PostgreSQL 16 (pgvector) - Multi-database with PgBouncer pooling
+- MongoDB 7 - Document database
+- Redis 7 - Shared cache (consolidated)
 
-### Core Infrastructure
-- **PostgreSQL** - Shared database for multiple services
-- **MongoDB** - Document database
-- **Redis** - Cache and sessions
-- **Adminer** - Database UI
+### Security
+- CrowdSec - Modern IPS/IDS with community intel
+- Authentik - SSO and 2FA provider
+- Vaultwarden - Password manager
+- Fail2Ban - Intrusion prevention
+- Trivy - Vulnerability scanner
+- HashiCorp Vault - Secrets management
 
-### Reverse Proxy & SSL
-- **Traefik** - Modern reverse proxy (ports 80/443)
-- **Nginx Proxy Manager** - Alternative UI-based proxy
+### Networking
+- Traefik - Reverse proxy with auto-SSL
+- AdGuard Home - DNS-level ad blocking
+- Gluetun - VPN client with killswitch
+- Tailscale - Mesh VPN for remote access
 
-### Authentication & Security
-- **Authentik** - SSO and 2FA provider
-- **Vaultwarden** - Password manager
+### Media (*arr stack)
+- Jellyfin - Media server (HW acceleration)
+- Sonarr/Radarr/Lidarr/Readarr - Media management
+- Prowlarr - Indexer manager
+- Bazarr - Subtitle management
+- qBittorrent + Aria2 - Download clients
+- slskd - Soulseek P2P music
 
-### VPN & Networking
-- **Gluetun** - VPN client (for *arr stack and downloads)
-- **Tailscale** - Mesh VPN for remote access
-
-### Cloud & Storage
-- **Nextcloud** - Complete cloud platform
-- **Syncthing** - P2P file sync
-
-### Finance
-- **Firefly III** - Financial management with Deutsche Bank CSV import
-- **Firefly Data Importer** - CSV import tool
-
-### Media Management (*arr Stack)
-- **Prowlarr** - Indexer manager
-- **Sonarr** - TV shows
-- **Radarr** - Movies
-- **Lidarr** - Music
-- **Readarr** - Ebooks
-- **Bazarr** - Subtitles
-- **Maintainerr** - Library cleanup
-
-### Media Servers
-- **Jellyfin** - Media server
-- **Jellyseerr** - Request management for Jellyfin
-- **Overseerr** - Alternative request management
-- **Audiobookshelf** - Audiobooks and podcasts
-
-### Download Clients (Behind VPN)
-- **qBittorrent** - Torrent client
-- **Aria2** - Download manager
-- **AriaNg** - Aria2 web UI
-
-### Photos
-- **Immich** - AI-powered photo management
-
-### Monitoring & Observability
-- **Prometheus** - Metrics collection
-- **Grafana** - Dashboards and visualization
-- **Loki** - Log aggregation
-- **Promtail** - Log collector
-- **Node Exporter** - System metrics
+### Monitoring & Observability (SOTA 2025)
+- **Prometheus** - Metrics collection (7 days)
+- **Thanos** - Long-term storage (1 year, downsampled)
+- **Grafana** - Visualization with 11 pre-configured dashboards
+- **Loki** - Log aggregation (30 days, TSDB v12)
 - **cAdvisor** - Container metrics
-- **Fritzbox Exporter** - Router metrics
-- **Netdata** - Real-time monitoring
-- **Uptime Kuma** - Uptime monitoring
+- **Netdata** - Real-time system monitoring
+- **Beszel** - Lightweight Docker monitoring
+- **Uptime Kuma** - Uptime checks
+- **Alertmanager** - Alert routing
 
-### Automation & Workflows
-- **n8n** - Workflow automation
-- **Huginn** - Self-hosted automation
-- **Healthchecks** - Cron monitoring
+### Applications
+- Nextcloud AIO - Cloud storage with Collabora, Talk
+- Immich - Photo management with AI tagging
+- Paperless-ngx - Document management with OCR
+- Miniflux - RSS reader
+- n8n - Workflow automation
+- Gitea - Git hosting with CI/CD
+- Open WebUI - LLM interface
 
-### Utilities & Tools
-- **Rustypaste** - Pastebin
-- **Stirling PDF** - PDF tools
-- **Linkding** - Bookmark manager
-- **Cal.com** - Calendar scheduling
-- **Code Server** - VS Code in browser
-- **Draw.io** - Diagramming
-- **Excalidraw** - Sketching
-- **Atuin** - Shell history sync
+### Utilities
+- Homarr - Dashboard
+- Dockge - Stack manager
+- Stirling PDF - PDF tools
+- Linkding - Bookmark manager
+- Memos - Note-taking
+- Code Server - VS Code in browser
+- Actual Budget - Budgeting
 
-### Development & Git
-- **Gitea** - Git hosting
-- **Gitea Runner** - CI/CD for Gitea
-- **Drone** - Alternative CI/CD
-- **Sentry** - Error tracking
+## Quick Access
 
-### AI & Special
-- **Open WebUI** - LLM interface
-- **OctoBot** - AI crypto trading
-- **Pinchflat** - YouTube downloader
+### Primary Interfaces
+- **Grafana**: http://192.168.178.40:3002 ⭐ Main monitoring
+- **Homarr**: http://192.168.178.40:7575 - Dashboard
+- **Nextcloud**: http://192.168.178.40:8443 - Cloud storage
+- **Jellyfin**: http://192.168.178.40:8096 - Media server
 
-### Search & Analytics
-- **Elasticsearch** - Search engine
-- **Kibana** - Elasticsearch UI
+### Monitoring
+- **Prometheus**: http://192.168.178.40:9090
+- **Thanos Query**: http://192.168.178.40:10903
+- **Netdata**: http://192.168.178.40:19999
+- **Beszel**: http://192.168.178.40:8090
 
-### Dashboard
-- **Glance** - Modern dashboard (replacing Homepage)
+### Management
+- **Traefik**: http://192.168.178.40:8080
+- **Dockge**: http://192.168.178.40:5001
+- **Authentik**: http://192.168.178.40:9000
 
-### System Utilities
-- **Watchtower** - Auto-update containers
-- **Autoheal** - Auto-restart unhealthy containers
-- **Portainer** - Container management UI
+See [FULL_INTEGRATION_SUMMARY.md](FULL_INTEGRATION_SUMMARY.md) for complete service list and URLs.
 
-## Quick Start
+## Setup
 
-1. **Prepare environment**:
-   ```bash
-   # Create storage directories (will be created automatically by storage-init)
-   # /mnt/storage and /mnt/cachehdd must exist and be mounted
-
-   # Copy environment template
-   cp .env.example .env
-
-   # Edit .env and fill in all passwords and configuration
-   nano .env
-   ```
-
-2. **Generate secrets**:
-   ```bash
-   # Generate random passwords
-   openssl rand -base64 32
-
-   # Generate Firefly app key (requires Firefly container running first)
-   # Or use: base64:$(openssl rand -base64 32)
-   ```
-
-3. **Start core services**:
-   ```bash
-   # Start databases first
-   docker compose up -d postgres mongo redis
-
-   # Wait for databases to initialize
-   sleep 30
-
-   # Start everything
-   docker compose up -d
-   ```
-
-4. **Access services**:
-   - Glance Dashboard: `http://192.168.178.40:3006`
-   - Grafana: `http://192.168.178.40:3000`
-   - Portainer: `https://192.168.178.40:9443`
-   - Jellyfin: `http://192.168.178.40:8096`
-   - Nextcloud: `http://192.168.178.40:8082`
-   - See docker-compose.yml for all ports
-
-## Volume Mounts
-
-- `/mnt/storage/` - Main storage
-  - `downloads/` - Downloads
-  - `media/tv/` - TV shows
-  - `media/movies/` - Movies
-  - `media/music/` - Music
-  - `media/audiobooks/` - Audiobooks
-  - `media/books/` - Ebooks
-  - `media/youtube/` - YouTube downloads
-  - `photos/` - Immich photos
-  - `nextcloud/` - Nextcloud data
-  - `syncthing/` - Syncthing folders
-  - `projects/` - Code projects
-
-- `/mnt/cachehdd/` - Cache storage
-  - `qbittorrent-incomplete/` - Incomplete torrents
-  - `jellyfin-cache/` - Transcoding cache
-  - `kopia-cache/` - Backup cache
-
-## Network Ports
-
-All services bind to `${HOST_BIND}` (default: 192.168.178.40) except:
-- Traefik: ports 80, 443 (bind to all interfaces)
-- NPM: ports 81, 8081, 4443
-- Tailscale: uses host network
-
-## Resource Limits
-
-Each service has memory limits configured. Total estimated usage:
-- Databases: ~3GB
-- Media stack: ~4GB
-- Monitoring: ~2.5GB
-- Other services: ~4GB
-- **Total**: ~13.5GB (leaving 2.5GB buffer on 16GB system)
-
-## Management
-
+### Prerequisites
 ```bash
-# View all running containers
-docker compose ps
+# Create required directories
+sudo mkdir -p /mnt/storage /mnt/cachehdd /mnt/ssd/docker-data
 
-# View logs for specific service
-docker compose logs -f jellyfin
-
-# Restart a service
-docker compose restart sonarr
-
-# Update all containers (via Watchtower)
-# Auto-updates daily at 4 AM
-
-# Stop everything
-docker compose down
-
-# Remove everything including volumes (DANGER!)
-docker compose down -v
+# Set permissions
+sudo chown -R $(id -u):$(id -g) /mnt/storage /mnt/cachehdd /mnt/ssd/docker-data
 ```
+
+### Configuration
+```bash
+# Copy environment template
+cp .env.example .env
+
+# Edit with your values
+nano .env
+```
+
+### Start Stack
+```bash
+# Initialize storage
+docker compose up -d storage-init
+
+# Start all services
+docker compose up -d
+```
+
+### Setup Monitoring
+```bash
+# Import Grafana dashboards
+./import-grafana-dashboards.sh
+
+# Access Grafana
+open http://192.168.178.40:3002
+```
+
+See [QUICK_START.md](QUICK_START.md) for detailed setup instructions.
+
+## Documentation
+
+- **[QUICK_START.md](QUICK_START.md)** - Quick setup guide
+- **[FULL_INTEGRATION_SUMMARY.md](FULL_INTEGRATION_SUMMARY.md)** - Complete implementation details
+- **[MONITORING_STACK_ANALYSIS.md](MONITORING_STACK_ANALYSIS.md)** - Service overlap analysis
+- **[POWER_OPTIMIZATION.md](POWER_OPTIMIZATION.md)** - Power scheduling guide
+- **[FINAL_SUMMARY.txt](FINAL_SUMMARY.txt)** - Latest changes summary
+
+## Architecture Highlights
+
+### Database Consolidation
+- Single PostgreSQL instance with 18 databases
+- PgBouncer connection pooling (200 max clients)
+- Shared Redis cache (16 databases, LFU eviction)
+
+### Storage Strategy
+- **SSD** (`/mnt/ssd/docker-data`) - Databases, configs, critical data
+- **HDD** (`/mnt/storage`) - Media, photos, documents
+- **HDD** (`/mnt/cachehdd`) - Caches, incomplete downloads, metrics
+
+### Resource Optimization
+- CPU limits on all services via `deploy.resources`
+- Shared services (Redis, PgBouncer) to reduce overhead
+- Hardware acceleration (Intel Quick Sync for Jellyfin/Immich)
+- Tmpfs for temporary files (reduces disk I/O)
+
+### Monitoring Strategy
+- **Real-time**: Netdata (live system metrics)
+- **Short-term**: Prometheus (7 days, 30s resolution)
+- **Long-term**: Thanos (1 year, downsampled to 5m/1h)
+- **Logs**: Loki (30 days, TSDB v12)
+- **Container metrics**: cAdvisor → Prometheus → Grafana
+
+## Performance Tuning
+
+### Intel N250 Optimizations
+- PostgreSQL tuned for 16GB RAM (1GB shared_buffers)
+- MongoDB WiredTiger cache limited to 1.5GB
+- All services have CPU/RAM limits
+- Quick Sync enabled for transcoding
+
+### Network Optimization
+- Traefik with Prometheus metrics
+- CrowdSec for automatic IP blocking
+- VPN killswitch for *arr stack
+- DNS-level ad blocking (AdGuard)
+
+See [POWER_OPTIMIZATION.md](POWER_OPTIMIZATION.md) for scheduling examples.
 
 ## Backup Strategy
 
-1. **Database backups**: Configure in respective services
-2. **Volume backups**: Use Kopia (from light stack) or external backup solution
-3. **Config backup**: Backup this directory and `.env` file (encrypted!)
+- **Kopia**: Automated backups with deduplication
+- **Targets**: Vaultwarden, Syncthing, photos, media
+- **Storage**: Local repository on HDD
+- **Schedule**: Daily incremental, weekly full
 
-## Security Notes
+## Security
 
-- All services behind Gluetun use VPN killswitch
-- Configure Authentik for SSO across services
-- Use Tailscale for secure remote access
-- Enable Traefik SSL with Let's Encrypt
-- Never expose port 80/443 without proper security
+- **CrowdSec**: Community-driven IPS/IDS
+- **Fail2Ban**: Brute-force protection
+- **Authentik**: SSO with 2FA support
+- **Vaultwarden**: Password management
+- **Traefik**: Automatic SSL with Let's Encrypt
+- **Trivy**: Container vulnerability scanning
+- **HashiCorp Vault**: Enterprise secrets management
 
-## Troubleshooting
+## Maintenance
 
+### Update All Containers
 ```bash
-# Check service health
-docker compose ps
-
-# View real-time resource usage
-docker stats
-
-# Check specific service logs
-docker compose logs -f <service-name>
-
-# Restart unhealthy services
-docker compose restart <service-name>
-
-# Check Gluetun VPN status
-curl http://192.168.178.40:8000/v1/openvpn/status
+docker compose pull
+docker compose up -d
 ```
 
-## Old Stack
+### View Logs
+```bash
+# All services
+docker compose logs -f
 
-The previous Kubernetes-based stack has been moved to `old-k8s-stack/` directory for reference.
+# Specific service
+docker logs -f <container_name>
+
+# Via Loki in Grafana
+# Query: {container_name="service_name"}
+```
+
+### Monitor Resources
+```bash
+# Docker stats
+docker stats
+
+# Netdata (real-time)
+open http://192.168.178.40:19999
+
+# Grafana (historical)
+open http://192.168.178.40:3002
+```
+
+### Restart Unhealthy Services
+```bash
+# Autoheal does this automatically
+# Manual restart:
+docker compose restart <service_name>
+```
+
+## License
+
+This stack configuration is provided as-is for personal use.
+
+## Credits
+
+Built with SOTA 2025 best practices:
+- pgvector for embeddings
+- Thanos for long-term metrics
+- TSDB v12 for faster log queries
+- PgBouncer for connection pooling
+- Consolidated Redis cache
+- Modern monitoring stack
