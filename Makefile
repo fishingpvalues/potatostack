@@ -1,4 +1,4 @@
-.PHONY: help up down restart logs test test-quick clean status ps lint format validate
+.PHONY: help up down restart logs test test-quick clean status ps lint format validate security
 
 # Detect OS and set appropriate docker command
 ifeq ($(shell test -d /data/data/com.termux && echo yes),yes)
@@ -67,6 +67,11 @@ lint: ## Run SOTA 2025 comprehensive validation (YAML, shell, compose)
 	@echo "Running SOTA 2025 validation suite..."
 	@chmod +x ./validate-stack.sh
 	@./validate-stack.sh
+
+security: ## Run security vulnerability scan
+	@echo "Running security scan..."
+	@chmod +x ./security-scan.sh
+	@./security-scan.sh
 
 format: ## Format shell scripts and YAML files (SOTA 2025)
 	@echo "Formatting files with SOTA 2025 tools..."
