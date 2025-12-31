@@ -1,0 +1,72 @@
+name: Stack Testing
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly on Monday at 6am
+  workflow_dispatch:
+
+jobs:
+  test-stack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl
+
+      - name: Create required directories
+        run: |
+          mkdir -p ./test-logs
+          mkdir -p ./config
+
+      - name: Validate docker-compose.yml
+        run: |
+          docker compose config > /dev/null
+          echo "✓ Docker Compose file is valid"
+
+      - name: Run stack tests
+        run: |
+          chmod +x ./stack-test.sh
+          ./stack-test.sh
+
+      - name: Check for critical issues
+        run: |
+          if grep -q "CRITICAL" stack-test-report-*.txt 2>/dev/null; then
+            echo "::error::Critical issues found in logs"
+            exit 1
+          fi
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stack-test-report-${{ github.run_number }}
+          path: |
+            stack-test-report-*.txt
+            test-logs/
+          retention-days: 30
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-logs-${{ github.run_number }}
+          path: test-logs/
+          retention-days: 7
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker compose down -v || true
