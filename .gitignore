@@ -37,7 +37,9 @@ test-logs/
 # Test and validation reports
 stack-test-report-*.txt
 validation-report-*.txt
+security-scan-report-*.txt
 tmp-validation/
+*.trivy
 
 # Temporary files
 *.tmp
