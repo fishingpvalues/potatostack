@@ -1,0 +1,209 @@
+# Development Environment Overrides
+# Usage: docker compose -f docker-compose.yml -f compose.development.yml up -d
+#
+# Development features:
+# - Hot reloading enabled
+# - All debug tools active
+# - Minimal resource limits
+# - Fast startup times
+# - Easy access to all services
+
+services:
+  # Monitoring Stack - Development
+  grafana:
+    restart: "no"
+    environment:
+      - GF_SERVER_ROOT_URL=http://localhost:3002
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_LOG_LEVEL=debug
+      - GF_USERS_ALLOW_SIGN_UP=true
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    ports:
+      - "3002:3000"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+  prometheus:
+    restart: "no"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=1d"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"
+      - "--web.enable-admin-api"
+      - "--log.level=debug"
+    ports:
+      - "9090:9090"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+  loki:
+    restart: "no"
+    ports:
+      - "3100:3100"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+  # Database Services - Development
+  postgres:
+    restart: "no"
+    environment:
+      - POSTGRES_PASSWORD=dev
+      - POSTGRES_DB=dev
+      - POSTGRES_USER=dev
+    command:
+      - "postgres"
+      - "-c"
+      - "log_statement=all"
+      - "-c"
+      - "log_min_duration_statement=0"
+      - "-c"
+      - "shared_buffers=64MB"
+    ports:
+      - "5432:5432"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+  redis:
+    restart: "no"
+    command: >
+      redis-server
+      --maxmemory 128mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+      --appendonly no
+      --loglevel debug
+    ports:
+      - "6379:6379"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+  # Reverse Proxy - Development with Dashboard
+  traefik:
+    restart: "no"
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=true"
+      - "--entrypoints.web.address=:80"
+      - "--log.level=DEBUG"
+      - "--accesslog=true"
+      - "--accesslog.filepath=/var/log/traefik/access.log"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - ./traefik-dev-logs:/var/log/traefik
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+  # Application Services - Development
+  vaultwarden:
+    restart: "no"
+    environment:
+      - SIGNUPS_ALLOWED=true
+      - INVITATIONS_ALLOWED=true
+      - ADMIN_TOKEN=dev-admin-token
+      - DOMAIN=http://localhost:8000
+      - LOG_LEVEL=trace
+      - SHOW_PASSWORD_HINT=true
+    ports:
+      - "8000:80"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+  # Development Tools
+  adminer:
+    image: adminer:latest
+    restart: "no"
+    ports:
+      - "8081:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgres
+      - ADMINER_DESIGN=pepa-linha
+      - ADMINER_PLUGINS=tables-filter tinymce
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    restart: "no"
+    ports:
+      - "8082:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+
+  # Portainer for container management
+  portainer:
+    image: portainer/portainer-ce:latest
+    restart: "no"
+    ports:
+      - "9443:9443"
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+  # MailHog for email testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    restart: "no"
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "1"
+
+# Development Networks - Simple bridge
+networks:
+  default:
+    driver: bridge
+
+# Development Volumes - Ephemeral where possible
+volumes:
+  postgres_data:
+    driver: local
+
+  redis_data:
+    driver: local
+
+  portainer_data:
+    driver: local
+
+  prometheus_data:
+    driver: local
+
+  grafana_data:
+    driver: local

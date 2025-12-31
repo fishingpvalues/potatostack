@@ -1,0 +1,35 @@
+# CODEOWNERS
+# This file defines code ownership for the PotatoStack repository
+# Users listed here will automatically be requested for review when PRs are opened
+
+# Default owner for everything in the repo
+* @fishingpvalues
+
+# Core configuration files
+docker-compose.yml @fishingpvalues
+.env.example @fishingpvalues
+Makefile @fishingpvalues
+
+# Light stack configuration
+/light/ @fishingpvalues
+
+# Testing and validation scripts
+*.sh @fishingpvalues
+/validate-stack.sh @fishingpvalues
+/stack-test.sh @fishingpvalues
+/security-scan.sh @fishingpvalues
+
+# CI/CD workflows
+/.github/workflows/ @fishingpvalues
+
+# Documentation
+*.md @fishingpvalues
+/CONTRIBUTING.md @fishingpvalues
+/SECURITY.md @fishingpvalues
+
+# Git hooks
+/.git/hooks/ @fishingpvalues
+
+# Configuration and templates
+/.github/ @fishingpvalues
+/.prettierrc @fishingpvalues
