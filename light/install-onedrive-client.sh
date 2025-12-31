@@ -24,15 +24,15 @@ echo "  Total Available: ${AVAILABLE}MB"
 echo ""
 
 if [ "$AVAILABLE" -lt 2048 ]; then
-    echo "⚠ WARNING: Build requires minimum 2GB (RAM + Swap)"
-    echo "  Current: ${AVAILABLE}MB available"
-    echo "  Recommendation: Ensure swap is enabled (docker compose up -d runs storage-init)"
-    echo ""
-    read -p "Continue anyway? (y/N): " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
-    fi
+	echo "⚠ WARNING: Build requires minimum 2GB (RAM + Swap)"
+	echo "  Current: ${AVAILABLE}MB available"
+	echo "  Recommendation: Ensure swap is enabled (docker compose up -d runs storage-init)"
+	echo ""
+	read -p "Continue anyway? (y/N): " -n 1 -r
+	echo
+	if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+		exit 1
+	fi
 fi
 
 # Update package lists
@@ -43,25 +43,25 @@ sudo apt update
 echo ""
 echo "Installing build dependencies..."
 sudo apt install -y \
-    build-essential \
-    libcurl4-openssl-dev \
-    libsqlite3-dev \
-    pkg-config \
-    git \
-    curl \
-    libsystemd-dev \
-    libdbus-1-dev \
-    libnotify-dev
+	build-essential \
+	libcurl4-openssl-dev \
+	libsqlite3-dev \
+	pkg-config \
+	git \
+	curl \
+	libsystemd-dev \
+	libdbus-1-dev \
+	libnotify-dev
 
 # Install D compiler (DMD)
 echo ""
 echo "Installing DMD compiler..."
 if [ ! -f ~/dlang/install.sh ]; then
-    curl -fsS https://dlang.org/install.sh -o ~/dlang-install.sh
-    chmod +x ~/dlang-install.sh
-    ~/dlang-install.sh dmd
+	curl -fsS https://dlang.org/install.sh -o ~/dlang-install.sh
+	chmod +x ~/dlang-install.sh
+	~/dlang-install.sh dmd
 else
-    echo "✓ D compiler installation script already exists"
+	echo "✓ D compiler installation script already exists"
 fi
 
 # Clone onedrive repository
@@ -69,15 +69,15 @@ echo ""
 echo "Cloning onedrive repository..."
 REPO_DIR="$HOME/onedrive-client"
 if [ -d "$REPO_DIR" ]; then
-    echo "Repository already exists at $REPO_DIR"
-    read -p "Remove and re-clone? (y/N): " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        rm -rf "$REPO_DIR"
-        git clone https://github.com/abraunegg/onedrive.git "$REPO_DIR"
-    fi
+	echo "Repository already exists at $REPO_DIR"
+	read -p "Remove and re-clone? (y/N): " -n 1 -r
+	echo
+	if [[ $REPLY =~ ^[Yy]$ ]]; then
+		rm -rf "$REPO_DIR"
+		git clone https://github.com/abraunegg/onedrive.git "$REPO_DIR"
+	fi
 else
-    git clone https://github.com/abraunegg/onedrive.git "$REPO_DIR"
+	git clone https://github.com/abraunegg/onedrive.git "$REPO_DIR"
 fi
 
 cd "$REPO_DIR"
@@ -109,11 +109,11 @@ deactivate 2>/dev/null || true
 echo ""
 echo "Verifying installation..."
 if command -v onedrive >/dev/null 2>&1; then
-    echo "✓ onedrive client installed successfully"
-    onedrive --version
+	echo "✓ onedrive client installed successfully"
+	onedrive --version
 else
-    echo "✗ Installation failed"
-    exit 1
+	echo "✗ Installation failed"
+	exit 1
 fi
 
 echo ""

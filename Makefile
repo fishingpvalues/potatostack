@@ -1,8 +1,8 @@
-.PHONY: help up down restart logs test test-quick clean status ps
+.PHONY: help up down restart logs test test-quick clean status ps lint format validate
 
 # Detect OS and set appropriate docker command
 ifeq ($(shell test -d /data/data/com.termux && echo yes),yes)
-    DOCKER_COMPOSE=proot-distro login debian --shared-tmp -- docker-compose
+    DOCKER_COMPOSE=proot-distro login debian --shared-tmp -- docker-compose -f /data/data/com.termux/files/home/workdir/potatostack/docker-compose.yml
     DOCKER_CMD=proot-distro login debian --shared-tmp -- docker
 else
     DOCKER_COMPOSE=$(shell command -v docker-compose 2>/dev/null || echo "docker compose")
@@ -60,8 +60,34 @@ clean: ## Remove all containers, volumes, and networks (DANGEROUS)
 pull: ## Pull latest images
 	$(DOCKER_COMPOSE) pull
 
-validate: ## Validate docker-compose.yml syntax
-	$(DOCKER_COMPOSE) config
+validate: ## Validate docker-compose.yml syntax (basic)
+	@$(DOCKER_COMPOSE) config > /dev/null
+
+lint: ## Run SOTA 2025 comprehensive validation (YAML, shell, compose)
+	@echo "Running SOTA 2025 validation suite..."
+	@chmod +x ./validate-stack.sh
+	@./validate-stack.sh
+
+format: ## Format shell scripts and YAML files (SOTA 2025)
+	@echo "Formatting files with SOTA 2025 tools..."
+	@echo "1. Formatting shell scripts with shfmt..."
+	@if command -v shfmt &> /dev/null; then \
+		shfmt -w *.sh 2>/dev/null || true; \
+		echo "  ✓ Shell scripts formatted"; \
+	else \
+		echo "  ✗ shfmt not installed (install: pkg install shfmt)"; \
+	fi
+	@echo "2. Formatting YAML files with prettier..."
+	@if command -v prettier &> /dev/null; then \
+		prettier --write *.yml *.yaml .*.yaml 2>/dev/null || true; \
+		echo "  ✓ YAML files formatted with prettier"; \
+	elif command -v yq &> /dev/null; then \
+		find . -maxdepth 1 -name "*.yml" -o -name "*.yaml" | while read f; do yq eval -i '.' "$$f" 2>/dev/null || true; done; \
+		echo "  ✓ YAML files formatted with yq"; \
+	else \
+		echo "  ⚠ No YAML formatter installed (install: npm install -g prettier OR pkg install yq)"; \
+	fi
+	@echo "✓ Formatting complete"
 
 health: ## Check health of all services
 	@echo "Service Health Status:"

@@ -15,37 +15,37 @@ echo ""
 
 # Ensure slskd-shared directory exists
 if [ ! -d "$SLSKD_SHARED" ]; then
-    echo "Creating slskd-shared directory..."
-    mkdir -p "$SLSKD_SHARED"
-    chown 1000:1000 "$SLSKD_SHARED"
-    chmod 755 "$SLSKD_SHARED"
+	echo "Creating slskd-shared directory..."
+	mkdir -p "$SLSKD_SHARED"
+	chown 1000:1000 "$SLSKD_SHARED"
+	chmod 755 "$SLSKD_SHARED"
 fi
 
 # Function to create symlink safely
 create_symlink() {
-    local source="$1"
-    local link_name="$2"
-    local target="$SLSKD_SHARED/$link_name"
+	local source="$1"
+	local link_name="$2"
+	local target="$SLSKD_SHARED/$link_name"
 
-    if [ ! -d "$source" ]; then
-        echo "⊘ Skipping $link_name (source not found: $source)"
-        return 1
-    fi
+	if [ ! -d "$source" ]; then
+		echo "⊘ Skipping $link_name (source not found: $source)"
+		return 1
+	fi
 
-    if [ -L "$target" ]; then
-        echo "⚠ Symlink already exists: $link_name (removing old one)"
-        rm "$target"
-    elif [ -e "$target" ]; then
-        echo "⚠ Target exists but is not a symlink: $link_name (skipping)"
-        return 1
-    fi
+	if [ -L "$target" ]; then
+		echo "⚠ Symlink already exists: $link_name (removing old one)"
+		rm "$target"
+	elif [ -e "$target" ]; then
+		echo "⚠ Target exists but is not a symlink: $link_name (skipping)"
+		return 1
+	fi
 
-    ln -s "$source" "$target"
-    if [ $? -eq 0 ]; then
-        echo "✓ Created symlink: $link_name → $source"
-    else
-        echo "✗ Failed to create symlink: $link_name"
-    fi
+	ln -s "$source" "$target"
+	if [ $? -eq 0 ]; then
+		echo "✓ Created symlink: $link_name → $source"
+	else
+		echo "✗ Failed to create symlink: $link_name"
+	fi
 }
 
 echo "Creating symlinks for Soulseek sharing..."

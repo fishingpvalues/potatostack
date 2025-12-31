@@ -92,7 +92,20 @@
       "WebFetch(domain:docs.docker.com)",
       "Bash(./remote-run-monitor.sh:*)",
       "Bash(./real-test.sh:*)",
-      "Bash(/bin/ls:*)"
+      "Bash(/bin/ls:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd comprehensive SOTA 2025 testing suite for both stacks\n\nImplement state-of-the-art Docker Compose testing based on 10+ industry sources:\n\nMain Stack \\(65 services\\):\n- Comprehensive test suite \\(601 lines\\) with Makefile automation\n- Tests all 65 services across 7 categories\n- 40+ HTTP endpoint validations\n- Database connectivity tests \\(PostgreSQL, Redis, MongoDB\\)\n- Chaos resilience indicators \\(restart counts, OOM detection\\)\n\nLight Stack \\(13 services\\):\n- RAM-optimized test suite \\(402 lines\\) for 2GB constraint\n- 8 HTTP endpoint validations\n- OOM monitoring critical for low-memory environment\n\nSOTA 2025 Features Implemented:\n✓ Testcontainers-style validation with health checks\n✓ Shift-left testing for early issue detection\n✓ Dependency chain testing\n✓ Comprehensive endpoint testing \\(48+ total\\)\n✓ Chaos resilience indicators \\(NEW\\)\n✓ Resource monitoring \\(CPU/memory\\)\n✓ Automated log analysis\n✓ Consolidated reporting with PASS/WARN/FAIL\n✓ OS compatibility \\(Termux/Android + Linux\\)\n\nFiles Added:\n- Makefile \\(main stack automation, 72 lines\\)\n- stack-test.sh \\(main stack tests, 601 lines\\)\n- test-all-services.sh \\(service config, 170 lines\\)\n- light/Makefile \\(light stack automation, 76 lines\\)\n- light/stack-test-light.sh \\(light tests, 402 lines\\)\n- TESTING.md \\(user guide, updated\\)\n- TEST_SUMMARY.md \\(main stack summary\\)\n- SOTA_IMPROVEMENTS.md \\(SOTA features guide\\)\n- FINAL_TEST_SUITE_SUMMARY.md \\(comprehensive summary\\)\n- .github/ \\(CI/CD workflows\\)\n- renovate.json \\(dependency updates\\)\n\nCleanup:\n- Removed obsolete test files from test-android/\n- Removed temporary analysis and validation files\n- Removed old docker-compose backups\n\nIndustry Sources \\(2024-2025\\):\n- Docker Best Practices 2025\n- Testcontainers Tutorial\n- Health Check Best Practices\n- Shift-Left Testing\n- Chaos Engineering\n- Integration Testing Guides\n\nTotal: 1,321 lines of test code + 802 lines of documentation\nTesting: 78 services, 48+ endpoints, 10 SOTA features\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(make test:*)",
+      "Bash(proot-distro login:*)",
+      "Bash(grep:*)",
+      "Bash(make validate:*)",
+      "Bash(pkg install:*)",
+      "Bash(pkg search:*)",
+      "Bash(make lint:*)",
+      "Bash(yq:*)",
+      "Bash(npm install:*)",
+      "Bash(prettier:*)",
+      "Bash(make format:*)",
+      "Bash(ln:*)"
     ],
     "deny": [],
     "ask": []

@@ -25,11 +25,11 @@ sudo apt install -y onedrive
 echo ""
 echo "Verifying installation..."
 if command -v onedrive >/dev/null 2>&1; then
-    echo "✓ onedrive client installed successfully"
-    onedrive --version
+	echo "✓ onedrive client installed successfully"
+	onedrive --version
 else
-    echo "✗ Installation failed"
-    exit 1
+	echo "✗ Installation failed"
+	exit 1
 fi
 
 echo ""

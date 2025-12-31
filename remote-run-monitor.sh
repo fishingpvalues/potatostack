@@ -13,22 +13,22 @@ echo "╚═══════════════════════�
 echo ""
 
 # Check if sshpass is installed
-if ! command -v sshpass &> /dev/null; then
-    echo "Installing sshpass..."
-    pkg install -y sshpass
+if ! command -v sshpass &>/dev/null; then
+	echo "Installing sshpass..."
+	pkg install -y sshpass
 fi
 
 echo "[1/4] Copying files to server..."
 sshpass -p "$PASSWORD" scp -o StrictHostKeyChecking=no \
-    docker-compose.yml \
-    .env.example \
-    run-and-monitor.sh \
-    $USER@$SERVER:$REMOTE_DIR/
+	docker-compose.yml \
+	.env.example \
+	run-and-monitor.sh \
+	$USER@$SERVER:$REMOTE_DIR/
 
 echo ""
 echo "[2/4] Making script executable..."
 sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no $USER@$SERVER \
-    "chmod +x $REMOTE_DIR/run-and-monitor.sh"
+	"chmod +x $REMOTE_DIR/run-and-monitor.sh"
 
 echo ""
 echo "[3/4] Executing run-and-monitor.sh on server..."
@@ -36,7 +36,7 @@ echo "════════════════════════�
 echo ""
 
 sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no $USER@$SERVER \
-    "cd $REMOTE_DIR && ./run-and-monitor.sh $MONITOR_TIME"
+	"cd $REMOTE_DIR && ./run-and-monitor.sh $MONITOR_TIME"
 
 EXIT_CODE=$?
 
@@ -46,9 +46,9 @@ echo ""
 echo "[4/4] Complete!"
 
 if [ $EXIT_CODE -eq 0 ]; then
-    echo "✓ Stack monitoring completed successfully"
+	echo "✓ Stack monitoring completed successfully"
 else
-    echo "✗ Stack monitoring had issues (exit code: $EXIT_CODE)"
+	echo "✗ Stack monitoring had issues (exit code: $EXIT_CODE)"
 fi
 
 echo ""

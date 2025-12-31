@@ -17,9 +17,9 @@ echo ""
 
 # Check if onedrive is installed
 if ! command -v onedrive >/dev/null 2>&1; then
-    echo "✗ onedrive client not found"
-    echo "  Run: ./install-onedrive-client.sh first"
-    exit 1
+	echo "✗ onedrive client not found"
+	echo "  Run: ./install-onedrive-client.sh first"
+	exit 1
 fi
 
 # Create config directory
@@ -28,18 +28,18 @@ mkdir -p "$CONFIG_DIR"
 
 # Download default config template
 if [ ! -f "$CONFIG_FILE" ]; then
-    echo "Downloading configuration template..."
-    wget -q https://raw.githubusercontent.com/abraunegg/onedrive/master/config -O "$CONFIG_FILE"
-    echo "✓ Configuration template downloaded"
+	echo "Downloading configuration template..."
+	wget -q https://raw.githubusercontent.com/abraunegg/onedrive/master/config -O "$CONFIG_FILE"
+	echo "✓ Configuration template downloaded"
 else
-    echo "⚠ Configuration file already exists"
-    read -p "Overwrite with fresh template? (y/N): " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        cp "$CONFIG_FILE" "$CONFIG_FILE.backup.$(date +%Y%m%d-%H%M%S)"
-        wget -q https://raw.githubusercontent.com/abraunegg/onedrive/master/config -O "$CONFIG_FILE"
-        echo "✓ Backed up old config and downloaded new template"
-    fi
+	echo "⚠ Configuration file already exists"
+	read -p "Overwrite with fresh template? (y/N): " -n 1 -r
+	echo
+	if [[ $REPLY =~ ^[Yy]$ ]]; then
+		cp "$CONFIG_FILE" "$CONFIG_FILE.backup.$(date +%Y%m%d-%H%M%S)"
+		wget -q https://raw.githubusercontent.com/abraunegg/onedrive/master/config -O "$CONFIG_FILE"
+		echo "✓ Backed up old config and downloaded new template"
+	fi
 fi
 
 # Create sync directory
@@ -53,25 +53,25 @@ sudo chmod 755 "$SYNC_DIR"
 echo ""
 echo "Configuring sync directory..."
 if grep -q "^sync_dir" "$CONFIG_FILE"; then
-    sed -i "s|^sync_dir.*|sync_dir = \"$SYNC_DIR\"|" "$CONFIG_FILE"
+	sed -i "s|^sync_dir.*|sync_dir = \"$SYNC_DIR\"|" "$CONFIG_FILE"
 else
-    echo "sync_dir = \"$SYNC_DIR\"" >> "$CONFIG_FILE"
+	echo "sync_dir = \"$SYNC_DIR\"" >>"$CONFIG_FILE"
 fi
 
 # Enable logging
 if grep -q "^# enable_logging" "$CONFIG_FILE"; then
-    sed -i 's/^# enable_logging.*/enable_logging = "true"/' "$CONFIG_FILE"
+	sed -i 's/^# enable_logging.*/enable_logging = "true"/' "$CONFIG_FILE"
 elif ! grep -q "^enable_logging" "$CONFIG_FILE"; then
-    echo 'enable_logging = "true"' >> "$CONFIG_FILE"
+	echo 'enable_logging = "true"' >>"$CONFIG_FILE"
 fi
 
 # Set log directory
 LOG_DIR="$HOME/.config/onedrive/logs"
 mkdir -p "$LOG_DIR"
 if grep -q "^# log_dir" "$CONFIG_FILE"; then
-    sed -i "s|^# log_dir.*|log_dir = \"$LOG_DIR\"|" "$CONFIG_FILE"
+	sed -i "s|^# log_dir.*|log_dir = \"$LOG_DIR\"|" "$CONFIG_FILE"
 elif ! grep -q "^log_dir" "$CONFIG_FILE"; then
-    echo "log_dir = \"$LOG_DIR\"" >> "$CONFIG_FILE"
+	echo "log_dir = \"$LOG_DIR\"" >>"$CONFIG_FILE"
 fi
 
 echo "✓ Configuration updated"
@@ -99,8 +99,8 @@ read -p "Ready to authenticate? (y/N): " -n 1 -r
 echo
 
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "Authentication cancelled. Run this script again when ready."
-    exit 0
+	echo "Authentication cancelled. Run this script again when ready."
+	exit 0
 fi
 
 echo ""

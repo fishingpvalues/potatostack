@@ -17,9 +17,9 @@ echo ""
 
 # Check if OneDrive download exists
 if [ ! -d "$ONEDRIVE_DIR" ]; then
-    echo "✗ OneDrive download directory not found: $ONEDRIVE_DIR"
-    echo "  Run: ./download-onedrive.sh first"
-    exit 1
+	echo "✗ OneDrive download directory not found: $ONEDRIVE_DIR"
+	echo "  Run: ./download-onedrive.sh first"
+	exit 1
 fi
 
 # Show what will be migrated
@@ -37,37 +37,37 @@ echo ""
 
 # Function to migrate folder
 migrate_folder() {
-    local source_name="$1"
-    local target_name="$2"
-    local source_path="$ONEDRIVE_DIR/$source_name"
-    local target_path="$SYNCTHING_BASE/$target_name"
+	local source_name="$1"
+	local target_name="$2"
+	local source_path="$ONEDRIVE_DIR/$source_name"
+	local target_path="$SYNCTHING_BASE/$target_name"
 
-    if [ -d "$source_path" ] || [ -L "$source_path" ]; then
-        echo ""
-        echo "Migrating: $source_name → $target_name"
-        echo "  Source: $source_path"
-        echo "  Target: $target_path"
+	if [ -d "$source_path" ] || [ -L "$source_path" ]; then
+		echo ""
+		echo "Migrating: $source_name → $target_name"
+		echo "  Source: $source_path"
+		echo "  Target: $target_path"
 
-        # Create target if it doesn't exist
-        mkdir -p "$target_path"
+		# Create target if it doesn't exist
+		mkdir -p "$target_path"
 
-        # Use rsync for safe copying with progress
-        rsync -avh --progress "$source_path/" "$target_path/" 2>&1 | grep -E '(files|speedup|total size)'
+		# Use rsync for safe copying with progress
+		rsync -avh --progress "$source_path/" "$target_path/" 2>&1 | grep -E '(files|speedup|total size)'
 
-        if [ $? -eq 0 ]; then
-            echo "  ✓ Migration successful"
+		if [ $? -eq 0 ]; then
+			echo "  ✓ Migration successful"
 
-            # Show sizes
-            SOURCE_SIZE=$(du -sh "$source_path" 2>/dev/null | cut -f1)
-            TARGET_SIZE=$(du -sh "$target_path" 2>/dev/null | cut -f1)
-            echo "  Source size: $SOURCE_SIZE"
-            echo "  Target size: $TARGET_SIZE"
-        else
-            echo "  ⚠ Migration had issues, check manually"
-        fi
-    else
-        echo "⊘ Skipping $source_name (not found in OneDrive)"
-    fi
+			# Show sizes
+			SOURCE_SIZE=$(du -sh "$source_path" 2>/dev/null | cut -f1)
+			TARGET_SIZE=$(du -sh "$target_path" 2>/dev/null | cut -f1)
+			echo "  Source size: $SOURCE_SIZE"
+			echo "  Target size: $TARGET_SIZE"
+		else
+			echo "  ⚠ Migration had issues, check manually"
+		fi
+	else
+		echo "⊘ Skipping $source_name (not found in OneDrive)"
+	fi
 }
 
 echo "Folder mappings:"
@@ -84,8 +84,8 @@ read -p "Start migration? (y/N): " -n 1 -r
 echo
 
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "Migration cancelled."
-    exit 0
+	echo "Migration cancelled."
+	exit 0
 fi
 
 echo ""
@@ -111,18 +111,18 @@ echo ""
 
 # Find folders not in the standard list
 for folder in "$ONEDRIVE_DIR"/*; do
-    if [ -d "$folder" ]; then
-        folder_name=$(basename "$folder")
-        case "$folder_name" in
-            "Berufliches"|"Bilder"|"Desktop"|"Dokumente"|"Obsidian Vault"|"Privates"|"workdir")
-                # Already migrated
-                ;;
-            *)
-                echo "Found additional folder: $folder_name"
-                echo "  Not in standard mapping, will be included in archive"
-                ;;
-        esac
-    fi
+	if [ -d "$folder" ]; then
+		folder_name=$(basename "$folder")
+		case "$folder_name" in
+		"Berufliches" | "Bilder" | "Desktop" | "Dokumente" | "Obsidian Vault" | "Privates" | "workdir")
+			# Already migrated
+			;;
+		*)
+			echo "Found additional folder: $folder_name"
+			echo "  Not in standard mapping, will be included in archive"
+			;;
+		esac
+	fi
 done
 
 # Create complete archive

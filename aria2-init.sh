@@ -9,8 +9,8 @@ mkdir -p /config
 
 # Create aria2 config if it doesn't exist
 if [ ! -f "$CONFIG_FILE" ]; then
-    echo "Creating aria2 configuration..."
-    cat > "$CONFIG_FILE" <<EOF
+	echo "Creating aria2 configuration..."
+	cat >"$CONFIG_FILE" <<EOF
 # Download directories
 dir=/downloads
 input-file=/config/aria2.session
@@ -46,7 +46,7 @@ auto-file-renaming=true
 allow-overwrite=false
 always-resume=true
 EOF
-    echo "✓ aria2 configuration created"
+	echo "✓ aria2 configuration created"
 fi
 
 # Create session file if it doesn't exist
