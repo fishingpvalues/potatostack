@@ -1,0 +1,124 @@
+name: Bug Report
+description: Report a bug or unexpected behavior
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this bug! Please fill out the information below.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of the bug
+      placeholder: What happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this issue?
+      placeholder: |
+        1. Start the stack with `make up`
+        2. Navigate to Grafana at http://localhost:3002
+        3. Click on '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: Service should start successfully
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+      placeholder: Service fails with error message
+    validations:
+      required: true
+
+  - type: dropdown
+    id: stack
+    attributes:
+      label: Stack Type
+      description: Which stack are you using?
+      options:
+        - Main Stack (16GB RAM, 100 services)
+        - Light Stack (2GB RAM, 13 services)
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: |
+        Please provide information about your environment:
+        - OS: (e.g., Ubuntu 22.04, Debian 12, Termux/Android)
+        - Docker version: (run `docker --version`)
+        - Docker Compose version: (run `docker compose version`)
+        - Hardware: (RAM, CPU cores)
+      value: |
+        - OS:
+        - Docker version:
+        - Docker Compose version:
+        - Hardware:
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs
+      description: |
+        Please paste relevant logs here. Run `docker compose logs <service-name>` to get logs.
+        Tip: You can attach log files by clicking this area to highlight it and then dragging files in.
+      placeholder: |
+        Paste logs here or attach files
+      render: shell
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: Share any relevant configuration (remove sensitive information!)
+      placeholder: |
+        Relevant docker-compose.yml snippet or .env settings (redacted)
+      render: yaml
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please confirm the following
+      options:
+        - label: I have searched existing issues to avoid duplicates
+          required: true
+        - label: I have run `make validate` to check configuration
+          required: false
+        - label: I have run `make lint` to check for common issues
+          required: false
+        - label: I have reviewed logs with `docker compose logs`
+          required: false
+        - label: I have removed any sensitive information from logs/config
+          required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context, screenshots, or information about the problem
+      placeholder: Any additional information that might help

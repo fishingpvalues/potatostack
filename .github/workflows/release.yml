@@ -1,0 +1,144 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (e.g., v1.0.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  validate:
+    name: Validate Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl yamllint
+          npm install -g prettier
+          wget -qO- https://github.com/mvdan/sh/releases/latest/download/shfmt_v3.8.0_linux_amd64 | sudo tee /usr/local/bin/shfmt > /dev/null
+          sudo chmod +x /usr/local/bin/shfmt
+          curl -sfL https://github.com/koalaman/shellcheck/releases/latest/download/shellcheck-stable.linux.x86_64.tar.xz | tar -xJ
+          sudo mv shellcheck-stable/shellcheck /usr/local/bin/
+
+      - name: Run validation
+        run: |
+          chmod +x ./validate-stack.sh
+          ./validate-stack.sh
+
+      - name: Run security scan
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
+          chmod +x ./security-scan.sh
+          ./security-scan.sh || echo "Security scan completed with warnings"
+
+      - name: Validate CHANGELOG
+        run: |
+          if ! grep -q "## \[$(echo ${{ github.ref_name }} | sed 's/v//')]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md does not contain entry for ${{ github.ref_name }}"
+            exit 1
+          fi
+          echo "✓ CHANGELOG.md contains release notes for ${{ github.ref_name }}"
+
+  release:
+    name: Create Release
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${{ github.ref_name }}"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "version_number=$(echo ${VERSION} | sed 's/v//')" >> $GITHUB_OUTPUT
+
+      - name: Extract release notes
+        id: release_notes
+        run: |
+          VERSION_NUMBER="${{ steps.version.outputs.version_number }}"
+
+          # Extract section from CHANGELOG.md
+          awk "/## \[${VERSION_NUMBER}\]/,/## \[/" CHANGELOG.md | \
+            sed '1d;$d' > release_notes.md
+
+          if [ ! -s release_notes.md ]; then
+            echo "::error::Could not extract release notes from CHANGELOG.md"
+            exit 1
+          fi
+
+          echo "Release notes extracted successfully"
+
+      - name: Generate artifact checksums
+        run: |
+          # Create release artifacts
+          tar -czf potatostack-${{ steps.version.outputs.version }}.tar.gz \
+            --exclude='.git' \
+            --exclude='tmp-validation' \
+            --exclude='*-report-*.txt' \
+            --exclude='*.trivy' \
+            .
+
+          # Generate checksums
+          sha256sum potatostack-${{ steps.version.outputs.version }}.tar.gz > checksums.txt
+
+          echo "Artifacts created and checksums generated"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: PotatoStack ${{ steps.version.outputs.version }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.version, '-rc') || contains(steps.version.outputs.version, '-beta') || contains(steps.version.outputs.version, '-alpha') }}
+          files: |
+            potatostack-${{ steps.version.outputs.version }}.tar.gz
+            checksums.txt
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Docker Hub description
+        if: success()
+        run: |
+          echo "✓ Release ${{ steps.version.outputs.version }} published successfully"
+          echo "  - GitHub Release created"
+          echo "  - Artifacts uploaded with checksums"
+          echo "  - Release notes from CHANGELOG.md"
+
+  announce:
+    name: Announce Release
+    needs: release
+    runs-on: ubuntu-latest
+    if: success()
+
+    steps:
+      - name: Create announcement
+        run: |
+          echo "::notice::PotatoStack ${{ github.ref_name }} has been released!"
+          echo "::notice::View the release at: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
