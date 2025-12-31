@@ -11,28 +11,28 @@ sleep 10
 
 # Dashboard IDs to import (best for PotatoStack)
 declare -A DASHBOARDS=(
-  ["893"]="Docker Containers (cAdvisor)"
-  ["17346"]="Traefik"
-  ["13639"]="Loki Logs"
-  ["1860"]="Node Exporter Full"
-  ["12937"]="Thanos Overview"
-  ["3662"]="Prometheus Stats"
-  ["9628"]="PostgreSQL Database"
-  ["11835"]="Redis"
-  ["2583"]="MongoDB"
-  ["14519"]="CrowdSec"
-  ["14978"]="Netdata"
+	["893"]="Docker Containers (cAdvisor)"
+	["17346"]="Traefik"
+	["13639"]="Loki Logs"
+	["1860"]="Node Exporter Full"
+	["12937"]="Thanos Overview"
+	["3662"]="Prometheus Stats"
+	["9628"]="PostgreSQL Database"
+	["11835"]="Redis"
+	["2583"]="MongoDB"
+	["14519"]="CrowdSec"
+	["14978"]="Netdata"
 )
 
 for DASHBOARD_ID in "${!DASHBOARDS[@]}"; do
-  NAME="${DASHBOARDS[$DASHBOARD_ID]}"
-  echo "Importing: $NAME (ID: $DASHBOARD_ID)"
-  
-  curl -s -X POST \
-    -H "Content-Type: application/json" \
-    -u "$GRAFANA_USER:$GRAFANA_PASSWORD" \
-    "$GRAFANA_URL/api/dashboards/import" \
-    -d "{
+	NAME="${DASHBOARDS[$DASHBOARD_ID]}"
+	echo "Importing: $NAME (ID: $DASHBOARD_ID)"
+
+	curl -s -X POST \
+		-H "Content-Type: application/json" \
+		-u "$GRAFANA_USER:$GRAFANA_PASSWORD" \
+		"$GRAFANA_URL/api/dashboards/import" \
+		-d "{
       \"dashboard\": {
         \"id\": null,
         \"uid\": null,
@@ -47,13 +47,13 @@ for DASHBOARD_ID in "${!DASHBOARDS[@]}"; do
       }],
       \"folderId\": 0,
       \"pluginId\": \"$DASHBOARD_ID\"
-    }" > /dev/null 2>&1
-  
-  if [ $? -eq 0 ]; then
-    echo "✓ Successfully imported: $NAME"
-  else
-    echo "✗ Failed to import: $NAME"
-  fi
+    }" >/dev/null 2>&1
+
+	if [ $? -eq 0 ]; then
+		echo "✓ Successfully imported: $NAME"
+	else
+		echo "✗ Failed to import: $NAME"
+	fi
 done
 
 echo ""

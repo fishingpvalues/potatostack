@@ -32,6 +32,12 @@ kustomization.yaml.tmp
 logs/
 log/
 .logs/
+test-logs/
+
+# Test and validation reports
+stack-test-report-*.txt
+validation-report-*.txt
+tmp-validation/
 
 # Temporary files
 *.tmp

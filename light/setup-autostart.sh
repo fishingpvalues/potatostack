@@ -24,11 +24,11 @@ echo ""
 # Security hardening
 echo "[1/8] Hardening file permissions..."
 if [ -f "$SCRIPT_DIR/.env" ]; then
-    chmod 600 "$SCRIPT_DIR/.env"
-    chown "$ACTUAL_USER:$ACTUAL_USER" "$SCRIPT_DIR/.env"
-    echo "✓ .env file secured (600)"
+	chmod 600 "$SCRIPT_DIR/.env"
+	chown "$ACTUAL_USER:$ACTUAL_USER" "$SCRIPT_DIR/.env"
+	echo "✓ .env file secured (600)"
 else
-    echo "⚠ No .env file found (will be created later)"
+	echo "⚠ No .env file found (will be created later)"
 fi
 
 chmod 644 "$SCRIPT_DIR/docker-compose.yml" 2>/dev/null || true
@@ -40,7 +40,7 @@ mkdir -p /etc/docker
 DAEMON_JSON="/etc/docker/daemon.json"
 
 if [ ! -f "$DAEMON_JSON" ]; then
-    cat > "$DAEMON_JSON" <<'EOF'
+	cat >"$DAEMON_JSON" <<'EOF'
 {
   "log-driver": "json-file",
   "log-opts": {
@@ -60,18 +60,18 @@ if [ ! -f "$DAEMON_JSON" ]; then
   }
 }
 EOF
-    echo "✓ Docker daemon.json created with security defaults"
+	echo "✓ Docker daemon.json created with security defaults"
 else
-    echo "⚠ daemon.json exists, skipping (manual review recommended)"
+	echo "⚠ daemon.json exists, skipping (manual review recommended)"
 fi
 
 # Enable automatic security updates
 echo "[3/7] Configuring automatic security updates..."
 if command -v apt-get >/dev/null 2>&1; then
-    apt-get update -qq
-    apt-get install -y -qq unattended-upgrades apt-listchanges 2>/dev/null || true
+	apt-get update -qq
+	apt-get install -y -qq unattended-upgrades apt-listchanges 2>/dev/null || true
 
-    cat > /etc/apt/apt.conf.d/50unattended-upgrades-custom <<'EOF'
+	cat >/etc/apt/apt.conf.d/50unattended-upgrades-custom <<'EOF'
 Unattended-Upgrade::Allowed-Origins {
     "${distro_id}:${distro_codename}-security";
 };
@@ -82,20 +82,20 @@ Unattended-Upgrade::Remove-Unused-Dependencies "true";
 Unattended-Upgrade::Automatic-Reboot "false";
 EOF
 
-    cat > /etc/apt/apt.conf.d/20auto-upgrades <<'EOF'
+	cat >/etc/apt/apt.conf.d/20auto-upgrades <<'EOF'
 APT::Periodic::Update-Package-Lists "1";
 APT::Periodic::Download-Upgradeable-Packages "1";
 APT::Periodic::AutocleanInterval "7";
 APT::Periodic::Unattended-Upgrade "1";
 EOF
-    echo "✓ Automatic security updates enabled"
+	echo "✓ Automatic security updates enabled"
 else
-    echo "⚠ apt not available, skipping auto-updates"
+	echo "⚠ apt not available, skipping auto-updates"
 fi
 
 # Configure log rotation
 echo "[4/7] Configuring log rotation..."
-cat > /etc/logrotate.d/potatostack-light <<'EOF'
+cat >/etc/logrotate.d/potatostack-light <<'EOF'
 /var/lib/docker/containers/*/*.log {
     rotate 7
     daily
@@ -110,7 +110,7 @@ echo "✓ Log rotation configured"
 
 # Set system resource limits
 echo "[5/7] Configuring system resource limits..."
-cat > /etc/security/limits.d/potatostack.conf <<'EOF'
+cat >/etc/security/limits.d/potatostack.conf <<'EOF'
 *    soft    nofile    64000
 *    hard    nofile    64000
 root soft    nofile    64000
@@ -126,15 +126,15 @@ systemctl restart docker
 
 # Verify Docker is enabled
 if systemctl is-enabled docker >/dev/null 2>&1; then
-    echo "✓ Docker enabled on boot"
+	echo "✓ Docker enabled on boot"
 else
-    echo "✗ Failed to enable Docker"
-    exit 1
+	echo "✗ Failed to enable Docker"
+	exit 1
 fi
 
 # Create systemd service file
 echo "[7/7] Creating systemd service file..."
-cat > /etc/systemd/system/potatostack-light.service <<EOF
+cat >/etc/systemd/system/potatostack-light.service <<EOF
 [Unit]
 Description=PotatoStack Light - VPN, File Sync, Backups, Password Manager
 Requires=docker.service

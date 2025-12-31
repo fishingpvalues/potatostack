@@ -1,0 +1,29 @@
+# Prettier configuration for PotatoStack Light
+# SOTA 2025 YAML/Docker Compose formatting
+
+printWidth: 120
+tabWidth: 2
+useTabs: false
+semi: true
+singleQuote: false
+quoteProps: "as-needed"
+trailingComma: "es5"
+bracketSpacing: true
+arrowParens: "always"
+proseWrap: "preserve"
+endOfLine: "lf"
+
+# YAML specific
+overrides:
+  - files: "*.yaml"
+    options:
+      printWidth: 120
+      tabWidth: 2
+  - files: "*.yml"
+    options:
+      printWidth: 120
+      tabWidth: 2
+  - files: "docker-compose*.yml"
+    options:
+      printWidth: 120
+      tabWidth: 2

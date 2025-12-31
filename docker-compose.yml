@@ -94,10 +94,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 512M
         reservations:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 512M
 
   # PgBouncer - PostgreSQL connection pooling (SOTA 2025)
@@ -124,10 +124,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
         reservations:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 64M
 
   # MongoDB - Document database (SOTA 2025)
@@ -158,10 +158,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'
+          cpus: "2.0"
           memory: 512M
         reservations:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 512M
 
   # Redis Shared Cache - SOTA 2025 consolidated (N8n, Gitea, Immich, Paperless, Sentry)
@@ -185,10 +185,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 512M
         reservations:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 512M
 
   ################################################################################
@@ -201,7 +201,7 @@ services:
     container_name: crowdsec
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:6060:6060"  # Prometheus metrics
+      - "${HOST_BIND:-192.168.178.40}:6060:6060" # Prometheus metrics
     environment:
       <<: *common-env
       COLLECTIONS: "crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors crowdsecurity/nginx crowdsecurity/linux"
@@ -223,10 +223,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
         reservations:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 128M
 
   # CrowdSec Traefik Bouncer - Blocks malicious IPs at reverse proxy level
@@ -246,7 +246,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 64M
 
   ################################################################################
@@ -263,7 +263,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "${HOST_BIND:-192.168.178.40}:8080:8080"  # Dashboard
+      - "${HOST_BIND:-192.168.178.40}:8080:8080" # Dashboard
     environment:
       <<: *common-env
     command:
@@ -316,7 +316,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
 
   ################################################################################
@@ -351,7 +351,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'
+          cpus: "2.0"
           memory: 512M
 
   authentik-worker:
@@ -377,7 +377,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 128M
 
   # Vaultwarden - Password manager and 2FA aggregator
@@ -413,7 +413,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
     labels:
       - "traefik.enable=true"
@@ -453,10 +453,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
         reservations:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 128M
     labels:
       - "traefik.enable=true"
@@ -479,20 +479,20 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     ports:
-      - "${HOST_BIND:-192.168.178.40}:8000:8000"     # Gluetun control
-      - "${HOST_BIND:-192.168.178.40}:8989:8989"     # Sonarr
-      - "${HOST_BIND:-192.168.178.40}:7878:7878"     # Radarr
-      - "${HOST_BIND:-192.168.178.40}:9696:9696"     # Prowlarr
-      - "${HOST_BIND:-192.168.178.40}:6767:6767"     # Bazarr
-      - "${HOST_BIND:-192.168.178.40}:8787:8787"     # Readarr
-      - "${HOST_BIND:-192.168.178.40}:8686:8686"     # Lidarr
-      - "${HOST_BIND:-192.168.178.40}:8282:8282"     # qBittorrent WebUI
-      - "${HOST_BIND:-192.168.178.40}:51413:51413"   # qBittorrent peer
+      - "${HOST_BIND:-192.168.178.40}:8000:8000" # Gluetun control
+      - "${HOST_BIND:-192.168.178.40}:8989:8989" # Sonarr
+      - "${HOST_BIND:-192.168.178.40}:7878:7878" # Radarr
+      - "${HOST_BIND:-192.168.178.40}:9696:9696" # Prowlarr
+      - "${HOST_BIND:-192.168.178.40}:6767:6767" # Bazarr
+      - "${HOST_BIND:-192.168.178.40}:8787:8787" # Readarr
+      - "${HOST_BIND:-192.168.178.40}:8686:8686" # Lidarr
+      - "${HOST_BIND:-192.168.178.40}:8282:8282" # qBittorrent WebUI
+      - "${HOST_BIND:-192.168.178.40}:51413:51413" # qBittorrent peer
       - "${HOST_BIND:-192.168.178.40}:51413:51413/udp"
-      - "${HOST_BIND:-192.168.178.40}:6800:6800"     # aria2 RPC
-      - "${HOST_BIND:-192.168.178.40}:6880:80"       # aria2 WebUI
-      - "${HOST_BIND:-192.168.178.40}:2234:2234"     # slskd WebUI
-      - "${HOST_BIND:-192.168.178.40}:50000:50000"   # slskd peer
+      - "${HOST_BIND:-192.168.178.40}:6800:6800" # aria2 RPC
+      - "${HOST_BIND:-192.168.178.40}:6880:80" # aria2 WebUI
+      - "${HOST_BIND:-192.168.178.40}:2234:2234" # slskd WebUI
+      - "${HOST_BIND:-192.168.178.40}:50000:50000" # slskd peer
     environment:
       <<: *common-env
       VPN_SERVICE_PROVIDER: ${VPN_PROVIDER:-surfshark}
@@ -520,10 +520,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
         reservations:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 128M
     labels:
       - "autoheal=true"
@@ -550,7 +550,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
 
   ################################################################################
@@ -564,8 +564,8 @@ services:
     logging: *default-logging
     init: true
     ports:
-      - "${HOST_BIND:-192.168.178.40}:8080:8080"  # AIO interface
-      - "${HOST_BIND:-192.168.178.40}:8443:8443"  # Nextcloud
+      - "${HOST_BIND:-192.168.178.40}:8080:8080" # AIO interface
+      - "${HOST_BIND:-192.168.178.40}:8443:8443" # Nextcloud
     environment:
       <<: *common-env
       APACHE_PORT: 11000
@@ -588,7 +588,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 128M
 
   # Syncthing - P2P file sync
@@ -618,7 +618,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 128M
 
   ################################################################################
@@ -663,10 +663,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 128M
         reservations:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 64M
     labels:
       - "traefik.enable=true"
@@ -701,10 +701,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
         reservations:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 128M
     labels:
       - "traefik.enable=true"
@@ -743,10 +743,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
         reservations:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 128M
     labels:
       - "autoheal=true"
@@ -780,10 +780,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 128M
         reservations:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
     labels:
       - "autoheal=true"
@@ -817,10 +817,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 128M
         reservations:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
     labels:
       - "autoheal=true"
@@ -854,10 +854,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 128M
         reservations:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
     labels:
       - "autoheal=true"
@@ -891,10 +891,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 128M
         reservations:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
     labels:
       - "autoheal=true"
@@ -931,10 +931,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
         reservations:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 128M
     labels:
       - "autoheal=true"
@@ -956,7 +956,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
 
   ################################################################################
@@ -1004,10 +1004,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.5'
+          cpus: "1.5"
           memory: 768M
         reservations:
-          cpus: '0.75'
+          cpus: "0.75"
           memory: 1G
 
   # Jellyseerr - Media request management for Jellyfin
@@ -1027,7 +1027,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
 
   # Audiobookshelf - Audiobook and podcast server
@@ -1052,7 +1052,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 128M
 
   ################################################################################
@@ -1090,10 +1090,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 128M
         reservations:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
     labels:
       - "autoheal=true"
@@ -1131,10 +1131,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
         reservations:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 128M
     labels:
       - "autoheal=true"
@@ -1152,7 +1152,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 64M
 
   # slskd - Soulseek P2P client for music sharing (SOTA 2025)
@@ -1196,10 +1196,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.75'
+          cpus: "0.75"
           memory: 128M
         reservations:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
     labels:
       - "autoheal=true"
@@ -1241,7 +1241,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 128M
 
   immich-server:
@@ -1272,7 +1272,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'
+          cpus: "2.0"
           memory: 768M
 
   immich-machine-learning:
@@ -1291,10 +1291,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 768M
         reservations:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 1G
 
   ################################################################################
@@ -1307,16 +1307,16 @@ services:
     container_name: prometheus
     logging: *default-logging
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=7d'
-      - '--storage.tsdb.retention.size=5GB'
-      - '--storage.tsdb.min-block-duration=2h'
-      - '--storage.tsdb.max-block-duration=2h'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-      - '--web.enable-lifecycle'
-      - '--web.enable-admin-api'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=7d"
+      - "--storage.tsdb.retention.size=5GB"
+      - "--storage.tsdb.min-block-duration=2h"
+      - "--storage.tsdb.max-block-duration=2h"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"
+      - "--web.enable-admin-api"
     ports:
       - "${HOST_BIND:-192.168.178.40}:9090:9090"
     environment:
@@ -1335,10 +1335,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 128M
         reservations:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
     labels:
       - "traefik.enable=true"
@@ -1353,12 +1353,12 @@ services:
     container_name: thanos-sidecar
     logging: *default-logging
     command:
-      - 'sidecar'
-      - '--tsdb.path=/prometheus'
-      - '--prometheus.url=http://prometheus:9090'
-      - '--grpc-address=0.0.0.0:10901'
-      - '--http-address=0.0.0.0:10902'
-      - '--objstore.config-file=/etc/thanos/bucket.yml'
+      - "sidecar"
+      - "--tsdb.path=/prometheus"
+      - "--prometheus.url=http://prometheus:9090"
+      - "--grpc-address=0.0.0.0:10901"
+      - "--http-address=0.0.0.0:10902"
+      - "--objstore.config-file=/etc/thanos/bucket.yml"
     ports:
       - "${HOST_BIND:-192.168.178.40}:10902:10902"
     environment:
@@ -1374,10 +1374,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
         reservations:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 128M
 
   # Thanos Store - Long-term storage gateway
@@ -1386,11 +1386,11 @@ services:
     container_name: thanos-store
     logging: *default-logging
     command:
-      - 'store'
-      - '--data-dir=/var/thanos/store'
-      - '--grpc-address=0.0.0.0:10901'
-      - '--http-address=0.0.0.0:10902'
-      - '--objstore.config-file=/etc/thanos/bucket.yml'
+      - "store"
+      - "--data-dir=/var/thanos/store"
+      - "--grpc-address=0.0.0.0:10901"
+      - "--http-address=0.0.0.0:10902"
+      - "--objstore.config-file=/etc/thanos/bucket.yml"
     volumes:
       - thanos-store-data:/var/thanos/store
       - ./config/thanos:/etc/thanos:ro
@@ -1400,10 +1400,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 128M
         reservations:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 128M
 
   # Thanos Query - Unified query interface
@@ -1412,12 +1412,12 @@ services:
     container_name: thanos-query
     logging: *default-logging
     command:
-      - 'query'
-      - '--grpc-address=0.0.0.0:10901'
-      - '--http-address=0.0.0.0:10902'
-      - '--store=thanos-sidecar:10901'
-      - '--store=thanos-store:10901'
-      - '--query.replica-label=replica'
+      - "query"
+      - "--grpc-address=0.0.0.0:10901"
+      - "--http-address=0.0.0.0:10902"
+      - "--store=thanos-sidecar:10901"
+      - "--store=thanos-store:10901"
+      - "--query.replica-label=replica"
     ports:
       - "${HOST_BIND:-192.168.178.40}:10903:10902"
     networks:
@@ -1434,10 +1434,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 128M
         reservations:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 128M
     labels:
       - "traefik.enable=true"
@@ -1452,14 +1452,14 @@ services:
     container_name: thanos-compactor
     logging: *default-logging
     command:
-      - 'compact'
-      - '--data-dir=/var/thanos/compact'
-      - '--objstore.config-file=/etc/thanos/bucket.yml'
-      - '--http-address=0.0.0.0:10902'
-      - '--wait'
-      - '--retention.resolution-raw=30d'
-      - '--retention.resolution-5m=90d'
-      - '--retention.resolution-1h=365d'
+      - "compact"
+      - "--data-dir=/var/thanos/compact"
+      - "--objstore.config-file=/etc/thanos/bucket.yml"
+      - "--http-address=0.0.0.0:10902"
+      - "--wait"
+      - "--retention.resolution-raw=30d"
+      - "--retention.resolution-5m=90d"
+      - "--retention.resolution-1h=365d"
     volumes:
       - thanos-compact-data:/var/thanos/compact
       - ./config/thanos:/etc/thanos:ro
@@ -1469,10 +1469,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 128M
         reservations:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 128M
 
   # Grafana - Metrics visualization and dashboards (SOTA 2025)
@@ -1513,10 +1513,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 128M
         reservations:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
     labels:
       - "traefik.enable=true"
@@ -1542,19 +1542,19 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
     command:
-      - '--housekeeping_interval=30s'
-      - '--docker_only=true'
-      - '--disable_metrics=percpu,sched,tcp,udp,disk,diskIO,accelerator,hugetlb,referenced_memory,cpu_topology,resctrl'
+      - "--housekeeping_interval=30s"
+      - "--docker_only=true"
+      - "--disable_metrics=percpu,sched,tcp,udp,disk,diskIO,accelerator,hugetlb,referenced_memory,cpu_topology,resctrl"
     networks:
       - potatostack
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
         reservations:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 128M
 
   # Netdata - Real-time system monitoring (SOTA 2025 - ultra-lightweight)
@@ -1597,10 +1597,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 128M
         reservations:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 64M
     labels:
       - "traefik.enable=true"
@@ -1626,7 +1626,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 128M
 
   # Promtail - Log collector
@@ -1647,7 +1647,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
 
   # Uptime Kuma - Uptime monitoring
@@ -1673,7 +1673,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
 
   ################################################################################
@@ -1717,7 +1717,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 128M
 
   # Healthchecks - Cron monitoring
@@ -1750,7 +1750,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
 
   ################################################################################
@@ -1778,10 +1778,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.75'
+          cpus: "0.75"
           memory: 384M
         reservations:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 512M
 
   # Linkding - Bookmark manager
@@ -1811,7 +1811,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
 
   # Cal.com - Calendar scheduling
@@ -1836,7 +1836,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'
+          cpus: "2.0"
           memory: 384M
 
   # Excalidraw - Sketching tool
@@ -1860,7 +1860,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
 
   # IT-Tools - Collection of handy online tools (SOTA 2025)
@@ -1883,7 +1883,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
     labels:
       - "traefik.enable=true"
@@ -1934,10 +1934,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 768M
         reservations:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 1G
     labels:
       - "traefik.enable=true"
@@ -1990,7 +1990,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 384M
 
   # Gitea Runner - CI/CD for Gitea
@@ -2014,7 +2014,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
 
   # Sentry - Error tracking
@@ -2047,7 +2047,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'
+          cpus: "2.0"
           memory: 384M
 
   # Pinchflat - YouTube downloader
@@ -2071,7 +2071,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 128M
 
   ################################################################################
@@ -2106,10 +2106,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 128M
         reservations:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
     labels:
       - "traefik.enable=true"
@@ -2145,10 +2145,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
         reservations:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 64M
 
   # Trivy - Vulnerability scanner
@@ -2172,10 +2172,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 128M
         reservations:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
 
   # Alertmanager - Alert routing and management
@@ -2184,9 +2184,9 @@ services:
     container_name: alertmanager
     logging: *default-logging
     command:
-      - '--config.file=/etc/alertmanager/config.yml'
-      - '--storage.path=/alertmanager'
-      - '--web.external-url=http://alertmanager.${HOST_DOMAIN:-local.domain}'
+      - "--config.file=/etc/alertmanager/config.yml"
+      - "--storage.path=/alertmanager"
+      - "--web.external-url=http://alertmanager.${HOST_DOMAIN:-local.domain}"
     environment:
       <<: *common-env
     volumes:
@@ -2205,10 +2205,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
         reservations:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 64M
     labels:
       - "traefik.enable=true"
@@ -2251,7 +2251,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
 
   # Autoheal - Container health recovery
@@ -2272,10 +2272,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 64M
         reservations:
-          cpus: '0.05'
+          cpus: "0.05"
           memory: 32M
 
   ################################################################################
@@ -2306,7 +2306,7 @@ services:
           cpus: "0.05"
           memory: 16M
         reservations:
-          cpus: '0.025'
+          cpus: "0.025"
           memory: 8M
   # Kopia - Fast and secure backup server
   kopia:
@@ -2356,7 +2356,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'
+          cpus: "2.0"
           memory: 384M
     healthcheck:
       test: ["CMD", "curl", "-fk", "https://127.0.0.1:51515/api/v1/repo/status"]

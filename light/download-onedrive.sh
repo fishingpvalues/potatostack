@@ -16,16 +16,16 @@ echo ""
 
 # Check if onedrive is configured
 if [ ! -f "$HOME/.config/onedrive/config" ]; then
-    echo "✗ OneDrive not configured"
-    echo "  Run: ./setup-onedrive-sync.sh first"
-    exit 1
+	echo "✗ OneDrive not configured"
+	echo "  Run: ./setup-onedrive-sync.sh first"
+	exit 1
 fi
 
 # Check if authenticated
 if [ ! -f "$HOME/.config/onedrive/refresh_token" ]; then
-    echo "✗ Not authenticated"
-    echo "  Run: ./setup-onedrive-sync.sh to authenticate"
-    exit 1
+	echo "✗ Not authenticated"
+	echo "  Run: ./setup-onedrive-sync.sh to authenticate"
+	exit 1
 fi
 
 echo "Sync directory: $SYNC_DIR"
@@ -44,8 +44,8 @@ read -p "Start download? (y/N): " -n 1 -r
 echo
 
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "Download cancelled."
-    exit 0
+	echo "Download cancelled."
+	exit 0
 fi
 
 echo ""
