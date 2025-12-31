@@ -95,7 +95,7 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 512M
+          memory: 1G
         reservations:
           cpus: '0.5'
           memory: 512M
@@ -159,7 +159,7 @@ services:
       resources:
         limits:
           cpus: '2.0'
-          memory: 512M
+          memory: 1G
         reservations:
           cpus: '0.5'
           memory: 512M
@@ -186,7 +186,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 512M
+          memory: 1G
         reservations:
           cpus: '0.25'
           memory: 512M
@@ -224,7 +224,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
         reservations:
           cpus: '0.1'
           memory: 128M
@@ -317,7 +317,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
 
   ################################################################################
   # AUTHENTICATION & SECURITY
@@ -352,7 +352,7 @@ services:
       resources:
         limits:
           cpus: '2.0'
-          memory: 512M
+          memory: 1G
 
   authentik-worker:
     image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-latest}
@@ -378,7 +378,7 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 128M
+          memory: 512M
 
   # Vaultwarden - Password manager and 2FA aggregator
   vaultwarden:
@@ -414,7 +414,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.vaultwarden.rule=Host(`vault.${HOST_DOMAIN:-local.domain}`)"
@@ -454,7 +454,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
         reservations:
           cpus: '0.1'
           memory: 128M
@@ -521,7 +521,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
         reservations:
           cpus: '0.1'
           memory: 128M
@@ -551,7 +551,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
 
   ################################################################################
   # CLOUD STORAGE & FILE SYNC
@@ -589,7 +589,7 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 128M
+          memory: 512M
 
   # Syncthing - P2P file sync
   syncthing:
@@ -619,7 +619,7 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 128M
+          memory: 512M
 
   ################################################################################
   # KNOWLEDGE MANAGEMENT
@@ -664,7 +664,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 128M
+          memory: 256M
         reservations:
           cpus: '0.1'
           memory: 64M
@@ -702,7 +702,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
         reservations:
           cpus: '0.1'
           memory: 128M
@@ -744,7 +744,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
         reservations:
           cpus: '0.1'
           memory: 128M
@@ -781,10 +781,10 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 128M
+          memory: 512M
         reservations:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
     labels:
       - "autoheal=true"
 
@@ -818,10 +818,10 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 128M
+          memory: 512M
         reservations:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
     labels:
       - "autoheal=true"
 
@@ -855,10 +855,10 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 128M
+          memory: 512M
         reservations:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
     labels:
       - "autoheal=true"
 
@@ -892,10 +892,10 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 128M
+          memory: 512M
         reservations:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
     labels:
       - "autoheal=true"
 
@@ -932,7 +932,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
         reservations:
           cpus: '0.1'
           memory: 128M
@@ -957,7 +957,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
 
   ################################################################################
   # MEDIA SERVERS & REQUEST MANAGEMENT
@@ -1005,7 +1005,7 @@ services:
       resources:
         limits:
           cpus: '1.5'
-          memory: 768M
+          memory: 2G
         reservations:
           cpus: '0.75'
           memory: 1G
@@ -1028,7 +1028,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
 
   # Audiobookshelf - Audiobook and podcast server
   audiobookshelf:
@@ -1053,7 +1053,7 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 128M
+          memory: 512M
 
   ################################################################################
   # DOWNLOAD CLIENTS (behind VPN)
@@ -1091,10 +1091,10 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 128M
+          memory: 512M
         reservations:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
     labels:
       - "autoheal=true"
 
@@ -1132,7 +1132,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
         reservations:
           cpus: '0.1'
           memory: 128M
@@ -1197,10 +1197,10 @@ services:
       resources:
         limits:
           cpus: '0.75'
-          memory: 128M
+          memory: 512M
         reservations:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
     labels:
       - "autoheal=true"
 
@@ -1242,7 +1242,7 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 128M
+          memory: 512M
 
   immich-server:
     image: ghcr.io/immich-app/immich-server:${IMMICH_TAG:-release}
@@ -1273,7 +1273,7 @@ services:
       resources:
         limits:
           cpus: '2.0'
-          memory: 768M
+          memory: 2G
 
   immich-machine-learning:
     image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_TAG:-release}
@@ -1292,7 +1292,7 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 768M
+          memory: 2G
         reservations:
           cpus: '0.5'
           memory: 1G
@@ -1336,10 +1336,10 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 128M
+          memory: 512M
         reservations:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.prometheus.rule=Host(`prometheus.${HOST_DOMAIN:-local.domain}`)"
@@ -1375,7 +1375,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
         reservations:
           cpus: '0.1'
           memory: 128M
@@ -1401,7 +1401,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 128M
+          memory: 512M
         reservations:
           cpus: '0.1'
           memory: 128M
@@ -1435,7 +1435,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 128M
+          memory: 256M
         reservations:
           cpus: '0.1'
           memory: 128M
@@ -1470,7 +1470,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 128M
+          memory: 512M
         reservations:
           cpus: '0.1'
           memory: 128M
@@ -1514,10 +1514,10 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 128M
+          memory: 512M
         reservations:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.grafana.rule=Host(`grafana.${HOST_DOMAIN:-local.domain}`)"
@@ -1552,7 +1552,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
         reservations:
           cpus: '0.1'
           memory: 128M
@@ -1598,7 +1598,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 128M
+          memory: 256M
         reservations:
           cpus: '0.1'
           memory: 64M
@@ -1627,7 +1627,7 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 128M
+          memory: 512M
 
   # Promtail - Log collector
   promtail:
@@ -1674,7 +1674,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
 
   ################################################################################
   # AUTOMATION & WORKFLOWS
@@ -1718,7 +1718,7 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 128M
+          memory: 512M
 
   # Healthchecks - Cron monitoring
   healthchecks:
@@ -1751,7 +1751,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
 
   ################################################################################
   # UTILITIES & TOOLS
@@ -1779,7 +1779,7 @@ services:
       resources:
         limits:
           cpus: '0.75'
-          memory: 384M
+          memory: 1G
         reservations:
           cpus: '0.25'
           memory: 512M
@@ -1812,7 +1812,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
 
   # Cal.com - Calendar scheduling
   code-server:
@@ -1837,7 +1837,7 @@ services:
       resources:
         limits:
           cpus: '2.0'
-          memory: 384M
+          memory: 1G
 
   # Excalidraw - Sketching tool
   atuin:
@@ -1861,7 +1861,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
 
   # IT-Tools - Collection of handy online tools (SOTA 2025)
   it-tools:
@@ -1935,7 +1935,7 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 768M
+          memory: 2G
         reservations:
           cpus: '0.5'
           memory: 1G
@@ -1991,7 +1991,7 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 384M
+          memory: 512M
 
   # Gitea Runner - CI/CD for Gitea
   gitea-runner:
@@ -2015,7 +2015,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
 
   # Sentry - Error tracking
   ################################################################################
@@ -2048,7 +2048,7 @@ services:
       resources:
         limits:
           cpus: '2.0'
-          memory: 384M
+          memory: 1G
 
   # Pinchflat - YouTube downloader
   pinchflat:
@@ -2072,7 +2072,7 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 128M
+          memory: 512M
 
   ################################################################################
   # DASHBOARD & CONTAINER MANAGEMENT
@@ -2107,10 +2107,10 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 128M
+          memory: 512M
         reservations:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.homarr.rule=Host(`home.${HOST_DOMAIN:-local.domain}`)"
@@ -2173,10 +2173,10 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 128M
+          memory: 512M
         reservations:
           cpus: '0.25'
-          memory: 128M
+          memory: 256M
 
   # Alertmanager - Alert routing and management
   alertmanager:
@@ -2357,7 +2357,7 @@ services:
       resources:
         limits:
           cpus: '2.0'
-          memory: 384M
+          memory: 1G
     healthcheck:
       test: ["CMD", "curl", "-fk", "https://127.0.0.1:51515/api/v1/repo/status"]
       interval: 120s
