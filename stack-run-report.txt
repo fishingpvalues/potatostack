@@ -1,47 +1,0 @@
-╔══════════════════════════════════════════════════════════════════════════════╗
-║         REMOTE STACK RUNNER - SSH to 192.168.178.40                    ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-
-Installing sshpass...
-Checking availability of current mirror:
-[*] https://mirrors.aliyun.com/termux/termux-main: ok
-
-WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
-
-Reading package lists...
-Building dependency tree...
-Reading state information...
-The following NEW packages will be installed:
-  sshpass
-0 upgraded, 1 newly installed, 0 to remove and 7 not upgraded.
-Need to get 8424 B of archives.
-After this operation, 69.6 kB of additional disk space will be used.
-Get:1 https://mirrors.aliyun.com/termux/termux-main stable/main aarch64 sshpass aarch64 1.10-1 [8424 B]
-Fetched 8424 B in 1s (6450 B/s)
-Selecting previously unselected package sshpass.
-(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 58258 files and directories currently installed.)
-Preparing to unpack .../sshpass_1.10-1_aarch64.deb ...
-Unpacking sshpass (1.10-1) ...
-Setting up sshpass (1.10-1) ...
-[1/4] Copying files to server...
-ssh: connect to host 192.168.178.40 port 22: Connection timed out
-scp: Connection closed
-
-[2/4] Making script executable...
-ssh: connect to host 192.168.178.40 port 22: Connection timed out
-
-[3/4] Executing run-and-monitor.sh on server...
-═══════════════════════════════════════════════════════════════════════════════
-
-ssh: connect to host 192.168.178.40 port 22: Connection timed out
-
-═══════════════════════════════════════════════════════════════════════════════
-
-[4/4] Complete!
-✗ Stack monitoring had issues (exit code: 255)
-
-To view live logs:
-  sshpass -p 'schneck0' ssh daniel@192.168.178.40 'cd ~/light && docker compose logs -f'
-
-To check stack status:
-  sshpass -p 'schneck0' ssh daniel@192.168.178.40 'cd ~/light && docker compose ps'
