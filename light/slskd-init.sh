@@ -36,16 +36,15 @@ fi
 
 # Update slskd.yml with Soulseek credentials if provided
 if [ -f "$CONFIG_FILE" ] && [ -n "$SLSKD_SOULSEEK_USERNAME" ] && [ -n "$SLSKD_SOULSEEK_PASSWORD" ]; then
-	echo "Updating Soulseek credentials in config..."
-	# Check if soulseek section exists (commented or not)
-	if grep -q '# soulseek:' "$CONFIG_FILE"; then
-		# Uncomment and update the soulseek section
-		sed -i 's/# soulseek:/soulseek:/' "$CONFIG_FILE"
-		sed -i 's/#   address:/  address:/' "$CONFIG_FILE"
-		sed -i 's/#   port:/  port:/' "$CONFIG_FILE"
-		sed -i "s/#   username: ~/  username: $SLSKD_SOULSEEK_USERNAME/" "$CONFIG_FILE"
-		sed -i "s/#   password: ~/  password: $SLSKD_SOULSEEK_PASSWORD/" "$CONFIG_FILE"
-		echo "✓ Soulseek credentials configured"
+	# Check if soulseek username is already configured
+	if ! grep -q "^\s*username: $SLSKD_SOULSEEK_USERNAME" "$CONFIG_FILE"; then
+		echo "Updating Soulseek credentials in config..."
+		# Backup
+		cp "$CONFIG_FILE" "${CONFIG_FILE}.bak"
+
+		# Remove old config and regenerate
+		rm "$CONFIG_FILE"
+		echo "✓ Regenerating config with updated credentials"
 	fi
 fi
 
@@ -90,17 +89,6 @@ web:
         cidr: 0.0.0.0/0,::/0
 EOF
 	echo "✓ API key added to existing configuration"
-fi
-
-# Add directories config if missing
-if ! grep -q "^directories:" "$CONFIG_FILE"; then
-	echo "Adding directories configuration..."
-	sed -i "/^soulseek:/a\\
-\\
-directories:\\
-  incomplete: /var/slskd/incomplete\\
-  downloads: /var/slskd/shared" "$CONFIG_FILE"
-	echo "✓ Directories configured: incomplete -> /var/slskd/incomplete, downloads -> /var/slskd/shared"
 fi
 
 # Continue with normal startup
