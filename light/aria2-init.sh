@@ -25,13 +25,14 @@ else
 	fi
 fi
 
-# Export for aria2 to use
-export RPC_SECRET="$ARIA2_RPC_SECRET"
+# Write RPC secret to environment file for s6-overlay to source
+mkdir -p /var/run/s6/container_environment
+echo -n "$ARIA2_RPC_SECRET" > /var/run/s6/container_environment/RPC_SECRET
 
 # Create session file if it doesn't exist
 touch "$CONFIG_DIR/aria2.session"
 
-echo "✓ Aria2 RPC secret configured"
+echo "✓ Aria2 RPC secret configured: ${ARIA2_RPC_SECRET:0:16}..."
 
 # Continue with normal startup
 exec /init "$@"
