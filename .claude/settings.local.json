@@ -89,7 +89,9 @@
       "Bash(npm install:*)",
       "Bash(prettier:*)",
       "Bash(make format:*)",
-      "Bash(ln:*)"
+      "Bash(ln:*)",
+      "Bash(sshpass:*)",
+      "Bash(scp:*)"
     ],
     "deny": [],
     "ask": []

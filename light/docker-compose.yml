@@ -410,7 +410,7 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=Europe/Berlin
-    command: --port 6880 --ipv6-mode false
+    command: --port 6880
     networks:
       - potatostack
     restart: unless-stopped
