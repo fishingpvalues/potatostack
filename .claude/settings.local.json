@@ -91,7 +91,8 @@
       "Bash(make format:*)",
       "Bash(ln:*)",
       "Bash(sshpass:*)",
-      "Bash(scp:*)"
+      "Bash(scp:*)",
+      "WebFetch(domain:192.168.178.40)"
     ],
     "deny": [],
     "ask": []

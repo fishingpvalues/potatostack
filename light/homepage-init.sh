@@ -24,6 +24,8 @@ fi
 # Load Aria2 RPC secret
 if [ -f "/keys/aria2-rpc-secret" ]; then
 	export HOMEPAGE_VAR_ARIA2_SECRET=$(cat /keys/aria2-rpc-secret)
+	# Also export base64-encoded version for AriaNg URL (URL-safe base64)
+	export HOMEPAGE_VAR_ARIA2_SECRET_B64=$(echo -n "$HOMEPAGE_VAR_ARIA2_SECRET" | base64 | tr -d '=' | tr '+/' '-_')
 	echo "✓ Loaded Aria2 RPC secret"
 else
 	echo "⚠ Aria2 RPC secret not found, widget may show errors"
