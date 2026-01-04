@@ -8,7 +8,9 @@
       "Bash(docker logs:*)",
       "Bash(docker exec:*)",
       "Bash(docker restart:*)",
-      "Bash(docker rm:*)"
+      "Bash(docker rm:*)",
+      "Bash(ssh:*)",
+      "Bash(scp:*)"
     ]
   }
 }

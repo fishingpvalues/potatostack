@@ -51,6 +51,8 @@ services:
     container_name: homepage
     logging: *default-logging
     user: "0:0"
+    group_add:
+      - "105"
     entrypoint: sh /homepage-init.sh
     ports:
       - "${HOST_BIND}:3000:3000"
