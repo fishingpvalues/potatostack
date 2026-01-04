@@ -29,6 +29,12 @@ fi
 mkdir -p /var/run/s6/container_environment
 echo -n "$ARIA2_RPC_SECRET" > /var/run/s6/container_environment/RPC_SECRET
 
+# Update aria2.conf if it exists to override any old secret
+if [ -f "$CONFIG_DIR/aria2.conf" ]; then
+	sed -i "s/^rpc-secret=.*/rpc-secret=$ARIA2_RPC_SECRET/" "$CONFIG_DIR/aria2.conf"
+	echo "✓ Updated RPC secret in aria2.conf"
+fi
+
 # Create session file if it doesn't exist
 touch "$CONFIG_DIR/aria2.session"
 
