@@ -31,6 +31,7 @@ services:
       - /mnt/cachehdd:/mnt/cachehdd
       - /mnt/ssd/docker-data:/mnt/ssd/docker-data
       - ./init-storage.sh:/init-storage.sh:ro
+      - shared-keys:/keys
     network_mode: none
     restart: "no"
 
@@ -1104,9 +1105,9 @@ services:
     container_name: aria2
     logging: *default-logging
     network_mode: "service:gluetun"
+    entrypoint: sh /aria2-init.sh
     environment:
       <<: *common-env
-      RPC_SECRET: ${ARIA2_RPC_SECRET}
       RPC_PORT: 6800
       LISTEN_PORT: 6888
       DISK_CACHE: 64M
@@ -1115,6 +1116,8 @@ services:
       - aria2-config:/config
       - /mnt/storage/aria2-downloads:/downloads
       - /mnt/cachehdd/aria2-incomplete:/incomplete
+      - ./aria2-init.sh:/aria2-init.sh:ro
+      - shared-keys:/keys:ro
     depends_on:
       gluetun:
         condition: service_healthy
@@ -1145,7 +1148,7 @@ services:
     container_name: ariang
     logging: *default-logging
     network_mode: "service:gluetun"
-    command: --port 80 --ipv6-mode false
+    command: --port 80
     depends_on:
       - aria2
     restart: unless-stopped
@@ -2420,6 +2423,9 @@ volumes:
   qbittorrent-config:
   aria2-config:
   slskd-config:
+
+  # Shared secrets
+  shared-keys:
 
   # Photos
   immich-postgres:

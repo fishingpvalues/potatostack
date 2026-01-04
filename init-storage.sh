@@ -63,4 +63,33 @@ chown -R ${PUID:-1000}:${PGID:-1000} /mnt/storage
 chown -R ${PUID:-1000}:${PGID:-1000} /mnt/cachehdd
 chown -R ${PUID:-1000}:${PGID:-1000} /mnt/ssd/docker-data
 
+################################################################################
+# Generate Secrets for Services
+################################################################################
+echo ""
+echo "Generating secrets for services..."
+
+# Generate random key using /dev/urandom
+generate_key() {
+	# Generate 48 bytes from /dev/urandom, encode as base64
+	head -c 48 /dev/urandom | base64 | tr -d '\n='
+}
+
+# Create keys directory if it doesn't exist
+mkdir -p /keys
+
+# Generate Aria2 RPC secret if not set
+if [ -z "$ARIA2_RPC_SECRET" ] || [ ! -f "/keys/aria2-rpc-secret" ]; then
+	ARIA2_RPC_SECRET=$(generate_key)
+	echo "$ARIA2_RPC_SECRET" >/keys/aria2-rpc-secret
+	echo "✓ Generated Aria2 RPC secret"
+else
+	echo "$ARIA2_RPC_SECRET" >/keys/aria2-rpc-secret
+	echo "✓ Using existing Aria2 RPC secret from env"
+fi
+
+chmod 644 /keys/*
+echo ""
+echo "✓ Secrets ready at /keys/ for all containers"
+
 echo "Storage initialization complete!"
