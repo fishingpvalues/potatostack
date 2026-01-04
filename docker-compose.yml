@@ -1113,7 +1113,7 @@ services:
       IPV6_MODE: "false"
     volumes:
       - aria2-config:/config
-      - /mnt/storage/downloads:/downloads
+      - /mnt/storage/aria2-downloads:/downloads
       - /mnt/cachehdd/aria2-incomplete:/incomplete
     depends_on:
       gluetun:

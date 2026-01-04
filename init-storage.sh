@@ -13,6 +13,7 @@ echo "Creating storage directories..."
 mkdir -p /mnt/storage/nextcloud
 mkdir -p /mnt/storage/syncthing
 mkdir -p /mnt/storage/downloads
+mkdir -p /mnt/storage/aria2-downloads
 mkdir -p /mnt/storage/photos
 mkdir -p /mnt/storage/projects
 mkdir -p /mnt/storage/kopia/repository
@@ -28,6 +29,7 @@ mkdir -p /mnt/storage/media/youtube
 
 # Cache HDD directories (for incomplete downloads and temp files)
 mkdir -p /mnt/cachehdd/qbittorrent-incomplete
+mkdir -p /mnt/cachehdd/aria2-incomplete
 mkdir -p /mnt/cachehdd/jellyfin-cache
 mkdir -p /mnt/cachehdd/kopia-cache
 mkdir -p /mnt/cachehdd/immich-ml-cache
