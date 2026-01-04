@@ -48,6 +48,12 @@ if [ -f "$CONFIG_FILE" ] && [ -n "$SLSKD_SOULSEEK_USERNAME" ] && [ -n "$SLSKD_SO
 	fi
 fi
 
+# Configure shared directories for Soulseek sharing
+# Map container paths to host paths: /var/slskd/shared -> /mnt/storage/slskd-shared
+SLSKD_SHARED_DIR="${SLSKD_SHARED_DIR:-/var/slskd/shared}"
+export SLSKD_SHARED_DIR
+echo "✓ Shared directory configured: $SLSKD_SHARED_DIR"
+
 # Create slskd.yml if it doesn't exist or update API key
 if [ ! -f "$CONFIG_FILE" ]; then
 	echo "Creating new slskd configuration with API key..."
@@ -62,6 +68,10 @@ soulseek:
 directories:
   incomplete: /var/slskd/incomplete
   downloads: /var/slskd/shared
+
+shares:
+  directories:
+    - /var/slskd/shared
 
 web:
   authentication:
@@ -89,6 +99,22 @@ web:
         cidr: 0.0.0.0/0,::/0
 EOF
 	echo "✓ API key added to existing configuration"
+fi
+
+# Ensure shares are configured (add if missing)
+if [ -f "$CONFIG_FILE" ] && ! grep -q "^shares:" "$CONFIG_FILE"; then
+	echo "Adding shares configuration..."
+	cp "$CONFIG_FILE" "${CONFIG_FILE}.bak"
+
+	# Insert shares section after directories section
+	sed -i '/^directories:/,/^web:/{
+		/^web:/i\
+shares:\
+  directories:\
+    - /var/slskd/shared
+	}' "$CONFIG_FILE"
+
+	echo "✓ Shares configuration added"
 fi
 
 # Continue with normal startup
