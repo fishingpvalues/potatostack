@@ -21,6 +21,14 @@ else
 	echo "⚠ Syncthing API key not found, widget may show errors"
 fi
 
+# Load Aria2 RPC secret
+if [ -f "/keys/aria2-rpc-secret" ]; then
+	export HOMEPAGE_VAR_ARIA2_SECRET=$(cat /keys/aria2-rpc-secret)
+	echo "✓ Loaded Aria2 RPC secret"
+else
+	echo "⚠ Aria2 RPC secret not found, widget may show errors"
+fi
+
 echo "Starting Homepage..."
 
 # Continue with normal startup

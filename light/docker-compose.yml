@@ -353,11 +353,11 @@ services:
     container_name: aria2
     logging: *default-logging
     network_mode: "service:gluetun"
+    entrypoint: sh /aria2-init.sh
     environment:
       - PUID=1000
       - PGID=1000
       - TZ=Europe/Berlin
-      - RPC_SECRET=${ARIA2_RPC_SECRET}
       - RPC_PORT=6800
       - LISTEN_PORT=6888
       - DISK_CACHE=64M
@@ -372,6 +372,8 @@ services:
       - aria2-config:/config
       - /mnt/storage/aria2-downloads:/downloads
       - /mnt/cachehdd/aria2-incomplete:/config/incomplete
+      - ./aria2-init.sh:/aria2-init.sh:ro
+      - shared-keys:/keys:ro
     depends_on:
       storage-init:
         condition: service_completed_successfully

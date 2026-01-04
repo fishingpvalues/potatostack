@@ -192,6 +192,16 @@ else
 	echo "✓ Using existing Syncthing API key from env"
 fi
 
+# Generate Aria2 RPC secret if not set
+if [ -z "$ARIA2_RPC_SECRET" ] || [ ! -f "/keys/aria2-rpc-secret" ]; then
+	ARIA2_RPC_SECRET=$(generate_key)
+	echo "$ARIA2_RPC_SECRET" >/keys/aria2-rpc-secret
+	echo "✓ Generated Aria2 RPC secret"
+else
+	echo "$ARIA2_RPC_SECRET" >/keys/aria2-rpc-secret
+	echo "✓ Using existing Aria2 RPC secret from env"
+fi
+
 chmod 644 /keys/*
 echo ""
 echo "✓ API keys ready at /keys/ for all containers"

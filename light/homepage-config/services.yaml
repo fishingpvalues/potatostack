@@ -37,15 +37,28 @@
 
     - Aria2:
         icon: https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/aria2.png
-        href: http://{{HOMEPAGE_VAR_HOST}}:6880
+        href: http://{{HOMEPAGE_VAR_HOST}}:6880#!/settings/rpc/set/http/{{HOMEPAGE_VAR_HOST}}/6800/jsonrpc/{{HOMEPAGE_VAR_ARIA2_SECRET}}
         description: Advanced Download Manager (via VPN)
         server: docker-socket
         container: aria2
+        widget:
+          type: customapi
+          url: http://gluetun:6800/jsonrpc
+          method: POST
+          headers:
+            Content-Type: application/json
+          requestBody: '{"jsonrpc":"2.0","id":"homepage","method":"aria2.getGlobalStat","params":["token:{{HOMEPAGE_VAR_ARIA2_SECRET}}"]}'
+          mappings:
+            - field: result.numActive
+              label: Active Downloads
+            - field: result.downloadSpeed
+              label: Download Speed
+              format: bytes
 
     - AriaNg:
         icon: https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/ariang.png
-        href: http://{{HOMEPAGE_VAR_HOST}}:6880
-        description: Aria2 Web Interface
+        href: http://{{HOMEPAGE_VAR_HOST}}:6880#!/settings/rpc/set/http/{{HOMEPAGE_VAR_HOST}}/6800/jsonrpc/{{HOMEPAGE_VAR_ARIA2_SECRET}}
+        description: Aria2 Web Interface (Auto-configured)
         server: docker-socket
         container: ariang
 
