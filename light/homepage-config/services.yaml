@@ -104,7 +104,7 @@
         server: docker-socket
         container: portainer
 
-- System Services:
+- System & Monitoring:
     - Gluetun Monitor:
         icon: https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/monitor.png
         description: VPN Auto-Restart Monitor
