@@ -18,8 +18,8 @@ else
 	echo "⚠ Warning: RPC secret not found at /keys/aria2-rpc-secret"
 	echo "Using environment variable or generating temporary secret..."
 	if [ -z "$RPC_SECRET" ]; then
-		ARIA2_RPC_SECRET=$(head -c 48 /dev/urandom | base64 | tr -d '\n=')
-		echo "✓ Generated temporary RPC secret"
+		ARIA2_RPC_SECRET=$(head -c 32 /dev/urandom | hexdump -ve '1/1 "%.2x"' | tr -d '\n')
+		echo "✓ Generated temporary RPC secret (hex)"
 	else
 		ARIA2_RPC_SECRET="$RPC_SECRET"
 	fi

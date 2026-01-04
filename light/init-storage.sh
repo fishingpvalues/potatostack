@@ -192,9 +192,9 @@ else
 	echo "✓ Using existing Syncthing API key from env"
 fi
 
-# Generate Aria2 RPC secret if not set
+# Generate Aria2 RPC secret if not set (use hex for URL-safe secret)
 if [ -z "$ARIA2_RPC_SECRET" ] || [ ! -f "/keys/aria2-rpc-secret" ]; then
-	ARIA2_RPC_SECRET=$(generate_key)
+	ARIA2_RPC_SECRET=$(generate_hex_key)
 	echo "$ARIA2_RPC_SECRET" >/keys/aria2-rpc-secret
 	echo "✓ Generated Aria2 RPC secret"
 else

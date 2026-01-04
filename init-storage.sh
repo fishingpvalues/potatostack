@@ -78,9 +78,15 @@ generate_key() {
 # Create keys directory if it doesn't exist
 mkdir -p /keys
 
-# Generate Aria2 RPC secret if not set
+# Generate hex key for URL-safe secrets
+generate_hex_key() {
+	# Generate 32 bytes from /dev/urandom, encode as hex
+	head -c 32 /dev/urandom | hexdump -ve '1/1 "%.2x"' | tr -d '\n'
+}
+
+# Generate Aria2 RPC secret if not set (use hex for URL-safe secret)
 if [ -z "$ARIA2_RPC_SECRET" ] || [ ! -f "/keys/aria2-rpc-secret" ]; then
-	ARIA2_RPC_SECRET=$(generate_key)
+	ARIA2_RPC_SECRET=$(generate_hex_key)
 	echo "$ARIA2_RPC_SECRET" >/keys/aria2-rpc-secret
 	echo "✓ Generated Aria2 RPC secret"
 else
