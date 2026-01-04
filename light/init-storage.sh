@@ -19,7 +19,8 @@ echo "Initializing storage directories with SOTA structure..."
 echo "Creating VPN & P2P directories..."
 mkdir -p \
 	"${STORAGE_BASE}/downloads" \
-	"${STORAGE_BASE}/slskd-shared"
+	"${STORAGE_BASE}/slskd-shared" \
+	"${STORAGE_BASE}/aria2-downloads"
 
 # Syncthing P2P File Sync - Full OneDrive Mirror Structure
 echo "Creating Syncthing OneDrive mirror directories..."
@@ -61,6 +62,7 @@ echo "Creating Cache HDD directories for high-speed temporary operations..."
 mkdir -p \
 	"${CACHE_BASE}/transmission-incomplete" \
 	"${CACHE_BASE}/slskd-incomplete" \
+	"${CACHE_BASE}/aria2-incomplete" \
 	"${CACHE_BASE}/kopia-cache" \
 	"${CACHE_BASE}/syncthing-versions"
 
