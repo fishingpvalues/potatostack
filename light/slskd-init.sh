@@ -23,6 +23,17 @@ fi
 
 export SLSKD_API_KEY
 
+# Export Soulseek credentials from environment
+if [ -n "$SLSKD_SOULSEEK_USERNAME" ]; then
+	export SLSKD_SOULSEEK_USERNAME
+	echo "✓ Using Soulseek username from environment"
+fi
+
+if [ -n "$SLSKD_SOULSEEK_PASSWORD" ]; then
+	export SLSKD_SOULSEEK_PASSWORD
+	echo "✓ Using Soulseek password from environment"
+fi
+
 # Create slskd.yml if it doesn't exist or update API key
 if [ ! -f "$CONFIG_FILE" ]; then
 	echo "Creating new slskd configuration with API key..."
