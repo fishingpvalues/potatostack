@@ -193,13 +193,15 @@ else
 fi
 
 # Generate Aria2 RPC secret if not set (use hex for URL-safe secret)
-if [ -z "$ARIA2_RPC_SECRET" ] || [ ! -f "/keys/aria2-rpc-secret" ]; then
+if [ -f "/keys/aria2-rpc-secret" ]; then
+	echo "✓ Using existing Aria2 RPC secret from volume"
+elif [ -n "$ARIA2_RPC_SECRET" ]; then
+	echo "$ARIA2_RPC_SECRET" >/keys/aria2-rpc-secret
+	echo "✓ Using existing Aria2 RPC secret from env"
+else
 	ARIA2_RPC_SECRET=$(generate_hex_key)
 	echo "$ARIA2_RPC_SECRET" >/keys/aria2-rpc-secret
 	echo "✓ Generated Aria2 RPC secret"
-else
-	echo "$ARIA2_RPC_SECRET" >/keys/aria2-rpc-secret
-	echo "✓ Using existing Aria2 RPC secret from env"
 fi
 
 chmod 644 /keys/*
