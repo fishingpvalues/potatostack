@@ -60,6 +60,10 @@ soulseek:
   username: ${SLSKD_SOULSEEK_USERNAME:-~}
   password: ${SLSKD_SOULSEEK_PASSWORD:-~}
 
+directories:
+  incomplete: /var/slskd/incomplete
+  downloads: /var/slskd/shared
+
 web:
   authentication:
     api_keys:
@@ -86,6 +90,17 @@ web:
         cidr: 0.0.0.0/0,::/0
 EOF
 	echo "✓ API key added to existing configuration"
+fi
+
+# Add directories config if missing
+if ! grep -q "^directories:" "$CONFIG_FILE"; then
+	echo "Adding directories configuration..."
+	sed -i "/^soulseek:/a\\
+\\
+directories:\\
+  incomplete: /var/slskd/incomplete\\
+  downloads: /var/slskd/shared" "$CONFIG_FILE"
+	echo "✓ Directories configured: incomplete -> /var/slskd/incomplete, downloads -> /var/slskd/shared"
 fi
 
 # Continue with normal startup
