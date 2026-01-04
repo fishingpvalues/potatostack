@@ -10,7 +10,8 @@
       "Bash(docker restart:*)",
       "Bash(docker rm:*)",
       "Bash(ssh:*)",
-      "Bash(scp:*)"
+      "Bash(scp:*)",
+      "WebFetch(domain:192.168.178.40)"
     ]
   }
 }
