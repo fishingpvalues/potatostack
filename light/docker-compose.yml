@@ -68,12 +68,7 @@ services:
       - HOMEPAGE_VAR_SLSKD_KEY=${SLSKD_API_KEY}
       - HOMEPAGE_VAR_PORTAINER_KEY=${PORTAINER_API_KEY}
     volumes:
-      - ./homepage-config/settings.yaml:/app/config/settings.yaml:ro
-      - ./homepage-config/services.yaml:/app/config/services.yaml:ro
-      - ./homepage-config/widgets.yaml:/app/config/widgets.yaml:ro
-      - ./homepage-config/bookmarks.yaml:/app/config/bookmarks.yaml:ro
-      - ./homepage-config/docker.yaml:/app/config/docker.yaml:ro
-      - ./homepage-config/custom.css:/app/config/custom.css:ro
+      - ./homepage-config:/app/config
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - shared-keys:/keys:ro
       - ./homepage-init.sh:/homepage-init.sh:ro
