@@ -421,7 +421,7 @@ services:
         reservations:
           memory: 16M
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:6880 || exit 1"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:6880"]
       interval: 120s
       timeout: 10s
       retries: 3
