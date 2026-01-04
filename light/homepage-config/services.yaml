@@ -35,6 +35,20 @@
           url: http://gluetun:2234
           key: {{HOMEPAGE_VAR_SLSKD_KEY}}
 
+    - Aria2:
+        icon: https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/aria2.png
+        href: http://{{HOMEPAGE_VAR_HOST}}:6880
+        description: Advanced Download Manager (via VPN)
+        server: docker-socket
+        container: aria2
+
+    - AriaNg:
+        icon: https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/ariang.png
+        href: http://{{HOMEPAGE_VAR_HOST}}:6880
+        description: Aria2 Web Interface
+        server: docker-socket
+        container: ariang
+
 - Media & Storage:
     - FileBrowser:
         icon: filebrowser.png
