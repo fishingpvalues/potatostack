@@ -1,0 +1,1 @@
+- slskd doesnt recognize shared folder as sharepoint in container webfetch how to set this and make sure it works. copying from incompletre to shared works awesome.

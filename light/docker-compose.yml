@@ -317,6 +317,7 @@ services:
       - SLSKD_SOULSEEK_PASSWORD=${SLSKD_SOULSEEK_PASSWORD}
       - SLSKD_METRICS=false
       - SLSKD_API_KEY=${SLSKD_API_KEY}
+      - SLSKD_SHARED_DIR=/var/slskd/shared
     volumes:
       - slskd-config:/app
       - slskd-logs:/app/logs
