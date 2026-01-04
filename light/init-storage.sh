@@ -173,23 +173,27 @@ generate_hex_key() {
 }
 
 # Generate slskd API key if not set
-if [ -z "$SLSKD_API_KEY" ] || [ ! -f "/keys/slskd-api-key" ]; then
+if [ -f "/keys/slskd-api-key" ]; then
+	echo "✓ Using existing slskd API key from volume"
+elif [ -n "$SLSKD_API_KEY" ]; then
+	echo "$SLSKD_API_KEY" >/keys/slskd-api-key
+	echo "✓ Using existing slskd API key from env"
+else
 	SLSKD_API_KEY=$(generate_key)
 	echo "$SLSKD_API_KEY" >/keys/slskd-api-key
 	echo "✓ Generated slskd API key"
-else
-	echo "$SLSKD_API_KEY" >/keys/slskd-api-key
-	echo "✓ Using existing slskd API key from env"
 fi
 
 # Generate Syncthing API key if not set
-if [ -z "$SYNCTHING_API_KEY" ] || [ ! -f "/keys/syncthing-api-key" ]; then
+if [ -f "/keys/syncthing-api-key" ]; then
+	echo "✓ Using existing Syncthing API key from volume"
+elif [ -n "$SYNCTHING_API_KEY" ]; then
+	echo "$SYNCTHING_API_KEY" >/keys/syncthing-api-key
+	echo "✓ Using existing Syncthing API key from env"
+else
 	SYNCTHING_API_KEY=$(generate_hex_key)
 	echo "$SYNCTHING_API_KEY" >/keys/syncthing-api-key
 	echo "✓ Generated Syncthing API key"
-else
-	echo "$SYNCTHING_API_KEY" >/keys/syncthing-api-key
-	echo "✓ Using existing Syncthing API key from env"
 fi
 
 # Generate Aria2 RPC secret if not set (use hex for URL-safe secret)
