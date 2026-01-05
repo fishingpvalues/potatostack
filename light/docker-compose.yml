@@ -67,8 +67,6 @@ services:
       - HOMEPAGE_VAR_SYNCTHING_KEY=${SYNCTHING_API_KEY}
       - HOMEPAGE_VAR_SLSKD_KEY=${SLSKD_API_KEY}
       - HOMEPAGE_VAR_PORTAINER_KEY=${PORTAINER_API_KEY}
-      - HOMEPAGE_VAR_ARIA2_SECRET=${ARIA2_RPC_SECRET}
-      - HOMEPAGE_VAR_ARIA2_SECRET_B64=${ARIA2_RPC_SECRET_B64}
     volumes:
       - ./homepage-config:/app/config
       - /var/run/docker.sock:/var/run/docker.sock:ro

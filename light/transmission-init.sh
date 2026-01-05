@@ -35,7 +35,39 @@ if [ -f "$CONFIG_FILE" ]; then
 	update_json_setting "incomplete-dir" '"/incomplete"' "$CONFIG_FILE"
 	update_json_setting "incomplete-dir-enabled" 'true' "$CONFIG_FILE"
 
-	echo "✓ Transmission configured to use /downloads/torrent for completed files"
+	# Optimize peer discovery and connectivity
+	update_json_setting "dht-enabled" 'true' "$CONFIG_FILE"
+	update_json_setting "lpd-enabled" 'true' "$CONFIG_FILE"
+	update_json_setting "pex-enabled" 'true' "$CONFIG_FILE"
+	update_json_setting "utp-enabled" 'true' "$CONFIG_FILE"
+
+	# Port settings (51413 forwarded through gluetun)
+	# Note: Surfshark doesn't support port forwarding, so we rely on DHT/PEX/LPD
+	update_json_setting "peer-port" '51413' "$CONFIG_FILE"
+	update_json_setting "peer-port-random-on-start" 'false' "$CONFIG_FILE"
+	update_json_setting "port-forwarding-enabled" 'false' "$CONFIG_FILE"
+
+	# Connection limits
+	update_json_setting "peer-limit-global" '200' "$CONFIG_FILE"
+	update_json_setting "peer-limit-per-torrent" '50' "$CONFIG_FILE"
+
+	# Scrape settings
+	update_json_setting "scrape-paused-torrents-enabled" 'true' "$CONFIG_FILE"
+
+	# Encryption (prefer encrypted peers but allow unencrypted)
+	update_json_setting "encryption" '1' "$CONFIG_FILE"
+
+	# Tracker settings
+	update_json_setting "announce-ip-enabled" 'false' "$CONFIG_FILE"
+	update_json_setting "tracker-add" '[]' "$CONFIG_FILE"
+
+	# Speed and queue settings for better performance
+	update_json_setting "download-queue-enabled" 'true' "$CONFIG_FILE"
+	update_json_setting "download-queue-size" '10' "$CONFIG_FILE"
+	update_json_setting "queue-stalled-enabled" 'true' "$CONFIG_FILE"
+	update_json_setting "queue-stalled-minutes" '30' "$CONFIG_FILE"
+
+	echo "✓ Transmission configured with optimized peer discovery (DHT/PEX/LPD enabled)"
 fi
 
 # Continue with normal startup
