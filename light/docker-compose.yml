@@ -67,6 +67,8 @@ services:
       - HOMEPAGE_VAR_SYNCTHING_KEY=${SYNCTHING_API_KEY}
       - HOMEPAGE_VAR_SLSKD_KEY=${SLSKD_API_KEY}
       - HOMEPAGE_VAR_PORTAINER_KEY=${PORTAINER_API_KEY}
+      - HOMEPAGE_VAR_ARIA2_SECRET=${ARIA2_RPC_SECRET}
+      - HOMEPAGE_VAR_ARIA2_SECRET_B64=${ARIA2_RPC_SECRET_B64}
     volumes:
       - ./homepage-config:/app/config
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -713,6 +715,60 @@ services:
       timeout: 10s
       retries: 3
       start_period: 20s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "autoheal=true"
+
+  ################################################################################
+  # Samba - Network File Share
+  # Access: smb://HOST_BIND/storage or smb://HOST_BIND/cachehdd
+  # Full access to all HDDs via SMB/CIFS protocol
+  # Shares: storage, cachehdd, downloads, syncthing
+  ################################################################################
+  samba:
+    image: dperson/samba:${SAMBA_TAG:-latest}
+    container_name: samba
+    logging: *default-logging
+    ports:
+      - "139:139"
+      - "445:445"
+    environment:
+      - TZ=Europe/Berlin
+      - USERID=1000
+      - GROUPID=1000
+      - WORKGROUP=WORKGROUP
+      - RECYCLE=true
+      - PERMISSIONS=true
+    command: >
+      -u "${SAMBA_USER:-admin};${SAMBA_PASSWORD:-schneck0}"
+      -s "storage;/mnt/storage;yes;no;no;${SAMBA_USER:-admin};${SAMBA_USER:-admin};${SAMBA_USER:-admin}"
+      -s "cachehdd;/mnt/cachehdd;yes;no;no;${SAMBA_USER:-admin};${SAMBA_USER:-admin};${SAMBA_USER:-admin}"
+      -s "downloads;/mnt/storage/downloads;yes;no;no;${SAMBA_USER:-admin};${SAMBA_USER:-admin};${SAMBA_USER:-admin}"
+      -s "syncthing;/mnt/storage/syncthing;yes;no;no;${SAMBA_USER:-admin};${SAMBA_USER:-admin};${SAMBA_USER:-admin}"
+      -g "min protocol = SMB2"
+      -g "max protocol = SMB3"
+    volumes:
+      - /mnt/storage:/mnt/storage
+      - /mnt/cachehdd:/mnt/cachehdd
+    networks:
+      - potatostack
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.4"
+          memory: 128M
+        reservations:
+          memory: 64M
+    healthcheck:
+      test: ["CMD-SHELL", "smbclient -L //localhost -U ${SAMBA_USER:-admin}%${SAMBA_PASSWORD:-schneck0} -m SMB3 || exit 1"]
+      interval: 120s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
