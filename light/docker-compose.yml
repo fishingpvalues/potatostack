@@ -368,7 +368,7 @@ services:
       - LOG_LEVEL=notice
     volumes:
       - aria2-config:/config
-      - /mnt/storage/aria2-downloads:/downloads
+      - /mnt/storage/downloads/aria2:/downloads
       - /mnt/cachehdd/aria2-incomplete:/config/incomplete
       - ./aria2-init.sh:/aria2-init.sh:ro
       - shared-keys:/keys:ro

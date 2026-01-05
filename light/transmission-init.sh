@@ -31,11 +31,11 @@ if [ -f "$CONFIG_FILE" ]; then
 	cp "$CONFIG_FILE" "${CONFIG_FILE}.bak"
 
 	# Set incomplete directory settings
-	update_json_setting "download-dir" '"/downloads"' "$CONFIG_FILE"
+	update_json_setting "download-dir" '"/downloads/torrent"' "$CONFIG_FILE"
 	update_json_setting "incomplete-dir" '"/incomplete"' "$CONFIG_FILE"
 	update_json_setting "incomplete-dir-enabled" 'true' "$CONFIG_FILE"
 
-	echo "✓ Transmission configured to use /incomplete for temporary files"
+	echo "✓ Transmission configured to use /downloads/torrent for completed files"
 fi
 
 # Continue with normal startup

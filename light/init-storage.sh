@@ -12,15 +12,52 @@ PGID=${PGID:-1000}
 echo "Initializing storage directories with SOTA structure..."
 
 ################################################################################
+# Cleanup old directory structure
+################################################################################
+echo "Cleaning up old directory structure..."
+
+# Remove old folders from storage HDD if they exist
+if [ -d "${STORAGE_BASE}/slskd-incomplete" ]; then
+	echo "Removing old ${STORAGE_BASE}/slskd-incomplete..."
+	rm -rf "${STORAGE_BASE}/slskd-incomplete"
+fi
+
+if [ -d "${STORAGE_BASE}/transmission-incomplete" ]; then
+	echo "Removing old ${STORAGE_BASE}/transmission-incomplete..."
+	rm -rf "${STORAGE_BASE}/transmission-incomplete"
+fi
+
+# Remove old aria2-downloads folder (now using downloads/aria2)
+if [ -d "${STORAGE_BASE}/aria2-downloads" ]; then
+	echo "Moving ${STORAGE_BASE}/aria2-downloads to ${STORAGE_BASE}/downloads/aria2..."
+	mkdir -p "${STORAGE_BASE}/downloads"
+	if [ "$(ls -A ${STORAGE_BASE}/aria2-downloads 2>/dev/null)" ]; then
+		# Move contents if folder is not empty
+		mv "${STORAGE_BASE}/aria2-downloads"/* "${STORAGE_BASE}/downloads/aria2/" 2>/dev/null || true
+	fi
+	rm -rf "${STORAGE_BASE}/aria2-downloads"
+fi
+
+# Remove old downloads folder structure and migrate to downloads/torrent
+if [ -d "${STORAGE_BASE}/downloads" ] && [ ! -d "${STORAGE_BASE}/downloads/torrent" ]; then
+	echo "Migrating downloads to downloads/torrent structure..."
+	mkdir -p "${STORAGE_BASE}/downloads/torrent"
+	# Move any existing torrent files to the new location
+	find "${STORAGE_BASE}/downloads" -maxdepth 1 -type f \( -name "*.torrent" -o -name "*.iso" -o -name "*.zip" -o -name "*.tar.*" \) -exec mv {} "${STORAGE_BASE}/downloads/torrent/" \; 2>/dev/null || true
+fi
+
+echo "✓ Cleanup complete"
+
+################################################################################
 # SOTA Directory Structure
 ################################################################################
 
 # VPN & P2P Downloads (final storage)
 echo "Creating VPN & P2P directories..."
 mkdir -p \
-	"${STORAGE_BASE}/downloads" \
-	"${STORAGE_BASE}/slskd-shared" \
-	"${STORAGE_BASE}/aria2-downloads"
+	"${STORAGE_BASE}/downloads/torrent" \
+	"${STORAGE_BASE}/downloads/aria2" \
+	"${STORAGE_BASE}/slskd-shared"
 
 # Syncthing P2P File Sync - Full OneDrive Mirror Structure
 echo "Creating Syncthing OneDrive mirror directories..."
