@@ -57,7 +57,9 @@ echo "Creating VPN & P2P directories..."
 mkdir -p \
 	"${STORAGE_BASE}/downloads/torrent" \
 	"${STORAGE_BASE}/downloads/aria2" \
-	"${STORAGE_BASE}/slskd-shared"
+	"${STORAGE_BASE}/slskd-shared" \
+	"${STORAGE_BASE}/transmission-config" \
+	"${STORAGE_BASE}/transmission-watch"
 
 # Syncthing P2P File Sync - Full OneDrive Mirror Structure
 echo "Creating Syncthing OneDrive mirror directories..."
