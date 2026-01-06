@@ -264,7 +264,6 @@ services:
     container_name: transmission
     logging: *default-logging
     network_mode: "service:gluetun"
-    entrypoint: sh /tr-init.sh
     environment:
       - PUID=1000
       - PGID=1000
@@ -276,7 +275,7 @@ services:
       - /mnt/storage/downloads:/downloads
       - /mnt/cachehdd/transmission-incomplete:/incomplete
       - transmission-watch:/watch
-      - ./transmission-init.sh:/tr-init.sh:ro
+      - ./transmission-init.sh:/custom-cont-init.d/transmission-config.sh:ro
     depends_on:
       storage-init:
         condition: service_completed_successfully
