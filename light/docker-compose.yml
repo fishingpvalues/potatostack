@@ -271,10 +271,10 @@ services:
       - USER=${TRANSMISSION_USER}
       - PASS=${TRANSMISSION_PASSWORD}
     volumes:
-      - transmission-config:/config
+      - /mnt/storage/transmission-config:/config
       - /mnt/storage/downloads:/downloads
       - /mnt/cachehdd/transmission-incomplete:/incomplete
-      - transmission-watch:/watch
+      - /mnt/storage/transmission-watch:/watch
       - ./transmission-init.sh:/custom-cont-init.d/transmission-config.sh:ro
     depends_on:
       storage-init:
@@ -791,8 +791,6 @@ volumes:
 
   # VPN & P2P
   gluetun-config:
-  transmission-config:
-  transmission-watch:
   slskd-config:
   slskd-logs:
   aria2-config:
