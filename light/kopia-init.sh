@@ -14,6 +14,16 @@ if [ ! -f /repository/f.kopia.repository ] && [ ! -d /repository/.kopia ]; then
 
 	if [ $? -eq 0 ]; then
 		echo "✓ Repository created successfully"
+
+		# Verify repository status
+		kopia repository status >/dev/null 2>&1
+
+		if [ $? -eq 0 ]; then
+			echo "✓ Repository status verified"
+		else
+			echo "✗ Repository created but status check failed"
+			exit 1
+		fi
 	else
 		echo "✗ Repository creation failed"
 		exit 1
@@ -26,6 +36,16 @@ else
 
 	if [ $? -eq 0 ]; then
 		echo "✓ Connected to repository"
+
+		# Verify connection with status check
+		kopia repository status >/dev/null 2>&1
+
+		if [ $? -eq 0 ]; then
+			echo "✓ Repository status verified"
+		else
+			echo "✗ Repository connection succeeded but status check failed"
+			exit 1
+		fi
 	else
 		echo "✗ Repository connection failed"
 		exit 1
