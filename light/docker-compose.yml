@@ -501,12 +501,6 @@ services:
           memory: 96M
         reservations:
           memory: 48M
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/api/system/status"]
-      interval: 120s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
@@ -531,23 +525,13 @@ services:
       - KOPIA_CONFIG_PATH=/app/config/repository.config
       - KOPIA_CACHE_DIRECTORY=/app/cache
       - KOPIA_LOG_DIR=/app/logs
-    command:
-      - server
-      - start
-      - --address=0.0.0.0:51515
-      - --tls-generate-cert
-      - --tls-generate-rsa-key-size=2048
-      - --server-username=${KOPIA_SERVER_USER}
-      - --server-password=${KOPIA_SERVER_PASSWORD}
-      - --log-level=warning
-      - --file-log-level=warning
-      - --override-hostname=kopia-server
-      - --override-username=all-users
+    entrypoint: sh /kopia-init.sh
     volumes:
       - /mnt/storage/kopia/repository:/repository
       - kopia-config:/app/config
       - /mnt/cachehdd/kopia-cache:/app/cache
       - kopia-logs:/app/logs
+      - ./kopia-init.sh:/kopia-init.sh:ro
       - vaultwarden-data:/data/vaultwarden:ro
       # OneDrive mirror folders
       - /mnt/storage/syncthing/Desktop:/data/syncthing-Desktop:ro
@@ -585,7 +569,7 @@ services:
         reservations:
           memory: 96M
     healthcheck:
-      test: ["CMD", "curl", "-fk", "https://127.0.0.1:51515/api/v1/repo/status"]
+      test: ["CMD", "kopia", "repository", "status"]
       interval: 120s
       timeout: 20s
       retries: 3
@@ -707,7 +691,7 @@ services:
         reservations:
           memory: 48M
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:80/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:80/health"]
       interval: 120s
       timeout: 10s
       retries: 3
