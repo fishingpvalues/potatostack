@@ -25,14 +25,16 @@ if [ $timeout -eq 0 ]; then
     exit 0
 fi
 
-# Stop transmission daemon if running
+echo "Configuring Transmission settings..."
+
+# Check if daemon is running (shouldn't be during init, but check anyway)
+DAEMON_RUNNING=false
 if pgrep transmission-daemon > /dev/null; then
-    echo "Stopping transmission to modify config..."
+    echo "⚠ Daemon already running, stopping to modify config safely..."
     killall transmission-daemon
     sleep 2
+    DAEMON_RUNNING=true
 fi
-
-echo "Configuring Transmission settings..."
 
 # Backup config
 cp "$CONFIG_FILE" "${CONFIG_FILE}.bak"
@@ -73,3 +75,13 @@ else
 fi
 
 echo "✓ Transmission configured successfully"
+
+# Restart daemon if it was running before we stopped it
+if [ "$DAEMON_RUNNING" = "true" ]; then
+    echo "Restarting transmission daemon..."
+    transmission-daemon --config-dir /config &
+    sleep 2
+    echo "✓ Daemon restarted"
+else
+    echo "✓ Config ready for s6-overlay to start daemon"
+fi
