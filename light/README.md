@@ -136,9 +136,13 @@ cp .env.example .env
 | slskd | 2234 | Soulseek client (via VPN) |
 | Syncthing | 8384 | P2P file sync |
 | FileBrowser | 8181 | Web file manager |
-| Vaultwarden | 8080 | Password manager |
+| RustyPaste | 8787 | File sharing & pastebin |
+| Vaultwarden | 8443 | Password manager (HTTPS) |
 | Portainer | 9443 | Container management |
 | Kopia | 51515 | Backup server |
+| Aria2 | 6800 | RPC endpoint (via VPN) |
+| AriaNg | 6880 | Aria2 Web UI |
+| Samba | 445 | Network file share (SMB) |
 
 ## Complete Folder Structure
 
@@ -146,6 +150,7 @@ cp .env.example .env
 /mnt/storage/                         # 14TB Main Storage
 ├── downloads/                        # Completed torrents
 ├── slskd-shared/                     # Soulseek shared files
+├── rustypaste/                       # File sharing uploads
 ├── syncthing/                        # Syncthing sync folders
 │   ├── Desktop/
 │   ├── Obsidian-Vault/

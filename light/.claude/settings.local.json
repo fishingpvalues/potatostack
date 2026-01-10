@@ -22,7 +22,9 @@
       "Bash(do echo \"=== $script ===\")",
       "Bash(done)",
       "Bash(bash:*)",
-      "Bash(echo $OS)"
+      "Bash(echo $OS)",
+      "Bash([ -f rustypaste-config.toml ])",
+      "WebFetch(domain:github.com)"
     ]
   }
 }

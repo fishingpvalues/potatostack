@@ -94,6 +94,11 @@ echo "Creating Kopia directories..."
 mkdir -p \
 	"${STORAGE_BASE}/kopia/repository"
 
+# RustyPaste File Sharing
+echo "Creating RustyPaste directories..."
+mkdir -p \
+	"${STORAGE_BASE}/rustypaste/uploads"
+
 ################################################################################
 # Cache HDD Directories (500GB - High I/O operations)
 ################################################################################
