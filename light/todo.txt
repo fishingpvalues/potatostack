@@ -1,1 +1,1 @@
-the certificate browser hack from vaultwarden andro
+the certificate browser hack from vaultwarden android open in browser and accepting doesnt work in app still  certificate warning xists maybe esign and opffer your own certificate or webfetch to find a SOTA homelab solution i want to keep using HTTPS maybe we can utilize lets encrypt in ligth stack? this is a quiz for you i dont know how to solve mayb ewe need a certificate handler as service as well where every service gets its own permanet certificate or sth idk
