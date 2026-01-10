@@ -1,4 +1,0 @@
--  Ungültiges Master-Passwort. Überprüfe, ob deine E-Mail-Adresse korrekt ist und dein Konto auf 192.168.178.40:8443 erstellt wurde. vaultwarden what to enter here? web
-- Transmission moves incompletre to storage downloads but should move to downloads/torrent this folder has to be created. the complete and incomplete folders in download should be deleted 
-- aria2-downloads should be moved into downloads folder as well and then aria2 folder change these foldr settings everyhwere
-- from storage hdd, remove slskd incomplete and transmission-incomplete folders
