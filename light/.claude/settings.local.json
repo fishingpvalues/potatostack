@@ -24,7 +24,13 @@
       "Bash(bash:*)",
       "Bash(echo $OS)",
       "Bash([ -f rustypaste-config.toml ])",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(sshpass -p 'schneck0' ssh:*)",
+      "Bash(sshpass -p 'schneck0' ssh daniel@192.168.178.40:*)",
+      "Bash(sudo apt-get:*)",
+      "Bash(sudo apt-get install:*)",
+      "Bash(pacman -Sy:*)",
+      "Bash(sshpass:*)"
     ]
   }
 }
