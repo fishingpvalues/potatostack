@@ -754,6 +754,42 @@ services:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
 
+  ################################################################################
+  # RustyPaste - File Sharing & Pastebin
+  # Access: http://HOST_BIND:8787
+  # Simple file/text upload with expiration support
+  ################################################################################
+  rustypaste:
+    image: orhunp/rustypaste:${RUSTYPASTE_TAG:-latest}
+    container_name: rustypaste
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND}:8787:8000"
+    environment:
+      - TZ=Europe/Berlin
+      - CONFIG=/config/config.toml
+    volumes:
+      - /mnt/storage/rustypaste:/data
+      - ./rustypaste-config.toml:/config/config.toml:ro
+    networks:
+      - potatostack
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 64M
+        reservations:
+          memory: 32M
+    healthcheck:
+      disable: true
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "autoheal=true"
+
 ################################################################################
 # Networks
 ################################################################################
