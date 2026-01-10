@@ -52,7 +52,7 @@ if command -v jq > /dev/null; then
         "utp-enabled": true,
         "peer-port": 51413,
         "peer-port-random-on-start": false,
-        "port-forwarding-enabled": false,
+        "port-forwarding-enabled": true,
         "peer-limit-global": 200,
         "peer-limit-per-torrent": 50,
         "scrape-paused-torrents-enabled": true,
@@ -71,7 +71,7 @@ else
     sed -i 's|"lpd-enabled": [^,]*|"lpd-enabled": true|' "$CONFIG_FILE"
     sed -i 's|"pex-enabled": [^,]*|"pex-enabled": true|' "$CONFIG_FILE"
     sed -i 's|"peer-port": [^,]*|"peer-port": 51413|' "$CONFIG_FILE"
-    sed -i 's|"port-forwarding-enabled": [^,]*|"port-forwarding-enabled": false|' "$CONFIG_FILE"
+    sed -i 's|"port-forwarding-enabled": [^,]*|"port-forwarding-enabled": true|' "$CONFIG_FILE"
 fi
 
 echo "✓ Transmission configured successfully"

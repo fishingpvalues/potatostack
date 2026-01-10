@@ -93,7 +93,8 @@
       "Bash(sshpass:*)",
       "Bash(scp:*)",
       "WebFetch(domain:192.168.178.40)",
-      "Bash(dos2unix:*)"
+      "Bash(dos2unix:*)",
+      "Bash(git remote set-url:*)"
     ],
     "deny": [],
     "ask": []
