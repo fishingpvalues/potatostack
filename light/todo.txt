@@ -1,5 +1,1 @@
-✅ Fixed Transmission: port forwarding and uTP enabled in transmission-init.sh
-✅ HTTPS solution: See HTTPS_CERTIFICATE_SOLUTION.md - Caddy + Let's Encrypt DNS challenge
-✅ DroidyPaste tutorial: See DROIDYPASTE_SETUP.md
-
-All items completed!
+- remove all HTTPS logic customly implemented for rustypaste etc and nginx and fully implement a https solution for all sericies. Note: i only access the services locally so we need a light ffast solution for le potato which is lighweight and fast and only works with all but is simple and integrates well here. i dont want a lot of overhead i just want it to be fast and working with all so certificates permanetly for all serices and it should work with all deices like android and ios and ipad and all OS etc and should integrate fully with every service sithout changing much.
