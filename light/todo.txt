@@ -3,3 +3,5 @@ the certificate browser hack from vaultwarden android open in browser and accept
 - treansmission: Make sure in config these are both enabled : Use port forwarding from my router
 Options
 Enable uTP for peer communication
+
+- make tutorial for droidypaste and rustypaste how to add server maybe rustypaste needs https as well
