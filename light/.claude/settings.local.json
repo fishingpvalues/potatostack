@@ -21,7 +21,8 @@
       "Bash(for script in aria2-init.sh filebrowser-init.sh gluetun-monitor.sh homepage-init.sh init-storage.sh kopia-init.sh slskd-init.sh syncthing-init.sh transmission-init.sh vaultwarden-ssl-init.sh)",
       "Bash(do echo \"=== $script ===\")",
       "Bash(done)",
-      "Bash(bash:*)"
+      "Bash(bash:*)",
+      "Bash(echo $OS)"
     ]
   }
 }
