@@ -2,7 +2,7 @@
 - VPN & Downloads:
     - Gluetun VPN:
         icon: gluetun.png
-        href: https://{{HOMEPAGE_VAR_HOST}}/gluetun
+        href: https://192.168.178.40/gluetun
         description: VPN Killswitch
         server: docker-socket
         container: gluetun
@@ -13,7 +13,7 @@
 
     - Transmission:
         icon: transmission.png
-        href: https://{{HOMEPAGE_VAR_HOST}}:9091
+        href: https://192.168.178.40:9091
         description: Torrent Client (via VPN)
         server: docker-socket
         container: transmission
@@ -26,7 +26,7 @@
 
     - slskd:
         icon: slskd.png
-        href: https://{{HOMEPAGE_VAR_HOST}}:2234
+        href: https://192.168.178.40:2234
         description: Soulseek Client (via VPN)
         server: docker-socket
         container: slskd
@@ -37,7 +37,7 @@
 
     - Aria2:
         icon: https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/aria2.png
-        href: "https://{{HOMEPAGE_VAR_HOST}}/ariang#!/settings/rpc/set/https/{{HOMEPAGE_VAR_HOST}}/6800/jsonrpc/{{HOMEPAGE_VAR_ARIA2_SECRET_B64}}"
+        href: "https://192.168.178.40/ariang#!/settings/rpc/set/https/192.168.178.40/6800/jsonrpc/{{HOMEPAGE_VAR_ARIA2_SECRET_B64}}"
         description: Advanced Download Manager (via VPN)
         server: docker-socket
         container: aria2
@@ -57,7 +57,7 @@
 
     - AriaNg:
         icon: https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/ariang.png
-        href: "https://{{HOMEPAGE_VAR_HOST}}/ariang#!/settings/rpc/set/https/{{HOMEPAGE_VAR_HOST}}/6800/jsonrpc/{{HOMEPAGE_VAR_ARIA2_SECRET_B64}}"
+        href: "https://192.168.178.40/ariang#!/settings/rpc/set/https/192.168.178.40/6800/jsonrpc/{{HOMEPAGE_VAR_ARIA2_SECRET_B64}}"
         description: Aria2 Web Interface (Auto-configured)
         server: docker-socket
         container: ariang
@@ -65,35 +65,35 @@
 - Media & Storage:
     - RustyPaste:
         icon: https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/pastebin.png
-        href: https://{{HOMEPAGE_VAR_HOST}}/paste
+        href: https://192.168.178.40/paste
         description: File Sharing & Pastebin
         server: docker-socket
         container: rustypaste
 
     - Samba:
         icon: https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/samba.png
-        href: smb://{{HOMEPAGE_VAR_HOST}}/storage
+        href: smb://192.168.178.40/storage
         description: Network File Share (SMB/CIFS)
         server: docker-socket
         container: samba
 
     - FileBrowser:
         icon: filebrowser.png
-        href: https://{{HOMEPAGE_VAR_HOST}}/files
+        href: https://192.168.178.40/files
         description: File Manager (All Folders)
         server: docker-socket
         container: filebrowser
 
     - Syncthing:
         icon: syncthing.png
-        href: https://{{HOMEPAGE_VAR_HOST}}/syncthing
+        href: https://192.168.178.40/syncthing
         description: OneDrive Mirror + P2P Sync
         server: docker-socket
         container: syncthing
 
     - Kopia:
         icon: kopia.png
-        href: https://{{HOMEPAGE_VAR_HOST}}/kopia
+        href: https://192.168.178.40/kopia
         description: Backup Server
         server: docker-socket
         container: kopia
@@ -106,21 +106,21 @@
 - Security & Management:
     - Vaultwarden:
         icon: vaultwarden.png
-        href: https://{{HOMEPAGE_VAR_HOST}}:8443
+        href: https://192.168.178.40:8443
         description: Password Manager
         server: docker-socket
         container: vaultwarden
 
     - Portainer:
         icon: portainer.png
-        href: https://{{HOMEPAGE_VAR_HOST}}/portainer
+        href: https://192.168.178.40/portainer
         description: Container Management
         server: docker-socket
         container: portainer
 
     - Traefik:
         icon: traefik.png
-        href: https://{{HOMEPAGE_VAR_HOST}}/dashboard/
+        href: https://192.168.178.40/dashboard/
         description: HTTPS Reverse Proxy
         server: docker-socket
         container: traefik
