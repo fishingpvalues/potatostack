@@ -22,7 +22,7 @@
           url: http://gluetun:9091
           username: {{HOMEPAGE_VAR_TRANSMISSION_USER}}
           password: {{HOMEPAGE_VAR_TRANSMISSION_PASS}}
-          rpcUrl: /transmission/
+          rpcUrl: /transmission/rpc
 
     - slskd:
         icon: slskd.png
