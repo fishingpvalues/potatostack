@@ -31,7 +31,11 @@
       "Bash(sudo apt-get install:*)",
       "Bash(pacman -Sy:*)",
       "Bash(sshpass:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(net use \\\\\\\\192.168.178.40\\\\storage /user:admin schneck0)",
+      "Bash(dir:*)",
+      "Bash(powershell:*)",
+      "Bash(cmd /c \"net use Z: \\\\\\\\192.168.178.40\\\\storage schneck0 /user:admin\")"
     ]
   }
 }

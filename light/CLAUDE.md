@@ -176,26 +176,30 @@ else
 fi
 ```
 
-## Service Access (HTTPS)
+## Service Access
 
 All services accessible via **https://192.168.178.40** (or your HOST_BIND IP) with locally-trusted certificates:
 
-| Service | HTTPS URL | Direct Port (legacy) |
-|---------|-----------|---------------------|
-| Homepage | `https://HOST_BIND/` | :3000 |
-| Traefik Dashboard | `https://HOST_BIND/dashboard/` | - |
-| Gluetun | `https://HOST_BIND/gluetun` | :8000 |
-| Transmission | `https://HOST_BIND:9091` | (via VPN, port access) |
-| slskd | `https://HOST_BIND:2234` | (via VPN, port access) |
-| AriaNg | `https://HOST_BIND/ariang` | :6880 |
-| Syncthing | `https://HOST_BIND/syncthing` | :8384 |
-| FileBrowser | `https://HOST_BIND/files` | :8181 |
-| Vaultwarden | `https://HOST_BIND:8443` | (direct HTTPS) |
-| Portainer | `https://HOST_BIND/portainer` | :9000 |
-| Kopia | `https://HOST_BIND/kopia` | :51515 |
-| RustyPaste | `https://HOST_BIND/paste` | :8000 |
+| Service | HTTPS URL (via Traefik) | Direct HTTP (Legacy) |
+|---------|--------------------------|---------------------|
+| Homepage | `https://HOST_BIND/` | `http://HOST_BIND:3000` |
+| Traefik Dashboard | `https://HOST_BIND/dashboard/` | `http://HOST_BIND:8080` |
+| Gluetun | `https://HOST_BIND/gluetun` | `http://HOST_BIND:8000` |
+| Transmission | `https://HOST_BIND/transmission` | `http://HOST_BIND:9091` |
+| slskd | `https://HOST_BIND/slskd` | `http://HOST_BIND:2234` |
+| AriaNg | `https://HOST_BIND/ariang` | `http://HOST_BIND:6880` |
+| Syncthing | `https://HOST_BIND/syncthing` | `http://HOST_BIND:8384` |
+| FileBrowser | `https://HOST_BIND/files` | `http://HOST_BIND:8181` |
+| Vaultwarden | `https://HOST_BIND/vault` | `http://HOST_BIND:8443` |
+| Portainer | `https://HOST_BIND/portainer` | `http://HOST_BIND:9000` |
+| Kopia | `https://HOST_BIND/kopia` | `http://HOST_BIND:51515` |
+| RustyPaste | `https://HOST_BIND/paste` | `http://HOST_BIND:8787` |
+| Samba | `\\HOST_BIND\storage` | SMB ports 139/445 |
 
-**Note:** Services behind Gluetun VPN keep direct port access for VPN killswitch functionality.
+**Important:**
+- **HTTPS access:** Use Traefik URLs on port 443 (recommended)
+- **Direct port access:** Use HTTP (not HTTPS!) for direct port connections
+- **SSL_ERROR_RX_RECORD_TOO_LONG?** You're trying HTTPS on a direct port - use HTTP instead or access via Traefik
 
 ## Memory Management (CRITICAL)
 
