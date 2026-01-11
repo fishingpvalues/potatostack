@@ -13,7 +13,7 @@
 
     - Transmission:
         icon: transmission.png
-        href: https://192.168.178.40:9091
+        href: http://192.168.178.40:9091
         description: Torrent Client (via VPN)
         server: docker-socket
         container: transmission
@@ -26,7 +26,7 @@
 
     - slskd:
         icon: slskd.png
-        href: https://192.168.178.40:2234
+        href: http://192.168.178.40:2234
         description: Soulseek Client (via VPN)
         server: docker-socket
         container: slskd
@@ -106,7 +106,7 @@
 - Security & Management:
     - Vaultwarden:
         icon: vaultwarden.png
-        href: https://192.168.178.40:8443
+        href: http://192.168.178.40:8443
         description: Password Manager
         server: docker-socket
         container: vaultwarden
