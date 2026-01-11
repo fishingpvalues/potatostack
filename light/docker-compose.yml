@@ -53,9 +53,10 @@ services:
     ports:
       - "${HOST_BIND}:443:443"
       - "${HOST_BIND}:80:80"
+      - "${HOST_BIND}:8080:8080"
     command:
       - --api.dashboard=true
-      - --api.insecure=false
+      - --api.insecure=true
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --providers.docker.network=potatostack
@@ -575,6 +576,7 @@ services:
     container_name: portainer
     logging: *default-logging
     ports:
+      - "${HOST_BIND}:9000:9000"
       - "${HOST_BIND}:9443:9443"
     environment:
       - TZ=Europe/Berlin
@@ -882,6 +884,8 @@ services:
     image: orhunp/rustypaste:${RUSTYPASTE_TAG:-latest}
     container_name: rustypaste
     logging: *default-logging
+    ports:
+      - "${HOST_BIND}:8787:8000"
     environment:
       - TZ=Europe/Berlin
       - CONFIG=/config/config.toml
