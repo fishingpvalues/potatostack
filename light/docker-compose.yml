@@ -42,9 +42,68 @@ services:
       - "com.centurylinklabs.watchtower.enable=false"
 
   ################################################################################
+  # Traefik - Reverse Proxy with HTTPS
+  # Provides HTTPS termination for all services using mkcert certificates
+  # Access dashboard: https://HOST_BIND/dashboard/
+  ################################################################################
+  traefik:
+    image: traefik:${TRAEFIK_TAG:-v3.2}
+    container_name: traefik
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND}:443:443"
+      - "${HOST_BIND}:80:80"
+    command:
+      - --api.dashboard=true
+      - --api.insecure=false
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=potatostack
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --providers.file.filename=/traefik/traefik-tls.yml
+      - --log.level=INFO
+      - --accesslog=false
+    environment:
+      - TZ=Europe/Berlin
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/certs:/certs:ro
+      - ./traefik/traefik-tls.yml:/traefik/traefik-tls.yml:ro
+    networks:
+      - potatostack
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: 64M
+        reservations:
+          memory: 32M
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "autoheal=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`${HOST_BIND:-192.168.178.40}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls=true"
+
+  ################################################################################
   # Homepage - Unified Dashboard with All Widgets
   # Config files in ./homepage-config/ - edit and restart to apply changes
-  # Access: http://HOST_BIND:3000 or http://SERVER_IP:3000 from LAN
+  # Access: https://HOST_BIND:3000 or https://SERVER_IP:3000 from LAN
   ################################################################################
   homepage:
     image: ghcr.io/gethomepage/homepage:${HOMEPAGE_TAG:-latest}
@@ -96,6 +155,12 @@ services:
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.homepage.rule=Host(`${HOST_BIND:-192.168.178.40}`) && PathPrefix(`/`)"
+      - "traefik.http.routers.homepage.entrypoints=websecure"
+      - "traefik.http.routers.homepage.tls=true"
+      - "traefik.http.routers.homepage.priority=1"
+      - "traefik.http.services.homepage.loadbalancer.server.port=3000"
 
   ################################################################################
   # Watchtower - Automatic Container Updates
@@ -255,6 +320,13 @@ services:
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.gluetun.rule=Host(`${HOST_BIND:-192.168.178.40}`) && PathPrefix(`/gluetun`)"
+      - "traefik.http.routers.gluetun.entrypoints=websecure"
+      - "traefik.http.routers.gluetun.tls=true"
+      - "traefik.http.routers.gluetun.middlewares=gluetun-stripprefix"
+      - "traefik.http.middlewares.gluetun-stripprefix.stripprefix.prefixes=/gluetun"
+      - "traefik.http.services.gluetun.loadbalancer.server.port=8000"
 
   ################################################################################
   # Transmission - Torrent Client (wired to Gluetun)
@@ -425,23 +497,26 @@ services:
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.ariang.rule=Host(`${HOST_BIND:-192.168.178.40}`) && PathPrefix(`/ariang`)"
+      - "traefik.http.routers.ariang.entrypoints=websecure"
+      - "traefik.http.routers.ariang.tls=true"
+      - "traefik.http.routers.ariang.middlewares=ariang-stripprefix"
+      - "traefik.http.middlewares.ariang-stripprefix.stripprefix.prefixes=/ariang"
+      - "traefik.http.services.ariang.loadbalancer.server.port=6880"
 
   ################################################################################
   # Vaultwarden - Password Manager
+  # HTTPS handled by Traefik, accessible at https://HOST_BIND:8443
   ################################################################################
   vaultwarden:
     image: vaultwarden/server:${VAULTWARDEN_TAG:-latest}
     container_name: vaultwarden
     logging: *default-logging
-    entrypoint: sh /vaultwarden-ssl-init.sh
-    ports:
-      - "${HOST_BIND}:8443:8443"
-      - "${HOST_BIND}:3012:3012"
     environment:
       - TZ=Europe/Berlin
       - DOMAIN=https://${HOST_BIND:-192.168.178.40}:8443
-      - ROCKET_TLS={certs="/ssl/cert.pem",key="/ssl/key.pem"}
-      - ROCKET_PORT=8443
+      - ROCKET_PORT=80
       - WEBSOCKET_ENABLED=true
       - WEBSOCKET_PORT=3012
       - SIGNUPS_ALLOWED=${VAULTWARDEN_SIGNUPS_ALLOWED:-false}
@@ -452,11 +527,8 @@ services:
       - ICON_CACHE_NEGTTL=259200
       - LOG_LEVEL=warn
       - EXTENDED_LOGGING=false
-      - HOST_BIND=${HOST_BIND:-192.168.178.40}
     volumes:
       - vaultwarden-data:/data
-      - vaultwarden-ssl:/ssl
-      - ./vaultwarden-ssl-init.sh:/vaultwarden-ssl-init.sh:ro
     networks:
       - potatostack
     restart: unless-stopped
@@ -468,7 +540,7 @@ services:
         reservations:
           memory: 64M
     healthcheck:
-      test: ["CMD", "curl", "-fk", "https://127.0.0.1:8443/alive"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:80/alive"]
       interval: 60s
       timeout: 10s
       retries: 10
@@ -476,6 +548,18 @@ services:
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.vaultwarden.rule=Host(`${HOST_BIND:-192.168.178.40}`)"
+      - "traefik.http.routers.vaultwarden.entrypoints=websecure"
+      - "traefik.http.routers.vaultwarden.tls=true"
+      - "traefik.http.routers.vaultwarden.service=vaultwarden"
+      - "traefik.http.services.vaultwarden.loadbalancer.server.port=80"
+      - "traefik.http.services.vaultwarden.loadbalancer.server.scheme=http"
+      - "traefik.http.routers.vaultwarden-websocket.rule=Host(`${HOST_BIND:-192.168.178.40}`) && Path(`/notifications/hub`)"
+      - "traefik.http.routers.vaultwarden-websocket.entrypoints=websecure"
+      - "traefik.http.routers.vaultwarden-websocket.tls=true"
+      - "traefik.http.routers.vaultwarden-websocket.service=vaultwarden-websocket"
+      - "traefik.http.services.vaultwarden-websocket.loadbalancer.server.port=3012"
 
   ################################################################################
   # Portainer - Container Management
@@ -504,6 +588,14 @@ services:
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.portainer.rule=Host(`${HOST_BIND:-192.168.178.40}`) && PathPrefix(`/portainer`)"
+      - "traefik.http.routers.portainer.entrypoints=websecure"
+      - "traefik.http.routers.portainer.tls=true"
+      - "traefik.http.routers.portainer.middlewares=portainer-stripprefix"
+      - "traefik.http.middlewares.portainer-stripprefix.stripprefix.prefixes=/portainer"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+      - "traefik.http.services.portainer.loadbalancer.server.scheme=http"
     profiles:
       - optional
 
@@ -577,6 +669,13 @@ services:
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.kopia.rule=Host(`${HOST_BIND:-192.168.178.40}`) && PathPrefix(`/kopia`)"
+      - "traefik.http.routers.kopia.entrypoints=websecure"
+      - "traefik.http.routers.kopia.tls=true"
+      - "traefik.http.routers.kopia.middlewares=kopia-stripprefix"
+      - "traefik.http.middlewares.kopia-stripprefix.stripprefix.prefixes=/kopia"
+      - "traefik.http.services.kopia.loadbalancer.server.port=51515"
 
   ################################################################################
   # Syncthing - P2P File Synchronization
@@ -651,6 +750,13 @@ services:
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.syncthing.rule=Host(`${HOST_BIND:-192.168.178.40}`) && PathPrefix(`/syncthing`)"
+      - "traefik.http.routers.syncthing.entrypoints=websecure"
+      - "traefik.http.routers.syncthing.tls=true"
+      - "traefik.http.routers.syncthing.middlewares=syncthing-stripprefix"
+      - "traefik.http.middlewares.syncthing-stripprefix.stripprefix.prefixes=/syncthing"
+      - "traefik.http.services.syncthing.loadbalancer.server.port=8384"
 
   ################################################################################
   # FileBrowser - Web File Manager
@@ -699,6 +805,13 @@ services:
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.filebrowser.rule=Host(`${HOST_BIND:-192.168.178.40}`) && PathPrefix(`/files`)"
+      - "traefik.http.routers.filebrowser.entrypoints=websecure"
+      - "traefik.http.routers.filebrowser.tls=true"
+      - "traefik.http.routers.filebrowser.middlewares=filebrowser-stripprefix"
+      - "traefik.http.middlewares.filebrowser-stripprefix.stripprefix.prefixes=/files"
+      - "traefik.http.services.filebrowser.loadbalancer.server.port=80"
 
   ################################################################################
   # Samba - Network File Share
@@ -756,40 +869,9 @@ services:
 
   ################################################################################
   # RustyPaste - File Sharing & Pastebin
-  # Access: http://HOST_BIND:8787
-  # Simple file/text upload with expiration support
+  # Access: https://HOST_BIND:8787
+  # Simple file/text upload with expiration support. HTTPS handled by Traefik
   ################################################################################
-  rustypaste-proxy:
-    image: nginx:alpine
-    container_name: rustypaste-proxy
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND}:8787:80"
-      - "${HOST_BIND}:8788:443"
-    volumes:
-      - ./rustypaste-nginx.conf:/etc/nginx/nginx.conf:ro
-      - /mnt/storage/rustypaste/ssl:/ssl:ro
-    networks:
-      - potatostack
-    depends_on:
-      - rustypaste
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.1"
-          memory: 32M
-        reservations:
-          memory: 16M
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:80 || exit 1"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
-
   rustypaste:
     image: orhunp/rustypaste:${RUSTYPASTE_TAG:-latest}
     container_name: rustypaste
@@ -814,10 +896,19 @@ services:
         reservations:
           memory: 32M
     healthcheck:
-      disable: true
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8000 || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.rustypaste.rule=Host(`${HOST_BIND:-192.168.178.40}`) && PathPrefix(`/paste`)"
+      - "traefik.http.routers.rustypaste.entrypoints=websecure"
+      - "traefik.http.routers.rustypaste.tls=true"
+      - "traefik.http.services.rustypaste.loadbalancer.server.port=8000"
 
 ################################################################################
 # Networks
@@ -846,7 +937,6 @@ volumes:
 
   # Applications
   vaultwarden-data:
-  vaultwarden-ssl:
   portainer-data:
   syncthing-config:
   filebrowser-config:

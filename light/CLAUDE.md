@@ -18,6 +18,7 @@ uname -s  # MINGW* = Windows dev machine, Linux = production Le Potato
 
 - **Dual-disk storage**: `/mnt/storage` (14TB main) + `/mnt/cachehdd` (500GB cache)
 - **VPN network containment**: Gluetun container with Transmission + slskd inside (killswitch enabled)
+- **HTTPS reverse proxy**: Traefik with mkcert locally-trusted certificates for all services
 - **Shared API keys**: Docker volume `shared-keys:/keys` for auto-generated service API keys
 - **Init containers**: `storage-init` runs before stack to create directory structure
 - **Init scripts**: Each service has `*-init.sh` that configures on first run
@@ -49,6 +50,12 @@ make logs SERVICE=name  # View logs (SERVICE optional)
 make ps                 # List running containers
 make health             # Check health of all services
 make resources          # Monitor RAM usage (critical on 2GB device)
+```
+
+### HTTPS Setup (One-time)
+```bash
+make setup-https        # Generate mkcert certificates (run on Le Potato)
+make install-ca         # Show CA installation instructions for devices
 ```
 
 ### Testing & Validation
@@ -169,23 +176,30 @@ else
 fi
 ```
 
-## Service Ports
+## Service Access (HTTPS)
 
-| Service | Port | Purpose |
-|---------|------|---------|
-| Homepage | 3000 | Unified dashboard |
-| Gluetun | 8000 | VPN control panel |
-| Transmission | 9091 | Torrent client (via VPN) |
-| slskd | 2234 | Soulseek client (via VPN) |
-| Syncthing | 8384 | P2P file sync |
-| FileBrowser | 8181 | Web file manager |
-| Vaultwarden | 8080 | Password manager |
-| Portainer | 9443 | Container management (optional) |
-| Kopia | 51515 | Backup server |
+All services accessible via **https://192.168.178.40** (or your HOST_BIND IP) with locally-trusted certificates:
+
+| Service | HTTPS URL | Direct Port (legacy) |
+|---------|-----------|---------------------|
+| Homepage | `https://HOST_BIND/` | :3000 |
+| Traefik Dashboard | `https://HOST_BIND/dashboard/` | - |
+| Gluetun | `https://HOST_BIND/gluetun` | :8000 |
+| Transmission | `https://HOST_BIND:9091` | (via VPN, port access) |
+| slskd | `https://HOST_BIND:2234` | (via VPN, port access) |
+| AriaNg | `https://HOST_BIND/ariang` | :6880 |
+| Syncthing | `https://HOST_BIND/syncthing` | :8384 |
+| FileBrowser | `https://HOST_BIND/files` | :8181 |
+| Vaultwarden | `https://HOST_BIND:8443` | (direct HTTPS) |
+| Portainer | `https://HOST_BIND/portainer` | :9000 |
+| Kopia | `https://HOST_BIND/kopia` | :51515 |
+| RustyPaste | `https://HOST_BIND/paste` | :8000 |
+
+**Note:** Services behind Gluetun VPN keep direct port access for VPN killswitch functionality.
 
 ## Memory Management (CRITICAL)
 
-Total budget: ~1.2GB RAM on 2GB device
+Total budget: ~1.3GB RAM on 2GB device
 
 - Use `make resources` frequently to monitor usage
 - Watch for OOM kills: `dmesg | grep -i "out of memory"`
@@ -193,6 +207,7 @@ Total budget: ~1.2GB RAM on 2GB device
 - Swap: 4GB file (swappiness=10)
 - ZRAM: ~1GB compressed RAM
 - Portainer is optional (`--profile optional`) - saves 96MB
+- Traefik HTTPS proxy: ~50MB (essential for secure access)
 
 ## Testing Strategy
 

@@ -1,4 +1,4 @@
-.PHONY: help up down restart logs test test-quick clean status ps lint format validate resources
+.PHONY: help up down restart logs test test-quick clean status ps lint format validate resources setup-https install-ca
 
 # Detect OS and set appropriate docker command
 ifeq ($(shell test -d /data/data/com.termux && echo yes),yes)
@@ -100,3 +100,15 @@ health: ## Check health of all services
 resources: ## Check resource usage (2GB RAM monitoring)
 	@echo "Resource Usage (2GB RAM limit):"
 	@$(DOCKER_CMD) stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}"
+
+setup-https: ## Setup HTTPS certificates with mkcert (run once)
+	@echo "Setting up HTTPS certificates..."
+	@chmod +x ./setup-https.sh
+	@./setup-https.sh
+
+install-ca: ## Show CA certificate installation instructions
+	@if [ -f ./traefik/INSTALL-CA.md ]; then \
+		cat ./traefik/INSTALL-CA.md; \
+	else \
+		echo "CA certificate not yet generated. Run 'make setup-https' first."; \
+	fi
