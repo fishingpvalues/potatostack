@@ -47,7 +47,7 @@ services:
   # Access dashboard: https://HOST_BIND/dashboard/
   ################################################################################
   traefik:
-    image: traefik:${TRAEFIK_TAG:-v3.2}
+    image: traefik:${TRAEFIK_TAG:-v2.11}
     container_name: traefik
     logging: *default-logging
     ports:
@@ -59,6 +59,7 @@ services:
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --providers.docker.network=potatostack
+      - --providers.docker.endpoint=unix:///var/run/docker.sock
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
       - --entrypoints.web.http.redirections.entrypoint.to=websecure
