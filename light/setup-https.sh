@@ -26,8 +26,10 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
+# Strip Windows line endings and load .env
 set -a
-source .env
+# shellcheck disable=SC1091
+source <(sed 's/\r$//' .env)
 set +a
 
 HOST_IP="${HOST_BIND:-192.168.178.40}"
