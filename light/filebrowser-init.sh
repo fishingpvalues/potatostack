@@ -20,5 +20,5 @@ mkdir -p /database
 
 echo "Admin user ready: $ADMIN_USER"
 
-# Start FileBrowser with database path
-exec /bin/filebrowser --database "$DB_PATH" --root /srv "$@"
+# Start FileBrowser with database path and base URL for Traefik reverse proxy
+exec /bin/filebrowser --database "$DB_PATH" --root /srv --baseurl /files "$@"
