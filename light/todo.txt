@@ -1,1 +1,2 @@
 - with new https transmission login doedsnt work anymore fix
+- cant connect to samba and its endpoints in windows or anywhere 
