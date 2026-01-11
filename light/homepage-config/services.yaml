@@ -2,7 +2,7 @@
 - VPN & Downloads:
     - Gluetun VPN:
         icon: gluetun.png
-        href: https://192.168.178.40/gluetun
+        href: http://192.168.178.40:8000
         description: VPN Killswitch
         server: docker-socket
         container: gluetun
@@ -57,7 +57,7 @@
 
     - AriaNg:
         icon: https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/ariang.png
-        href: "https://192.168.178.40/ariang#!/settings/rpc/set/https/192.168.178.40/6800/jsonrpc/{{HOMEPAGE_VAR_ARIA2_SECRET_B64}}"
+        href: "http://192.168.178.40:6880#!/settings/rpc/set/http/192.168.178.40/6800/jsonrpc/{{HOMEPAGE_VAR_ARIA2_SECRET_B64}}"
         description: Aria2 Web Interface (Auto-configured)
         server: docker-socket
         container: ariang
@@ -65,7 +65,7 @@
 - Media & Storage:
     - RustyPaste:
         icon: https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/pastebin.png
-        href: https://192.168.178.40/paste
+        href: http://192.168.178.40:8787
         description: File Sharing & Pastebin
         server: docker-socket
         container: rustypaste
@@ -79,21 +79,21 @@
 
     - FileBrowser:
         icon: filebrowser.png
-        href: https://192.168.178.40/files
+        href: http://192.168.178.40:8181
         description: File Manager (All Folders)
         server: docker-socket
         container: filebrowser
 
     - Syncthing:
         icon: syncthing.png
-        href: https://192.168.178.40/syncthing
+        href: http://192.168.178.40:8384
         description: OneDrive Mirror + P2P Sync
         server: docker-socket
         container: syncthing
 
     - Kopia:
         icon: kopia.png
-        href: https://192.168.178.40/kopia
+        href: http://192.168.178.40:51515
         description: Backup Server
         server: docker-socket
         container: kopia
@@ -113,14 +113,14 @@
 
     - Portainer:
         icon: portainer.png
-        href: https://192.168.178.40/portainer
+        href: http://192.168.178.40:9000
         description: Container Management
         server: docker-socket
         container: portainer
 
     - Traefik:
         icon: traefik.png
-        href: https://192.168.178.40/dashboard/
+        href: http://192.168.178.40:8080
         description: HTTPS Reverse Proxy
         server: docker-socket
         container: traefik
