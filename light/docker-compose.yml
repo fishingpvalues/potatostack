@@ -159,7 +159,7 @@ services:
       - "com.centurylinklabs.watchtower.enable=true"
       - "autoheal=true"
       - "traefik.enable=true"
-      - "traefik.http.routers.homepage.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.homepage.rule=HostRegexp(`{host:.+}`) && PathPrefix(`/`)"
       - "traefik.http.routers.homepage.entrypoints=websecure"
       - "traefik.http.routers.homepage.tls=true"
       - "traefik.http.routers.homepage.priority=1"
