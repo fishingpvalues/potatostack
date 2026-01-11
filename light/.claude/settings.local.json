@@ -30,7 +30,8 @@
       "Bash(sudo apt-get:*)",
       "Bash(sudo apt-get install:*)",
       "Bash(pacman -Sy:*)",
-      "Bash(sshpass:*)"
+      "Bash(sshpass:*)",
+      "Bash(curl:*)"
     ]
   }
 }
