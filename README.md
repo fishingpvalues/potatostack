@@ -21,6 +21,7 @@ Complete self-hosted stack with 100 services optimized for low-power hardware.
 ### Security
 - CrowdSec - Modern IPS/IDS with community intel
 - Authentik - SSO and 2FA provider
+- OAuth2-Proxy - OIDC SSO gateway
 - Vaultwarden - Password manager
 - Fail2Ban - Intrusion prevention
 - Trivy - Vulnerability scanner
@@ -31,6 +32,7 @@ Complete self-hosted stack with 100 services optimized for low-power hardware.
 - AdGuard Home - DNS-level ad blocking
 - Gluetun - VPN client with killswitch
 - Tailscale - Mesh VPN for remote access
+- WireGuard - High-performance VPN server
 
 ### Media (*arr stack)
 - Jellyfin - Media server (HW acceleration)
@@ -45,7 +47,9 @@ Complete self-hosted stack with 100 services optimized for low-power hardware.
 - **Thanos** - Long-term storage (1 year, downsampled)
 - **Grafana** - Visualization with 11 pre-configured dashboards
 - **Loki** - Log aggregation (30 days, TSDB v12)
+- **Parseable** - Lightweight log analytics
 - **cAdvisor** - Container metrics
+- **Scrutiny** - HDD SMART monitoring
 - **Netdata** - Real-time system monitoring
 - **Beszel** - Lightweight Docker monitoring
 - **Uptime Kuma** - Uptime checks
@@ -58,12 +62,16 @@ Complete self-hosted stack with 100 services optimized for low-power hardware.
 - Miniflux - RSS reader
 - n8n - Workflow automation
 - Gitea - Git hosting with CI/CD
+- Woodpecker CI - Gitea-native pipelines
 - Open WebUI - LLM interface
 
 ### Utilities
 - Homarr - Dashboard
 - Dockge - Stack manager
 - Stirling PDF - PDF tools
+- Velld - Database backup scheduler
+- Snapshot Scheduler - Automated Kopia snapshots
+- DuckDB - Ad-hoc analytics
 - Linkding - Bookmark manager
 - Memos - Note-taking
 - Code Server - VS Code in browser
@@ -137,6 +145,14 @@ See [QUICK_START.md](QUICK_START.md) for detailed setup instructions.
 - **[MONITORING_STACK_ANALYSIS.md](MONITORING_STACK_ANALYSIS.md)** - Service overlap analysis
 - **[POWER_OPTIMIZATION.md](POWER_OPTIMIZATION.md)** - Power scheduling guide
 - **[FINAL_SUMMARY.txt](FINAL_SUMMARY.txt)** - Latest changes summary
+- **[PATHS_GUIDE.md](PATHS_GUIDE.md)** - Storage paths and volume mappings
+- **[ONEDRIVE_MIGRATION_GUIDE.md](ONEDRIVE_MIGRATION_GUIDE.md)** - OneDrive → Syncthing migration
+- **[SYNCTHING_PERSISTENCE.md](SYNCTHING_PERSISTENCE.md)** - Syncthing config persistence
+- **[RUSTYPASTE_USAGE.md](RUSTYPASTE_USAGE.md)** - RustyPaste usage and examples
+- **[DROIDYPASTE_SETUP.md](DROIDYPASTE_SETUP.md)** - Android client setup for RustyPaste
+- **[VAULTWARDEN_SETUP.md](VAULTWARDEN_SETUP.md)** - Vaultwarden setup and hardening
+- **[HTTPS_CERTIFICATE_SOLUTION.md](HTTPS_CERTIFICATE_SOLUTION.md)** - Local HTTPS with mkcert
+- **[OOM_FIX.md](OOM_FIX.md)** - OOM mitigation notes (low-RAM hosts)
 
 ## Architecture Highlights
 
