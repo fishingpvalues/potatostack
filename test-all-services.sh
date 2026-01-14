@@ -10,7 +10,6 @@ declare -A SERVICE_PORTS=(
 	["pgbouncer"]="5432"
 	["mongo"]="27017"
 	["redis-cache"]="6379"
-	["immich-postgres"]="5432"
 
 	# Reverse Proxy & Network
 	["traefik"]="80,443,8080"
@@ -96,7 +95,6 @@ declare -A SERVICE_TYPES=(
 	["pgbouncer"]="database"
 	["mongo"]="database"
 	["redis-cache"]="database"
-	["immich-postgres"]="database"
 
 	# Web services with HTTP endpoints
 	["traefik"]="http"

@@ -471,7 +471,6 @@ step_storage_setup() {
 	mkdir -p /mnt/ssd/docker-data/mongo
 	mkdir -p /mnt/ssd/docker-data/mongo-config
 	mkdir -p /mnt/ssd/docker-data/redis-cache
-	mkdir -p /mnt/ssd/docker-data/immich-postgres
 	mkdir -p /mnt/ssd/docker-data/gitea
 	mkdir -p /mnt/ssd/docker-data/n8n
 	mkdir -p /mnt/ssd/docker-data/paperless-data

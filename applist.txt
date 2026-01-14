@@ -55,8 +55,8 @@
 33. ariang - Aria2 web UI (behind VPN)
 
 ## PHOTO MANAGEMENT (4 services)
-34. immich-postgres - Immich database
-35. immich-redis - Immich cache
+34. postgres (shared) - Immich database
+35. redis-cache - Immich cache
 36. immich-server - Photo management
 37. immich-ml - AI photo tagging
 
