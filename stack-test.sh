@@ -384,6 +384,8 @@ test_service_endpoints() {
 	grep -q "uptime-kuma" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Uptime Kuma" "http://localhost:3001"
 	grep -q "netdata" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Netdata" "http://localhost:19999"
 	grep -q "cadvisor" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "cAdvisor" "http://localhost:8080"
+	grep -q "scrutiny" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Scrutiny" "http://localhost:8087"
+	grep -q "parseable" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Parseable" "http://localhost:8094"
 
 	# Media - *arr Stack
 	grep -q "sonarr" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Sonarr" "http://localhost:8989"
@@ -411,6 +413,7 @@ test_service_endpoints() {
 
 	# Development
 	grep -q "gitea" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Gitea" "http://localhost:3004"
+	grep -q "woodpecker-server" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Woodpecker" "http://localhost:3006"
 	grep -q "code-server" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Code Server" "http://localhost:8443"
 
 	# Automation
@@ -421,12 +424,14 @@ test_service_endpoints() {
 	grep -q "vaultwarden" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Vaultwarden" "http://localhost:80"
 	grep -q "authentik-server" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Authentik" "http://localhost:9000"
 	grep -q "adguardhome" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "AdGuard Home" "http://localhost:3000"
+	grep -q "oauth2-proxy" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "OAuth2-Proxy" "http://localhost:4180"
 
 	# Other services
 	grep -q "syncthing" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Syncthing" "http://localhost:8384"
 	grep -q "open-webui" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Open WebUI" "http://localhost:8080"
 	grep -q "immich-server" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Immich" "http://localhost:3001"
 	grep -q "kopia" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Kopia" "http://localhost:51515"
+	grep -q "velld-web" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Velld" "http://localhost:3010"
 	grep -q "maintainerr" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Maintainerr" "http://localhost:6246"
 	grep -q "atuin" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Atuin" "http://localhost:8888"
 

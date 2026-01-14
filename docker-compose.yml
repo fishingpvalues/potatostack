@@ -24,13 +24,21 @@ services:
     image: alpine:${ALPINE_TAG:-latest}
     container_name: storage-init
     command: sh /init-storage.sh
+    privileged: true
     environment:
       <<: *common-env
+      SLSKD_API_KEY: ${SLSKD_API_KEY:-}
+      SYNCTHING_API_KEY: ${SYNCTHING_API_KEY:-}
+      ARIA2_RPC_SECRET: ${ARIA2_RPC_SECRET:-}
+      SNAPSHOT_CRON_SCHEDULE: ${SNAPSHOT_CRON_SCHEDULE:-0 3 * * *}
+      SNAPSHOT_PATHS: ${SNAPSHOT_PATHS:-/data}
+      SNAPSHOT_LOG_FILE: ${SNAPSHOT_LOG_FILE:-/mnt/storage/kopia/stack-snapshot.log}
     volumes:
       - /mnt/storage:/mnt/storage
       - /mnt/cachehdd:/mnt/cachehdd
       - /mnt/ssd/docker-data:/mnt/ssd/docker-data
       - ./init-storage.sh:/init-storage.sh:ro
+      - ./stack-snapshot.sh:/stack-snapshot.sh:ro
       - shared-keys:/keys
     network_mode: none
     restart: "no"
@@ -49,7 +57,7 @@ services:
       <<: *common-env
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-nextcloud,authentik,gitea,immich,calibre,linkding,n8n,healthchecks,stirlingpdf,atuin,homarr,paperless,openwebui,miniflux,grafana}
+      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-nextcloud,authentik,gitea,woodpecker,immich,calibre,linkding,n8n,healthchecks,stirlingpdf,atuin,homarr,paperless,openwebui,miniflux,grafana}
     command:
       - "postgres"
       - "-c"
@@ -86,6 +94,8 @@ services:
       - /var/run/postgresql:exec,mode=1777
     networks:
       - potatostack
+    depends_on:
+      - authentik-server
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -381,6 +391,46 @@ services:
           cpus: "1.0"
           memory: 128M
 
+  # OAuth2-Proxy - Unified SSO gateway (OIDC/Auth Server)
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:${OAUTH2_PROXY_TAG:-latest}
+    container_name: oauth2-proxy
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:4180:4180"
+    environment:
+      <<: *common-env
+      OAUTH2_PROXY_PROVIDER: oidc
+      OAUTH2_PROXY_OIDC_ISSUER_URL: ${OAUTH2_PROXY_OIDC_ISSUER_URL}
+      OAUTH2_PROXY_CLIENT_ID: ${OAUTH2_PROXY_CLIENT_ID}
+      OAUTH2_PROXY_CLIENT_SECRET: ${OAUTH2_PROXY_CLIENT_SECRET}
+      OAUTH2_PROXY_COOKIE_SECRET: ${OAUTH2_PROXY_COOKIE_SECRET}
+      OAUTH2_PROXY_REDIRECT_URL: ${OAUTH2_PROXY_REDIRECT_URL}
+      OAUTH2_PROXY_EMAIL_DOMAINS: ${OAUTH2_PROXY_EMAIL_DOMAINS:-*}
+      OAUTH2_PROXY_COOKIE_DOMAINS: ${OAUTH2_PROXY_COOKIE_DOMAINS:-.${HOST_DOMAIN:-local.domain}}
+      OAUTH2_PROXY_WHITELIST_DOMAINS: ${OAUTH2_PROXY_WHITELIST_DOMAINS:-.${HOST_DOMAIN:-local.domain}}
+      OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:4180
+      OAUTH2_PROXY_REVERSE_PROXY: "true"
+      OAUTH2_PROXY_SET_XAUTHREQUEST: "true"
+      OAUTH2_PROXY_UPSTREAMS: static://200
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.oauth2.rule=Host(`auth.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.oauth2.entrypoints=websecure"
+      - "traefik.http.routers.oauth2.tls=true"
+      - "traefik.http.services.oauth2.loadbalancer.server.port=4180"
+      - "traefik.http.middlewares.oauth2-proxy.forwardauth.address=http://oauth2-proxy:4180/oauth2/auth"
+      - "traefik.http.middlewares.oauth2-proxy.forwardauth.trustForwardHeader=true"
+      - "traefik.http.middlewares.oauth2-proxy.forwardauth.authResponseHeaders=X-Auth-Request-User,X-Auth-Request-Email,Authorization"
+
   # Vaultwarden - Password manager and 2FA aggregator
   vaultwarden:
     image: vaultwarden/server:${VAULTWARDEN_TAG:-latest}
@@ -492,6 +542,7 @@ services:
       - "${HOST_BIND:-192.168.178.40}:51413:51413/udp"
       - "${HOST_BIND:-192.168.178.40}:6800:6800" # aria2 RPC
       - "${HOST_BIND:-192.168.178.40}:6880:80" # aria2 WebUI
+      - "${HOST_BIND:-192.168.178.40}:6888:6888" # aria2 BT
       - "${HOST_BIND:-192.168.178.40}:2234:2234" # slskd WebUI
       - "${HOST_BIND:-192.168.178.40}:50000:50000" # slskd peer
     environment:
@@ -500,11 +551,23 @@ services:
       VPN_TYPE: ${VPN_TYPE:-openvpn}
       OPENVPN_USER: ${VPN_USER}
       OPENVPN_PASSWORD: ${VPN_PASSWORD}
+      OPENVPN_PROTOCOL: ${VPN_PROTOCOL:-udp}
+      OPENVPN_VERBOSITY: ${VPN_OPENVPN_VERBOSITY:-0}
+      OPENVPN_FLAGS: "${VPN_OPENVPN_FLAGS:---tls-timeout 10 --connect-timeout 30 --connect-retry-max 3 --mssfix 1300}"
       SERVER_COUNTRIES: ${VPN_COUNTRY:-Germany}
+      LOG_LEVEL: ${VPN_LOG_LEVEL:-info}
       FIREWALL_OUTBOUND_SUBNETS: ${LAN_NETWORK:-192.168.178.0/24}
-      FIREWALL_VPN_INPUT_PORTS: 51413,6800,50000
+      FIREWALL_VPN_INPUT_PORTS: ${VPN_INPUT_PORTS:-51413,50000,6888}
+      FIREWALL: "on"
+      DNS_ADDRESS: ${VPN_DNS:-1.1.1.1}
+      DOT: "off"
+      HTTPPROXY: "off"
+      SHADOWSOCKS: "off"
       HTTP_CONTROL_SERVER_ADDRESS: :8000
-      LOG_LEVEL: info
+      HTTP_CONTROL_SERVER_LOG: "off"
+      HTTP_CONTROL_SERVER_AUTH: "off"
+      IPV6: "off"
+      UPDATER_PERIOD: 24h
       HEALTH_VPN_DURATION_INITIAL: 60s
       HEALTH_VPN_DURATION_ADDITION: 10s
     volumes:
@@ -528,6 +591,39 @@ services:
           memory: 128M
     labels:
       - "autoheal=true"
+
+  # WireGuard - High-performance VPN server (SOTA 2025)
+  wireguard:
+    image: lscr.io/linuxserver/wireguard:${WIREGUARD_TAG:-latest}
+    container_name: wireguard
+    logging: *default-logging
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:${WIREGUARD_SERVERPORT:-51820}:51820/udp"
+    environment:
+      <<: *common-env
+      SERVERURL: ${WIREGUARD_SERVERURL:-auto}
+      SERVERPORT: ${WIREGUARD_SERVERPORT:-51820}
+      PEERS: ${WIREGUARD_PEERS:-vps,android,laptop,tablet,raspberry}
+      PEERDNS: ${WIREGUARD_PEERDNS:-auto}
+      INTERNAL_SUBNET: ${WIREGUARD_INTERNAL_SUBNET:-10.13.13.0/24}
+      ALLOWEDIPS: ${WIREGUARD_ALLOWEDIPS:-0.0.0.0/0}
+      LOG_CONFS: ${WIREGUARD_LOG_CONFS:-true}
+    volumes:
+      - /mnt/ssd/docker-data/wireguard:/config
+      - /lib/modules:/lib/modules:ro
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
 
   # Tailscale - Mesh VPN for remote access (SOTA 2025 - easiest option)
   tailscale:
@@ -597,6 +693,7 @@ services:
     image: lscr.io/linuxserver/syncthing:${SYNCTHING_TAG:-latest}
     container_name: syncthing
     logging: *default-logging
+    entrypoint: bash /syncthing-init.sh
     ports:
       - "${HOST_BIND:-192.168.178.40}:8384:8384"
       - "${HOST_BIND:-192.168.178.40}:22000:22000/tcp"
@@ -608,6 +705,8 @@ services:
       - syncthing-config:/config
       - /mnt/storage/syncthing:/data
       - /mnt/cachehdd/syncthing-versions:/data/.stversions
+      - shared-keys:/keys:ro
+      - ./syncthing-init.sh:/syncthing-init.sh:ro
     networks:
       - potatostack
     depends_on:
@@ -1114,7 +1213,7 @@ services:
       IPV6_MODE: "false"
     volumes:
       - aria2-config:/config
-      - /mnt/storage/aria2-downloads:/downloads
+      - /mnt/storage/downloads/aria2:/downloads
       - /mnt/cachehdd/aria2-incomplete:/incomplete
       - ./aria2-init.sh:/aria2-init.sh:ro
       - shared-keys:/keys:ro
@@ -1175,11 +1274,13 @@ services:
       SLSKD_SOULSEEK_PASSWORD: ${SLSKD_SOULSEEK_PASSWORD}
       SLSKD_METRICS: "false"
       SLSKD_API_KEY: ${SLSKD_API_KEY}
+      SLSKD_SHARED_DIR: /var/slskd/shared
     volumes:
       - slskd-config:/app
       - /mnt/cachehdd/slskd/logs:/app/logs
       - /mnt/storage/slskd-shared:/var/slskd/shared
       - /mnt/cachehdd/slskd-incomplete:/var/slskd/incomplete
+      - shared-keys:/keys:ro
       - ./slskd-init.sh:/init.sh:ro
     tmpfs:
       - /tmp:exec,mode=1777,size=256m
@@ -1618,6 +1719,72 @@ services:
           cpus: "0.25"
           memory: 128M
 
+  # Parseable - Lightweight log analytics (Loki alternative)
+  parseable:
+    image: parseable/parseable:${PARSEABLE_TAG:-latest}
+    container_name: parseable
+    logging: *default-logging
+    command: ["parseable", "local-store"]
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8094:8000"
+    environment:
+      <<: *common-env
+      P_USERNAME: ${PARSEABLE_USERNAME:-admin}
+      P_PASSWORD: ${PARSEABLE_PASSWORD:-admin}
+      P_ADDR: ${PARSEABLE_ADDR:-0.0.0.0:8000}
+      P_FS_DIR: ${PARSEABLE_FS_DIR:-/data}
+    volumes:
+      - /mnt/ssd/docker-data/parseable:/data
+    networks:
+      - potatostack
+    depends_on:
+      - storage-init
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.parseable.rule=Host(`parseable.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.parseable.entrypoints=websecure"
+      - "traefik.http.routers.parseable.tls=true"
+      - "traefik.http.services.parseable.loadbalancer.server.port=8000"
+
+  # Scrutiny - HDD SMART monitoring
+  scrutiny:
+    image: ghcr.io/analogj/scrutiny:${SCRUTINY_TAG:-master-omnibus}
+    container_name: scrutiny
+    logging: *default-logging
+    cap_add:
+      - SYS_RAWIO
+      - SYS_ADMIN
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8087:8080"
+    volumes:
+      - /run/udev:/run/udev:ro
+      - /mnt/ssd/docker-data/scrutiny/config:/opt/scrutiny/config
+      - /mnt/ssd/docker-data/scrutiny/influxdb:/opt/scrutiny/influxdb
+    devices:
+      - "${SCRUTINY_DEVICE_1:-/dev/sda}"
+    networks:
+      - potatostack
+    depends_on:
+      - storage-init
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.scrutiny.rule=Host(`scrutiny.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.scrutiny.entrypoints=websecure"
+      - "traefik.http.routers.scrutiny.tls=true"
+      - "traefik.http.services.scrutiny.loadbalancer.server.port=8080"
+
   # Uptime Kuma - Uptime monitoring
   uptime-kuma:
     image: louislam/uptime-kuma:${UPTIME_KUMA_TAG:-latest}
@@ -1726,6 +1893,46 @@ services:
   ################################################################################
 
   # Rustypaste - Pastebin
+  rustypaste:
+    image: orhunp/rustypaste:${RUSTYPASTE_TAG:-latest}
+    container_name: rustypaste
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8787:8000"
+    environment:
+      <<: *common-env
+      CONFIG: /config/config.toml
+    volumes:
+      - /mnt/storage/rustypaste:/data
+      - ./config/rustypaste/config.toml:/config/config.toml:ro
+    networks:
+      - potatostack
+    depends_on:
+      - storage-init
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8000 || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+    labels:
+      - "autoheal=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.rustypaste.rule=PathPrefix(`/paste`)"
+      - "traefik.http.routers.rustypaste.entrypoints=websecure"
+      - "traefik.http.routers.rustypaste.tls=true"
+      - "traefik.http.services.rustypaste.loadbalancer.server.port=8000"
+
+  # Stirling-PDF - PDF tools
   stirling-pdf:
     image: frooodle/s-pdf:${STIRLING_PDF_TAG:-latest}
     container_name: stirling-pdf
@@ -1860,6 +2067,25 @@ services:
       - "traefik.http.routers.ittools.tls=true"
       - "traefik.http.services.ittools.loadbalancer.server.port=80"
 
+  # DuckDB - Ad-hoc analytics container
+  duckdb:
+    image: duckdb/duckdb:${DUCKDB_TAG:-latest}
+    container_name: duckdb
+    logging: *default-logging
+    command: ["sleep", "infinity"]
+    volumes:
+      - /mnt/storage/duckdb:/data
+    networks:
+      - potatostack
+    depends_on:
+      - storage-init
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
+
   # Memos - Lightweight note-taking (SOTA 2025)
   paperless-ngx:
     image: ghcr.io/paperless-ngx/paperless-ngx:${PAPERLESS_TAG:-latest}
@@ -1984,6 +2210,71 @@ services:
         limits:
           cpus: "0.25"
           memory: 128M
+
+  # Woodpecker CI - Gitea integrated CI/CD (SOTA 2025)
+  woodpecker-server:
+    image: woodpeckerci/woodpecker-server:${WOODPECKER_TAG:-latest}
+    container_name: woodpecker-server
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:3006:8000"
+    environment:
+      <<: *common-env
+      WOODPECKER_HOST: https://ci.${HOST_DOMAIN:-local.domain}
+      WOODPECKER_SERVER_ADDR: :8000
+      WOODPECKER_GRPC_ADDR: :9000
+      WOODPECKER_GRPC_SECRET: ${WOODPECKER_AGENT_SECRET}
+      WOODPECKER_DATABASE_DRIVER: postgres
+      WOODPECKER_DATABASE_DATASOURCE: postgres://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/woodpecker?sslmode=disable
+      WOODPECKER_OPEN: "false"
+      WOODPECKER_ADMIN: ${WOODPECKER_ADMIN}
+      WOODPECKER_GITEA: "true"
+      WOODPECKER_GITEA_URL: http://gitea:3000
+      WOODPECKER_GITEA_CLIENT: ${WOODPECKER_GITEA_CLIENT}
+      WOODPECKER_GITEA_SECRET: ${WOODPECKER_GITEA_SECRET}
+    networks:
+      - potatostack
+    depends_on:
+      - postgres
+      - gitea
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.woodpecker.rule=Host(`ci.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.woodpecker.entrypoints=websecure"
+      - "traefik.http.routers.woodpecker.tls=true"
+      - "traefik.http.services.woodpecker.loadbalancer.server.port=8000"
+
+  woodpecker-agent:
+    image: woodpeckerci/woodpecker-agent:${WOODPECKER_AGENT_TAG:-latest}
+    container_name: woodpecker-agent
+    logging: *default-logging
+    environment:
+      <<: *common-env
+      WOODPECKER_SERVER: woodpecker-server:9000
+      WOODPECKER_AGENT_SECRET: ${WOODPECKER_AGENT_SECRET}
+      WOODPECKER_BACKEND: docker
+      WOODPECKER_BACKEND_DOCKER_HOST: unix:///var/run/docker.sock
+      WOODPECKER_BACKEND_DOCKER_NETWORK: potatostack
+      WOODPECKER_MAX_WORKFLOWS: ${WOODPECKER_MAX_WORKFLOWS:-2}
+      WOODPECKER_GRPC_SECURE: "false"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - potatostack
+    depends_on:
+      - woodpecker-server
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
 
   # Sentry - Error tracking
   ################################################################################
@@ -2254,7 +2545,7 @@ services:
     container_name: gluetun-monitor
     logging: *default-logging
     user: "0:0"
-    command: sh /monitor.sh
+    entrypoint: sh /monitor.sh
     environment:
       - GLUETUN_URL=http://gluetun:8000
       - CHECK_INTERVAL=${GLUETUN_CHECK_INTERVAL:-10}
@@ -2276,12 +2567,87 @@ services:
         reservations:
           cpus: "0.025"
           memory: 8M
+
+  ################################################################################
+  # Velld - Database Backup Scheduler (Postgres, Mongo, Redis)
+  ################################################################################
+  velld-api:
+    image: ghcr.io/dendianugerah/velld/api:${VELLD_API_TAG:-latest}
+    container_name: velld-api
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:8085:8080"
+    environment:
+      <<: *common-env
+      JWT_SECRET: ${VELLD_JWT_SECRET}
+      ENCRYPTION_KEY: ${VELLD_ENCRYPTION_KEY}
+      ADMIN_USERNAME_CREDENTIAL: ${VELLD_ADMIN_USERNAME}
+      ADMIN_PASSWORD_CREDENTIAL: ${VELLD_ADMIN_PASSWORD}
+      ALLOW_REGISTER: ${VELLD_ALLOW_REGISTER:-false}
+    volumes:
+      - /mnt/ssd/docker-data/velld:/app/data
+      - /mnt/storage/velld/backups:/app/backups
+    networks:
+      - potatostack
+    depends_on:
+      - storage-init
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  velld-web:
+    image: ghcr.io/dendianugerah/velld/web:${VELLD_WEB_TAG:-latest}
+    container_name: velld-web
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.40}:3010:3000"
+    environment:
+      <<: *common-env
+      NEXT_PUBLIC_API_URL: ${VELLD_API_URL}
+      ALLOW_REGISTER: ${VELLD_ALLOW_REGISTER:-false}
+    networks:
+      - potatostack
+    depends_on:
+      - velld-api
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+
+  # Snapshot Scheduler - Cron-based Kopia snapshots
+  snapshot-scheduler:
+    image: docker:${DOCKER_CLI_TAG:-27.2.1}-cli
+    container_name: snapshot-scheduler
+    logging: *default-logging
+    entrypoint: sh -c "chmod 600 /etc/crontabs/root 2>/dev/null || true; crond -f -l 8"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /mnt/ssd/docker-data/cron:/etc/crontabs
+      - /mnt/storage/kopia:/mnt/storage/kopia
+      - ./stack-snapshot.sh:/stack-snapshot.sh:ro
+    networks:
+      - potatostack
+    depends_on:
+      - kopia
+      - storage-init
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
   # Kopia - Fast and secure backup server
   kopia:
     image: kopia/kopia:${KOPIA_TAG:-latest}
     container_name: kopia
     logging: *default-logging
     hostname: kopia-server
+    entrypoint: sh /kopia-init.sh
     ports:
       - "${HOST_BIND:-192.168.178.40}:51515:51515"
     environment:
@@ -2292,23 +2658,12 @@ services:
       KOPIA_CONFIG_PATH: /app/config/repository.config
       KOPIA_CACHE_DIRECTORY: /app/cache
       KOPIA_LOG_DIR: /app/logs
-    command:
-      - server
-      - start
-      - --address=0.0.0.0:51515
-      - --tls-generate-cert
-      - --tls-generate-rsa-key-size=2048
-      - --server-username=${KOPIA_SERVER_USER:-admin}
-      - --server-password=${KOPIA_SERVER_PASSWORD}
-      - --log-level=warn
-      - --file-log-level=warn
-      - --override-hostname=kopia-server
-      - --override-username=all-users
     volumes:
       - /mnt/storage/kopia/repository:/repository
       - kopia-config:/app/config
       - /mnt/cachehdd/kopia-cache:/app/cache
       - kopia-logs:/app/logs
+      - ./kopia-init.sh:/kopia-init.sh:ro
       # Backup targets
       - vaultwarden-data:/data/vaultwarden:ro
       - /mnt/storage/syncthing:/data/syncthing:ro
@@ -2327,7 +2682,7 @@ services:
           cpus: "2.0"
           memory: 384M
     healthcheck:
-      test: ["CMD", "curl", "-fk", "https://127.0.0.1:51515/api/v1/repo/status"]
+      test: ["CMD", "kopia", "repository", "status"]
       interval: 120s
       timeout: 20s
       retries: 3

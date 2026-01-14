@@ -15,109 +15,118 @@
 7. traefik - Modern reverse proxy with auto-SSL
 8. npm - Nginx Proxy Manager
 
-## AUTHENTICATION & SECURITY (2 services)
+## AUTHENTICATION & SECURITY (5 services)
 9. authentik-postgres - Authentik database
 10. authentik-server - SSO and 2FA provider
 11. authentik-worker - Authentik background worker
-12. vaultwarden - Password manager / 2FA aggregator
+12. oauth2-proxy - OIDC SSO gateway
+13. vaultwarden - Password manager / 2FA aggregator
 
-## VPN & NETWORKING (2 services)
-13. gluetun - VPN client for *arr stack
-14. tailscale - Mesh VPN for remote access
+## VPN & NETWORKING (3 services)
+14. gluetun - VPN client for *arr stack
+15. tailscale - Mesh VPN for remote access
+16. wireguard - High-performance VPN server
 
-## CLOUD STORAGE & FILE SYNC (4 services)
-15. nextcloud-aio - Nextcloud All-in-One with Collabora, Talk, Whiteboard
-16. syncthing - P2P file synchronization
+## CLOUD STORAGE & FILE SYNC (2 services)
+17. nextcloud-aio - Nextcloud All-in-One with Collabora, Talk, Whiteboard
+18. syncthing - P2P file synchronization
 
 ## FINANCE (3 services)
-17. firefly-db - Firefly III database
-18. firefly - Financial management with Deutsche Bank CSV
-19. firefly-importer - CSV import tool
+19. firefly-db - Firefly III database
+20. firefly - Financial management with Deutsche Bank CSV
+21. firefly-importer - CSV import tool
 
 ## MEDIA MANAGEMENT - *ARR STACK (7 services)
-20. prowlarr - Indexer manager (behind VPN)
-21. sonarr - TV show management (behind VPN)
-22. radarr - Movie management (behind VPN)
-23. lidarr - Music management (behind VPN)
-24. readarr - Ebook management (behind VPN)
-25. bazarr - Subtitle management (behind VPN)
-26. maintainerr - Media library cleanup
+22. prowlarr - Indexer manager (behind VPN)
+23. sonarr - TV show management (behind VPN)
+24. radarr - Movie management (behind VPN)
+25. lidarr - Music management (behind VPN)
+26. readarr - Ebook management (behind VPN)
+27. bazarr - Subtitle management (behind VPN)
+28. maintainerr - Media library cleanup
 
 ## MEDIA SERVERS & REQUEST MANAGEMENT (4 services)
-27. jellyfin - Media server
-28. jellyseerr - Media request management
-29. overseerr - Alternative request management
-30. audiobookshelf - Audiobook and podcast server
+29. jellyfin - Media server
+30. jellyseerr - Media request management
+31. overseerr - Alternative request management
+32. audiobookshelf - Audiobook and podcast server
 
 ## DOWNLOAD CLIENTS (3 services behind VPN)
-31. qbittorrent - Torrent client (behind VPN)
-32. aria2 - Download manager (behind VPN)
-33. ariang - Aria2 web UI (behind VPN)
+33. qbittorrent - Torrent client (behind VPN)
+34. aria2 - Download manager (behind VPN)
+35. ariang - Aria2 web UI (behind VPN)
 
 ## PHOTO MANAGEMENT (4 services)
-34. postgres (shared) - Immich database
-35. redis-cache - Immich cache
-36. immich-server - Photo management
-37. immich-ml - AI photo tagging
+36. postgres (shared) - Immich database
+37. redis-cache - Immich cache
+38. immich-server - Photo management
+39. immich-ml - AI photo tagging
 
 ## MONITORING & OBSERVABILITY (11 services)
-38. prometheus - Metrics collection
-39. grafana - Visualization dashboards (with provisioned SOTA dashboards)
-40. loki - Log aggregation
-41. promtail - Log collector
-42. node-exporter - System metrics
-43. cadvisor - Container metrics
-44. fritzbox-exporter - Router metrics
-45. netdata - Real-time performance monitoring
-46. uptime-kuma - Uptime monitoring
+40. prometheus - Metrics collection
+41. grafana - Visualization dashboards (with provisioned SOTA dashboards)
+42. loki - Log aggregation
+43. promtail - Log collector
+44. parseable - Log analytics
+45. scrutiny - HDD SMART monitoring
+46. node-exporter - System metrics
+47. cadvisor - Container metrics
+48. fritzbox-exporter - Router metrics
+49. netdata - Real-time performance monitoring
+50. uptime-kuma - Uptime monitoring
 
 ## AUTOMATION & WORKFLOWS (3 services)
-47. n8n - Workflow automation
-48. huginn - Self-hosted automation
-49. healthchecks - Cron monitoring
+51. n8n - Workflow automation
+52. huginn - Self-hosted automation
+53. healthchecks - Cron monitoring
 
-## UTILITIES & TOOLS (9 services)
-50. rustypaste - Pastebin
-51. stirling-pdf - PDF tools
-52. linkding - Bookmark manager
-53. cal.com - Calendar scheduling
-54. code-server - VS Code in browser
-55. drawio - Diagramming tool
-56. excalidraw - Sketching tool
-57. atuin - Shell history sync
+## UTILITIES & TOOLS (10 services)
+54. rustypaste - Pastebin
+55. velld - Database backup scheduler
+56. duckdb - Ad-hoc analytics
+57. stirling-pdf - PDF tools
+58. linkding - Bookmark manager
+59. cal.com - Calendar scheduling
+60. code-server - VS Code in browser
+61. drawio - Diagramming tool
+62. excalidraw - Sketching tool
+63. atuin - Shell history sync
 
-## DEVELOPMENT & GIT (8 services)
-58. gitea - Git hosting
-59. gitea-runner - CI/CD for Gitea
-60. drone - Alternative CI/CD
-61. drone-runner - Drone runner
-62. sentry-postgres - Sentry database
-63. sentry-redis - Sentry cache
-64. sentry - Error tracking
+## DEVELOPMENT & GIT (9 services)
+64. gitea - Git hosting
+65. gitea-runner - CI/CD for Gitea
+66. woodpecker-server - Woodpecker CI server
+67. woodpecker-agent - Woodpecker CI agent
+68. drone - Alternative CI/CD
+69. drone-runner - Drone runner
+70. sentry-postgres - Sentry database
+71. sentry-redis - Sentry cache
+72. sentry - Error tracking
 
 ## AI & SPECIAL APPLICATIONS (3 services)
-65. open-webui - LLM interface
-66. octobot - AI crypto trading
-67. pinchflat - YouTube downloader
+73. open-webui - LLM interface
+74. octobot - AI crypto trading
+75. pinchflat - YouTube downloader
 
 ## SEARCH & ANALYTICS (2 services)
-68. elasticsearch - Search engine
-69. kibana - Elasticsearch UI
+76. elasticsearch - Search engine
+77. kibana - Elasticsearch UI
 
 ## KNOWLEDGE MANAGEMENT (2 services)
-70. couchdb - CouchDB for Obsidian LiveSync
-71. couchdb-setup - Obsidian database initialization
+78. couchdb - CouchDB for Obsidian LiveSync
+79. couchdb-setup - Obsidian database initialization
 
 ## DASHBOARD (1 service)
-72. glance - Modern dashboard
+80. glance - Modern dashboard
 
-## SYSTEM UTILITIES (3 services)
-73. diun - Update monitoring (replaced Watchtower)
-74. autoheal - Container health recovery
-75. portainer - Container management UI
+## SYSTEM UTILITIES (4 services)
+81. diun - Update monitoring (replaced Watchtower)
+82. autoheal - Container health recovery
+83. snapshot-scheduler - Scheduled Kopia snapshots
+84. portainer - Container management UI
 
 ################################################################################
-# TOTAL: 75+ services
+# TOTAL: 84+ services
 # Memory estimate: ~14GB used, 2GB buffer on 16GB system
 # All services fully integrated with:
 # - Shared databases (Postgres, Redis)
@@ -133,7 +142,7 @@
 ## INTEGRATION HIGHLIGHTS
 
 ### Database Consolidation
-- Postgres: Nextcloud, Firefly, Gitea, Immich, Linkding, n8n, Healthchecks, Grafana, Huginn, Atuin, Cal.com, Authentik
+- Postgres: Nextcloud, Authentik, Gitea, Woodpecker, Immich, Calibre, Linkding, n8n, Healthchecks, Stirling PDF, Atuin, Homarr, Paperless, Open WebUI, Miniflux, Grafana
 - Redis: Shared cache, Nextcloud, Immich
 - MongoDB: General document storage
 - CouchDB: Obsidian LiveSync

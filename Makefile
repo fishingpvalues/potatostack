@@ -1,4 +1,4 @@
-.PHONY: help up down restart logs test test-quick clean status ps lint format validate security
+.PHONY: help up down restart logs test test-quick clean status ps lint format validate security resources
 
 # Detect OS and set appropriate docker command
 ifeq ($(shell test -d /data/data/com.termux && echo yes),yes)
@@ -101,3 +101,7 @@ health: ## Check health of all services
 		status=$$($(DOCKER_CMD) inspect --format='{{.State.Status}}' $$container 2>/dev/null || echo "unknown"); \
 		printf "%-30s Status: %-10s Health: %s\n" "$$container" "$$status" "$$health"; \
 	done
+
+resources: ## Check resource usage
+	@echo "Resource Usage:"
+	@$(DOCKER_CMD) stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}"

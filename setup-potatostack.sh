@@ -29,11 +29,13 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # Variables
-DOCKER_USER="${DOCKER_USER:-$(whoami)}"
+DOCKER_USER="${DOCKER_USER:-${SUDO_USER:-$(whoami)}}"
 SETUP_ROOTLESS="${SETUP_ROOTLESS:-false}"
+SETUP_AUTOSTART="${SETUP_AUTOSTART:-true}"
 HARDWARE_CPU="Intel Twin Lake N150"
 HARDWARE_RAM="16GB"
 HARDWARE_STORAGE="512GB SSD"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 ################################################################################
 # Helper Functions
@@ -71,6 +73,8 @@ check_debian() {
 	fi
 
 	VERSION=$(grep VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"')
+	# shellcheck disable=SC1091
+	VERSION_CODENAME=$(. /etc/os-release && echo "$VERSION_CODENAME")
 	if [[ ! "$VERSION" =~ ^13 ]]; then
 		print_error "This script requires Debian 13 (Trixie). Current version: $VERSION"
 		print_info "You can still try to proceed at your own risk"
@@ -104,11 +108,15 @@ step_system_update() {
 		net-tools \
 		uidmap \
 		slirp4netns \
-		systemctl \
 		unzip \
 		build-essential \
 		python3 \
-		python3-pip
+		python3-pip \
+		openssl \
+		rsync \
+		logrotate \
+		cron \
+		bash-completion
 
 	print_success "System dependencies installed"
 }
@@ -136,7 +144,7 @@ step_docker_installation() {
 	print_info "Adding Docker repository..."
 	echo "Types: deb
 URIs: https://download.docker.com/linux/debian
-Suites: $(. /etc/os-release && echo "$VERSION_CODENAME")
+Suites: ${VERSION_CODENAME}
 Components: stable
 Signed-By: /etc/apt/keyrings/docker.asc" | tee /etc/apt/sources.list.d/docker.sources >/dev/null
 
@@ -231,11 +239,11 @@ step_docker_rootless() {
 }
 
 ################################################################################
-# Step 4: Install Development and Validation Tools
+# Step 5: Install Development and Validation Tools
 ################################################################################
 
 step_dev_tools_installation() {
-	print_header "Step 4: Installing Development and Validation Tools"
+	print_header "Step 5: Installing Development and Validation Tools"
 
 	# Install yamllint (YAML validation)
 	if ! command -v yamllint &>/dev/null; then
@@ -349,11 +357,11 @@ step_dev_tools_installation() {
 }
 
 ################################################################################
-# Step 5: System Optimization for Docker
+# Step 6: System Optimization for Docker
 ################################################################################
 
 step_system_optimization() {
-	print_header "Step 5: System Optimization for Docker Workloads"
+	print_header "Step 6: System Optimization for Docker Workloads"
 
 	print_info "Optimizing for Intel Twin Lake N150, 16GB RAM, 512GB SSD..."
 
@@ -430,86 +438,57 @@ EOF
 }
 
 ################################################################################
-# Step 6: Storage Setup (for PotatoStack)
+# Step 7: Storage Setup (for PotatoStack)
 ################################################################################
 
 step_storage_setup() {
-	print_header "Step 6: Storage Directory Setup (PotatoStack - N150/16GB/512GB SSD)"
+	print_header "Step 7: Storage Directory Setup (PotatoStack - N150/16GB/512GB SSD)"
 
-	print_info "Creating PotatoStack storage structure optimized for 512GB SSD..."
+	print_info "Ensuring base mount points exist..."
+	mkdir -p /mnt/storage /mnt/cachehdd /mnt/ssd/docker-data /docker-data
 
-	# Create main storage directory (on SSD)
-	mkdir -p /mnt/storage/nextcloud
-	mkdir -p /mnt/storage/syncthing
-	mkdir -p /mnt/storage/downloads
-	mkdir -p /mnt/storage/aria2-downloads
-	mkdir -p /mnt/storage/photos
-	mkdir -p /mnt/storage/projects
-	mkdir -p /mnt/storage/kopia/repository
+	if [ -f "${SCRIPT_DIR}/init-storage.sh" ]; then
+		print_info "Running init-storage.sh for SOTA directory structure..."
+		local docker_uid
+		local docker_gid
+		docker_uid=$(id -u "$DOCKER_USER")
+		docker_gid=$(id -g "$DOCKER_USER")
+		PUID="$docker_uid" PGID="$docker_gid" bash "${SCRIPT_DIR}/init-storage.sh"
+	else
+		print_info "init-storage.sh not found, creating minimal structure..."
+		mkdir -p /mnt/storage/nextcloud /mnt/storage/syncthing /mnt/storage/downloads
+		mkdir -p /mnt/cachehdd /mnt/ssd/docker-data
+	fi
 
-	# Media directories for *arr stack and Jellyfin
-	mkdir -p /mnt/storage/media/tv
-	mkdir -p /mnt/storage/media/movies
-	mkdir -p /mnt/storage/media/music
-	mkdir -p /mnt/storage/media/audiobooks
-	mkdir -p /mnt/storage/media/podcasts
-	mkdir -p /mnt/storage/media/books
-	mkdir -p /mnt/storage/media/youtube
-
-	# Cache directories (on SSD, can use HDD if needed)
-	mkdir -p /mnt/cachehdd/qbittorrent-incomplete
-	mkdir -p /mnt/cachehdd/aria2-incomplete
-	mkdir -p /mnt/cachehdd/jellyfin-cache
-	mkdir -p /mnt/cachehdd/kopia-cache
-	mkdir -p /mnt/cachehdd/immich-ml-cache
-	mkdir -p /mnt/cachehdd/loki/data
-	mkdir -p /mnt/cachehdd/slskd/logs
-	mkdir -p /mnt/cachehdd/slskd-incomplete
-
-	# SSD directories (for high-I/O database and application data)
-	mkdir -p /mnt/ssd/docker-data/postgres
-	mkdir -p /mnt/ssd/docker-data/mongo
-	mkdir -p /mnt/ssd/docker-data/mongo-config
-	mkdir -p /mnt/ssd/docker-data/redis-cache
-	mkdir -p /mnt/ssd/docker-data/gitea
-	mkdir -p /mnt/ssd/docker-data/n8n
-	mkdir -p /mnt/ssd/docker-data/paperless-data
-	mkdir -p /mnt/ssd/docker-data/crowdsec-db
-	mkdir -p /mnt/ssd/docker-data/crowdsec-config
-	mkdir -p /mnt/ssd/docker-data/sentry
-
-	# Paperless directories on SSD storage
-	mkdir -p /mnt/storage/paperless/media
-	mkdir -p /mnt/storage/paperless/consume
-	mkdir -p /mnt/storage/paperless/export
-	mkdir -p /mnt/storage/slskd-shared
-
-	# Create directories for specific services
-	mkdir -p /docker-data/{postgres,mongo,redis,traefik,authentik,n8n,gitea,grafana,loki,prometheus}
-
-	# Set proper permissions (optimized for N150 performance)
-	chown -R ${DOCKER_USER:-1000}:${DOCKER_USER:-1000} /mnt/storage 2>/dev/null || true
-	chown -R ${DOCKER_USER:-1000}:${DOCKER_USER:-1000} /mnt/cachehdd 2>/dev/null || true
-	chown -R ${DOCKER_USER:-1000}:${DOCKER_USER:-1000} /mnt/ssd/docker-data 2>/dev/null || true
-
-	chmod 755 /mnt/storage
-	chmod 755 /mnt/cachehdd
-	chmod 755 /mnt/ssd
-	chmod 755 /docker-data
-
-	print_success "Storage directories created at:"
-	echo "  - /mnt/storage/ (for persistent data - SSD)"
-	echo "  - /mnt/cachehdd/ (for cache - SSD/HDD)"
-	echo "  - /mnt/ssd/docker-data/ (for Docker volumes - SSD)"
-	echo "  - /docker-data/ (for service-specific data)"
+	print_success "Storage directories created and validated"
 }
 
 ################################################################################
-# Step 7: Additional Utilities
+# Step 8: Autostart & Security Hardening
+################################################################################
+
+step_autostart_hardening() {
+	print_header "Step 8: Autostart & Security Hardening"
+
+	if [[ "$SETUP_AUTOSTART" != "true" ]]; then
+		print_info "Skipping autostart/hardening (SETUP_AUTOSTART=false)"
+		return 0
+	fi
+
+	if [ -f "${SCRIPT_DIR}/setup-autostart.sh" ]; then
+		print_info "Running setup-autostart.sh..."
+		bash "${SCRIPT_DIR}/setup-autostart.sh"
+	else
+		print_info "setup-autostart.sh not found, skipping."
+	fi
+}
+
+################################################################################
+# Step 9: Additional Utilities
 ################################################################################
 
 step_additional_tools() {
-	print_header "Step 7: Installing Additional Utilities"
+	print_header "Step 9: Installing Additional Utilities"
 
 	# Install Docker Compose completion
 	print_info "Installing Docker Compose bash completion..."
@@ -529,11 +508,11 @@ step_additional_tools() {
 }
 
 ################################################################################
-# Step 8: Firewall Configuration
+# Step 10: Firewall Configuration
 ################################################################################
 
 step_firewall_setup() {
-	print_header "Step 8: Firewall Configuration (ufw)"
+	print_header "Step 10: Firewall Configuration (ufw)"
 
 	if ! command -v ufw &>/dev/null; then
 		print_info "Installing UFW (Uncomplicated Firewall)..."
@@ -561,11 +540,11 @@ step_firewall_setup() {
 }
 
 ################################################################################
-# Step 9: Verification and Testing
+# Step 11: Verification and Testing
 ################################################################################
 
 step_verification() {
-	print_header "Step 9: Verification and Testing"
+	print_header "Step 11: Verification and Testing"
 
 	print_info "Running Docker verification tests..."
 
@@ -676,11 +655,11 @@ step_verification() {
 }
 
 ################################################################################
-# Step 10: Final Instructions
+# Step 12: Final Instructions
 ################################################################################
 
 step_final_instructions() {
-	print_header "Step 10: Post-Installation Instructions"
+	print_header "Step 12: Post-Installation Instructions"
 
 	cat <<'EOF'
 
@@ -727,6 +706,12 @@ NEXT STEPS:
     $ docker compose ps
     $ docker compose logs -f
 
+7. Optional: Enable autostart/hardening later (if skipped):
+    $ sudo ./setup-autostart.sh
+
+8. Optional: Create Soulseek symlinks for sharing:
+    $ sudo ./setup-soulseek-symlinks.sh
+
 VALIDATION COMMANDS:
   • make validate  - Validate docker-compose.yml syntax
   • make lint      - Run comprehensive validation (YAML, shell, compose)
@@ -753,6 +738,10 @@ IMPORTANT NOTES:
 • Logs: Check Docker logs with:
   $ docker compose logs <service-name>
   $ docker compose logs -f --tail=100
+
+OPTIONAL FLAGS:
+  • SETUP_AUTOSTART=false  # Skip autostart/hardening step
+  • SETUP_ROOTLESS=true    # Enable rootless Docker setup
 
 USEFUL COMMANDS:
 
@@ -824,6 +813,7 @@ main() {
 	step_dev_tools_installation
 	step_system_optimization
 	step_storage_setup
+	step_autostart_hardening
 	step_additional_tools
 	step_firewall_setup
 	step_verification
