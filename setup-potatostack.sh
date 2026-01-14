@@ -92,32 +92,77 @@ step_system_update() {
 	apt-get update -y
 
 	print_info "Installing base system utilities..."
-	apt-get install -y \
-		ca-certificates \
-		curl \
-		gnupg \
-		lsb-release \
-		apt-transport-https \
-		software-properties-common \
-		git \
-		wget \
-		nano \
-		vim \
-		htop \
-		btop \
-		net-tools \
-		uidmap \
-		slirp4netns \
-		unzip \
-		build-essential \
-		python3 \
-		python3-pip \
-		openssl \
-		rsync \
-		logrotate \
-		cron \
-		bash-completion
-
+    apt-get install -y \
+        ca-certificates \
+        curl \
+        gnupg \
+        lsb-release \
+        apt-transport-https \
+        software-properties-common \
+        git \
+        wget \
+        nano \
+        vim \
+        htop \
+        btop \
+        net-tools \
+        uidmap \
+        slirp4netns \
+        unzip \
+        build-essential \
+        python3 \
+        python3-pip \
+        openssl \
+        rsync \
+        logrotate \
+        cron \
+        bash-completion \
+        jq \
+        bat \
+        fd-find \
+        ripgrep \
+        delta \
+        zoxide \
+        starship \
+        tmux \
+        neovim \
+        helix \
+        lazygit \
+        lazydocker \
+        yazi \
+        zellij \
+        atuin \
+        exa \
+        imagemagick \
+        ffmpeg \
+        poppler-utils \
+        unar \
+        exiftool \
+        libsqlite3-0 \
+        sqlite3 \
+        tree \
+        ncurses-term \
+        glances \  # New: System monitoring
+        sysstat \  # New: Perf stats (iostat, sar)
+        nmon \     # New: Interactive monitoring
+        atop \     # New: Advanced process/disk logging
+        smartmontools \  # New: Disk health
+        hdparm \   # New: Disk tuning
+        btrfs-progs \  # New: Btrfs support
+        tshark \   # New: Packet analysis
+        multitail \  # New: Multi-log viewer
+        logwatch \ # New: Log summaries
+        p7zip-full \  # New: 7-Zip archives
+        dive \     # New: Docker image analyzer
+        ctop \     # New: Container metrics
+        fzf \      # New: Fuzzy finder
+        tealdeer  \     # New: Simplified man pages
+        silversearcher-ag \  # New: Fast search
+        pv \       # New: Progress viewer
+        screen \   # New: Session manager
+        mediainfo \  # New: Media file info
+        nfs-common \  # New: NFS client
+        samba
 	print_success "System dependencies installed"
 }
 
