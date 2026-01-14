@@ -6,7 +6,7 @@ Production-ready testing suite for PotatoStack with **65+ services** across all 
 ## Test Coverage
 
 ### Services Tested (65+)
-✓ **Databases (5)**: postgres, pgbouncer, mongo, redis-cache, immich-postgres
+✓ **Databases (4)**: postgres, pgbouncer, mongo, redis-cache
 ✓ **Reverse Proxy (1)**: traefik  
 ✓ **Security (6)**: crowdsec, crowdsec-traefik-bouncer, fail2ban, vaultwarden, authentik-server, authentik-worker
 ✓ **Monitoring (12)**: prometheus, grafana, alertmanager, loki, promtail, netdata, cadvisor, uptime-kuma, thanos-query, thanos-sidecar, thanos-store, thanos-compactor

@@ -1212,41 +1212,6 @@ services:
   ################################################################################
 
   # Immich - Photo management and AI tagging
-  immich-postgres:
-    image: tensorchord/pgvecto-rs:${IMMICH_POSTGRES_TAG:-pg16-v0.2.0}
-    container_name: immich-postgres
-    logging: *default-logging
-    shm_size: 128mb
-    command:
-      - "postgres"
-      - "-c"
-      - "shared_buffers=128MB"
-      - "-c"
-      - "effective_cache_size=384MB"
-      - "-c"
-      - "work_mem=8MB"
-      - "-c"
-      - "maintenance_work_mem=64MB"
-      - "-c"
-      - "max_connections=50"
-    environment:
-      POSTGRES_USER: immich
-      POSTGRES_PASSWORD: ${IMMICH_DB_PASSWORD}
-      POSTGRES_DB: immich
-    volumes:
-      - /mnt/ssd/docker-data/immich-postgres:/var/lib/postgresql/data
-    networks:
-      - potatostack
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U immich"]
-      interval: 30s
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 128M
-
   immich-server:
     image: ghcr.io/immich-app/immich-server:${IMMICH_TAG:-release}
     container_name: immich-server
@@ -1255,9 +1220,9 @@ services:
       - "${HOST_BIND:-192.168.178.40}:2283:3001"
     environment:
       <<: *common-env
-      DB_HOSTNAME: immich-postgres
-      DB_USERNAME: immich
-      DB_PASSWORD: ${IMMICH_DB_PASSWORD}
+      DB_HOSTNAME: postgres
+      DB_USERNAME: postgres
+      DB_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
       DB_DATABASE_NAME: immich
       REDIS_HOSTNAME: redis-cache
       REDIS_DBINDEX: 0
@@ -1268,7 +1233,7 @@ services:
     networks:
       - potatostack
     depends_on:
-      - immich-postgres
+      - postgres
       - redis-cache
       - storage-init
     restart: unless-stopped
@@ -2426,9 +2391,6 @@ volumes:
 
   # Shared secrets
   shared-keys:
-
-  # Photos
-  immich-postgres:
 
   # Monitoring
   uptime-kuma-data:

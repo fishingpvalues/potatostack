@@ -23,7 +23,7 @@ Files Created:
 ## Services Tested
 
 ### Main Stack (65 services)
-**Databases (5)**: postgres, pgbouncer, mongo, redis-cache, immich-postgres
+**Databases (4)**: postgres, pgbouncer, mongo, redis-cache
 **Monitoring (12)**: prometheus, grafana, alertmanager, loki, promtail, netdata, cadvisor, uptime-kuma, thanos-*
 **Media (14)**: sonarr, radarr, lidarr, readarr, bazarr, prowlarr, jellyfin, jellyseerr, qbittorrent, audiobookshelf, pinchflat, slskd, aria2, ariang
 **Productivity (7)**: homarr, paperless-ngx, linkding, miniflux, actual-budget, stirling-pdf, it-tools
