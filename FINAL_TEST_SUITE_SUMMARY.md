@@ -34,7 +34,7 @@ Files Created:
 **Other (9)**: syncthing, open-webui, immich-server, immich-machine-learning, kopia, maintainerr, atuin, trivy, storage-init
 
 ### Light Stack (13 services)
-**Dashboard**: homepage
+**Dashboard**: homarr
 **Security**: vaultwarden
 **Sync & Backup**: syncthing, kopia
 **Downloads**: transmission, slskd

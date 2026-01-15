@@ -293,6 +293,6 @@ docker run --rm -v vaultwarden-data:/data -v /mnt/storage/backups:/backup alpine
 | Web Vault | `https://HOST_BIND:8443` |
 | Admin Panel | `https://HOST_BIND:8443/admin` |
 | Health Check | `https://HOST_BIND:8443/alive` |
-| Homepage Link | Click "Vaultwarden" card on dashboard |
+| Homarr Link | Click "Vaultwarden" card on dashboard |
 
 **Note**: Replace `HOST_BIND` with your actual host IP from `.env`

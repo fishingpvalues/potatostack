@@ -155,6 +155,6 @@ Likely a configuration syntax error in `config/rustypaste/config.toml`
 - **Auto-Cleanup**: Expired files deleted automatically every 4 hours
 - **Backups**: Rustypaste folder included in Kopia backups
 
-## Homepage Integration
+## Homarr Integration
 
-RustyPaste appears in the Homepage dashboard under "Media & Storage" section with real-time container status.
+Add RustyPaste to the Homarr dashboard under "Media & Storage" for quick access and status.

@@ -81,7 +81,7 @@ shares:
 web:
   authentication:
     api_keys:
-      homepage:
+      homarr:
         key: $SLSKD_API_KEY
         role: readonly
         cidr: 0.0.0.0/0,::/0
@@ -98,7 +98,7 @@ elif ! grep -q "api_keys:" "$CONFIG_FILE"; then
 web:
   authentication:
     api_keys:
-      homepage:
+      homarr:
         key: $SLSKD_API_KEY
         role: readonly
         cidr: 0.0.0.0/0,::/0

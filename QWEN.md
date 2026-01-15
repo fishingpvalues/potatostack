@@ -10,7 +10,7 @@
 
 The stack includes the following services:
 - **Traefik** - Reverse proxy with HTTPS support using mkcert certificates
-- **Homepage** - Unified dashboard for all services
+- **Homarr** - Unified dashboard for all services
 - **Gluetun** - VPN client with killswitch functionality
 - **Transmission** - Torrent client (via VPN)
 - **slskd** - Soulseek client (via VPN)
@@ -164,7 +164,7 @@ All services accessible via **https://192.168.178.40** (or your HOST_BIND IP) wi
 
 | Service | HTTPS URL (Traefik) | Direct HTTP (Legacy) |
 |---------|---------------------|---------------------|
-| Homepage | `https://HOST_BIND/` | `http://HOST_BIND:3000` |
+| Homarr | `https://HOST_BIND/` | `http://HOST_BIND:7575` |
 | Traefik Dashboard | `https://HOST_BIND/dashboard/` | - |
 | Gluetun | `https://HOST_BIND/gluetun` | `http://HOST_BIND:8000` |
 | Transmission | `https://HOST_BIND/transmission` | `http://HOST_BIND:9091` |

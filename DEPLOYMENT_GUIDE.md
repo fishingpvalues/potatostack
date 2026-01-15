@@ -160,7 +160,7 @@ Access these from your browser:
 
 ### Primary
 - **Grafana**: http://192.168.178.40:3002 (main monitoring dashboard)
-- **Homarr**: http://192.168.178.40:7575 (homepage dashboard)
+- **Homarr**: http://192.168.178.40:7575 (dashboard)
 - **Traefik**: http://192.168.178.40:8080 (reverse proxy dashboard)
 
 ### Monitoring
