@@ -155,7 +155,7 @@ sudo swapon /mnt/cachehdd/swapfile
 ### 2. Reduce Memory Footprint
 **Current stack memory allocation**:
 ```
-homepage:        96M max
+homarr:          96M max
 watchtower:      48M max
 autoheal:        24M max
 gluetun-monitor: 16M max
@@ -249,7 +249,7 @@ top -o %MEM
 If system is critically low on memory, reduce limits on optional services:
 - Portainer: Reduce to 64M (or disable with profile)
 - FileBrowser: Reduce to 64M
-- Homepage: Reduce to 64M
+- Homarr: Reduce to 64M
 
 ## Recommended Solution
 

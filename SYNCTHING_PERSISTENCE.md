@@ -174,7 +174,7 @@ API key is stored in TWO locations:
 1. `/config/config.xml` (in volume)
 2. `/keys/syncthing-api-key` (in shared-keys volume)
 
-Both persist across restarts. Homepage widget reads from `/keys/`.
+Both persist across restarts. Dashboard widgets can read from `/keys/` if configured.
 
 ## Conclusion
 

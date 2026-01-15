@@ -203,7 +203,7 @@ docker compose restart slskd
 **Reason**: Docker bind mount limitation
 **Workaround**: Navigate into folders to see correct capacity
 
-### [NOTE] Homepage Gluetun Widget "Invalid data"
+### [NOTE] Dashboard Gluetun Widget "Invalid data"
 **Issue**: Widget shows error during VPN connection startup
 **Reason**: Gluetun hasn't fetched public IP yet
 **Resolution**: Resolves automatically once VPN connects
