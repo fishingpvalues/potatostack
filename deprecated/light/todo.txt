@@ -1,5 +1,0 @@
- transmission still wants my login data but then loops when coreect and ENTER no proceeding also same for aria2 stands https://192.168.178.40/ariang#!/settings/rpc/set/https/192.168.178.40/6800/jsonrpc/NGNmOGM4NDAyMDAzMDJjYmQzOTY5NTQ0NTk2MDc3Y2FmZWMzOTNjNDQ2MDkwNDY1NzQ3NmFiMDgyMjc1YTdhYQ and nothing happens slskld works maybe you can peek from there how to solve transmission and kopia doesnt work as well filebrowser works 
-
- - vaultwarden erro Vaultwarden
-You are not using a secure context which is required for the Subtle Crypto API to work. You need to enable HTTPS!
-`;

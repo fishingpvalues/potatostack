@@ -121,10 +121,13 @@ printf '%s\n' "Creating cache directories..."
 mkdir -p \
 	"${CACHE_BASE}/qbittorrent-incomplete" \
 	"${CACHE_BASE}/aria2-incomplete" \
+	"${CACHE_BASE}/audiobookshelf/metadata" \
 	"${CACHE_BASE}/jellyfin-cache" \
 	"${CACHE_BASE}/kopia-cache" \
 	"${CACHE_BASE}/immich-ml-cache" \
 	"${CACHE_BASE}/loki/data" \
+	"${CACHE_BASE}/pinchflat-incomplete" \
+	"${CACHE_BASE}/prometheus" \
 	"${CACHE_BASE}/slskd/logs" \
 	"${CACHE_BASE}/slskd-incomplete" \
 	"${CACHE_BASE}/syncthing-versions" \

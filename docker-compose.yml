@@ -94,8 +94,6 @@ services:
       - /var/run/postgresql:exec,mode=1777
     networks:
       - potatostack
-    depends_on:
-      - authentik-server
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -110,6 +108,8 @@ services:
         reservations:
           cpus: "0.5"
           memory: 512M
+    labels:
+      - "potatostack.alerts=critical"
 
   # PgBouncer - PostgreSQL connection pooling (SOTA 2025)
   pgbouncer:
@@ -140,6 +140,8 @@ services:
         reservations:
           cpus: "0.1"
           memory: 64M
+    labels:
+      - "potatostack.alerts=critical"
 
   # MongoDB - Document database (SOTA 2025)
   mongo:
@@ -174,6 +176,8 @@ services:
         reservations:
           cpus: "0.5"
           memory: 512M
+    labels:
+      - "potatostack.alerts=critical"
 
   # Redis Shared Cache - SOTA 2025 consolidated (N8n, Gitea, Immich, Paperless, Sentry)
   redis-cache:
@@ -201,6 +205,8 @@ services:
         reservations:
           cpus: "0.25"
           memory: 512M
+    labels:
+      - "potatostack.alerts=critical"
 
   ################################################################################
   # SECURITY & INTRUSION PREVENTION
@@ -239,6 +245,7 @@ services:
         reservations:
           cpus: "0.1"
           memory: 128M
+    labels:
 
   # CrowdSec Traefik Bouncer - Blocks malicious IPs at reverse proxy level
   crowdsec-traefik-bouncer:
@@ -274,7 +281,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "${HOST_BIND:-192.168.178.40}:8080:8080" # Dashboard
+      - "${HOST_BIND:-192.168.178.40}:8088:8080" # Dashboard (alt port to avoid conflicts)
     environment:
       <<: *common-env
     command:
@@ -298,32 +305,44 @@ services:
       # Observability
       - "--log.level=INFO"
       - "--accesslog=true"
+      - "--accesslog.filepath=/var/log/traefik/access.log"
+      - "--accesslog.format=json"
+      - "--log.filepath=/var/log/traefik/traefik.log"
       - "--metrics.prometheus=true"
       - "--metrics.prometheus.addServicesLabels=true"
       - "--metrics.prometheus.addEntryPointsLabels=true"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik-certs:/letsencrypt
+      - traefik-logs:/var/log/traefik
     networks:
       - potatostack
     restart: unless-stopped
     labels:
+      - "potatostack.alerts=critical"
       - "traefik.enable=true"
       # Dashboard router
       - "traefik.http.routers.traefik.rule=Host(`traefik.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.traefik.entrypoints=websecure"
       - "traefik.http.routers.traefik.service=api@internal"
       - "traefik.http.routers.traefik.tls=true"
+      - "traefik.http.routers.traefik.middlewares=sso-chain@docker"
+      - "traefik.http.routers.traefik-gui.rule=Host(`traefik-gui.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.traefik-gui.entrypoints=websecure"
+      - "traefik.http.routers.traefik-gui.service=api@internal"
+      - "traefik.http.routers.traefik-gui.tls=true"
+      - "traefik.http.routers.traefik-gui.middlewares=sso-chain@docker"
+      - "traefik.http.middlewares.sso-chain.chain.middlewares=sso-chain,oauth2-proxy"
       # Security headers middleware
-      - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.X-Robots-Tag=noindex,nofollow,nosnippet,noarchive,notranslate,noimageindex"
-      - "traefik.http.middlewares.security-headers.headers.sslRedirect=true"
-      - "traefik.http.middlewares.security-headers.headers.stsSeconds=315360000"
-      - "traefik.http.middlewares.security-headers.headers.stsIncludeSubdomains=true"
-      - "traefik.http.middlewares.security-headers.headers.stsPreload=true"
-      - "traefik.http.middlewares.security-headers.headers.forceSTSHeader=true"
-      - "traefik.http.middlewares.security-headers.headers.frameDeny=true"
-      - "traefik.http.middlewares.security-headers.headers.contentTypeNosniff=true"
-      - "traefik.http.middlewares.security-headers.headers.browserXssFilter=true"
+      - "traefik.http.middlewares.sso-chain.headers.customResponseHeaders.X-Robots-Tag=noindex,nofollow,nosnippet,noarchive,notranslate,noimageindex"
+      - "traefik.http.middlewares.sso-chain.headers.sslRedirect=true"
+      - "traefik.http.middlewares.sso-chain.headers.stsSeconds=315360000"
+      - "traefik.http.middlewares.sso-chain.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.sso-chain.headers.stsPreload=true"
+      - "traefik.http.middlewares.sso-chain.headers.forceSTSHeader=true"
+      - "traefik.http.middlewares.sso-chain.headers.frameDeny=true"
+      - "traefik.http.middlewares.sso-chain.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.sso-chain.headers.browserXssFilter=true"
     deploy:
       resources:
         limits:
@@ -364,6 +383,13 @@ services:
         limits:
           cpus: "2.0"
           memory: 512M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.authentik.rule=Host(`authentik.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.authentik.entrypoints=websecure"
+      - "traefik.http.routers.authentik.tls=true"
+      - "traefik.http.services.authentik.loadbalancer.server.port=9000"
+      - "traefik.http.routers.authentik.middlewares=security-headers@docker"
 
   authentik-worker:
     image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-latest}
@@ -423,6 +449,13 @@ services:
           memory: 128M
     labels:
       - "traefik.enable=true"
+      - "traefik.http.routers.maintainerr.rule=Host(`maintainerr.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.maintainerr.entrypoints=websecure"
+      - "traefik.http.routers.maintainerr.tls=true"
+      - "traefik.http.services.maintainerr.loadbalancer.server.port=6246"
+      - "traefik.http.routers.maintainerr.middlewares=sso-chain@docker"
+    labels:
+      - "traefik.enable=true"
       - "traefik.http.routers.oauth2.rule=Host(`auth.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.oauth2.entrypoints=websecure"
       - "traefik.http.routers.oauth2.tls=true"
@@ -472,7 +505,7 @@ services:
       - "traefik.http.routers.vaultwarden.entrypoints=websecure"
       - "traefik.http.routers.vaultwarden.tls=true"
       - "traefik.http.services.vaultwarden.loadbalancer.server.port=80"
-      - "traefik.http.routers.vaultwarden.middlewares=security-headers@docker"
+      - "traefik.http.routers.vaultwarden.middlewares=sso-chain@docker"
 
   ################################################################################
   # DNS & AD BLOCKING
@@ -514,6 +547,7 @@ services:
       - "traefik.http.routers.adguard.rule=Host(`dns.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.adguard.entrypoints=websecure"
       - "traefik.http.routers.adguard.tls=true"
+      - "traefik.http.routers.adguard.middlewares=sso-chain@docker"
       - "traefik.http.services.adguard.loadbalancer.server.port=80"
 
   ################################################################################
@@ -591,6 +625,63 @@ services:
           memory: 128M
     labels:
       - "autoheal=true"
+      - "potatostack.alerts=critical"
+      - "traefik.enable=true"
+      - "traefik.http.routers.gluetun.rule=Host(`gluetun.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.gluetun.entrypoints=websecure"
+      - "traefik.http.routers.gluetun.tls=true"
+      - "traefik.http.services.gluetun.loadbalancer.server.port=8000"
+      - "traefik.http.routers.gluetun.middlewares=sso-chain@docker"
+      - "traefik.http.routers.prowlarr.rule=Host(`prowlarr.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.prowlarr.entrypoints=websecure"
+      - "traefik.http.routers.prowlarr.tls=true"
+      - "traefik.http.services.prowlarr.loadbalancer.server.port=9696"
+      - "traefik.http.routers.prowlarr.middlewares=sso-chain@docker"
+      - "traefik.http.routers.sonarr.rule=Host(`sonarr.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.sonarr.entrypoints=websecure"
+      - "traefik.http.routers.sonarr.tls=true"
+      - "traefik.http.services.sonarr.loadbalancer.server.port=8989"
+      - "traefik.http.routers.sonarr.middlewares=sso-chain@docker"
+      - "traefik.http.routers.radarr.rule=Host(`radarr.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.radarr.entrypoints=websecure"
+      - "traefik.http.routers.radarr.tls=true"
+      - "traefik.http.services.radarr.loadbalancer.server.port=7878"
+      - "traefik.http.routers.radarr.middlewares=sso-chain@docker"
+      - "traefik.http.routers.lidarr.rule=Host(`lidarr.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.lidarr.entrypoints=websecure"
+      - "traefik.http.routers.lidarr.tls=true"
+      - "traefik.http.services.lidarr.loadbalancer.server.port=8686"
+      - "traefik.http.routers.lidarr.middlewares=sso-chain@docker"
+      - "traefik.http.routers.readarr.rule=Host(`readarr.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.readarr.entrypoints=websecure"
+      - "traefik.http.routers.readarr.tls=true"
+      - "traefik.http.services.readarr.loadbalancer.server.port=8787"
+      - "traefik.http.routers.readarr.middlewares=sso-chain@docker"
+      - "traefik.http.routers.bazarr.rule=Host(`bazarr.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.bazarr.entrypoints=websecure"
+      - "traefik.http.routers.bazarr.tls=true"
+      - "traefik.http.services.bazarr.loadbalancer.server.port=6767"
+      - "traefik.http.routers.bazarr.middlewares=sso-chain@docker"
+      - "traefik.http.routers.qbittorrent.rule=Host(`qbittorrent.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.qbittorrent.entrypoints=websecure"
+      - "traefik.http.routers.qbittorrent.tls=true"
+      - "traefik.http.services.qbittorrent.loadbalancer.server.port=8282"
+      - "traefik.http.routers.qbittorrent.middlewares=sso-chain@docker"
+      - "traefik.http.routers.aria2.rule=Host(`aria2.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.aria2.entrypoints=websecure"
+      - "traefik.http.routers.aria2.tls=true"
+      - "traefik.http.services.aria2.loadbalancer.server.port=6800"
+      - "traefik.http.routers.aria2.middlewares=sso-chain@docker"
+      - "traefik.http.routers.ariang.rule=Host(`ariang.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.ariang.entrypoints=websecure"
+      - "traefik.http.routers.ariang.tls=true"
+      - "traefik.http.services.ariang.loadbalancer.server.port=80"
+      - "traefik.http.routers.ariang.middlewares=sso-chain@docker"
+      - "traefik.http.routers.slskd.rule=Host(`slskd.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.slskd.entrypoints=websecure"
+      - "traefik.http.routers.slskd.tls=true"
+      - "traefik.http.services.slskd.loadbalancer.server.port=2234"
+      - "traefik.http.routers.slskd.middlewares=sso-chain@docker"
 
   # WireGuard - High-performance VPN server (SOTA 2025)
   wireguard:
@@ -720,6 +811,13 @@ services:
         limits:
           cpus: "1.0"
           memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.syncthing.rule=Host(`syncthing.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.syncthing.entrypoints=websecure"
+      - "traefik.http.routers.syncthing.tls=true"
+      - "traefik.http.services.syncthing.loadbalancer.server.port=8384"
+      - "traefik.http.routers.syncthing.middlewares=sso-chain@docker"
 
   ################################################################################
   # KNOWLEDGE MANAGEMENT
@@ -773,6 +871,7 @@ services:
       - "traefik.http.routers.miniflux.rule=Host(`rss.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.miniflux.entrypoints=websecure"
       - "traefik.http.routers.miniflux.tls=true"
+      - "traefik.http.routers.miniflux.middlewares=sso-chain@docker"
       - "traefik.http.services.miniflux.loadbalancer.server.port=8080"
 
   ################################################################################
@@ -811,6 +910,7 @@ services:
       - "traefik.http.routers.actual.rule=Host(`budget.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.actual.entrypoints=websecure"
       - "traefik.http.routers.actual.tls=true"
+      - "traefik.http.routers.actual.middlewares=sso-chain@docker"
       - "traefik.http.services.actual.loadbalancer.server.port=5006"
 
   ################################################################################
@@ -1109,6 +1209,13 @@ services:
         reservations:
           cpus: "0.75"
           memory: 1G
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jellyfin.rule=Host(`jellyfin.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.jellyfin.entrypoints=websecure"
+      - "traefik.http.routers.jellyfin.tls=true"
+      - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
+      - "traefik.http.routers.jellyfin.middlewares=sso-chain@docker"
 
   # Jellyseerr - Media request management for Jellyfin
   jellyseerr:
@@ -1129,6 +1236,13 @@ services:
         limits:
           cpus: "0.25"
           memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jellyseerr.rule=Host(`jellyseerr.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.jellyseerr.entrypoints=websecure"
+      - "traefik.http.routers.jellyseerr.tls=true"
+      - "traefik.http.services.jellyseerr.loadbalancer.server.port=5055"
+      - "traefik.http.routers.jellyseerr.middlewares=sso-chain@docker"
 
   # Audiobookshelf - Audiobook and podcast server
   audiobookshelf:
@@ -1154,6 +1268,13 @@ services:
         limits:
           cpus: "1.0"
           memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.audiobookshelf.rule=Host(`audiobooks.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.audiobookshelf.entrypoints=websecure"
+      - "traefik.http.routers.audiobookshelf.tls=true"
+      - "traefik.http.services.audiobookshelf.loadbalancer.server.port=80"
+      - "traefik.http.routers.audiobookshelf.middlewares=sso-chain@docker"
 
   ################################################################################
   # DOWNLOAD CLIENTS (behind VPN)
@@ -1343,6 +1464,13 @@ services:
         limits:
           cpus: "2.0"
           memory: 768M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.immich.rule=Host(`immich.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.immich.entrypoints=websecure"
+      - "traefik.http.routers.immich.tls=true"
+      - "traefik.http.services.immich.loadbalancer.server.port=3001"
+      - "traefik.http.routers.immich.middlewares=sso-chain@docker"
 
   immich-machine-learning:
     image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_TAG:-release}
@@ -1410,10 +1538,12 @@ services:
           cpus: "0.25"
           memory: 128M
     labels:
+      - "potatostack.alerts=critical"
       - "traefik.enable=true"
       - "traefik.http.routers.prometheus.rule=Host(`prometheus.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.prometheus.entrypoints=websecure"
       - "traefik.http.routers.prometheus.tls=true"
+      - "traefik.http.routers.prometheus.middlewares=sso-chain@docker"
       - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
 
   # Thanos Sidecar - Long-term metrics storage (SOTA 2025)
@@ -1513,6 +1643,7 @@ services:
       - "traefik.http.routers.thanos.rule=Host(`thanos.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.thanos.entrypoints=websecure"
       - "traefik.http.routers.thanos.tls=true"
+      - "traefik.http.routers.thanos.middlewares=sso-chain@docker"
       - "traefik.http.services.thanos.loadbalancer.server.port=10902"
 
   # Thanos Compactor - Metrics compaction and downsampling
@@ -1592,6 +1723,7 @@ services:
       - "traefik.http.routers.grafana.rule=Host(`grafana.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.grafana.entrypoints=websecure"
       - "traefik.http.routers.grafana.tls=true"
+      - "traefik.http.routers.grafana.middlewares=sso-chain@docker"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 
   # cAdvisor - Container metrics for Prometheus (SOTA 2025)
@@ -1625,6 +1757,123 @@ services:
         reservations:
           cpus: "0.1"
           memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cadvisor.rule=Host(`cadvisor.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.cadvisor.entrypoints=websecure"
+      - "traefik.http.routers.cadvisor.tls=true"
+      - "traefik.http.services.cadvisor.loadbalancer.server.port=8080"
+      - "traefik.http.routers.cadvisor.middlewares=sso-chain@docker"
+
+  # Node Exporter - Host metrics for Prometheus (SOTA 2025)
+  node-exporter:
+    image: prom/node-exporter:${NODE_EXPORTER_TAG:-latest}
+    container_name: node-exporter
+    logging: *default-logging
+    command:
+      - "--path.rootfs=/host"
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|run|var/lib/docker/.+)($|/)"
+    volumes:
+      - /:/host:ro,rslave
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+
+  # Postgres Exporter - PostgreSQL metrics
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:${POSTGRES_EXPORTER_TAG:-latest}
+    container_name: postgres-exporter
+    logging: *default-logging
+    environment:
+      DATA_SOURCE_NAME: postgresql://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/postgres?sslmode=disable
+    networks:
+      - potatostack
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
+
+  # Redis Exporter - Redis metrics
+  redis-exporter:
+    image: oliver006/redis_exporter:${REDIS_EXPORTER_TAG:-latest}
+    container_name: redis-exporter
+    logging: *default-logging
+    environment:
+      REDIS_ADDR: redis-cache:6379
+    networks:
+      - potatostack
+    depends_on:
+      - redis-cache
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
+
+  # MongoDB Exporter - MongoDB metrics
+  mongodb-exporter:
+    image: percona/mongodb_exporter:${MONGODB_EXPORTER_TAG:-latest}
+    container_name: mongodb-exporter
+    logging: *default-logging
+    environment:
+      MONGODB_URI: mongodb://root:${MONGO_ROOT_PASSWORD}@mongo:27017/admin
+    networks:
+      - potatostack
+    depends_on:
+      - mongo
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
+
+  # Smartctl Exporter - SMART metrics for disk health alerting
+  smartctl-exporter:
+    image: prometheuscommunity/smartctl-exporter:${SMARTCTL_EXPORTER_TAG:-latest}
+    container_name: smartctl-exporter
+    logging: *default-logging
+    privileged: true
+    command:
+      - "--smartctl.path=/usr/sbin/smartctl"
+    volumes:
+      - /dev:/dev
+      - /run/udev:/run/udev:ro
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
 
   # Netdata - Real-time system monitoring (SOTA 2025 - ultra-lightweight)
   netdata:
@@ -1676,6 +1925,7 @@ services:
       - "traefik.http.routers.netdata.rule=Host(`netdata.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.netdata.entrypoints=websecure"
       - "traefik.http.routers.netdata.tls=true"
+      - "traefik.http.routers.netdata.middlewares=sso-chain@docker"
       - "traefik.http.services.netdata.loadbalancer.server.port=19999"
 
   # Loki - Log aggregation
@@ -1697,6 +1947,13 @@ services:
         limits:
           cpus: "1.0"
           memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.loki.rule=Host(`loki.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.loki.entrypoints=websecure"
+      - "traefik.http.routers.loki.tls=true"
+      - "traefik.http.services.loki.loadbalancer.server.port=3100"
+      - "traefik.http.routers.loki.middlewares=sso-chain@docker"
 
   # Promtail - Log collector
   promtail:
@@ -1707,6 +1964,7 @@ services:
     volumes:
       - ./config/promtail:/etc/promtail
       - /var/log:/var/log:ro
+      - traefik-logs:/var/log/traefik:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - potatostack
@@ -1718,6 +1976,7 @@ services:
         limits:
           cpus: "0.25"
           memory: 128M
+    labels:
 
   # Parseable - Lightweight log analytics (Loki alternative)
   parseable:
@@ -1747,10 +2006,18 @@ services:
           memory: 256M
     labels:
       - "traefik.enable=true"
+      - "traefik.http.routers.velld-api.rule=Host(`velld-api.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.velld-api.entrypoints=websecure"
+      - "traefik.http.routers.velld-api.tls=true"
+      - "traefik.http.services.velld-api.loadbalancer.server.port=8080"
+      - "traefik.http.routers.velld-api.middlewares=sso-chain@docker"
+    labels:
+      - "traefik.enable=true"
       - "traefik.http.routers.parseable.rule=Host(`parseable.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.parseable.entrypoints=websecure"
       - "traefik.http.routers.parseable.tls=true"
       - "traefik.http.services.parseable.loadbalancer.server.port=8000"
+      - "traefik.http.routers.parseable.middlewares=sso-chain@docker"
 
   # Scrutiny - HDD SMART monitoring
   scrutiny:
@@ -1783,6 +2050,7 @@ services:
       - "traefik.http.routers.scrutiny.rule=Host(`scrutiny.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.scrutiny.entrypoints=websecure"
       - "traefik.http.routers.scrutiny.tls=true"
+      - "traefik.http.routers.scrutiny.middlewares=sso-chain@docker"
       - "traefik.http.services.scrutiny.loadbalancer.server.port=8080"
 
   # Uptime Kuma - Uptime monitoring
@@ -1804,6 +2072,7 @@ services:
       - "traefik.http.routers.uptime.rule=Host(`uptime.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.uptime.entrypoints=websecure"
       - "traefik.http.routers.uptime.tls=true"
+      - "traefik.http.routers.uptime.middlewares=sso-chain@docker"
       - "traefik.http.services.uptime.loadbalancer.server.port=3001"
     deploy:
       resources:
@@ -1854,6 +2123,13 @@ services:
         limits:
           cpus: "1.0"
           memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.n8n.rule=Host(`n8n.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.n8n.entrypoints=websecure"
+      - "traefik.http.routers.n8n.tls=true"
+      - "traefik.http.services.n8n.loadbalancer.server.port=5678"
+      - "traefik.http.routers.n8n.middlewares=sso-chain@docker"
 
   # Healthchecks - Cron monitoring
   healthchecks:
@@ -1887,6 +2163,13 @@ services:
         limits:
           cpus: "0.25"
           memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.healthchecks.rule=Host(`healthchecks.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.healthchecks.entrypoints=websecure"
+      - "traefik.http.routers.healthchecks.tls=true"
+      - "traefik.http.services.healthchecks.loadbalancer.server.port=8000"
+      - "traefik.http.routers.healthchecks.middlewares=sso-chain@docker"
 
   ################################################################################
   # UTILITIES & TOOLS
@@ -1898,7 +2181,7 @@ services:
     container_name: rustypaste
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:8787:8000"
+      - "${HOST_BIND:-192.168.178.40}:8788:8000"
     environment:
       <<: *common-env
       CONFIG: /config/config.toml
@@ -1930,6 +2213,7 @@ services:
       - "traefik.http.routers.rustypaste.rule=PathPrefix(`/paste`)"
       - "traefik.http.routers.rustypaste.entrypoints=websecure"
       - "traefik.http.routers.rustypaste.tls=true"
+      - "traefik.http.routers.rustypaste.middlewares=sso-chain@docker"
       - "traefik.http.services.rustypaste.loadbalancer.server.port=8000"
 
   # Stirling-PDF - PDF tools
@@ -1958,6 +2242,13 @@ services:
         reservations:
           cpus: "0.25"
           memory: 512M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.stirling.rule=Host(`stirling.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.stirling.entrypoints=websecure"
+      - "traefik.http.routers.stirling.tls=true"
+      - "traefik.http.services.stirling.loadbalancer.server.port=8080"
+      - "traefik.http.routers.stirling.middlewares=sso-chain@docker"
 
   # Linkding - Bookmark manager
   linkding:
@@ -1988,6 +2279,13 @@ services:
         limits:
           cpus: "0.25"
           memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.linkding.rule=Host(`linkding.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.linkding.entrypoints=websecure"
+      - "traefik.http.routers.linkding.tls=true"
+      - "traefik.http.services.linkding.loadbalancer.server.port=9090"
+      - "traefik.http.routers.linkding.middlewares=sso-chain@docker"
 
   # Cal.com - Calendar scheduling
   code-server:
@@ -1995,7 +2293,7 @@ services:
     container_name: code-server
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:8443:8443"
+      - "${HOST_BIND:-192.168.178.40}:8444:8443"
     environment:
       <<: *common-env
       PASSWORD: ${CODE_SERVER_PASSWORD}
@@ -2013,6 +2311,14 @@ services:
         limits:
           cpus: "2.0"
           memory: 384M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.code-server.rule=Host(`code.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.code-server.entrypoints=websecure"
+      - "traefik.http.routers.code-server.tls=true"
+      - "traefik.http.services.code-server.loadbalancer.server.port=8443"
+      - "traefik.http.services.code-server.loadbalancer.server.scheme=https"
+      - "traefik.http.routers.code-server.middlewares=sso-chain@docker"
 
   # Excalidraw - Sketching tool
   atuin:
@@ -2037,6 +2343,13 @@ services:
         limits:
           cpus: "0.25"
           memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.atuin.rule=Host(`atuin.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.atuin.entrypoints=websecure"
+      - "traefik.http.routers.atuin.tls=true"
+      - "traefik.http.services.atuin.loadbalancer.server.port=8888"
+      - "traefik.http.routers.atuin.middlewares=sso-chain@docker"
 
   # IT-Tools - Collection of handy online tools (SOTA 2025)
   it-tools:
@@ -2065,6 +2378,7 @@ services:
       - "traefik.http.routers.ittools.rule=Host(`tools.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.ittools.entrypoints=websecure"
       - "traefik.http.routers.ittools.tls=true"
+      - "traefik.http.routers.ittools.middlewares=sso-chain@docker"
       - "traefik.http.services.ittools.loadbalancer.server.port=80"
 
   # DuckDB - Ad-hoc analytics container
@@ -2138,6 +2452,7 @@ services:
       - "traefik.http.routers.paperless.rule=Host(`docs.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.paperless.entrypoints=websecure"
       - "traefik.http.routers.paperless.tls=true"
+      - "traefik.http.routers.paperless.middlewares=sso-chain@docker"
       - "traefik.http.services.paperless.loadbalancer.server.port=8000"
 
   # Pingvin Share - Secure file sharing (SOTA 2025)
@@ -2186,6 +2501,13 @@ services:
         limits:
           cpus: "1.0"
           memory: 384M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gitea.rule=Host(`git.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.gitea.entrypoints=websecure"
+      - "traefik.http.routers.gitea.tls=true"
+      - "traefik.http.services.gitea.loadbalancer.server.port=3000"
+      - "traefik.http.routers.gitea.middlewares=sso-chain@docker"
 
   # Gitea Runner - CI/CD for Gitea
   gitea-runner:
@@ -2248,6 +2570,7 @@ services:
       - "traefik.http.routers.woodpecker.rule=Host(`ci.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.woodpecker.entrypoints=websecure"
       - "traefik.http.routers.woodpecker.tls=true"
+      - "traefik.http.routers.woodpecker.middlewares=sso-chain@docker"
       - "traefik.http.services.woodpecker.loadbalancer.server.port=8000"
 
   woodpecker-agent:
@@ -2308,6 +2631,13 @@ services:
         limits:
           cpus: "2.0"
           memory: 384M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.open-webui.rule=Host(`openwebui.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.open-webui.entrypoints=websecure"
+      - "traefik.http.routers.open-webui.tls=true"
+      - "traefik.http.services.open-webui.loadbalancer.server.port=8080"
+      - "traefik.http.routers.open-webui.middlewares=sso-chain@docker"
 
   # Pinchflat - YouTube downloader
   pinchflat:
@@ -2332,6 +2662,13 @@ services:
         limits:
           cpus: "1.0"
           memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pinchflat.rule=Host(`pinchflat.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.pinchflat.entrypoints=websecure"
+      - "traefik.http.routers.pinchflat.tls=true"
+      - "traefik.http.services.pinchflat.loadbalancer.server.port=8945"
+      - "traefik.http.routers.pinchflat.middlewares=sso-chain@docker"
 
   ################################################################################
   # DASHBOARD & CONTAINER MANAGEMENT
@@ -2375,6 +2712,7 @@ services:
       - "traefik.http.routers.homarr.rule=Host(`home.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.homarr.entrypoints=websecure"
       - "traefik.http.routers.homarr.tls=true"
+      - "traefik.http.routers.homarr.middlewares=sso-chain@docker"
       - "traefik.http.services.homarr.loadbalancer.server.port=7575"
 
   # Dockge - Modern Docker Compose stack manager (SOTA 2025)
@@ -2444,8 +2782,9 @@ services:
     logging: *default-logging
     command:
       - "--config.file=/etc/alertmanager/config.yml"
+      - "--config.expand-env"
       - "--storage.path=/alertmanager"
-      - "--web.external-url=http://alertmanager.${HOST_DOMAIN:-local.domain}"
+      - "--web.external-url=https://alerts.${HOST_DOMAIN:-local.domain}"
     environment:
       <<: *common-env
     volumes:
@@ -2470,10 +2809,12 @@ services:
           cpus: "0.1"
           memory: 64M
     labels:
+      - "potatostack.alerts=critical"
       - "traefik.enable=true"
       - "traefik.http.routers.alertmanager.rule=Host(`alerts.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.alertmanager.entrypoints=websecure"
       - "traefik.http.routers.alertmanager.tls=true"
+      - "traefik.http.routers.alertmanager.middlewares=sso-chain@docker"
       - "traefik.http.services.alertmanager.loadbalancer.server.port=9093"
 
   ################################################################################
@@ -2618,6 +2959,13 @@ services:
         limits:
           cpus: "0.25"
           memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.velld.rule=Host(`velld.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.velld.entrypoints=websecure"
+      - "traefik.http.routers.velld.tls=true"
+      - "traefik.http.services.velld.loadbalancer.server.port=3000"
+      - "traefik.http.routers.velld.middlewares=sso-chain@docker"
 
   # Snapshot Scheduler - Cron-based Kopia snapshots
   snapshot-scheduler:
@@ -2687,6 +3035,14 @@ services:
       timeout: 20s
       retries: 3
       start_period: 60s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kopia.rule=Host(`kopia.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.kopia.entrypoints=websecure"
+      - "traefik.http.routers.kopia.tls=true"
+      - "traefik.http.services.kopia.loadbalancer.server.port=51515"
+      - "traefik.http.services.kopia.loadbalancer.server.scheme=https"
+      - "traefik.http.routers.kopia.middlewares=sso-chain@docker"
 
 ################################################################################
 # NETWORKS
