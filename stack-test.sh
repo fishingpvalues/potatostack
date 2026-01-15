@@ -375,7 +375,7 @@ test_service_endpoints() {
 	}
 
 	# Reverse Proxy & Core
-	grep -q "traefik" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Traefik Dashboard" "http://localhost:8080"
+	grep -q "traefik" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Traefik Dashboard" "http://localhost:8088"
 
 	# Monitoring Stack
 	grep -q "grafana" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Grafana" "http://localhost:3000"
@@ -396,11 +396,11 @@ test_service_endpoints() {
 	grep -q "prowlarr" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Prowlarr" "http://localhost:9696"
 	grep -q "jellyfin" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Jellyfin" "http://localhost:8096"
 	grep -q "jellyseerr" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Jellyseerr" "http://localhost:5055"
-	grep -q "qbittorrent" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "qBittorrent" "http://localhost:8080"
+	grep -q "qbittorrent" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "qBittorrent" "http://localhost:8282"
 	grep -q "ariang" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "AriaNg" "http://localhost:6880"
 	grep -q "audiobookshelf" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Audiobookshelf" "http://localhost:13378"
 	grep -q "pinchflat" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Pinchflat" "http://localhost:8945"
-	grep -q "slskd" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Slskd" "http://localhost:5030"
+	grep -q "slskd" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Slskd" "http://localhost:2234"
 
 	# Productivity
 	grep -q "homarr" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Homarr" "http://localhost:7575"
@@ -414,7 +414,7 @@ test_service_endpoints() {
 	# Development
 	grep -q "gitea" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Gitea" "http://localhost:3004"
 	grep -q "woodpecker-server" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Woodpecker" "http://localhost:3006"
-	grep -q "code-server" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Code Server" "http://localhost:8443"
+	grep -q "code-server" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Code Server" "http://localhost:8444"
 
 	# Automation
 	grep -q "n8n" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "n8n" "http://localhost:5678"

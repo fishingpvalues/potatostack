@@ -12,7 +12,7 @@ declare -A SERVICE_PORTS=(
 	["redis-cache"]="6379"
 
 	# Reverse Proxy & Network
-	["traefik"]="80,443,8080"
+	["traefik"]="80,443,8088"
 	["gluetun"]=""
 	["tailscale"]=""
 	["adguardhome"]="53,3000"
@@ -50,13 +50,13 @@ declare -A SERVICE_PORTS=(
 	["prowlarr"]="9696"
 	["jellyfin"]="8096"
 	["jellyseerr"]="5055"
-	["qbittorrent"]="8080"
+	["qbittorrent"]="8282"
 	["aria2"]="6800"
 	["ariang"]="6880"
 	["audiobookshelf"]="13378"
 	["pinchflat"]="8945"
-	["slskd"]="5030"
-	["rustypaste"]="8787"
+	["slskd"]="2234"
+	["rustypaste"]="8788"
 
 	# Productivity
 	["nextcloud-aio"]="8080"
@@ -78,7 +78,7 @@ declare -A SERVICE_PORTS=(
 	["gitea-runner"]=""
 	["woodpecker-server"]="3006"
 	["woodpecker-agent"]=""
-	["code-server"]="8443"
+	["code-server"]="8444"
 	["oauth2-proxy"]="4180"
 
 	# Other
