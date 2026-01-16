@@ -486,6 +486,68 @@ EOF
 }
 
 ################################################################################
+# Step 6b: Host-Level Optimization (zram, fstrim, journald)
+################################################################################
+
+step_host_tuning() {
+	print_header "Step 6b: Host-Level Optimization (zram, fstrim, journald)"
+
+	# ZRAM swap for Debian 13
+	print_info "Configuring zram swap..."
+	if command -v apt-get >/dev/null 2>&1; then
+		apt-get install -y zram-tools >/dev/null 2>&1 || true
+		if [ -f /etc/default/zramswap ]; then
+			cat >/etc/default/zramswap <<'EOF'
+# Potatostack zram configuration
+ALGO=lz4
+PERCENT=25
+PRIORITY=100
+EOF
+			systemctl enable --now zramswap.service >/dev/null 2>&1 || true
+			print_success "zram swap configured"
+		else
+			print_info "zram-tools not available, skipping zram setup"
+		fi
+	else
+		print_info "apt-get not available, skipping zram setup"
+	fi
+
+	# Enable periodic SSD trim
+	print_info "Enabling fstrim timer..."
+	if systemctl list-unit-files | grep -q "^fstrim.timer"; then
+		systemctl enable --now fstrim.timer >/dev/null 2>&1 || true
+		print_success "fstrim timer enabled"
+	else
+		print_info "fstrim.timer not available, skipping"
+	fi
+
+	# Journald limits to reduce disk churn
+	print_info "Tuning journald retention..."
+	mkdir -p /etc/systemd/journald.conf.d
+	cat >/etc/systemd/journald.conf.d/potatostack.conf <<'EOF'
+[Journal]
+Storage=persistent
+SystemMaxUse=500M
+SystemMaxFileSize=50M
+RuntimeMaxUse=100M
+Compress=yes
+EOF
+	systemctl restart systemd-journald >/dev/null 2>&1 || true
+	print_success "journald limits configured"
+
+	# Extra sysctl for watchers/limits
+	print_info "Applying additional sysctl tuning..."
+	cat >/etc/sysctl.d/99-potatostack.conf <<'EOF'
+fs.inotify.max_user_watches = 524288
+fs.inotify.max_user_instances = 1024
+fs.inotify.max_queued_events = 16384
+fs.file-max = 2097152
+EOF
+	sysctl --system >/dev/null 2>&1 || true
+	print_success "Additional sysctl tuning applied"
+}
+
+################################################################################
 # Step 7: Storage Setup (for PotatoStack)
 ################################################################################
 
@@ -860,6 +922,7 @@ main() {
 	step_docker_rootless
 	step_dev_tools_installation
 	step_system_optimization
+	step_host_tuning
 	step_storage_setup
 	step_autostart_hardening
 	step_additional_tools

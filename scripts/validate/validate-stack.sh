@@ -64,9 +64,25 @@ validate_yaml_syntax() {
 	TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
 
 	if command -v yamllint &>/dev/null; then
-		if yamllint -f parsable docker-compose.yml >"$TMP_DIR/yamllint.out" 2>&1; then
-			echo -e "  ${GREEN}✓${NC} YAML syntax valid"
-			echo "Status: PASSED" >>"$REPORT_FILE"
+		local yamllint_config=()
+		if [ -f ".yamllint" ]; then
+			yamllint_config=(-c .yamllint)
+		fi
+
+		local yaml_files=()
+		mapfile -t yaml_files < <(find . -type f \( -name '*.yml' -o -name '*.yaml' \) \
+			-not -path './data/*' -not -path './deprecated/*' -not -path './.git/*' | sort)
+
+		if [ ${#yaml_files[@]} -eq 0 ]; then
+			echo -e "  ${YELLOW}⚠${NC} No YAML files found"
+			echo "Status: SKIPPED (no YAML files)" >>"$REPORT_FILE"
+			echo "" >>"$REPORT_FILE"
+			return
+		fi
+
+		if yamllint "${yamllint_config[@]}" -f parsable "${yaml_files[@]}" >"$TMP_DIR/yamllint.out" 2>&1; then
+			echo -e "  ${GREEN}✓${NC} YAML syntax valid (${#yaml_files[@]} files)"
+			echo "Status: PASSED (${#yaml_files[@]} files)" >>"$REPORT_FILE"
 		else
 			local warnings=$(grep -c "warning" "$TMP_DIR/yamllint.out" 2>/dev/null || echo 0)
 			local errors=$(grep -c "error" "$TMP_DIR/yamllint.out" 2>/dev/null || echo 0)
@@ -148,22 +164,24 @@ validate_shell_scripts() {
 		local total_issues=0
 		local scripts_checked=0
 
-		for script in *.sh; do
+		while IFS= read -r script; do
 			[ -f "$script" ] || continue
+			local script_slug
+			script_slug=$(echo "$script" | tr '/' '_')
 			scripts_checked=$((scripts_checked + 1))
 
-			if shellcheck "$script" >$TMP_DIR/shellcheck-$script.out 2>&1; then
+			if shellcheck "$script" >"$TMP_DIR/shellcheck-$script_slug.out" 2>&1; then
 				echo -e "  ${GREEN}✓${NC} $script"
 				echo "  $script: PASSED" >>"$REPORT_FILE"
 			else
-				local issues=$(grep -c "^In $script" $TMP_DIR/shellcheck-$script.out 2>/dev/null || echo 0)
+				local issues=$(grep -c "^In " "$TMP_DIR/shellcheck-$script_slug.out" 2>/dev/null || echo 0)
 				total_issues=$((total_issues + issues))
 				echo -e "  ${YELLOW}⚠${NC} $script: $issues issues"
 				echo "  $script: $issues issues" >>"$REPORT_FILE"
-				cat $TMP_DIR/shellcheck-$script.out >>"$REPORT_FILE"
+				cat "$TMP_DIR/shellcheck-$script_slug.out" >>"$REPORT_FILE"
 				echo "" >>"$REPORT_FILE"
 			fi
-		done
+		done < <(find scripts -type f -name '*.sh' 2>/dev/null | sort)
 
 		echo "Scripts checked: $scripts_checked, Total issues: $total_issues"
 		echo "Summary: $scripts_checked scripts, $total_issues issues" >>"$REPORT_FILE"
@@ -185,17 +203,19 @@ validate_shell_formatting() {
 	if command -v shfmt &>/dev/null; then
 		local unformatted=0
 
-		for script in *.sh; do
+		while IFS= read -r script; do
 			[ -f "$script" ] || continue
+			local script_slug
+			script_slug=$(echo "$script" | tr '/' '_')
 
-			if shfmt -d "$script" >$TMP_DIR/shfmt-$script.out 2>&1; then
+			if shfmt -d "$script" >"$TMP_DIR/shfmt-$script_slug.out" 2>&1; then
 				echo -e "  ${GREEN}✓${NC} $script (formatted)"
 			else
 				unformatted=$((unformatted + 1))
 				echo -e "  ${YELLOW}⚠${NC} $script (needs formatting)"
 				echo "  $script: needs formatting" >>"$REPORT_FILE"
 			fi
-		done
+		done < <(find scripts -type f -name '*.sh' 2>/dev/null | sort)
 
 		if [ $unformatted -eq 0 ]; then
 			echo "  All scripts properly formatted"

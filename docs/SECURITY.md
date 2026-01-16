@@ -64,8 +64,8 @@ AUTHENTIK_SECRET_KEY=
 VAULTWARDEN_ADMIN_TOKEN=
 
 # VPN
-VPN_USER=
-VPN_PASSWORD=
+WIREGUARD_PRIVATE_KEY=
+WIREGUARD_ADDRESSES=
 
 # And more in .env.example
 ```
@@ -83,6 +83,7 @@ VPN_PASSWORD=
 - **Firewall**: Configure UFW or iptables
 - **VPN Access**: Use Tailscale or WireGuard for remote access
 - **Network Segmentation**: Use Docker networks to isolate services
+- **Docker API**: Use a socket proxy with restricted permissions (Homarr uses `socket-proxy`)
 
 ### Access Control
 

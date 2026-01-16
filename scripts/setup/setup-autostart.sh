@@ -147,9 +147,11 @@ Type=oneshot
 RemainAfterExit=yes
 User=$ACTUAL_USER
 WorkingDirectory=$REPO_ROOT
-ExecStart=/usr/bin/docker compose up -d
+ExecStart=/usr/bin/docker compose up -d --remove-orphans
 ExecStop=/usr/bin/docker compose down
 TimeoutStartSec=300
+Restart=on-failure
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
