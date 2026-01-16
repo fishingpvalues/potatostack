@@ -1228,10 +1228,10 @@ services:
       resources:
         limits:
           cpus: "1.5"
-          memory: 768M
+          memory: 1G
         reservations:
           cpus: "0.75"
-          memory: 1G
+          memory: 512M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.jellyfin.rule=Host(`jellyfin.${HOST_DOMAIN:-local.domain}`)"
@@ -1553,10 +1553,10 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 768M
+          memory: 1G
         reservations:
           cpus: "0.5"
-          memory: 1G
+          memory: 512M
 
   ################################################################################
   # MONITORING & OBSERVABILITY
@@ -2307,10 +2307,10 @@ services:
       resources:
         limits:
           cpus: "0.75"
-          memory: 384M
+          memory: 512M
         reservations:
           cpus: "0.25"
-          memory: 512M
+          memory: 256M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.stirling.rule=Host(`stirling.${HOST_DOMAIN:-local.domain}`)"
@@ -2512,10 +2512,10 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 768M
+          memory: 1G
         reservations:
           cpus: "0.5"
-          memory: 1G
+          memory: 512M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.paperless.rule=Host(`docs.${HOST_DOMAIN:-local.domain}`)"
