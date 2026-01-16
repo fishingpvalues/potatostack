@@ -285,19 +285,30 @@ services:
     environment:
       <<: *common-env
     command:
+      # Global
+      - "--global.checknewversion=false"
+      - "--global.sendanonymoususage=false"
       # EntryPoints
       - "--entrypoints.web.address=:80"
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
       - "--entrypoints.websecure.address=:443"
       - "--entrypoints.websecure.http.tls=true"
+      - "--entrypoints.websecure.http.tls.certresolver=letsencrypt"
+      - "--entrypoints.websecure.http.tls.options=default"
+      - "--entrypoints.traefik.address=:8080"
       # Providers
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--providers.docker.network=potatostack"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
       # API & Dashboard
       - "--api.dashboard=true"
       - "--api.insecure=false"
+      - "--ping=true"
+      - "--ping.entrypoint=traefik"
       # SSL/TLS
       - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
@@ -307,12 +318,14 @@ services:
       - "--accesslog=true"
       - "--accesslog.filepath=/var/log/traefik/access.log"
       - "--accesslog.format=json"
+      - "--accesslog.fields.headers.defaultmode=drop"
       - "--log.filepath=/var/log/traefik/traefik.log"
       - "--metrics.prometheus=true"
       - "--metrics.prometheus.addServicesLabels=true"
       - "--metrics.prometheus.addEntryPointsLabels=true"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./config/traefik:/etc/traefik/dynamic:ro
       - traefik-certs:/letsencrypt
       - traefik-logs:/var/log/traefik
     networks:
@@ -332,17 +345,19 @@ services:
       - "traefik.http.routers.traefik-gui.service=api@internal"
       - "traefik.http.routers.traefik-gui.tls=true"
       - "traefik.http.routers.traefik-gui.middlewares=sso-chain@docker"
-      - "traefik.http.middlewares.sso-chain.chain.middlewares=sso-chain,oauth2-proxy"
+      - "traefik.http.middlewares.sso-chain.chain.middlewares=oauth2-proxy,security-headers"
       # Security headers middleware
-      - "traefik.http.middlewares.sso-chain.headers.customResponseHeaders.X-Robots-Tag=noindex,nofollow,nosnippet,noarchive,notranslate,noimageindex"
-      - "traefik.http.middlewares.sso-chain.headers.sslRedirect=true"
-      - "traefik.http.middlewares.sso-chain.headers.stsSeconds=315360000"
-      - "traefik.http.middlewares.sso-chain.headers.stsIncludeSubdomains=true"
-      - "traefik.http.middlewares.sso-chain.headers.stsPreload=true"
-      - "traefik.http.middlewares.sso-chain.headers.forceSTSHeader=true"
-      - "traefik.http.middlewares.sso-chain.headers.frameDeny=true"
-      - "traefik.http.middlewares.sso-chain.headers.contentTypeNosniff=true"
-      - "traefik.http.middlewares.sso-chain.headers.browserXssFilter=true"
+      - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.X-Robots-Tag=noindex,nofollow,nosnippet,noarchive,notranslate,noimageindex"
+      - "traefik.http.middlewares.security-headers.headers.sslRedirect=true"
+      - "traefik.http.middlewares.security-headers.headers.stsSeconds=315360000"
+      - "traefik.http.middlewares.security-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.security-headers.headers.stsPreload=true"
+      - "traefik.http.middlewares.security-headers.headers.forceSTSHeader=true"
+      - "traefik.http.middlewares.security-headers.headers.frameDeny=true"
+      - "traefik.http.middlewares.security-headers.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.security-headers.headers.browserXssFilter=true"
+      - "traefik.http.middlewares.security-headers.headers.referrerPolicy=no-referrer"
+      - "traefik.http.middlewares.security-headers.headers.permissionsPolicy=geolocation=(), microphone=(), camera=()"
     deploy:
       resources:
         limits:
@@ -447,13 +462,6 @@ services:
         limits:
           cpus: "0.25"
           memory: 128M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.maintainerr.rule=Host(`maintainerr.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.maintainerr.entrypoints=websecure"
-      - "traefik.http.routers.maintainerr.tls=true"
-      - "traefik.http.services.maintainerr.loadbalancer.server.port=6246"
-      - "traefik.http.routers.maintainerr.middlewares=sso-chain@docker"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.oauth2.rule=Host(`auth.${HOST_DOMAIN:-local.domain}`)"
@@ -579,15 +587,14 @@ services:
       - "${HOST_BIND:-192.168.178.40}:6888:6888" # aria2 BT
       - "${HOST_BIND:-192.168.178.40}:2234:2234" # slskd WebUI
       - "${HOST_BIND:-192.168.178.40}:50000:50000" # slskd peer
+      - "${HOST_BIND:-192.168.178.40}:8097:8080" # SpotiFLAC
+      - "${HOST_BIND:-192.168.178.40}:8945:8945" # Pinchflat
     environment:
       <<: *common-env
       VPN_SERVICE_PROVIDER: ${VPN_PROVIDER:-surfshark}
-      VPN_TYPE: ${VPN_TYPE:-openvpn}
-      OPENVPN_USER: ${VPN_USER}
-      OPENVPN_PASSWORD: ${VPN_PASSWORD}
-      OPENVPN_PROTOCOL: ${VPN_PROTOCOL:-udp}
-      OPENVPN_VERBOSITY: ${VPN_OPENVPN_VERBOSITY:-0}
-      OPENVPN_FLAGS: "${VPN_OPENVPN_FLAGS:---tls-timeout 10 --connect-timeout 30 --connect-retry-max 3 --mssfix 1300}"
+      VPN_TYPE: ${VPN_TYPE:-wireguard}
+      WIREGUARD_PRIVATE_KEY: ${WIREGUARD_PRIVATE_KEY}
+      WIREGUARD_ADDRESSES: ${WIREGUARD_ADDRESSES}
       SERVER_COUNTRIES: ${VPN_COUNTRY:-Germany}
       LOG_LEVEL: ${VPN_LOG_LEVEL:-info}
       FIREWALL_OUTBOUND_SUBNETS: ${LAN_NETWORK:-192.168.178.0/24}
@@ -682,6 +689,16 @@ services:
       - "traefik.http.routers.slskd.tls=true"
       - "traefik.http.services.slskd.loadbalancer.server.port=2234"
       - "traefik.http.routers.slskd.middlewares=sso-chain@docker"
+      - "traefik.http.routers.pinchflat.rule=Host(`pinchflat.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.pinchflat.entrypoints=websecure"
+      - "traefik.http.routers.pinchflat.tls=true"
+      - "traefik.http.services.pinchflat.loadbalancer.server.port=8945"
+      - "traefik.http.routers.pinchflat.middlewares=sso-chain@docker"
+      - "traefik.http.routers.spotiflac.rule=Host(`spotiflac.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.spotiflac.entrypoints=websecure"
+      - "traefik.http.routers.spotiflac.tls=true"
+      - "traefik.http.services.spotiflac.loadbalancer.server.port=8080"
+      - "traefik.http.routers.spotiflac.middlewares=sso-chain@docker"
 
   # WireGuard - High-performance VPN server (SOTA 2025)
   wireguard:
@@ -1158,6 +1175,13 @@ services:
         limits:
           cpus: "0.25"
           memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.maintainerr.rule=Host(`maintainerr.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.maintainerr.entrypoints=websecure"
+      - "traefik.http.routers.maintainerr.tls=true"
+      - "traefik.http.services.maintainerr.loadbalancer.server.port=6246"
+      - "traefik.http.routers.maintainerr.middlewares=sso-chain@docker"
 
   ################################################################################
   # MEDIA SERVERS & REQUEST MANAGEMENT
@@ -1275,6 +1299,38 @@ services:
       - "traefik.http.routers.audiobookshelf.tls=true"
       - "traefik.http.services.audiobookshelf.loadbalancer.server.port=80"
       - "traefik.http.routers.audiobookshelf.middlewares=sso-chain@docker"
+
+  # SpotiFLAC - Spotify to FLAC downloader (Tidal/Qobuz/Amazon sources)
+  spotiflac:
+    image: neiht/spotiflac:latest@sha256:65de2009536579cda0311b2d9606faa70bfc5bc9962f96f8ad150e5e82b3da23
+    container_name: spotiflac
+    logging: *default-logging
+    network_mode: "service:gluetun"
+    environment:
+      <<: *common-env
+      SERVER_PORT: 8080
+      SERVER_HOST: 0.0.0.0
+      DOWNLOAD_DIR: /downloads
+      STATIC_DIR: /app/dist
+    volumes:
+      - /mnt/storage/downloads:/downloads
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+      storage-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    labels:
+      - "autoheal=true"
 
   ################################################################################
   # DOWNLOAD CLIENTS (behind VPN)
@@ -2006,13 +2062,6 @@ services:
           memory: 256M
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.velld-api.rule=Host(`velld-api.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.velld-api.entrypoints=websecure"
-      - "traefik.http.routers.velld-api.tls=true"
-      - "traefik.http.services.velld-api.loadbalancer.server.port=8080"
-      - "traefik.http.routers.velld-api.middlewares=sso-chain@docker"
-    labels:
-      - "traefik.enable=true"
       - "traefik.http.routers.parseable.rule=Host(`parseable.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.parseable.entrypoints=websecure"
       - "traefik.http.routers.parseable.tls=true"
@@ -2644,18 +2693,19 @@ services:
     image: ghcr.io/kieraneglin/pinchflat:${PINCHFLAT_TAG:-latest}
     container_name: pinchflat
     logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.40}:8945:8945"
+    network_mode: "service:gluetun"
     environment:
       <<: *common-env
     volumes:
       - pinchflat-config:/config
       - /mnt/storage/media/youtube:/downloads
       - /mnt/cachehdd/pinchflat-incomplete:/incomplete
-    networks:
-      - potatostack
     depends_on:
-      - storage-init
+      gluetun:
+        condition: service_healthy
+        restart: true
+      storage-init:
+        condition: service_completed_successfully
     restart: unless-stopped
     deploy:
       resources:
@@ -2663,16 +2713,46 @@ services:
           cpus: "1.0"
           memory: 128M
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.pinchflat.rule=Host(`pinchflat.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.pinchflat.entrypoints=websecure"
-      - "traefik.http.routers.pinchflat.tls=true"
-      - "traefik.http.services.pinchflat.loadbalancer.server.port=8945"
-      - "traefik.http.routers.pinchflat.middlewares=sso-chain@docker"
+      - "autoheal=true"
 
   ################################################################################
   # DASHBOARD & CONTAINER MANAGEMENT
   ################################################################################
+
+  # Docker Socket Proxy - Restricted Docker API for Homarr (SOTA 2025)
+  socket-proxy:
+    image: lscr.io/linuxserver/socket-proxy:${SOCKET_PROXY_TAG:-latest}
+    container_name: socket-proxy
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      <<: *common-env
+      ALLOW_START: 1
+      ALLOW_STOP: 1
+      ALLOW_RESTARTS: 1
+      CONTAINERS: 1
+      EVENTS: 1
+      INFO: 1
+      IMAGES: 1
+      NETWORKS: 1
+      PING: 1
+      POST: 0
+      VERSION: 1
+      LOG_LEVEL: info
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - potatostack
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /run
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
 
   # Homarr - Modern drag-and-drop dashboard with 30+ integrations (SOTA 2025)
   homarr:
@@ -2684,15 +2764,19 @@ services:
     environment:
       <<: *common-env
       SECRET_ENCRYPTION_KEY: ${HOMARR_SECRET_KEY}
-      DATABASE_URL: postgresql://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/homarr
+      DB_DRIVER: node-postgres
+      DB_URL: postgres://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/homarr
+      DOCKER_HOSTNAMES: ${HOMARR_DOCKER_HOSTNAMES:-socket-proxy}
+      DOCKER_PORTS: ${HOMARR_DOCKER_PORTS:-2375}
+      LOG_LEVEL: ${HOMARR_LOG_LEVEL:-info}
     volumes:
       - homarr-data:/app/data/configs
       - homarr-icons:/app/public/icons
-      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - potatostack
     depends_on:
       - postgres
+      - socket-proxy
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:7575/ || exit 1"]
@@ -2938,6 +3022,13 @@ services:
         limits:
           cpus: "0.5"
           memory: 256M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.velld-api.rule=Host(`velld-api.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.velld-api.entrypoints=websecure"
+      - "traefik.http.routers.velld-api.tls=true"
+      - "traefik.http.services.velld-api.loadbalancer.server.port=8080"
+      - "traefik.http.routers.velld-api.middlewares=sso-chain@docker"
 
   velld-web:
     image: ghcr.io/dendianugerah/velld/web:${VELLD_WEB_TAG:-latest}

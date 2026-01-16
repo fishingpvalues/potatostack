@@ -41,6 +41,7 @@ Complete self-hosted stack with 100 services optimized for low-power hardware.
 - Bazarr - Subtitle management
 - qBittorrent + Aria2 - Download clients
 - slskd - Soulseek P2P music
+- SpotiFLAC - Spotify to FLAC downloader
 
 ### Monitoring & Observability (SOTA 2025)
 - **Prometheus** - Metrics collection (7 days)
