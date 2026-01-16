@@ -14,7 +14,7 @@ All issues from `fixes_needed.txt` have been addressed with code fixes and docum
 **Solution**:
 - Created `PATHS_GUIDE.md` - Complete path mapping documentation
 - Syncthing sees `/data/camera-sync/android` (maps to `/mnt/storage/syncthing/camera-sync/android`)
-- Directories created by `init-storage.sh` with correct permissions (1000:1000, 755)
+- Directories created by `scripts/init/init-storage.sh` with correct permissions (1000:1000, 755)
 - Subfolders `android` and `ios` pre-created
 
 **Action Required**:
@@ -74,13 +74,13 @@ All issues from `fixes_needed.txt` have been addressed with code fixes and docum
 **Solution**: Added to Syncthing private folder structure
 
 **Code Changes**:
-- Modified `init-storage.sh` to create `/mnt/storage/syncthing/Privates/porn`
+- Modified `scripts/init/init-storage.sh` to create `/mnt/storage/syncthing/Privates/porn`
 - Permissions: 1000:1000, 755
 - Accessible in Syncthing at `/data/Privates/porn`
 - Accessible in FileBrowser at `/srv/storage/syncthing/Privates/porn`
 
 **Files Modified**:
-- `init-storage.sh` - Added porn subfolder to Privates
+- `scripts/init/init-storage.sh` - Added porn subfolder to Privates
 
 ---
 
@@ -125,13 +125,13 @@ chmod +x onedrive-migration.sh
 - `podcasts` → `/mnt/storage/syncthing/podcasts`
 
 **Files Created**:
-- `setup-soulseek-symlinks.sh` - Automated symlink creation
+- `scripts/setup/setup-soulseek-symlinks.sh` - Automated symlink creation
 
 **Usage**:
 ```bash
 cd ~/light
-chmod +x setup-soulseek-symlinks.sh
-./setup-soulseek-symlinks.sh
+chmod +x scripts/setup/setup-soulseek-symlinks.sh
+./scripts/setup/setup-soulseek-symlinks.sh
 docker compose restart slskd
 ```
 
@@ -186,7 +186,7 @@ docker compose restart slskd
 
 **Files Modified**:
 - `docker-compose.yml` - storage-init memory limits and capabilities
-- `init-storage.sh` - Added automatic swap creation and enablement
+- `scripts/init/init-storage.sh` - Added automatic swap creation and enablement
 
 **Swap Details**:
 - Size: 2GB (on cache HDD for performance)
@@ -223,14 +223,14 @@ docker compose restart slskd
 8. `download-onedrive.sh` - OneDrive download script
 9. `migrate-onedrive-to-syncthing.sh` - Migration to Syncthing
 10. `onedrive-migration.sh` - Simple rsync alternative
-11. `setup-soulseek-symlinks.sh` - Soulseek symlink setup
+11. `scripts/setup/setup-soulseek-symlinks.sh` - Soulseek symlink setup
 12. `FIXES_SUMMARY.md` - This file
 
 ### Modified Files:
 1. `docker-compose.yml`:
    - Vaultwarden: memory limits (128M), healthcheck (10 retries, 120s start)
    - storage-init: memory limits (128M/64M), added SYS_ADMIN capability for swap
-2. `init-storage.sh`:
+2. `scripts/init/init-storage.sh`:
    - Added `Privates/porn` folder
    - Added automatic 2GB swap file creation and enablement on cache HDD
    - Swap persists and auto-enables on every stack start
@@ -249,9 +249,9 @@ docker compose restart slskd
 
 2. Run scripts as needed:
    ```bash
-   chmod +x onedrive-migration.sh setup-soulseek-symlinks.sh
+   chmod +x onedrive-migration.sh scripts/setup/setup-soulseek-symlinks.sh
    ./onedrive-migration.sh  # If migrating from OneDrive
-   ./setup-soulseek-symlinks.sh  # To enable Soulseek sharing
+   ./scripts/setup/setup-soulseek-symlinks.sh  # To enable Soulseek sharing
    ```
 
 3. Configure Syncthing camera sync (see PATHS_GUIDE.md)

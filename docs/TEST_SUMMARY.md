@@ -66,7 +66,7 @@ make test-quick        # Quick health check only
 make health            # Detailed health status
 
 # Direct execution
-./stack-test.sh
+./scripts/test/stack-test.sh
 ```
 
 ## Test Outputs
@@ -132,8 +132,8 @@ Based on industry best practices:
 
 ## Files
 
-- `stack-test.sh` (577 lines) - Main test script
+- `scripts/test/stack-test.sh` (577 lines) - Main test script
 - `Makefile` (72 lines) - Build automation
-- `test-all-services.sh` (174 lines) - Service configuration
+- `scripts/test/test-all-services.sh` (174 lines) - Service configuration
 - `TESTING.md` - User documentation
 - `TEST_SUMMARY.md` - This file

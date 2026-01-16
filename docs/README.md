@@ -130,7 +130,7 @@ docker compose up -d
 ### Setup Monitoring
 ```bash
 # Import Grafana dashboards
-./import-grafana-dashboards.sh
+./scripts/import/import-grafana-dashboards.sh
 
 # Access Grafana
 open http://192.168.178.40:3002

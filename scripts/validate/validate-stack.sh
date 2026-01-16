@@ -251,7 +251,7 @@ validate_file_structure() {
 		"docker-compose.yml"
 		"Makefile"
 		".gitignore"
-		"README.md"
+		"docs/README.md"
 	)
 
 	local missing=0

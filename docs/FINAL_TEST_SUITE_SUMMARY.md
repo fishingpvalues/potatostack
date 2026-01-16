@@ -6,8 +6,8 @@
 ```
 Files Created:
 - Makefile (72 lines) - Build automation with 13 targets
-- stack-test.sh (607 lines) - Comprehensive integration test suite
-- test-all-services.sh (170 lines) - Service configuration
+- scripts/test/stack-test.sh (607 lines) - Comprehensive integration test suite
+- scripts/test/test-all-services.sh (170 lines) - Service configuration
 - TESTING.md (updated) - User documentation
 - TEST_SUMMARY.md - Detailed summary
 - SOTA_IMPROVEMENTS.md - SOTA implementation guide
@@ -253,8 +253,8 @@ All improvements based on research:
 ```
 potatostack/
 ├── Makefile                          # Main stack automation
-├── stack-test.sh                     # Main stack tests (607 lines)
-├── test-all-services.sh             # Service configuration
+├── scripts/test/stack-test.sh                     # Main stack tests (607 lines)
+├── scripts/test/test-all-services.sh             # Service configuration
 ├── TESTING.md                        # User guide
 ├── TEST_SUMMARY.md                   # Main stack summary
 ├── SOTA_IMPROVEMENTS.md              # SOTA features guide

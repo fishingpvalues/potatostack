@@ -37,8 +37,8 @@ services:
       - /mnt/storage:/mnt/storage
       - /mnt/cachehdd:/mnt/cachehdd
       - /mnt/ssd/docker-data:/mnt/ssd/docker-data
-      - ./init-storage.sh:/init-storage.sh:ro
-      - ./stack-snapshot.sh:/stack-snapshot.sh:ro
+      - ./scripts/init/init-storage.sh:/init-storage.sh:ro
+      - ./scripts/backup/stack-snapshot.sh:/stack-snapshot.sh:ro
       - shared-keys:/keys
     network_mode: none
     restart: "no"
@@ -88,7 +88,7 @@ services:
       - "max_parallel_workers_per_gather=2"
     volumes:
       - /mnt/ssd/docker-data/postgres:/var/lib/postgresql/data
-      - ./scripts/init-postgres-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-postgres-multiple-dbs.sh:ro
+      - ./scripts/init/init-postgres-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-postgres-multiple-dbs.sh:ro
     tmpfs:
       - /tmp:exec,mode=1777
       - /var/run/postgresql:exec,mode=1777
@@ -797,7 +797,7 @@ services:
       - /mnt/storage/syncthing:/data
       - /mnt/cachehdd/syncthing-versions:/data/.stversions
       - shared-keys:/keys:ro
-      - ./syncthing-init.sh:/syncthing-init.sh:ro
+      - ./scripts/init/syncthing-init.sh:/syncthing-init.sh:ro
     networks:
       - potatostack
     depends_on:
@@ -1294,7 +1294,7 @@ services:
       - qbittorrent-config:/config
       - /mnt/storage/downloads:/downloads
       - /mnt/cachehdd/qbittorrent-incomplete:/incomplete
-      - ./qbittorrent-init.sh:/qb-init.sh:ro
+      - ./scripts/init/qbittorrent-init.sh:/qb-init.sh:ro
     depends_on:
       gluetun:
         condition: service_healthy
@@ -1336,7 +1336,7 @@ services:
       - aria2-config:/config
       - /mnt/storage/downloads/aria2:/downloads
       - /mnt/cachehdd/aria2-incomplete:/incomplete
-      - ./aria2-init.sh:/aria2-init.sh:ro
+      - ./scripts/init/aria2-init.sh:/aria2-init.sh:ro
       - shared-keys:/keys:ro
     depends_on:
       gluetun:
@@ -1402,7 +1402,7 @@ services:
       - /mnt/storage/slskd-shared:/var/slskd/shared
       - /mnt/cachehdd/slskd-incomplete:/var/slskd/incomplete
       - shared-keys:/keys:ro
-      - ./slskd-init.sh:/init.sh:ro
+      - ./scripts/init/slskd-init.sh:/init.sh:ro
     tmpfs:
       - /tmp:exec,mode=1777,size=256m
     depends_on:
@@ -2893,7 +2893,7 @@ services:
       - RESTART_CONTAINERS=prowlarr sonarr radarr lidarr readarr bazarr qbittorrent aria2 ariang slskd
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./gluetun-monitor.sh:/monitor.sh:ro
+      - ./scripts/monitor/gluetun-monitor.sh:/monitor.sh:ro
     networks:
       - potatostack
     depends_on:
@@ -2977,7 +2977,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - /mnt/ssd/docker-data/cron:/etc/crontabs
       - /mnt/storage/kopia:/mnt/storage/kopia
-      - ./stack-snapshot.sh:/stack-snapshot.sh:ro
+      - ./scripts/backup/stack-snapshot.sh:/stack-snapshot.sh:ro
     networks:
       - potatostack
     depends_on:
@@ -3011,7 +3011,7 @@ services:
       - kopia-config:/app/config
       - /mnt/cachehdd/kopia-cache:/app/cache
       - kopia-logs:/app/logs
-      - ./kopia-init.sh:/kopia-init.sh:ro
+      - ./scripts/init/kopia-init.sh:/kopia-init.sh:ro
       # Backup targets
       - vaultwarden-data:/data/vaultwarden:ro
       - /mnt/storage/syncthing:/data/syncthing:ro

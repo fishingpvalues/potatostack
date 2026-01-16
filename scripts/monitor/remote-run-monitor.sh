@@ -22,7 +22,7 @@ echo "[1/4] Copying files to server..."
 sshpass -p "$PASSWORD" scp -o StrictHostKeyChecking=no \
 	docker-compose.yml \
 	.env.example \
-	run-and-monitor.sh \
+	scripts/monitor/run-and-monitor.sh \
 	$USER@$SERVER:$REMOTE_DIR/
 
 echo ""

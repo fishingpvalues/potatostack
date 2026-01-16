@@ -10,7 +10,7 @@
 # - 16GB RAM
 # - 512GB SSD
 #
-# Usage: sudo bash setup-potatostack.sh
+# Usage: sudo bash scripts/setup/setup-potatostack.sh
 # Or run without sudo and enter password when prompted
 #
 # Prerequisites:
@@ -259,7 +259,7 @@ step_docker_postinstall() {
 
 step_docker_rootless() {
 	if [[ "$SETUP_ROOTLESS" != "true" ]]; then
-		print_info "Skipping Rootless mode setup (optional). To enable, run: SETUP_ROOTLESS=true sudo bash setup-potatostack.sh"
+		print_info "Skipping Rootless mode setup (optional). To enable, run: SETUP_ROOTLESS=true sudo bash scripts/setup/setup-potatostack.sh"
 		return 0
 	fi
 
@@ -495,13 +495,13 @@ step_storage_setup() {
 	print_info "Ensuring base mount points exist..."
 	mkdir -p /mnt/storage /mnt/cachehdd /mnt/ssd/docker-data /docker-data
 
-	if [ -f "${SCRIPT_DIR}/init-storage.sh" ]; then
+	if [ -f "${SCRIPT_DIR}/../init/init-storage.sh" ]; then
 		print_info "Running init-storage.sh for SOTA directory structure..."
 		local docker_uid
 		local docker_gid
 		docker_uid=$(id -u "$DOCKER_USER")
 		docker_gid=$(id -g "$DOCKER_USER")
-		PUID="$docker_uid" PGID="$docker_gid" bash "${SCRIPT_DIR}/init-storage.sh"
+		PUID="$docker_uid" PGID="$docker_gid" bash "${SCRIPT_DIR}/../init/init-storage.sh"
 	else
 		print_info "init-storage.sh not found, creating minimal structure..."
 		mkdir -p /mnt/storage/nextcloud /mnt/storage/syncthing /mnt/storage/downloads
@@ -755,10 +755,10 @@ NEXT STEPS:
     $ docker compose logs -f
 
 7. Optional: Enable autostart/hardening later (if skipped):
-    $ sudo ./setup-autostart.sh
+    $ sudo ./scripts/setup/setup-autostart.sh
 
 8. Optional: Create Soulseek symlinks for sharing:
-    $ sudo ./setup-soulseek-symlinks.sh
+    $ sudo ./scripts/setup/setup-soulseek-symlinks.sh
 
 VALIDATION COMMANDS:
   • make validate  - Validate docker-compose.yml syntax

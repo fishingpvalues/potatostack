@@ -8,7 +8,7 @@ SOYO M4 PLUS2 Mini PC is engineered with the Intel Twin Lake N150 processor, clo
 
 With 16GB RAM and a massive 512GB SSD storage, the SOYO M4 PLUS2 Mini PC guarantees a smooth and efficient computing experience, be it for work, study or gaming.
 
-i will install debian 13 check in setup-potatostack.sh if this script is doing all and make it better ignore ligth stack its not needed anymore make this startup scroüt better anticipate all tools i need and add them adn make shfmt and shellchecdk on it and test it so taht it works
+i will install debian 13 check in scripts/setup/setup-potatostack.sh if this script is doing all and make it better ignore ligth stack its not needed anymore make this startup scroüt better anticipate all tools i need and add them adn make shfmt and shellchecdk on it and test it so taht it works
 
 - fix in setup script the folders based on light stack the light stack hast the latest ioptimizations check which ones especially the init scripts and copy them if applicable for main stack and needed. 
 - the hdd structure with all folders stays so you can keep from ligth stack init storage droidypaste gluetun all settings the setup monitor etc kopia init makefile rustypaste setup autostart for docker soulseek symlinks skskd init syncthing init and vcalidate stack in light stack doicker compose copy how gluetun is working there and all gluetun settiongs basically copy all gluetuns tuff ffrom lightstack to main stack ALL and all related killswitch serviceds shgould be served as well as in light stack it is done

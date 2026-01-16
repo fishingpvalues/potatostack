@@ -39,8 +39,8 @@ status: ## Show container status with health
 
 test: ## Run comprehensive integration tests
 	@echo "Running comprehensive stack tests..."
-	@chmod +x ./stack-test.sh
-	@./stack-test.sh
+	@chmod +x ./scripts/test/stack-test.sh
+	@./scripts/test/stack-test.sh
 
 test-quick: ## Run quick health check (no log analysis)
 	@echo "Quick health check..."
@@ -65,19 +65,19 @@ validate: ## Validate docker-compose.yml syntax (basic)
 
 lint: ## Run SOTA 2025 comprehensive validation (YAML, shell, compose)
 	@echo "Running SOTA 2025 validation suite..."
-	@chmod +x ./validate-stack.sh
-	@./validate-stack.sh
+	@chmod +x ./scripts/validate/validate-stack.sh
+	@./scripts/validate/validate-stack.sh
 
 security: ## Run security vulnerability scan
 	@echo "Running security scan..."
-	@chmod +x ./security-scan.sh
-	@./security-scan.sh
+	@chmod +x ./scripts/security/security-scan.sh
+	@./scripts/security/security-scan.sh
 
 format: ## Format shell scripts and YAML files (SOTA 2025)
 	@echo "Formatting files with SOTA 2025 tools..."
 	@echo "1. Formatting shell scripts with shfmt..."
 	@if command -v shfmt &> /dev/null; then \
-		shfmt -w *.sh 2>/dev/null || true; \
+		find scripts -type f -name '*.sh' -print0 | xargs -0 shfmt -w 2>/dev/null || true; \
 		echo "  ✓ Shell scripts formatted"; \
 	else \
 		echo "  ✗ shfmt not installed (install: pkg install shfmt)"; \

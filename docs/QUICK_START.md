@@ -53,7 +53,7 @@ sleep 30
 ## 6. Import Dashboards (Method 1: Auto)
 ```bash
 # Run auto-import script
-./import-grafana-dashboards.sh
+./scripts/import/import-grafana-dashboards.sh
 ```
 
 ## 6. Import Dashboards (Method 2: Manual)
