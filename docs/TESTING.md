@@ -9,12 +9,12 @@ make test-quick        # Run quick health check only
 make health            # Check service health status
 
 # Direct script execution
-./stack-test.sh
+./scripts/test/stack-test.sh
 ```
 
 ## Features
 
-### Automated Stack Testing (`stack-test.sh`)
+### Automated Stack Testing (`scripts/test/stack-test.sh`)
 Based on **SOTA 2025 Docker Compose testing best practices**, testing ALL 65+ services:
 
 #### Core Test Categories
@@ -96,7 +96,7 @@ Stack Test Report
 ## Customization
 
 ### Add Custom Log Patterns
-Edit `stack-test.sh` line ~90-95 to add patterns:
+Edit `scripts/test/stack-test.sh` line ~90-95 to add patterns:
 ```bash
 custom=$(grep -iE "your_pattern" "$LOG_DIR/${container}.log" 2>/dev/null | wc -l)
 ```
@@ -108,7 +108,7 @@ Edit `renovate.json` schedule field:
 ```
 
 ### Change Test Services
-Modify network connectivity tests in `stack-test.sh` (~170-180) to test your specific services.
+Modify network connectivity tests in `scripts/test/stack-test.sh` (~170-180) to test your specific services.
 
 ## Logs Location
 - Test reports: `stack-test-report-YYYYMMDD-HHMMSS.txt`

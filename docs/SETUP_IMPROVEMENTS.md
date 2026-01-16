@@ -1,4 +1,4 @@
-# setup-potatostack.sh Improvements
+# scripts/setup/setup-potatostack.sh Improvements
 
 ## Changes Made
 
@@ -47,7 +47,7 @@
 
 Run on Debian 13 with sudo:
 ```bash
-sudo bash setup-potatostack.sh
+sudo bash scripts/setup/setup-potatostack.sh
 ```
 
 The script will:

@@ -151,14 +151,14 @@ docker-compose config
 shellcheck *.sh
 
 # Comprehensive validation (SOTA 2025)
-./validate-stack.sh
+./scripts/validate/validate-stack.sh
 ```
 
 ### Integration Tests
 
 ```bash
 # Full integration test suite
-./stack-test.sh
+./scripts/test/stack-test.sh
 
 # Or using Make
 make test
@@ -168,7 +168,7 @@ make test
 
 ```bash
 # Run security vulnerability scan
-./security-scan.sh
+./scripts/security/security-scan.sh
 
 # Or using Make
 make security

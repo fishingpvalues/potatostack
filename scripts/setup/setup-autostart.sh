@@ -1,7 +1,7 @@
 #!/bin/bash
 ################################################################################
 # PotatoStack - Autostart & Hardening Setup
-# Run with: sudo bash setup-autostart.sh
+# Run with: sudo bash scripts/setup/setup-autostart.sh
 ################################################################################
 
 set -euo pipefail
@@ -14,24 +14,25 @@ echo "==================================================================="
 ACTUAL_USER="${SUDO_USER:-$USER}"
 ACTUAL_HOME=$(getent passwd "$ACTUAL_USER" | cut -d: -f6)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 echo ""
-echo "Stack directory: $SCRIPT_DIR"
+echo "Stack directory: $REPO_ROOT"
 echo "Running as: $ACTUAL_USER"
 echo "Home: $ACTUAL_HOME"
 echo ""
 
 # Security hardening
 echo "[1/7] Hardening file permissions..."
-if [ -f "$SCRIPT_DIR/.env" ]; then
-	chmod 600 "$SCRIPT_DIR/.env"
-	chown "$ACTUAL_USER:$ACTUAL_USER" "$SCRIPT_DIR/.env"
+if [ -f "$REPO_ROOT/.env" ]; then
+	chmod 600 "$REPO_ROOT/.env"
+	chown "$ACTUAL_USER:$ACTUAL_USER" "$REPO_ROOT/.env"
 	echo "✓ .env file secured (600)"
 else
 	echo "⚠ No .env file found (will be created later)"
 fi
 
-chmod 644 "$SCRIPT_DIR/docker-compose.yml" 2>/dev/null || true
+chmod 644 "$REPO_ROOT/docker-compose.yml" 2>/dev/null || true
 echo "✓ File permissions hardened"
 
 # Configure Docker daemon security
@@ -145,7 +146,7 @@ Wants=network-online.target
 Type=oneshot
 RemainAfterExit=yes
 User=$ACTUAL_USER
-WorkingDirectory=$SCRIPT_DIR
+WorkingDirectory=$REPO_ROOT
 ExecStart=/usr/bin/docker compose up -d
 ExecStop=/usr/bin/docker compose down
 TimeoutStartSec=300

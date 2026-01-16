@@ -150,7 +150,7 @@ API keys are stored in `/keys/` volume, auto-generated if missing, format: `<ser
 - Log analysis (errors/warnings/critical)
 - Resource usage monitoring
 
-### Validation (`validate-stack.sh`)
+### Validation (`scripts/validate/validate-stack.sh`)
 - YAML syntax (yamllint)
 - Docker Compose config validation
 - Python YAML parser validation

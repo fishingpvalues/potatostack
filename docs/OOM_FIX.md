@@ -64,7 +64,7 @@ openssl rand -hex 32 | tr -d '\n' > ./keys/syncthing-api-key
 chmod 644 ./keys/*
 ```
 
-Then modify `init-storage.sh` to skip openssl installation:
+Then modify `scripts/init/init-storage.sh` to skip openssl installation:
 ```bash
 # Remove this line:
 # apk add --no-cache openssl >/dev/null 2>&1
@@ -78,7 +78,7 @@ fi
 ```
 
 ### Fix 3: Optimize Alpine Package Installation
-**Modify**: `init-storage.sh` to handle OOM gracefully
+**Modify**: `scripts/init/init-storage.sh` to handle OOM gracefully
 
 ```bash
 # Add retry logic with reduced memory footprint
@@ -264,4 +264,4 @@ This provides:
 
 **Changes applied**:
 - `docker-compose.yml`: storage-init memory limit 128M, added SYS_ADMIN capability
-- `init-storage.sh`: Automatic swap file creation, initialization, and enabling
+- `scripts/init/init-storage.sh`: Automatic swap file creation, initialization, and enabling

@@ -8,7 +8,7 @@ From your local machine with access to the server:
 
 ```bash
 # Copy entire stack to server
-scp -r docker-compose.yml .env.example config/ run-and-monitor.sh \
+scp -r docker-compose.yml .env.example config/ scripts/monitor/run-and-monitor.sh \
     daniel@192.168.178.40:~/light/
 ```
 
@@ -20,7 +20,7 @@ SSH to server and execute:
 ssh daniel@192.168.178.40
 cd ~/light
 chmod +x run-and-monitor.sh
-./run-and-monitor.sh 90  # Monitor for 90 seconds
+./scripts/monitor/run-and-monitor.sh 90  # Monitor for 90 seconds
 ```
 
 ## What the Monitoring Script Does

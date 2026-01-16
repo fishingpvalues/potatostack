@@ -9,7 +9,7 @@ This repository contains a Docker Compose-based self-hosted infrastructure stack
 - `make up` - Start all services with docker-compose
 - `make down` - Stop all services
 - `make restart` - Restart all services
-- `make test` - Run comprehensive integration tests (stack-test.sh)
+- `make test` - Run comprehensive integration tests (scripts/test/stack-test.sh)
 - `make test-quick` - Quick health check without log analysis
 - `make lint` - Run SOTA 2025 comprehensive validation (YAML, shell, compose)
 - `make format` - Format shell scripts (shfmt) and YAML files (prettier/yq)
@@ -19,14 +19,14 @@ This repository contains a Docker Compose-based self-hosted infrastructure stack
 - `make health` - Check health of all services
 
 ### Running Single Tests
-The test suite (stack-test.sh) runs all tests by default. To test individual components:
+The test suite (scripts/test/stack-test.sh) runs all tests by default. To test individual components:
 - `docker ps --filter "name=service_name"` - Check specific container status
 - `docker logs -f service_name` - View logs for specific service
 - `docker exec service_name command` - Execute command in container
 - `curl -I http://localhost:PORT` - Test HTTP endpoint availability
 
 ### Service-Specific Testing
-Test services using `test_service_endpoints()` function in stack-test.sh:347-439
+Test services using `test_service_endpoints()` function in scripts/test/stack-test.sh:347-439
 - HTTP endpoint tests with curl
 - Database connectivity (PostgreSQL, Redis, MongoDB)
 - Healthcheck validation
@@ -42,7 +42,7 @@ Test services using `test_service_endpoints()` function in stack-test.sh:347-439
 - Error handling: Check return codes, use conditional logic with `|| true` where appropriate
 - Comments: Use `#` for single-line, `#` followed by blank line for section headers
 - Quoting: Always quote variables `"$VAR"` to prevent word splitting
-- OS detection: Include detect_os() function for Termux/Linux compatibility (see stack-test.sh:27-53)
+- OS detection: Include detect_os() function for Termux/Linux compatibility (see scripts/test/stack-test.sh:27-53)
 
 ### YAML / Docker Compose
 - Line length: Max 120 characters
@@ -56,10 +56,10 @@ Test services using `test_service_endpoints()` function in stack-test.sh:347-439
 - Volumes: Use named volumes for persistence, bind mounts for configs
 
 ### File Organization
-- Root scripts: `*.sh` for automation scripts
+- Scripts: In `./scripts/` with purpose-based subdirectories (init, setup, monitor, test, validate, security, import, backup)
 - Config files: In `./config/` directory
 - Service configs: In `./config/<service_name>/` subdirectories
-- Documentation: Markdown files in root
+- Documentation: Markdown files in `./docs/`
 - Tests: In `./tests/` directory
 
 ### Error Handling
@@ -69,7 +69,7 @@ Test services using `test_service_endpoints()` function in stack-test.sh:347-439
 - Use try/catch patterns: `if command; then success; else error_handling; fi`
 
 ### Naming Conventions
-- Shell scripts: `name-action.sh` (e.g., `init-storage.sh`, `security-scan.sh`)
+- Shell scripts: `name-action.sh` (e.g., `scripts/init/init-storage.sh`, `scripts/security/security-scan.sh`)
 - Functions: snake_case descriptive names (e.g., `detect_os`, `validate_yaml_syntax`)
 - Variables: UPPER_CASE for constants, lower_case for local variables
 - Docker services: lowercase-with-hyphens (e.g., `postgres`, `redis-cache`)
@@ -89,7 +89,7 @@ Test services using `test_service_endpoints()` function in stack-test.sh:347-439
 ### Security Best Practices
 - Never commit secrets or credentials to repository
 - Use .env.example as template, .gitignore to protect .env
-- Generate secrets at runtime (see init-storage.sh:72-99)
+- Generate secrets at runtime (see scripts/init/init-storage.sh:72-99)
 - Run `make security` to scan for vulnerabilities before committing
 - Use `make validate` to check docker-compose.yml syntax
 - Validate with shellcheck: `shellcheck script.sh`
@@ -100,7 +100,7 @@ Test services using `test_service_endpoints()` function in stack-test.sh:347-439
 - Commit messages: Conventional Commits format (type: description)
 - PR template: Use `.github/pull_request_template.md`
 - Code owners: Defined in `.github/CODEOWNERS`
-- Documentation: Keep README.md, QUICK_START.md updated with changes
+- Documentation: Keep docs/README.md, docs/QUICK_START.md updated with changes
 
 ### Testing Strategy
 - Validation: `make validate` - Basic docker-compose syntax check

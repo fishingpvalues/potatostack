@@ -24,9 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive SOTA 2025 testing suite for both main and light stacks
 - Complete monitoring stack with Grafana, Prometheus, and Loki
 - RSS reader service integration
-- Security scanning with Trivy integration (`security-scan.sh`)
+- Security scanning with Trivy integration (`scripts/security/security-scan.sh`)
 - SOTA 2025 formatters and linters (shellcheck, shfmt, yamllint, prettier, yq)
-- Validation suite with 7-step validation process (`validate-stack.sh`)
+- Validation suite with 7-step validation process (`scripts/validate/validate-stack.sh`)
 - Git hooks for code quality enforcement:
   - `pre-commit`: Auto-formats shell scripts and YAML files
   - `commit-msg`: Validates Conventional Commits format
@@ -40,7 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 3-tier storage optimization for SSD+HDD configurations
 
 ### Changed
-- Enhanced stack-test.sh with Termux/proot support
+- Enhanced scripts/test/stack-test.sh with Termux/proot support
 - Improved Docker Compose configuration validation
 - Updated .gitignore to exclude test reports and temporary files
 - Optimized slskd service with SOTA 2025 best practices

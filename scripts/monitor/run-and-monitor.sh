@@ -21,7 +21,7 @@ if [ ! -f /var/run/docker.sock ]; then
 	echo ""
 	echo "To run this on your server (192.168.178.40):"
 	echo "1. Copy this script to the server:"
-	echo "   scp run-and-monitor.sh daniel@192.168.178.40:~/light/"
+	echo "   scp scripts/monitor/run-and-monitor.sh daniel@192.168.178.40:~/light/"
 	echo ""
 	echo "2. SSH to server and run:"
 	echo "   ssh daniel@192.168.178.40"

@@ -219,7 +219,7 @@ make resources         # Check 2GB RAM usage
 - `TESTING.md` - User guide for main stack
 - `TEST_SUMMARY.md` - Comprehensive summary for main stack
 - `SOTA_IMPROVEMENTS.md` - This file
-- `stack-test.sh` - Main stack test script (577 lines)
+- `scripts/test/stack-test.sh` - Main stack test script (577 lines)
 - `light/stack-test-light.sh` - Light stack test script (438 lines)
 
 ## Industry Sources
