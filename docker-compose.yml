@@ -1078,16 +1078,16 @@ services:
     labels:
       - "autoheal=true"
 
-  # Readarr - Ebook management
-  readarr:
-    image: lscr.io/linuxserver/readarr:${READARR_TAG:-develop}
-    container_name: readarr
+  # Bookshelf - Ebook management (Readarr revival with working metadata)
+  bookshelf:
+    image: ghcr.io/pennydreadful/bookshelf:${BOOKSHELF_TAG:-hardcover}
+    container_name: bookshelf
     logging: *default-logging
     network_mode: "service:gluetun"
     environment:
       <<: *common-env
     volumes:
-      - readarr-config:/config
+      - bookshelf-config:/config
       - /mnt/storage/media/books:/books
       - /mnt/storage/downloads:/downloads
       - /mnt/cachehdd/qbittorrent-incomplete:/downloads/incomplete
@@ -1612,7 +1612,7 @@ services:
 
   # Thanos Sidecar - Long-term metrics storage (SOTA 2025)
   thanos-sidecar:
-    image: quay.io/thanos/thanos:${THANOS_TAG:-latest}
+    image: quay.io/thanos/thanos-linux-amd64:${THANOS_TAG:-v0.37.2}
     container_name: thanos-sidecar
     logging: *default-logging
     command:
@@ -1645,7 +1645,7 @@ services:
 
   # Thanos Store - Long-term storage gateway
   thanos-store:
-    image: quay.io/thanos/thanos:${THANOS_TAG:-latest}
+    image: quay.io/thanos/thanos-linux-amd64:${THANOS_TAG:-v0.37.2}
     container_name: thanos-store
     logging: *default-logging
     command:
@@ -1671,7 +1671,7 @@ services:
 
   # Thanos Query - Unified query interface
   thanos-query:
-    image: quay.io/thanos/thanos:${THANOS_TAG:-latest}
+    image: quay.io/thanos/thanos-linux-amd64:${THANOS_TAG:-v0.37.2}
     container_name: thanos-query
     logging: *default-logging
     command:
@@ -1713,7 +1713,7 @@ services:
 
   # Thanos Compactor - Metrics compaction and downsampling
   thanos-compactor:
-    image: quay.io/thanos/thanos:${THANOS_TAG:-latest}
+    image: quay.io/thanos/thanos-linux-amd64:${THANOS_TAG:-v0.37.2}
     container_name: thanos-compactor
     logging: *default-logging
     command:
@@ -3199,7 +3199,7 @@ volumes:
   sonarr-config:
   radarr-config:
   lidarr-config:
-  readarr-config:
+  bookshelf-config:
   bazarr-config:
   maintainerr-data:
   jellyfin-config:

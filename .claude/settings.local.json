@@ -94,7 +94,19 @@
       "Bash(scp:*)",
       "WebFetch(domain:192.168.178.40)",
       "Bash(dos2unix:*)",
-      "Bash(git remote set-url:*)"
+      "Bash(git remote set-url:*)",
+      "Bash(command grep -i arch)",
+      "Bash(command grep -n \"thanos\\\\|THANOS\" docker-compose.yml)",
+      "Bash(command grep -n \"readarr-config:\" docker-compose.yml)",
+      "Bash(command grep -E \"^\\(ghcr|lscr|quay|gcr\\)\")",
+      "Bash(while read img)",
+      "Bash(do)",
+      "Bash(if ! docker images --format \"{{.Repository}}:{{.Tag}}\")",
+      "Bash(command grep:*)",
+      "Bash(then)",
+      "Bash(echo:*)",
+      "Bash(fi)",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []
