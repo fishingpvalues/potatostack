@@ -245,7 +245,6 @@ services:
         reservations:
           cpus: "0.1"
           memory: 128M
-    labels:
 
   # CrowdSec Traefik Bouncer - Blocks malicious IPs at reverse proxy level
   crowdsec-traefik-bouncer:
@@ -1324,12 +1323,13 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 256M
-        reservations:
           cpus: "0.25"
           memory: 128M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     labels:
+      - "potatostack.alerts=critical"
       - "autoheal=true"
 
   ################################################################################
@@ -2049,7 +2049,6 @@ services:
         limits:
           cpus: "0.25"
           memory: 128M
-    labels:
 
   # Parseable - Lightweight log analytics (Loki alternative)
   parseable:
