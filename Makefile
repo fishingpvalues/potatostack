@@ -1,7 +1,8 @@
 .PHONY: help up down restart logs test test-quick clean ps services images config containers \
 	containers-check containers-unhealthy containers-exited pull verify validate validate-compose validate-files \
 	lint lint-compose lint-yaml lint-shell lint-dockerfiles lint-full format format-shell format-yaml \
-	format-dockerfiles security health resources doctor fix
+	format-dockerfiles security health resources doctor fix \
+	firewall firewall-status firewall-install firewall-apply firewall-list firewall-reset firewall-allow firewall-deny
 
 # Detect OS and set appropriate docker command
 ifeq ($(shell test -d /data/data/com.termux && echo yes),yes)
@@ -203,6 +204,65 @@ security: ## Run security vulnerability scan
 	@echo "Running security scan..."
 	@chmod +x ./scripts/security/security-scan.sh
 	@./scripts/security/security-scan.sh
+
+################################################################################
+# Firewall Management (UFW + Docker Integration)
+################################################################################
+
+firewall: firewall-status ## Show firewall status (default)
+
+firewall-status: ## Show UFW firewall status
+	@echo "Checking UFW firewall status..."
+	@if command -v ufw >/dev/null 2>&1; then \
+		sudo ufw status verbose; \
+		echo ""; \
+		echo "Docker-specific rules:"; \
+		sudo ufw-docker list 2>/dev/null || echo "  ufw-docker not installed or no rules"; \
+	else \
+		echo "  ⚠ UFW not installed. Run: make firewall-install"; \
+	fi
+
+firewall-install: ## Install and configure UFW with Docker integration
+	@echo "Installing UFW with Docker integration..."
+	@chmod +x ./scripts/setup/setup-ufw-rules.sh
+	@sudo ./scripts/setup/setup-ufw-rules.sh install
+
+firewall-apply: ## Apply PotatoStack firewall rules
+	@echo "Applying PotatoStack firewall rules..."
+	@chmod +x ./scripts/setup/setup-ufw-rules.sh
+	@sudo ./scripts/setup/setup-ufw-rules.sh apply
+
+firewall-list: ## List Docker container firewall rules
+	@echo "Listing Docker container firewall rules..."
+	@if command -v ufw-docker >/dev/null 2>&1; then \
+		sudo ufw-docker list; \
+	else \
+		echo "  ⚠ ufw-docker not installed. Run: make firewall-install"; \
+	fi
+
+firewall-reset: ## Reset UFW and reapply rules (WARNING: removes all rules!)
+	@echo "WARNING: This will reset all firewall rules!"
+	@printf "Are you sure? [y/N] "; \
+	read -r reply; \
+	case "$$reply" in \
+		[Yy]*) \
+			chmod +x ./scripts/setup/setup-ufw-rules.sh; \
+			sudo ./scripts/setup/setup-ufw-rules.sh reset; \
+			;; \
+		*) echo "Aborted."; ;; \
+	esac
+
+firewall-allow: ## Allow a Docker container port (interactive)
+	@echo "Allow Docker container port through firewall..."
+	@chmod +x ./scripts/setup/setup-ufw-rules.sh
+	@sudo ./scripts/setup/setup-ufw-rules.sh allow
+
+firewall-deny: ## Deny a Docker container port (interactive)
+	@echo "Deny Docker container port through firewall..."
+	@chmod +x ./scripts/setup/setup-ufw-rules.sh
+	@sudo ./scripts/setup/setup-ufw-rules.sh deny
+
+################################################################################
 
 format: format-shell format-yaml format-dockerfiles ## Format shell scripts and YAML files (SOTA 2025)
 
