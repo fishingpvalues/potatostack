@@ -7,14 +7,14 @@ global:
   evaluation_interval: 30s
 
 scrape_configs:
-  - job_name: 'signoz-clickhouse'
+  - job_name: "signoz-clickhouse"
     static_configs:
-      - targets: ['signoz-clickhouse:9000']
+      - targets: ["signoz-clickhouse:9000"]
 
-  - job_name: 'signoz-otel-collector'
+  - job_name: "signoz-otel-collector"
     static_configs:
-      - targets: ['signoz-otel-collector:8888']
+      - targets: ["signoz-otel-collector:8888"]
 
-  - job_name: 'signoz-query-service'
+  - job_name: "signoz-query-service"
     static_configs:
-      - targets: ['localhost:8080']
+      - targets: ["localhost:8080"]

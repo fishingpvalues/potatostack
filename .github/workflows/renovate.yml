@@ -2,13 +2,13 @@ name: Renovate
 
 on:
   schedule:
-    - cron: '0 6 * * 1'  # Weekly on Monday at 6am
+    - cron: "0 6 * * 1" # Weekly on Monday at 6am
   workflow_dispatch:
     inputs:
       logLevel:
-        description: 'Renovate log level'
+        description: "Renovate log level"
         required: false
-        default: 'info'
+        default: "info"
         type: choice
         options:
           - debug
@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Self-hosted Renovate
-        uses: renovatebot/github-action@v40.3.11
+        uses: renovatebot/github-action@v42
         with:
           configurationFile: renovate.json
           token: ${{ secrets.RENOVATE_TOKEN || secrets.GITHUB_TOKEN }}

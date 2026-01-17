@@ -170,21 +170,56 @@ scan_with_trivy() {
 		return
 	fi
 
-	# Scan docker-compose.yml for misconfigurations
-	if trivy config docker-compose.yml >"$REPORT_FILE.trivy" 2>&1; then
-		echo -e "  ${GREEN}✓${NC} No configuration issues found"
-		echo "Status: PASSED" >>"$REPORT_FILE"
+	local trivy_issues=0
+
+	# 4a. Scan docker-compose.yml for misconfigurations
+	echo -e "  Scanning compose configuration..."
+	if trivy config --severity HIGH,CRITICAL docker-compose.yml >"$REPORT_FILE.trivy-config" 2>&1; then
+		echo -e "  ${GREEN}✓${NC} Compose config: No issues"
 	else
-		local trivy_issues=$(grep -c "CRITICAL\|HIGH" "$REPORT_FILE.trivy" 2>/dev/null || echo 0)
-		if [ "$trivy_issues" -gt 0 ]; then
-			echo -e "  ${RED}✗${NC} $trivy_issues vulnerabilities found"
-			echo "Status: FAILED - $trivy_issues vulnerabilities" >>"$REPORT_FILE"
-			cat "$REPORT_FILE.trivy" >>"$REPORT_FILE"
-			TOTAL_VULNS=$((TOTAL_VULNS + trivy_issues))
-		else
-			echo -e "  ${GREEN}✓${NC} Trivy scan passed"
-			echo "Status: PASSED" >>"$REPORT_FILE"
+		local config_issues=$(grep -c "HIGH\|CRITICAL" "$REPORT_FILE.trivy-config" 2>/dev/null || echo 0)
+		if [ "$config_issues" -gt 0 ]; then
+			echo -e "  ${RED}✗${NC} Compose config: $config_issues issues"
+			trivy_issues=$((trivy_issues + config_issues))
 		fi
+	fi
+
+	# 4b. Scan filesystem for secrets and vulnerabilities
+	echo -e "  Scanning filesystem for secrets..."
+	if trivy fs --scanners secret --severity HIGH,CRITICAL . >"$REPORT_FILE.trivy-secrets" 2>&1; then
+		echo -e "  ${GREEN}✓${NC} Secrets scan: No issues"
+	else
+		local secret_issues=$(grep -c "HIGH\|CRITICAL" "$REPORT_FILE.trivy-secrets" 2>/dev/null || echo 0)
+		if [ "$secret_issues" -gt 0 ]; then
+			echo -e "  ${RED}✗${NC} Secrets scan: $secret_issues issues"
+			trivy_issues=$((trivy_issues + secret_issues))
+			CRITICAL_VULNS=$((CRITICAL_VULNS + secret_issues))
+		fi
+	fi
+
+	# 4c. Scan a sample of critical images (if Docker available)
+	if command -v docker &>/dev/null && docker info &>/dev/null 2>&1; then
+		echo -e "  Scanning critical images (traefik, postgres, redis)..."
+		for img in traefik:latest postgres:16-alpine redis:alpine; do
+			if docker image inspect "$img" &>/dev/null 2>&1; then
+				local img_vulns=$(trivy image --severity CRITICAL --quiet "$img" 2>/dev/null | grep -c "CRITICAL" || echo 0)
+				if [ "$img_vulns" -gt 0 ]; then
+					echo -e "    ${RED}✗${NC} $img: $img_vulns critical vulnerabilities"
+					trivy_issues=$((trivy_issues + img_vulns))
+					CRITICAL_VULNS=$((CRITICAL_VULNS + img_vulns))
+				else
+					echo -e "    ${GREEN}✓${NC} $img: No critical vulnerabilities"
+				fi
+			fi
+		done
+	fi
+
+	if [ "$trivy_issues" -gt 0 ]; then
+		echo "Status: FAILED - $trivy_issues total issues" >>"$REPORT_FILE"
+		TOTAL_VULNS=$((TOTAL_VULNS + trivy_issues))
+	else
+		echo -e "  ${GREEN}✓${NC} Trivy scan passed"
+		echo "Status: PASSED" >>"$REPORT_FILE"
 	fi
 	echo "" >>"$REPORT_FILE"
 }

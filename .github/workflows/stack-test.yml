@@ -38,15 +38,15 @@ jobs:
 
       - name: Run SOTA 2025 linting and validation
         run: |
-          chmod +x ./validate-stack.sh
-          ./validate-stack.sh
+          chmod +x ./scripts/validate/validate-stack.sh
+          ./scripts/validate/validate-stack.sh
 
       - name: Run security scan
         run: |
           # Install Trivy
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
-          chmod +x ./security-scan.sh
-          ./security-scan.sh || echo "Security scan completed with warnings"
+          chmod +x ./scripts/security/security-scan.sh
+          ./scripts/security/security-scan.sh || echo "Security scan completed with warnings"
 
       - name: Validate docker-compose.yml
         run: |
@@ -55,12 +55,12 @@ jobs:
 
       - name: Run stack tests
         run: |
-          chmod +x ./stack-test.sh
-          ./stack-test.sh
+          chmod +x ./scripts/test/stack-test.sh
+          ./scripts/test/stack-test.sh
 
       - name: Check for critical issues
         run: |
-          if grep -q "CRITICAL" stack-test-report-*.txt 2>/dev/null; then
+          if grep -q "CRITICAL" *-report-*.txt 2>/dev/null; then
             echo "::error::Critical issues found in logs"
             exit 1
           fi

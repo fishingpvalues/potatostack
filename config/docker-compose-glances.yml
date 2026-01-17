@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 # Glances Monitoring Stack 2025 - Complete Setup
 # Includes: Glances, Prometheus, Grafana, InfluxDB
@@ -22,9 +22,9 @@ services:
       - ./glances.conf:/glances/conf/glances.conf:ro
       - glances_data:/var/lib/glances
     ports:
-      - "61208:61208"  # WebUI
-      - "61209:61209"  # API
-      - "9091:9091"    # Prometheus exporter
+      - "61208:61208" # WebUI
+      - "61209:61209" # API
+      - "9091:9091" # Prometheus exporter
 
   # Prometheus - Metrics Collection
   prometheus:
@@ -33,12 +33,12 @@ services:
     restart: unless-stopped
     user: root
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-      - '--web.enable-lifecycle'
-      - '--storage.tsdb.retention.time=30d'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"
+      - "--storage.tsdb.retention.time=30d"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
@@ -93,10 +93,10 @@ services:
     container_name: node-exporter
     restart: unless-stopped
     command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--path.rootfs=/host'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/host"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro

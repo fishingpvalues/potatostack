@@ -2,9 +2,9 @@ global:
   scrape_interval: 30s
   evaluation_interval: 30s
   external_labels:
-    cluster: 'potatostack-main'
-    environment: 'production'
-    replica: 'primary'
+    cluster: "potatostack-main"
+    environment: "production"
+    replica: "primary"
 
 # Alertmanager configuration
 alerting:
@@ -15,123 +15,123 @@ alerting:
 
 # Load alert rules
 rule_files:
-  - '/etc/prometheus/alerts/*.yml'
+  - "/etc/prometheus/alerts/*.yml"
 
 # Scrape configurations - ALL services with metrics
 scrape_configs:
   # Prometheus self-monitoring
-  - job_name: 'prometheus'
+  - job_name: "prometheus"
     static_configs:
-      - targets: ['localhost:9090']
+      - targets: ["localhost:9090"]
 
   # Thanos components
-  - job_name: 'thanos-sidecar'
+  - job_name: "thanos-sidecar"
     static_configs:
-      - targets: ['thanos-sidecar:10902']
-  
-  - job_name: 'thanos-query'
+      - targets: ["thanos-sidecar:10902"]
+
+  - job_name: "thanos-query"
     static_configs:
-      - targets: ['thanos-query:10902']
-  
-  - job_name: 'thanos-store'
+      - targets: ["thanos-query:10902"]
+
+  - job_name: "thanos-store"
     static_configs:
-      - targets: ['thanos-store:10902']
-  
-  - job_name: 'thanos-compactor'
+      - targets: ["thanos-store:10902"]
+
+  - job_name: "thanos-compactor"
     static_configs:
-      - targets: ['thanos-compactor:10902']
+      - targets: ["thanos-compactor:10902"]
 
   # Traefik reverse proxy metrics
-  - job_name: 'traefik'
+  - job_name: "traefik"
     static_configs:
-      - targets: ['traefik:8080']
-    metrics_path: '/metrics'
+      - targets: ["traefik:8080"]
+    metrics_path: "/metrics"
 
-  # CrowdSec IPS metrics  
-  - job_name: 'crowdsec'
+  # CrowdSec IPS metrics
+  - job_name: "crowdsec"
     static_configs:
-      - targets: ['crowdsec:6060']
-    metrics_path: '/metrics'
+      - targets: ["crowdsec:6060"]
+    metrics_path: "/metrics"
 
   # Miniflux RSS reader metrics
-  - job_name: 'miniflux'
+  - job_name: "miniflux"
     static_configs:
-      - targets: ['miniflux:8080']
-    metrics_path: '/metrics'
+      - targets: ["miniflux:8080"]
+    metrics_path: "/metrics"
 
   # Netdata real-time monitoring
-  - job_name: 'netdata'
+  - job_name: "netdata"
     static_configs:
-      - targets: ['netdata:19999']
-    metrics_path: '/api/v1/allmetrics'
+      - targets: ["netdata:19999"]
+    metrics_path: "/api/v1/allmetrics"
     params:
-      format: ['prometheus']
+      format: ["prometheus"]
     honor_labels: true
 
   # Alertmanager
-  - job_name: 'alertmanager'
+  - job_name: "alertmanager"
     static_configs:
-      - targets: ['alertmanager:9093']
+      - targets: ["alertmanager:9093"]
 
   # Loki log aggregation
-  - job_name: 'loki'
+  - job_name: "loki"
     static_configs:
-      - targets: ['loki:3100']
-    metrics_path: '/metrics'
+      - targets: ["loki:3100"]
+    metrics_path: "/metrics"
 
   # Promtail log collector
-  - job_name: 'promtail'
+  - job_name: "promtail"
     static_configs:
-      - targets: ['promtail:9080']
+      - targets: ["promtail:9080"]
 
   # Grafana
-  - job_name: 'grafana'
+  - job_name: "grafana"
     static_configs:
-      - targets: ['grafana:3000']
-    metrics_path: '/metrics'
+      - targets: ["grafana:3000"]
+    metrics_path: "/metrics"
 
   # PostgreSQL via postgres_exporter
-  - job_name: 'postgres-exporter'
+  - job_name: "postgres-exporter"
     static_configs:
-      - targets: ['postgres-exporter:9187']
+      - targets: ["postgres-exporter:9187"]
 
   # Redis via redis_exporter
-  - job_name: 'redis-exporter'
+  - job_name: "redis-exporter"
     static_configs:
-      - targets: ['redis-exporter:9121']
+      - targets: ["redis-exporter:9121"]
 
   # MongoDB via mongodb_exporter
-  - job_name: 'mongodb-exporter'
+  - job_name: "mongodb-exporter"
     static_configs:
-      - targets: ['mongodb-exporter:9216']
+      - targets: ["mongodb-exporter:9216"]
 
   # Node Exporter for host metrics
-  - job_name: 'node-exporter'
+  - job_name: "node-exporter"
     static_configs:
-      - targets: ['node-exporter:9100']
+      - targets: ["node-exporter:9100"]
 
   # SMART disk health via smartctl-exporter
-  - job_name: 'smartctl-exporter'
+  - job_name: "smartctl-exporter"
     static_configs:
-      - targets: ['smartctl-exporter:9633']
+      - targets: ["smartctl-exporter:9633"]
 
   # Docker containers via cAdvisor (recommended)
-  - job_name: 'cadvisor'
+  - job_name: "cadvisor"
     static_configs:
-      - targets: ['cadvisor:8080']
+      - targets: ["cadvisor:8080"]
     metric_relabel_configs:
       # Drop high-cardinality metrics
       - source_labels: [__name__]
-        regex: 'container_.*'
+        regex: "container_.*"
         action: keep
       - source_labels: [id]
-        regex: '/docker/.*'
+        regex: "/docker/.*"
         action: keep
 
   # Node Exporter (for host metrics if added)
   # - job_name: 'node'
   #   static_configs:
-  #     - targets: ['node-exporter:9100']
+  #   - targets: ['node-exporter:9100']
 
 # Storage optimization for 16GB RAM system
 storage:

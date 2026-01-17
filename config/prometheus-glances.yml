@@ -5,8 +5,8 @@ global:
   evaluation_interval: 15s
   scrape_timeout: 10s
   external_labels:
-    monitor: 'glances-monitoring'
-    cluster: 'production'
+    monitor: "glances-monitoring"
+    cluster: "production"
 
 # Alertmanager configuration (optional)
 # alerting:
@@ -22,39 +22,39 @@ global:
 # Scrape configurations
 scrape_configs:
   # Prometheus self-monitoring
-  - job_name: 'prometheus'
+  - job_name: "prometheus"
     static_configs:
-      - targets: ['localhost:9090']
+      - targets: ["localhost:9090"]
         labels:
-          instance: 'prometheus'
-          service: 'monitoring'
+          instance: "prometheus"
+          service: "monitoring"
 
   # Glances exporter - primary system monitoring
-  - job_name: 'glances'
+  - job_name: "glances"
     scrape_interval: 5s
     static_configs:
-      - targets: ['glances:9091']
+      - targets: ["glances:9091"]
         labels:
-          instance: 'main-server'
-          service: 'glances'
+          instance: "main-server"
+          service: "glances"
 
   # Node Exporter - detailed system metrics
-  - job_name: 'node-exporter'
+  - job_name: "node-exporter"
     scrape_interval: 10s
     static_configs:
-      - targets: ['node-exporter:9100']
+      - targets: ["node-exporter:9100"]
         labels:
-          instance: 'main-server'
-          service: 'node-exporter'
+          instance: "main-server"
+          service: "node-exporter"
 
   # cAdvisor - container metrics
-  - job_name: 'cadvisor'
+  - job_name: "cadvisor"
     scrape_interval: 10s
     static_configs:
-      - targets: ['cadvisor:8080']
+      - targets: ["cadvisor:8080"]
         labels:
-          instance: 'main-server'
-          service: 'cadvisor'
+          instance: "main-server"
+          service: "cadvisor"
 
   # Docker engine metrics (if enabled)
   # Requires Docker daemon config: "metrics-addr": "0.0.0.0:9323"
@@ -67,22 +67,22 @@ scrape_configs:
   #         service: 'docker'
 
   # InfluxDB metrics
-  - job_name: 'influxdb'
+  - job_name: "influxdb"
     scrape_interval: 30s
     static_configs:
-      - targets: ['influxdb:8086']
+      - targets: ["influxdb:8086"]
         labels:
-          instance: 'influxdb'
-          service: 'database'
+          instance: "influxdb"
+          service: "database"
 
   # Grafana metrics
-  - job_name: 'grafana'
+  - job_name: "grafana"
     scrape_interval: 30s
     static_configs:
-      - targets: ['grafana:3000']
+      - targets: ["grafana:3000"]
         labels:
-          instance: 'grafana'
-          service: 'visualization'
+          instance: "grafana"
+          service: "visualization"
 
   # Service discovery for Docker containers (advanced)
   # - job_name: 'docker-sd'
