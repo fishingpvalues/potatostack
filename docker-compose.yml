@@ -734,7 +734,7 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 128M
+          memory: 192M
 
   ################################################################################
   # CLOUD STORAGE & FILE SYNC
@@ -943,7 +943,7 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 128M
+          memory: 192M
         reservations:
           cpus: "0.1"
           memory: 128M
@@ -980,7 +980,7 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 128M
+          memory: 256M
         reservations:
           cpus: "0.25"
           memory: 128M
@@ -1017,7 +1017,7 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 128M
+          memory: 256M
         reservations:
           cpus: "0.25"
           memory: 128M
@@ -1054,7 +1054,7 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 128M
+          memory: 256M
         reservations:
           cpus: "0.25"
           memory: 128M
@@ -1091,7 +1091,7 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 128M
+          memory: 256M
         reservations:
           cpus: "0.25"
           memory: 128M
@@ -1131,7 +1131,7 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 128M
+          memory: 256M
         reservations:
           cpus: "0.1"
           memory: 128M
@@ -1156,7 +1156,7 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 128M
+          memory: 192M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.maintainerr.rule=Host(`maintainerr.${HOST_DOMAIN:-local.domain}`)"
@@ -1216,11 +1216,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.5"
-          memory: 1G
+          cpus: "2.5"
+          memory: 2G
         reservations:
-          cpus: "0.75"
-          memory: 512M
+          cpus: "1.0"
+          memory: 1G
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.jellyfin.rule=Host(`jellyfin.${HOST_DOMAIN:-local.domain}`)"
@@ -1247,7 +1247,7 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 128M
+          memory: 192M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.jellyseerr.rule=Host(`jellyseerr.${HOST_DOMAIN:-local.domain}`)"
@@ -1475,7 +1475,7 @@ services:
       resources:
         limits:
           cpus: "0.75"
-          memory: 128M
+          memory: 256M
         reservations:
           cpus: "0.25"
           memory: 128M
@@ -1606,7 +1606,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 128M
+          memory: 256M
         reservations:
           cpus: "0.25"
           memory: 128M
@@ -1792,7 +1792,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 128M
+          memory: 256M
         reservations:
           cpus: "0.25"
           memory: 128M
@@ -1805,43 +1805,43 @@ services:
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 
   # cAdvisor - Container metrics for Prometheus (SOTA 2025)
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:${CADVISOR_TAG:-latest}
-    container_name: cadvisor
-    logging: *default-logging
-    privileged: true
-    devices:
-      - /dev/kmsg
-    ports:
-      - "${HOST_BIND:-192.168.178.158}:8089:8080"
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-      - /dev/disk/:/dev/disk:ro
-    command:
-      - "--housekeeping_interval=30s"
-      - "--docker_only=true"
-      - "--disable_metrics=tcp,udp,disk,diskIO,hugetlb,referenced_memory,cpu_topology,resctrl"
-    networks:
-      - potatostack
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 256M
-        reservations:
-          cpus: "0.2"
-          memory: 128M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.cadvisor.rule=Host(`cadvisor.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.cadvisor.entrypoints=websecure"
-      - "traefik.http.routers.cadvisor.tls=true"
-      - "traefik.http.services.cadvisor.loadbalancer.server.port=8080"
-      - "traefik.http.routers.cadvisor.middlewares=sso-chain@docker"
+  # cadvisor:
+  #   image: gcr.io/cadvisor/cadvisor:${CADVISOR_TAG:-latest}
+  #   container_name: cadvisor
+  #   logging: *default-logging
+  #   privileged: true
+  #   devices:
+  #     - /dev/kmsg
+  #   ports:
+  #     - "${HOST_BIND:-192.168.178.158}:8089:8080"
+  #   volumes:
+  #     - /:/rootfs:ro
+  #     - /var/run:/var/run:ro
+  #     - /sys:/sys:ro
+  #     - /var/lib/docker/:/var/lib/docker:ro
+  #     - /dev/disk/:/dev/disk:ro
+  #   command:
+  #     - "--housekeeping_interval=30s"
+  #     - "--docker_only=true"
+  #     - "--disable_metrics=tcp,udp,disk,diskIO,hugetlb,referenced_memory,cpu_topology,resctrl"
+  #   networks:
+  #     - potatostack
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.5"
+  #         memory: 256M
+  #       reservations:
+  #         cpus: "0.2"
+  #         memory: 128M
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.cadvisor.rule=Host(`cadvisor.${HOST_DOMAIN:-local.domain}`)"
+  #     - "traefik.http.routers.cadvisor.entrypoints=websecure"
+  #     - "traefik.http.routers.cadvisor.tls=true"
+  #     - "traefik.http.services.cadvisor.loadbalancer.server.port=8080"
+  #     - "traefik.http.routers.cadvisor.middlewares=sso-chain@docker"
 
   # Node Exporter - Host metrics for Prometheus (SOTA 2025)
   node-exporter:
@@ -1995,7 +1995,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 128M
+          memory: 384M
         reservations:
           cpus: "0.1"
           memory: 64M
@@ -2025,7 +2025,7 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 128M
+          memory: 384M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.loki.rule=Host(`loki.${HOST_DOMAIN:-local.domain}`)"
@@ -2054,7 +2054,7 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 128M
+          memory: 192M
 
   # Parseable - Lightweight log analytics (Loki alternative)
   parseable:
@@ -2115,7 +2115,7 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 128M
+          memory: 192M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.scrutiny.rule=Host(`scrutiny.${HOST_DOMAIN:-local.domain}`)"
@@ -2155,7 +2155,7 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 128M
+          memory: 192M
 
   ################################################################################
   # AUTOMATION & WORKFLOWS
@@ -2199,7 +2199,7 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 128M
+          memory: 384M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.n8n.rule=Host(`n8n.${HOST_DOMAIN:-local.domain}`)"
@@ -2239,7 +2239,7 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 128M
+          memory: 192M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.healthchecks.rule=Host(`healthchecks.${HOST_DOMAIN:-local.domain}`)"
@@ -2271,15 +2271,7 @@ services:
       - storage-init
     restart: unless-stopped
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "timeout 5 bash -c 'cat < /dev/null > /dev/tcp/127.0.0.1/8000' || exit 1",
-        ]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
+      disable: true
     deploy:
       resources:
         limits:
@@ -2298,38 +2290,38 @@ services:
       - "traefik.http.services.rustypaste.loadbalancer.server.port=8000"
 
   # Stirling-PDF - PDF tools
-  stirling-pdf:
-    image: frooodle/s-pdf:${STIRLING_PDF_TAG:-latest}
-    container_name: stirling-pdf
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.158}:8086:8080"
-    environment:
-      <<: *common-env
-      DOCKER_ENABLE_SECURITY: "false"
-      INSTALL_BOOK_AND_ADVANCED_HTML_OPS: "true"
-      LANGS: de_DE,en_US
-    volumes:
-      - stirling-pdf-data:/usr/share/tessdata
-      - stirling-pdf-configs:/configs
-    networks:
-      - potatostack
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.75"
-          memory: 512M
-        reservations:
-          cpus: "0.25"
-          memory: 256M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.stirling.rule=Host(`stirling.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.stirling.entrypoints=websecure"
-      - "traefik.http.routers.stirling.tls=true"
-      - "traefik.http.services.stirling.loadbalancer.server.port=8080"
-      - "traefik.http.routers.stirling.middlewares=sso-chain@docker"
+  # stirling-pdf:
+  #   image: frooodle/s-pdf:${STIRLING_PDF_TAG:-latest}
+  #   container_name: stirling-pdf
+  #   logging: *default-logging
+  #   ports:
+  #     - "${HOST_BIND:-192.168.178.158}:8086:8080"
+  #   environment:
+  #     <<: *common-env
+  #     DOCKER_ENABLE_SECURITY: "false"
+  #     INSTALL_BOOK_AND_ADVANCED_HTML_OPS: "true"
+  #     LANGS: de_DE,en_US
+  #   volumes:
+  #     - stirling-pdf-data:/usr/share/tessdata
+  #     - stirling-pdf-configs:/configs
+  #   networks:
+  #     - potatostack
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.75"
+  #         memory: 512M
+  #       reservations:
+  #         cpus: "0.25"
+  #         memory: 256M
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.stirling.rule=Host(`stirling.${HOST_DOMAIN:-local.domain}`)"
+  #     - "traefik.http.routers.stirling.entrypoints=websecure"
+  #     - "traefik.http.routers.stirling.tls=true"
+  #     - "traefik.http.services.stirling.loadbalancer.server.port=8080"
+  #     - "traefik.http.routers.stirling.middlewares=sso-chain@docker"
 
   # Linkding - Bookmark manager
   linkding:
@@ -2359,7 +2351,7 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 128M
+          memory: 192M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.linkding.rule=Host(`linkding.${HOST_DOMAIN:-local.domain}`)"
@@ -2686,39 +2678,39 @@ services:
   ################################################################################
 
   # Open WebUI - LLM interface
-  open-webui:
-    image: ghcr.io/open-webui/open-webui:${OPEN_WEBUI_TAG:-main}
-    container_name: open-webui
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.158}:3005:8080"
-    environment:
-      <<: *common-env
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-      WEBUI_SECRET_KEY: ${OPEN_WEBUI_SECRET_KEY}
-      DATABASE_URL: postgresql://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/openwebui
-      VECTOR_DB: pgvector
-    volumes:
-      - open-webui-data:/app/backend/data
-    networks:
-      - potatostack
-    depends_on:
-      - postgres
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "2.0"
-          memory: 384M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.open-webui.rule=Host(`openwebui.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.open-webui.entrypoints=websecure"
-      - "traefik.http.routers.open-webui.tls=true"
-      - "traefik.http.services.open-webui.loadbalancer.server.port=8080"
-      - "traefik.http.routers.open-webui.middlewares=sso-chain@docker"
+  # open-webui:
+  #   image: ghcr.io/open-webui/open-webui:${OPEN_WEBUI_TAG:-main}
+  #   container_name: open-webui
+  #   logging: *default-logging
+  #   ports:
+  #     - "${HOST_BIND:-192.168.178.158}:3005:8080"
+  #   environment:
+  #     <<: *common-env
+  #     OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+  #     WEBUI_SECRET_KEY: ${OPEN_WEBUI_SECRET_KEY}
+  #     DATABASE_URL: postgresql://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/openwebui
+  #     VECTOR_DB: pgvector
+  #   volumes:
+  #     - open-webui-data:/app/backend/data
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - postgres
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "2.0"
+  #         memory: 384M
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.open-webui.rule=Host(`openwebui.${HOST_DOMAIN:-local.domain}`)"
+  #     - "traefik.http.routers.open-webui.entrypoints=websecure"
+  #     - "traefik.http.routers.open-webui.tls=true"
+  #     - "traefik.http.services.open-webui.loadbalancer.server.port=8080"
+  #     - "traefik.http.routers.open-webui.middlewares=sso-chain@docker"
 
   # Pinchflat - YouTube downloader
   pinchflat:
@@ -2743,7 +2735,7 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 128M
+          memory: 384M
     labels:
       - "autoheal=true"
 
@@ -2794,26 +2786,20 @@ services:
 
   # Homarr - Modern drag-and-drop dashboard with 30+ integrations (SOTA 2025)
   homarr:
-    image: ghcr.io/homarr-labs/homarr:${HOMARR_TAG:-latest}
+    image: ghcr.io/ajnart/homarr:${HOMARR_TAG:-latest}
     container_name: homarr
     logging: *default-logging
     ports:
       - "${HOST_BIND:-192.168.178.158}:7575:7575"
     environment:
       <<: *common-env
-      SECRET_ENCRYPTION_KEY: ${HOMARR_SECRET_KEY}
-      DB_DRIVER: node-postgres
-      DB_URL: postgres://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/homarr
-      DOCKER_HOSTNAMES: ${HOMARR_DOCKER_HOSTNAMES:-socket-proxy}
-      DOCKER_PORTS: ${HOMARR_DOCKER_PORTS:-2375}
-      LOG_LEVEL: ${HOMARR_LOG_LEVEL:-info}
     volumes:
       - homarr-data:/app/data/configs
       - homarr-icons:/app/public/icons
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - potatostack
     depends_on:
-      - postgres
       - socket-proxy
     restart: unless-stopped
     healthcheck:
@@ -2825,7 +2811,7 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 128M
+          memory: 384M
         reservations:
           cpus: "0.25"
           memory: 128M
@@ -2892,7 +2878,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 128M
+          memory: 192M
         reservations:
           cpus: "0.25"
           memory: 128M
@@ -2958,8 +2944,8 @@ services:
       DIUN_WATCH_JITTER: 30s
       DIUN_PROVIDERS_DOCKER: "true"
       DIUN_PROVIDERS_DOCKER_WATCHBYDEFAULT: "true"
-      DIUN_NOTIF_GOTIFY_ENDPOINT: ${DIUN_GOTIFY_ENDPOINT:-}
-      DIUN_NOTIF_GOTIFY_TOKEN: ${DIUN_GOTIFY_TOKEN:-}
+      # DIUN_NOTIF_GOTIFY_ENDPOINT: ${DIUN_GOTIFY_ENDPOINT:-}
+      # DIUN_NOTIF_GOTIFY_TOKEN: ${DIUN_GOTIFY_TOKEN:-}
       DIUN_NOTIF_DISCORD_WEBHOOKURL: ${DIUN_DISCORD_WEBHOOK:-}
       DIUN_NOTIF_TELEGRAM_TOKEN: ${DIUN_TELEGRAM_TOKEN:-}
       DIUN_NOTIF_TELEGRAM_CHATIDS: ${DIUN_TELEGRAM_CHATIDS:-}
@@ -3312,8 +3298,8 @@ volumes:
   healthchecks-data:
 
   # Utilities
-  stirling-pdf-data:
-  stirling-pdf-configs:
+  # stirling-pdf-data:
+  # stirling-pdf-configs:
   linkding-data:
   code-server-config:
   atuin-config:
@@ -3324,7 +3310,7 @@ volumes:
   sentry-data:
 
   # AI & Special
-  open-webui-data:
+  # open-webui-data:
   octobot-data:
   octobot-tentacles:
   octobot-logs:
