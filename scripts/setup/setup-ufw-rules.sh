@@ -30,213 +30,213 @@ NC='\033[0m'
 # Helper Functions
 ################################################################################
 print_header() {
-  echo -e "\n${BLUE}═══════════════════════════════════════════════════════════${NC}"
-  echo -e "${BLUE}$1${NC}"
-  echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}\n"
+	echo -e "\n${BLUE}═══════════════════════════════════════════════════════════${NC}"
+	echo -e "${BLUE}$1${NC}"
+	echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}\n"
 }
 
 print_success() {
-  echo -e "${GREEN}✓ $1${NC}"
+	echo -e "${GREEN}✓ $1${NC}"
 }
 
 print_error() {
-  echo -e "${RED}✗ $1${NC}"
+	echo -e "${RED}✗ $1${NC}"
 }
 
 print_info() {
-  echo -e "${YELLOW}ℹ $1${NC}"
+	echo -e "${YELLOW}ℹ $1${NC}"
 }
 
 check_root() {
-  if [[ $EUID -ne 0 ]]; then
-    print_error "This script must be run with sudo or as root"
-    exit 1
-  fi
+	if [[ $EUID -ne 0 ]]; then
+		print_error "This script must be run with sudo or as root"
+		exit 1
+	fi
 }
 
 check_ufw() {
-  if ! command -v ufw &>/dev/null; then
-    print_error "UFW not installed. Run setup-potatostack.sh first."
-    exit 1
-  fi
+	if ! command -v ufw &>/dev/null; then
+		print_error "UFW not installed. Run setup-potatostack.sh first."
+		exit 1
+	fi
 }
 
 check_ufw_docker() {
-  if ! command -v ufw-docker &>/dev/null; then
-    print_error "ufw-docker not installed. Installing..."
-    install_ufw_docker
-  fi
+	if ! command -v ufw-docker &>/dev/null; then
+		print_error "ufw-docker not installed. Installing..."
+		install_ufw_docker
+	fi
 }
 
 ################################################################################
 # Installation Functions
 ################################################################################
 install_ufw() {
-  print_info "Installing UFW..."
-  apt-get update -y
-  apt-get install -y ufw
-  print_success "UFW installed"
+	print_info "Installing UFW..."
+	apt-get update -y
+	apt-get install -y ufw
+	print_success "UFW installed"
 }
 
 install_ufw_docker() {
-  print_info "Installing ufw-docker..."
-  wget -O /usr/local/bin/ufw-docker \
-    https://github.com/chaifeng/ufw-docker/raw/master/ufw-docker
-  chmod +x /usr/local/bin/ufw-docker
-  ufw-docker install
-  print_success "ufw-docker installed"
+	print_info "Installing ufw-docker..."
+	wget -O /usr/local/bin/ufw-docker \
+		https://github.com/chaifeng/ufw-docker/raw/master/ufw-docker
+	chmod +x /usr/local/bin/ufw-docker
+	ufw-docker install
+	print_success "ufw-docker installed"
 }
 
 ################################################################################
 # Configuration Functions
 ################################################################################
 configure_ufw() {
-  print_header "Configuring UFW for PotatoStack"
+	print_header "Configuring UFW for PotatoStack"
 
-  # Disable temporarily
-  ufw --force disable
+	# Disable temporarily
+	ufw --force disable
 
-  # Set default policies
-  print_info "Setting default policies..."
-  ufw default deny incoming
-  ufw default allow outgoing
+	# Set default policies
+	print_info "Setting default policies..."
+	ufw default deny incoming
+	ufw default allow outgoing
 
-  # Essential rules
-  print_info "Adding essential rules..."
+	# Essential rules
+	print_info "Adding essential rules..."
 
-  # SSH - CRITICAL (don't lock yourself out!)
-  ufw allow 22/tcp comment 'SSH'
+	# SSH - CRITICAL (don't lock yourself out!)
+	ufw allow 22/tcp comment 'SSH'
 
-  # HTTP/HTTPS for Traefik (reverse proxy)
-  ufw allow 80/tcp comment 'HTTP - Traefik'
-  ufw allow 443/tcp comment 'HTTPS - Traefik'
+	# HTTP/HTTPS for Traefik (reverse proxy)
+	ufw allow 80/tcp comment 'HTTP - Traefik'
+	ufw allow 443/tcp comment 'HTTPS - Traefik'
 
-  # DNS for AdGuard Home
-  ufw allow 53/tcp comment 'DNS - AdGuard Home'
-  ufw allow 53/udp comment 'DNS - AdGuard Home'
+	# DNS for AdGuard Home
+	ufw allow 53/tcp comment 'DNS - AdGuard Home'
+	ufw allow 53/udp comment 'DNS - AdGuard Home'
 
-  # Optional: WireGuard VPN (if exposing publicly)
-  # Uncomment if you want to expose WireGuard
-  # ufw allow 51820/udp comment 'WireGuard VPN'
+	# Optional: WireGuard VPN (if exposing publicly)
+	# Uncomment if you want to expose WireGuard
+	# ufw allow 51820/udp comment 'WireGuard VPN'
 
-  # Optional: Syncthing (if exposing publicly)
-  # Uncomment if you want to expose Syncthing discovery
-  # ufw allow 22000/tcp comment 'Syncthing'
-  # ufw allow 22000/udp comment 'Syncthing'
-  # ufw allow 21027/udp comment 'Syncthing Discovery'
+	# Optional: Syncthing (if exposing publicly)
+	# Uncomment if you want to expose Syncthing discovery
+	# ufw allow 22000/tcp comment 'Syncthing'
+	# ufw allow 22000/udp comment 'Syncthing'
+	# ufw allow 21027/udp comment 'Syncthing Discovery'
 
-  print_success "Essential rules configured"
+	print_success "Essential rules configured"
 }
 
 apply_docker_rules() {
-  print_header "Applying Docker Container Rules"
+	print_header "Applying Docker Container Rules"
 
-  check_ufw_docker
+	check_ufw_docker
 
-  print_info "Installing ufw-docker integration..."
-  ufw-docker install
+	print_info "Installing ufw-docker integration..."
+	ufw-docker install
 
-  # Allow Traefik container explicitly
-  print_info "Allowing Traefik container..."
-  ufw-docker allow traefik 80 || print_info "Traefik port 80 rule may already exist"
-  ufw-docker allow traefik 443 || print_info "Traefik port 443 rule may already exist"
+	# Allow Traefik container explicitly
+	print_info "Allowing Traefik container..."
+	ufw-docker allow traefik 80 || print_info "Traefik port 80 rule may already exist"
+	ufw-docker allow traefik 443 || print_info "Traefik port 443 rule may already exist"
 
-  # Allow AdGuard Home explicitly
-  print_info "Allowing AdGuard Home container..."
-  ufw-docker allow adguardhome 53 || print_info "AdGuard Home DNS rule may already exist"
+	# Allow AdGuard Home explicitly
+	print_info "Allowing AdGuard Home container..."
+	ufw-docker allow adguardhome 53 || print_info "AdGuard Home DNS rule may already exist"
 
-  print_success "Docker container rules applied"
-  print_info ""
-  print_info "All other containers are protected and accessible only via:"
-  echo "  • Traefik reverse proxy (https://service.yourdomain.com)"
-  echo "  • Local network (HOST_BIND=${HOST_BIND:-192.168.178.158})"
+	print_success "Docker container rules applied"
+	print_info ""
+	print_info "All other containers are protected and accessible only via:"
+	echo "  • Traefik reverse proxy (https://service.yourdomain.com)"
+	echo "  • Local network (HOST_BIND=${HOST_BIND:-192.168.178.158})"
 }
 
 enable_ufw() {
-  print_info "Enabling UFW..."
-  ufw --force enable
-  ufw reload
-  print_success "UFW enabled and rules applied"
+	print_info "Enabling UFW..."
+	ufw --force enable
+	ufw reload
+	print_success "UFW enabled and rules applied"
 }
 
 ################################################################################
 # Management Functions
 ################################################################################
 show_status() {
-  print_header "UFW Firewall Status"
-  ufw status verbose
-  echo ""
-  print_info "Docker-specific rules:"
-  if command -v ufw-docker &>/dev/null; then
-    ufw-docker list 2>/dev/null || echo "  No Docker-specific rules found"
-  else
-    echo "  ufw-docker not installed"
-  fi
+	print_header "UFW Firewall Status"
+	ufw status verbose
+	echo ""
+	print_info "Docker-specific rules:"
+	if command -v ufw-docker &>/dev/null; then
+		ufw-docker list 2>/dev/null || echo "  No Docker-specific rules found"
+	else
+		echo "  ufw-docker not installed"
+	fi
 }
 
 list_docker_rules() {
-  print_header "Docker Container Firewall Rules"
-  if command -v ufw-docker &>/dev/null; then
-    ufw-docker list
-  else
-    print_error "ufw-docker not installed"
-    exit 1
-  fi
+	print_header "Docker Container Firewall Rules"
+	if command -v ufw-docker &>/dev/null; then
+		ufw-docker list
+	else
+		print_error "ufw-docker not installed"
+		exit 1
+	fi
 }
 
 allow_container() {
-  check_ufw_docker
+	check_ufw_docker
 
-  echo ""
-  print_info "Allow Docker container port through firewall"
-  read -rp "Container name: " container
-  read -rp "Port: " port
-  read -rp "Protocol (tcp/udp) [tcp]: " protocol
-  protocol=${protocol:-tcp}
+	echo ""
+	print_info "Allow Docker container port through firewall"
+	read -rp "Container name: " container
+	read -rp "Port: " port
+	read -rp "Protocol (tcp/udp) [tcp]: " protocol
+	protocol=${protocol:-tcp}
 
-  print_info "Allowing ${container}:${port}/${protocol}..."
-  ufw-docker allow "$container" "$port" "$protocol"
-  print_success "Rule added for ${container}:${port}/${protocol}"
-  ufw reload
+	print_info "Allowing ${container}:${port}/${protocol}..."
+	ufw-docker allow "$container" "$port" "$protocol"
+	print_success "Rule added for ${container}:${port}/${protocol}"
+	ufw reload
 }
 
 deny_container() {
-  check_ufw_docker
+	check_ufw_docker
 
-  echo ""
-  print_info "Deny Docker container port through firewall"
-  read -rp "Container name: " container
-  read -rp "Port: " port
+	echo ""
+	print_info "Deny Docker container port through firewall"
+	read -rp "Container name: " container
+	read -rp "Port: " port
 
-  print_info "Denying ${container}:${port}..."
-  ufw-docker deny "$container" "$port"
-  print_success "Rule removed for ${container}:${port}"
-  ufw reload
+	print_info "Denying ${container}:${port}..."
+	ufw-docker deny "$container" "$port"
+	print_success "Rule removed for ${container}:${port}"
+	ufw reload
 }
 
 reset_ufw() {
-  print_header "Reset UFW Configuration"
-  print_error "WARNING: This will reset all UFW rules!"
-  read -rp "Are you sure? [y/N]: " confirm
+	print_header "Reset UFW Configuration"
+	print_error "WARNING: This will reset all UFW rules!"
+	read -rp "Are you sure? [y/N]: " confirm
 
-  if [[ ! "$confirm" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-    print_info "Reset cancelled"
-    exit 0
-  fi
+	if [[ ! "$confirm" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+		print_info "Reset cancelled"
+		exit 0
+	fi
 
-  ufw --force disable
-  ufw --force reset
-  print_success "UFW reset to defaults"
+	ufw --force disable
+	ufw --force reset
+	print_success "UFW reset to defaults"
 
-  print_info "Reapplying PotatoStack configuration..."
-  configure_ufw
-  apply_docker_rules
-  enable_ufw
-  print_success "Configuration reapplied"
+	print_info "Reapplying PotatoStack configuration..."
+	configure_ufw
+	apply_docker_rules
+	enable_ufw
+	print_success "Configuration reapplied"
 }
 
 show_help() {
-  cat <<'EOF'
+	cat <<'EOF'
 PotatoStack UFW Management Script
 
 USAGE:
@@ -307,59 +307,59 @@ EOF
 # Main Function
 ################################################################################
 main() {
-  check_root
+	check_root
 
-  case "${1:-help}" in
-  install)
-    check_ufw || install_ufw
-    check_ufw_docker || install_ufw_docker
-    configure_ufw
-    apply_docker_rules
-    enable_ufw
-    show_status
-    ;;
-  apply)
-    check_ufw
-    check_ufw_docker
-    configure_ufw
-    apply_docker_rules
-    enable_ufw
-    show_status
-    ;;
-  reset)
-    check_ufw
-    check_ufw_docker
-    reset_ufw
-    ;;
-  status)
-    check_ufw
-    show_status
-    ;;
-  list)
-    check_ufw
-    check_ufw_docker
-    list_docker_rules
-    ;;
-  allow)
-    check_ufw
-    check_ufw_docker
-    allow_container
-    ;;
-  deny)
-    check_ufw
-    check_ufw_docker
-    deny_container
-    ;;
-  help | --help | -h)
-    show_help
-    ;;
-  *)
-    print_error "Unknown command: $1"
-    echo ""
-    show_help
-    exit 1
-    ;;
-  esac
+	case "${1:-help}" in
+	install)
+		check_ufw || install_ufw
+		check_ufw_docker || install_ufw_docker
+		configure_ufw
+		apply_docker_rules
+		enable_ufw
+		show_status
+		;;
+	apply)
+		check_ufw
+		check_ufw_docker
+		configure_ufw
+		apply_docker_rules
+		enable_ufw
+		show_status
+		;;
+	reset)
+		check_ufw
+		check_ufw_docker
+		reset_ufw
+		;;
+	status)
+		check_ufw
+		show_status
+		;;
+	list)
+		check_ufw
+		check_ufw_docker
+		list_docker_rules
+		;;
+	allow)
+		check_ufw
+		check_ufw_docker
+		allow_container
+		;;
+	deny)
+		check_ufw
+		check_ufw_docker
+		deny_container
+		;;
+	help | --help | -h)
+		show_help
+		;;
+	*)
+		print_error "Unknown command: $1"
+		echo ""
+		show_help
+		exit 1
+		;;
+	esac
 }
 
 # Run main function
