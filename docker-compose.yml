@@ -233,7 +233,7 @@ services:
       - potatostack
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:3000 || exit 1"]
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:8080/health || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -325,6 +325,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./config/traefik:/etc/traefik/dynamic:ro
+      - ./config/traefik/certs:/etc/traefik/certs:ro
       - traefik-certs:/letsencrypt
       - traefik-logs:/logs
     networks:
@@ -476,7 +477,7 @@ services:
       - potatostack
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:3000 || exit 1"]
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:80/alive || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 5
@@ -498,43 +499,44 @@ services:
   ################################################################################
 
   # AdGuard Home - DNS-level ad blocking with encrypted DNS (SOTA 2025)
-  adguardhome:
-    image: adguard/adguardhome:${ADGUARD_TAG:-latest}
-    container_name: adguardhome
-    logging: *default-logging
-    ports:
-      - "53:53/tcp"
-      - "53:53/udp"
-      - "${HOST_BIND:-192.168.178.158}:3053:3000"
-      - "${HOST_BIND:-192.168.178.158}:8053:80"
-    environment:
-      <<: *common-env
-    volumes:
-      - adguard-work:/opt/adguardhome/work
-      - adguard-conf:/opt/adguardhome/conf
-    networks:
-      - potatostack
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:80/ || exit 1"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 128M
-        reservations:
-          cpus: "0.1"
-          memory: 128M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.adguard.rule=Host(`dns.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.adguard.entrypoints=websecure"
-      - "traefik.http.routers.adguard.tls=true"
-      - "traefik.http.routers.adguard.middlewares=sso-chain@docker"
-      - "traefik.http.services.adguard.loadbalancer.server.port=80"
+  # DISABLED: Commented out per user request
+  # adguardhome:
+  #   image: adguard/adguardhome:${ADGUARD_TAG:-latest}
+  #   container_name: adguardhome
+  #   logging: *default-logging
+  #   ports:
+  #     - "53:53/tcp"
+  #     - "53:53/udp"
+  #     - "${HOST_BIND:-192.168.178.158}:3053:3000"
+  #     - "${HOST_BIND:-192.168.178.158}:8053:80"
+  #   environment:
+  #     <<: *common-env
+  #   volumes:
+  #     - adguard-work:/opt/adguardhome/work
+  #     - adguard-conf:/opt/adguardhome/conf
+  #   networks:
+  #     - potatostack
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:80/ || exit 1"]
+  #     interval: 60s
+  #     timeout: 10s
+  #     retries: 3
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.25"
+  #         memory: 128M
+  #       reservations:
+  #         cpus: "0.1"
+  #         memory: 128M
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.adguard.rule=Host(`dns.${HOST_DOMAIN:-local.domain}`)"
+  #     - "traefik.http.routers.adguard.entrypoints=websecure"
+  #     - "traefik.http.routers.adguard.tls=true"
+  #     - "traefik.http.routers.adguard.middlewares=sso-chain@docker"
+  #     - "traefik.http.services.adguard.loadbalancer.server.port=80"
 
   ################################################################################
   # VPN & NETWORKING
@@ -1391,11 +1393,7 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget --spider -q http://127.0.0.1:6800/jsonrpc || exit 1",
-        ]
+      test: ["CMD-SHELL", "pgrep -x aria2c || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -1771,6 +1769,7 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
       - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
     networks:
       - potatostack
     depends_on:
@@ -2554,9 +2553,9 @@ services:
       GITEA__security__INSTALL_LOCK: "true"
       GITEA__cache__ENABLED: "true"
       GITEA__cache__ADAPTER: redis
-      GITEA__cache__HOST: redis://redis-cache:6379/0
+      GITEA__cache__HOST: network=tcp,addr=redis-cache:6379,db=0
       GITEA__session__PROVIDER: redis
-      GITEA__session__PROVIDER_CONFIG: redis-cache:6379
+      GITEA__session__PROVIDER_CONFIG: network=tcp,addr=redis-cache:6379,db=2
       GITEA__queue__TYPE: redis
       GITEA__queue__CONN_STR: redis://redis-cache:6379/1
     volumes:
@@ -2793,10 +2792,20 @@ services:
       - "${HOST_BIND:-192.168.178.158}:7575:7575"
     environment:
       <<: *common-env
+      # Authentication - uses Authentik SSO via Traefik middleware
+      AUTH_SECRET: ${HOMARR_SECRET_KEY:-change_this_homarr_secret_key_64_chars}
+      # Database - PostgreSQL for user/settings persistence
+      DB_DRIVER: postgresql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: homarr
+      DB_USER: postgres
+      DB_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+      # Docker integration via socket-proxy
+      DOCKER_HOST: tcp://socket-proxy:2375
     volumes:
       - homarr-data:/app/data/configs
       - homarr-icons:/app/public/icons
-      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - potatostack
     depends_on:
@@ -3325,9 +3334,9 @@ volumes:
   crowdsec-config:
   traefik-logs:
 
-  # DNS & Ad Blocking
-  adguard-work:
-  adguard-conf:
+  # DNS & Ad Blocking (DISABLED)
+  # adguard-work:
+  # adguard-conf:
 
   # Monitoring
 
