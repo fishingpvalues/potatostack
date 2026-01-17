@@ -1,7 +1,8 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    "docker:pinDigests"
   ],
   "timezone": "UTC",
   "schedule": [
@@ -18,33 +19,42 @@
     "fileMatch": [
       "(^|/)docker-compose.*\\.ya?ml$"
     ],
-    "enabled": true,
-    "pinDigests": true
+    "enabled": true
   },
   "packageRules": [
     {
+      "description": "Pin digests for all Docker images (security best practice)",
+      "matchDatasources": ["docker"],
+      "pinDigests": true
+    },
+    {
+      "description": "Auto-merge digest updates (same tag, new build)",
+      "matchDatasources": ["docker"],
+      "matchUpdateTypes": ["digest"],
+      "automerge": true,
+      "groupName": "Docker digests"
+    },
+    {
+      "description": "Group non-major Docker updates",
       "matchDatasources": ["docker"],
       "matchUpdateTypes": ["minor", "patch"],
       "automerge": false,
       "groupName": "Docker images (non-major)"
     },
     {
+      "description": "Require approval for major Docker updates",
       "matchDatasources": ["docker"],
       "matchUpdateTypes": ["major"],
       "groupName": "Docker images (major)",
       "dependencyDashboardApproval": true
     },
     {
-      "matchPackagePatterns": ["*"],
-      "matchUpdateTypes": ["digest"],
-      "automerge": true,
-      "groupName": "Docker digests"
-    },
-    {
+      "description": "Database images - monthly updates only",
       "matchPackageNames": [
         "postgres",
         "mongo",
-        "redis"
+        "redis",
+        "elasticsearch"
       ],
       "groupName": "Database images",
       "schedule": [
@@ -52,42 +62,43 @@
       ]
     },
     {
+      "description": "Network & Security stack",
       "matchPackageNames": [
         "traefik",
         "crowdsec/crowdsec",
-        "gluetun"
+        "qmcgaw/gluetun"
       ],
-      "groupName": "Network & Security",
-      "schedule": [
-        "before 6am on monday"
-      ]
+      "groupName": "Network & Security"
     },
     {
-      "matchPackageNames": [
-        "sonarr",
-        "radarr",
-        "prowlarr",
-        "lidarr",
-        "readarr",
-        "bazarr"
+      "description": "*arr media stack",
+      "matchPackagePatterns": [
+        "linuxserver/(sonarr|radarr|prowlarr|lidarr|readarr|bazarr)"
       ],
-      "groupName": "*arr stack",
-      "schedule": [
-        "before 6am on monday"
-      ]
+      "groupName": "*arr stack"
+    },
+    {
+      "description": "Monitoring stack",
+      "matchPackageNames": [
+        "prom/prometheus",
+        "grafana/grafana",
+        "grafana/loki",
+        "grafana/promtail"
+      ],
+      "groupName": "Monitoring stack"
     }
   ],
   "vulnerabilityAlerts": {
     "enabled": true,
     "labels": [
       "security"
-    ],
-    "assignees": []
+    ]
   },
   "prConcurrentLimit": 5,
   "prHourlyLimit": 2,
   "enabledManagers": [
     "docker-compose",
-    "dockerfile"
+    "dockerfile",
+    "github-actions"
   ]
 }

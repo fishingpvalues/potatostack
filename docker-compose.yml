@@ -49,7 +49,7 @@ services:
 
   # PostgreSQL - Primary database with pgvector for embeddings (SOTA 2025)
   postgres:
-    image: pgvector/pgvector:${POSTGRES_TAG:-pg16-alpine}
+    image: pgvector/pgvector:${POSTGRES_TAG:-pg16}
     container_name: postgres
     logging: *default-logging
     shm_size: 1gb
@@ -329,6 +329,9 @@ services:
       - traefik-logs:/var/log/traefik
     networks:
       - potatostack
+    depends_on:
+      crowdsec-traefik-bouncer:
+        condition: service_started
     restart: unless-stopped
     labels:
       - "potatostack.alerts=critical"
@@ -392,6 +395,12 @@ services:
     depends_on:
       - postgres
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9000/-/health/live/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     deploy:
       resources:
         limits:
@@ -455,7 +464,15 @@ services:
       OAUTH2_PROXY_UPSTREAMS: static://200
     networks:
       - potatostack
+    depends_on:
+      authentik-server:
+        condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:4180/ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     deploy:
       resources:
         limits:
@@ -576,7 +593,7 @@ services:
       - "${HOST_BIND:-192.168.178.40}:7878:7878" # Radarr
       - "${HOST_BIND:-192.168.178.40}:9696:9696" # Prowlarr
       - "${HOST_BIND:-192.168.178.40}:6767:6767" # Bazarr
-      - "${HOST_BIND:-192.168.178.40}:8787:8787" # Readarr
+      - "${HOST_BIND:-192.168.178.40}:8787:8787" # Bookshelf (ebook manager)
       - "${HOST_BIND:-192.168.178.40}:8686:8686" # Lidarr
       - "${HOST_BIND:-192.168.178.40}:8282:8282" # qBittorrent WebUI
       - "${HOST_BIND:-192.168.178.40}:51413:51413" # qBittorrent peer
@@ -658,11 +675,11 @@ services:
       - "traefik.http.routers.lidarr.tls=true"
       - "traefik.http.services.lidarr.loadbalancer.server.port=8686"
       - "traefik.http.routers.lidarr.middlewares=sso-chain@docker"
-      - "traefik.http.routers.readarr.rule=Host(`readarr.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.readarr.entrypoints=websecure"
-      - "traefik.http.routers.readarr.tls=true"
-      - "traefik.http.services.readarr.loadbalancer.server.port=8787"
-      - "traefik.http.routers.readarr.middlewares=sso-chain@docker"
+      - "traefik.http.routers.bookshelf.rule=Host(`bookshelf.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.bookshelf.entrypoints=websecure"
+      - "traefik.http.routers.bookshelf.tls=true"
+      - "traefik.http.services.bookshelf.loadbalancer.server.port=8787"
+      - "traefik.http.routers.bookshelf.middlewares=sso-chain@docker"
       - "traefik.http.routers.bazarr.rule=Host(`bazarr.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.bazarr.entrypoints=websecure"
       - "traefik.http.routers.bazarr.tls=true"
@@ -1224,6 +1241,12 @@ services:
     depends_on:
       - storage-init
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8096/health || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     deploy:
       resources:
         limits:
@@ -1402,11 +1425,7 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget --spider -q http://127.0.0.1:6800/jsonrpc || exit 1",
-        ]
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:6800/jsonrpc || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -1473,11 +1492,7 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget --no-verbose --tries=1 --spider http://127.0.0.1:2234/ || exit 1",
-        ]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:2234/ || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -1523,6 +1538,12 @@ services:
       - redis-cache
       - storage-init
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:3001/api/server/ping || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     deploy:
       resources:
         limits:
@@ -1546,9 +1567,18 @@ services:
       - /mnt/cachehdd/immich-ml-cache:/cache
     networks:
       - potatostack
+    depends_on:
+      immich-server:
+        condition: service_healthy
     tmpfs:
       - /tmp:exec,mode=1777,size=500m
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", 'python3 -c ''import requests; requests.get("http://127.0.0.1:3003/ping")''']
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
     deploy:
       resources:
         limits:
@@ -1690,8 +1720,7 @@ services:
       - thanos-store
     restart: unless-stopped
     healthcheck:
-      test:
-        ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:10902/-/healthy"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:10902/-/healthy"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -1771,11 +1800,7 @@ services:
       - loki
     restart: unless-stopped
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget --spider -q http://127.0.0.1:3000/api/health || exit 1",
-        ]
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:3000/api/health || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -1902,7 +1927,7 @@ services:
 
   # MongoDB Exporter - MongoDB metrics
   mongodb-exporter:
-    image: percona/mongodb_exporter:${MONGODB_EXPORTER_TAG:-latest}
+    image: percona/mongodb_exporter:${MONGODB_EXPORTER_TAG:-0.43}
     container_name: mongodb-exporter
     logging: *default-logging
     environment:
@@ -1977,11 +2002,7 @@ services:
       - potatostack
     restart: unless-stopped
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget --spider -q http://127.0.0.1:19999/api/v1/info || exit 1",
-        ]
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:19999/api/v1/info || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -2132,6 +2153,12 @@ services:
     networks:
       - potatostack
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:3001/api/push/monitor || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.uptime.rule=Host(`uptime.${HOST_DOMAIN:-local.domain}`)"
@@ -2259,11 +2286,7 @@ services:
       - storage-init
     restart: unless-stopped
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget --no-verbose --tries=1 --spider http://127.0.0.1:8000 || exit 1",
-        ]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8000 || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -2768,6 +2791,11 @@ services:
     read_only: true
     tmpfs:
       - /run
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:2375/_ping || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     deploy:
       resources:
         limits:
@@ -2982,6 +3010,76 @@ services:
           cpus: "0.05"
           memory: 32M
 
+  # Samba - Windows file sharing for HDD access
+  samba:
+    image: ghcr.io/servercontainers/samba:${SAMBA_TAG:-latest}
+    container_name: samba
+    logging: *default-logging
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+    environment:
+      <<: *common-env
+      SAMBA_GLOBAL_STANZA: |
+        workgroup = WORKGROUP
+        server string = PotatoStack Samba Server
+        server role = standalone server
+        log file = /var/log/samba/log.%m
+        max log size = 50
+        dns proxy = no
+        map to guest = Bad User
+        usershare allow guests = yes
+      ACCOUNT_${SAMBA_USER:-potato}: ${SAMBA_PASSWORD:-changeme}
+      UID_${SAMBA_USER:-potato}: "${PUID:-1000}"
+      GROUP_${SAMBA_USER:-potato}: "${PGID:-1000}"
+      SAMBA_VOLUME_CONFIG_storage: |
+        [storage]
+        path = /mnt/storage
+        browsable = yes
+        read only = no
+        guest ok = no
+        valid users = ${SAMBA_USER:-potato}
+        create mask = 0755
+        directory mask = 0755
+      SAMBA_VOLUME_CONFIG_cachehdd: |
+        [cachehdd]
+        path = /mnt/cachehdd
+        browsable = yes
+        read only = no
+        guest ok = no
+        valid users = ${SAMBA_USER:-potato}
+        create mask = 0755
+        directory mask = 0755
+      SAMBA_VOLUME_CONFIG_media: |
+        [media]
+        path = /mnt/storage/media
+        browsable = yes
+        read only = no
+        guest ok = no
+        valid users = ${SAMBA_USER:-potato}
+        create mask = 0755
+        directory mask = 0755
+    volumes:
+      - /mnt/storage:/mnt/storage
+      - /mnt/cachehdd:/mnt/cachehdd
+      - samba-lib:/var/lib/samba
+      - samba-cache:/var/cache/samba
+      - samba-run:/run/samba
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "smbclient -L localhost -U% || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+
   ################################################################################
   # Gluetun Monitor - VPN Connection Monitor & Auto-Restart
   ################################################################################
@@ -2994,7 +3092,7 @@ services:
     environment:
       - GLUETUN_URL=http://gluetun:8000
       - CHECK_INTERVAL=${GLUETUN_CHECK_INTERVAL:-10}
-      - RESTART_CONTAINERS=prowlarr sonarr radarr lidarr readarr bazarr qbittorrent aria2 ariang slskd
+      - RESTART_CONTAINERS=prowlarr sonarr radarr lidarr bookshelf bazarr qbittorrent aria2 ariang slskd
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./scripts/monitor/gluetun-monitor.sh:/monitor.sh:ro
@@ -3171,11 +3269,7 @@ networks:
 # VOLUMES
 ################################################################################
 volumes:
-  # Databases
-  postgres-data:
-  mongo-data:
-  mongo-config:
-  redis-cache-data:
+  # Databases use bind mounts to /mnt/ssd/docker-data/
 
   # Authentication
   authentik-media:
@@ -3216,7 +3310,7 @@ volumes:
 
   # Monitoring
   uptime-kuma-data:
-  prometheus-data:
+  # prometheus uses bind mount to /mnt/cachehdd/prometheus
   grafana-data:
   netdata-config:
   netdata-lib:
@@ -3271,6 +3365,9 @@ volumes:
 
   # System
   diun-data:
+  samba-lib:
+  samba-cache:
+  samba-run:
 
   # Backups
   kopia-config:

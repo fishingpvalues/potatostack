@@ -36,7 +36,7 @@ datasources:
         - datasourceUid: Thanos
           matcherRegex: "traceID=(\\w+)"
           name: TraceID
-          url: '$${__value.raw}'
+          url: "$${__value.raw}"
 
   # Alertmanager - Alerts datasource
   - name: Alertmanager

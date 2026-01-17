@@ -1,0 +1,93 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+PotatoStack is a Docker Compose-based self-hosted infrastructure stack with 100 services, optimized for low-power hardware (Intel N250 Mini PC, 16GB RAM). Uses SOTA 2025 standards.
+
+## Essential Commands
+
+```bash
+make help          # Show all available commands
+make up            # Start all services
+make down          # Stop all services
+make restart       # Restart all services
+make logs          # View logs (SERVICE=name for specific service)
+make health        # Check service health
+
+# Testing & Validation
+make test          # Full integration tests (scripts/test/stack-test.sh)
+make test-quick    # Quick health check
+make validate      # Docker-compose syntax validation
+make lint          # YAML, shell, compose linting
+make security      # Trivy vulnerability scan
+
+# Formatting
+make format        # Format all files (shfmt, prettier)
+```
+
+## Architecture
+
+**Storage Layout:**
+- SSD (`/mnt/ssd/docker-data`) - Databases, configs, critical data
+- HDD (`/mnt/storage`) - Media, photos, documents
+- HDD (`/mnt/cachehdd`) - Caches, incomplete downloads, metrics
+
+**Core Services:**
+- PostgreSQL 16 (pgvector) with PgBouncer - 18 databases consolidated
+- MongoDB 7, Redis 7 (shared cache, 16 databases)
+- Traefik (reverse proxy), Gluetun (VPN), CrowdSec (IPS)
+- Prometheus → Thanos (1yr retention) → Grafana
+- Loki (logs), Netdata/cAdvisor (monitoring)
+
+**Network:** All services on `potatostack` network, socket-proxy for privileged ops.
+
+## Code Style
+
+**Shell Scripts:**
+- `#!/bin/bash` with `set -euo pipefail`
+- snake_case functions, UPPER_CASE constants
+- Color output: RED, GREEN, YELLOW, BLUE, NC variables
+- OS detection for Linux/Termux compatibility (see scripts/test/stack-test.sh:27-53)
+- Always quote variables: `"$VAR"`
+
+**Docker Compose / YAML:**
+- 2-space indent, 120 char max line length
+- Use anchors/aliases for common configs (x-common-env, x-logging at lines 4-10)
+- lowercase-with-hyphens for service names
+- UPPER_CASE for environment variables
+
+**File Organization:**
+- `scripts/` - init/, setup/, test/, validate/, security/, monitor/, backup/
+- `config/` - Service configs in `config/<service_name>/`
+- `docs/` - All documentation
+
+## Git Workflow
+
+- Conventional Commits: `type(scope): description`
+- Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore
+- Feature branches: `feature/description`, `fix/description`
+- Run `make lint && make format` before committing
+
+## Testing Individual Services
+
+```bash
+docker ps --filter "name=service_name"    # Check container status
+docker logs -f service_name               # View service logs
+docker exec service_name command          # Execute in container
+curl -I http://localhost:PORT             # Test HTTP endpoint
+```
+
+## Key Files
+
+- `docker-compose.yml` - Main orchestration (3284 lines)
+- `.env.example` - Environment template (copy to .env)
+- `scripts/test/stack-test.sh` - Comprehensive test suite
+- `Makefile` - All automation commands
+
+## Preferences
+
+- Prioritize code over documentation
+- Minimize token usage
+- Keep responses concise
