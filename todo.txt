@@ -1,4 +1,7 @@
 - comment out adguard 
+- check all and make nice grafana dashboards which make sense for me 
+- maek sure all is via HTTPS
+- why do i have to create an accoutn with homarr when i set ait in .env?
 
 ● Homarr is now working (307 redirect is normal). Services are running. The DNS issue is that *.danielhomelab.local
   isn't resolving to your server.
