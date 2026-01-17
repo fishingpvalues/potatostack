@@ -80,6 +80,8 @@ check_debian() {
 ################################################################################
 step_system_update() {
   print_header "Step 1: System Update and Dependencies"
+  # Clean up any broken apt repos before update
+  rm -f /etc/apt/sources.list.d/trivy.list 2>/dev/null || true
   print_info "Updating package lists..."
   apt-get update -y
   print_info "Installing base system utilities..."
