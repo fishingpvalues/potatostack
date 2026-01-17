@@ -157,7 +157,7 @@ chmod +x *.sh
 # Verify in Syncthing UI
 
 # 5. Verify
-# Open Syncthing: http://192.168.178.40:8384
+# Open Syncthing: http://192.168.178.158:8384
 # Check folders have content
 
 # 6. Cleanup (optional, after verification)
@@ -179,7 +179,7 @@ du -sh /mnt/storage/syncthing/OneDrive-Archive
 
 ### Syncthing Web UI
 ```
-http://192.168.178.40:8384
+http://192.168.178.158:8384
 ```
 Navigate folders, verify files are present.
 
@@ -284,7 +284,7 @@ rm -rf ~/dlang
 ## Support
 
 **OneDrive Client Issues**: https://github.com/abraunegg/onedrive/issues
-**Syncthing Issues**: http://192.168.178.40:8384 (check logs)
+**Syncthing Issues**: http://192.168.178.158:8384 (check logs)
 **Disk Space**: `df -h` and `du -sh /mnt/storage/*`
 
 ## Security Notes

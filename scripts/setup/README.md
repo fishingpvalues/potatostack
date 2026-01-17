@@ -238,7 +238,7 @@ DOCKER_USER=myuser SETUP_AUTOSTART=false \
 Default bind address for LAN-only services:
 
 ```bash
-HOST_BIND=192.168.178.40  # Set in .env
+HOST_BIND=192.168.178.158  # Set in .env
 ```
 
 Services bound to HOST_BIND are accessible only from LAN, not internet.

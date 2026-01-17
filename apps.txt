@@ -92,8 +92,8 @@ VPN_NOT_REQUIRED
 - woodpecker-server
 
 DIRECT_HOSTS
-- nextcloud: https://${HOST_BIND:-192.168.178.40}:8443
-- nextcloud-aio-admin: http://${HOST_BIND:-192.168.178.40}:8080
+- nextcloud: https://${HOST_BIND:-192.168.178.158}:8443
+- nextcloud-aio-admin: http://${HOST_BIND:-192.168.178.158}:8080
 
 TRAEFIK_HOSTS
 - actual-budget: budget.${HOST_DOMAIN:-local.domain}

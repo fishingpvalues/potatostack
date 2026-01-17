@@ -232,15 +232,15 @@ LAN Client → HOST_BIND:PORT → Service
 
 **Examples:**
 
-- `http://192.168.178.40:9090` → Prometheus
-- `http://192.168.178.40:3002` → Grafana
-- `http://192.168.178.40:8089` → cAdvisor
+- `http://192.168.178.158:9090` → Prometheus
+- `http://192.168.178.158:3002` → Grafana
+- `http://192.168.178.158:8089` → cAdvisor
 
 **Configuration:**
 
 ```yaml
 ports:
-  - "${HOST_BIND:-192.168.178.40}:9090:9090"
+  - "${HOST_BIND:-192.168.178.158}:9090:9090"
 ```
 
 ### 3. Internal Services (Container Network Only)

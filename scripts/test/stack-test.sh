@@ -64,7 +64,7 @@ check_docker_available() {
 			echo -e "${YELLOW}║  Docker cannot run in Termux/proot (kernel limitations)      ║${NC}"
 			echo -e "${YELLOW}║                                                               ║${NC}"
 			echo -e "${YELLOW}║  To run full tests, use one of these options:                ║${NC}"
-			echo -e "${YELLOW}║  1. Run on native Linux server (192.168.178.40)              ║${NC}"
+			echo -e "${YELLOW}║  1. Run on native Linux server (192.168.178.158)              ║${NC}"
 			echo -e "${YELLOW}║  2. Use GitHub Actions (push to trigger workflow)            ║${NC}"
 			echo -e "${YELLOW}║  3. Run validation-only tests: make validate                 ║${NC}"
 			echo -e "${YELLOW}╚═══════════════════════════════════════════════════════════════╝${NC}"

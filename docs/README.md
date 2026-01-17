@@ -81,21 +81,21 @@ Complete self-hosted stack with 100 services optimized for low-power hardware.
 ## Quick Access
 
 ### Primary Interfaces
-- **Grafana**: http://192.168.178.40:3002 ⭐ Main monitoring
-- **Homarr**: http://192.168.178.40:7575 - Dashboard
-- **Nextcloud**: http://192.168.178.40:8443 - Cloud storage
-- **Jellyfin**: http://192.168.178.40:8096 - Media server
+- **Grafana**: http://192.168.178.158:3002 ⭐ Main monitoring
+- **Homarr**: http://192.168.178.158:7575 - Dashboard
+- **Nextcloud**: http://192.168.178.158:8443 - Cloud storage
+- **Jellyfin**: http://192.168.178.158:8096 - Media server
 
 ### Monitoring
-- **Prometheus**: http://192.168.178.40:9090
-- **Thanos Query**: http://192.168.178.40:10903
-- **Netdata**: http://192.168.178.40:19999
-- **Beszel**: http://192.168.178.40:8090
+- **Prometheus**: http://192.168.178.158:9090
+- **Thanos Query**: http://192.168.178.158:10903
+- **Netdata**: http://192.168.178.158:19999
+- **Beszel**: http://192.168.178.158:8090
 
 ### Management
-- **Traefik**: http://192.168.178.40:8080
-- **Dockge**: http://192.168.178.40:5001
-- **Authentik**: http://192.168.178.40:9000
+- **Traefik**: http://192.168.178.158:8080
+- **Dockge**: http://192.168.178.158:5001
+- **Authentik**: http://192.168.178.158:9000
 
 See [FULL_INTEGRATION_SUMMARY.md](FULL_INTEGRATION_SUMMARY.md) for complete service list and URLs.
 
@@ -134,7 +134,7 @@ docker compose up -d
 ./scripts/import/import-grafana-dashboards.sh
 
 # Access Grafana
-open http://192.168.178.40:3002
+open http://192.168.178.158:3002
 ```
 
 See [QUICK_START.md](QUICK_START.md) for detailed setup instructions.
@@ -239,10 +239,10 @@ docker logs -f <container_name>
 docker stats
 
 # Netdata (real-time)
-open http://192.168.178.40:19999
+open http://192.168.178.158:19999
 
 # Grafana (historical)
-open http://192.168.178.40:3002
+open http://192.168.178.158:3002
 ```
 
 ### Restart Unhealthy Services

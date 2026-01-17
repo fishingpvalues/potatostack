@@ -198,7 +198,7 @@ docker ps | grep crowdsec-traefik-bouncer
 curl -I https://yourdomain.com
 
 # 2. LAN access to Prometheus (should work from LAN)
-curl -I http://192.168.178.40:9090
+curl -I http://192.168.178.158:9090
 
 # 3. Direct database access (should FAIL from internet)
 telnet yourdomain.com 5432  # Should timeout/refuse
@@ -309,7 +309,7 @@ services:
 services:
   admin-panel:
     ports:
-      - "${HOST_BIND:-192.168.178.40}:8765:80"
+      - "${HOST_BIND:-192.168.178.158}:8765:80"
 ```
 
 **No UFW rules needed!** Bound to LAN interface only.

@@ -218,7 +218,7 @@ services:
     container_name: crowdsec
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:6060:6060" # Prometheus metrics
+      - "${HOST_BIND:-192.168.178.158}:6060:6060" # Prometheus metrics
     environment:
       <<: *common-env
       COLLECTIONS: "crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors crowdsecurity/nginx crowdsecurity/linux"
@@ -280,7 +280,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "${HOST_BIND:-192.168.178.40}:8088:8080" # Dashboard (alt port to avoid conflicts)
+      - "${HOST_BIND:-192.168.178.158}:8088:8080" # Dashboard (alt port to avoid conflicts)
     environment:
       <<: *common-env
     command:
@@ -377,8 +377,8 @@ services:
     logging: *default-logging
     command: server
     ports:
-      - "${HOST_BIND:-192.168.178.40}:9000:9000"
-      - "${HOST_BIND:-192.168.178.40}:9443:9443"
+      - "${HOST_BIND:-192.168.178.158}:9000:9000"
+      - "${HOST_BIND:-192.168.178.158}:9443:9443"
     environment:
       <<: *common-env
       AUTHENTIK_POSTGRESQL__HOST: postgres
@@ -396,7 +396,14 @@ services:
       - postgres
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9000/-/health/live/"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--spider",
+          "-q",
+          "http://127.0.0.1:9000/-/health/live/",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -446,7 +453,7 @@ services:
     container_name: oauth2-proxy
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:4180:4180"
+      - "${HOST_BIND:-192.168.178.158}:4180:4180"
     environment:
       <<: *common-env
       OAUTH2_PROXY_PROVIDER: oidc
@@ -494,8 +501,8 @@ services:
     container_name: vaultwarden
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:8888:80"
-      - "${HOST_BIND:-192.168.178.40}:3012:3012"
+      - "${HOST_BIND:-192.168.178.158}:8888:80"
+      - "${HOST_BIND:-192.168.178.158}:3012:3012"
     environment:
       <<: *common-env
       DOMAIN: https://vault.${HOST_DOMAIN:-local.domain}
@@ -543,8 +550,8 @@ services:
     ports:
       - "53:53/tcp"
       - "53:53/udp"
-      - "${HOST_BIND:-192.168.178.40}:3053:3000"
-      - "${HOST_BIND:-192.168.178.40}:8053:80"
+      - "${HOST_BIND:-192.168.178.158}:3053:3000"
+      - "${HOST_BIND:-192.168.178.158}:8053:80"
     environment:
       <<: *common-env
     volumes:
@@ -588,23 +595,23 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     ports:
-      - "${HOST_BIND:-192.168.178.40}:8000:8000" # Gluetun control
-      - "${HOST_BIND:-192.168.178.40}:8989:8989" # Sonarr
-      - "${HOST_BIND:-192.168.178.40}:7878:7878" # Radarr
-      - "${HOST_BIND:-192.168.178.40}:9696:9696" # Prowlarr
-      - "${HOST_BIND:-192.168.178.40}:6767:6767" # Bazarr
-      - "${HOST_BIND:-192.168.178.40}:8787:8787" # Bookshelf (ebook manager)
-      - "${HOST_BIND:-192.168.178.40}:8686:8686" # Lidarr
-      - "${HOST_BIND:-192.168.178.40}:8282:8282" # qBittorrent WebUI
-      - "${HOST_BIND:-192.168.178.40}:51413:51413" # qBittorrent peer
-      - "${HOST_BIND:-192.168.178.40}:51413:51413/udp"
-      - "${HOST_BIND:-192.168.178.40}:6800:6800" # aria2 RPC
-      - "${HOST_BIND:-192.168.178.40}:6880:80" # aria2 WebUI
-      - "${HOST_BIND:-192.168.178.40}:6888:6888" # aria2 BT
-      - "${HOST_BIND:-192.168.178.40}:2234:2234" # slskd WebUI
-      - "${HOST_BIND:-192.168.178.40}:50000:50000" # slskd peer
-      - "${HOST_BIND:-192.168.178.40}:8097:8080" # SpotiFLAC
-      - "${HOST_BIND:-192.168.178.40}:8945:8945" # Pinchflat
+      - "${HOST_BIND:-192.168.178.158}:8000:8000" # Gluetun control
+      - "${HOST_BIND:-192.168.178.158}:8989:8989" # Sonarr
+      - "${HOST_BIND:-192.168.178.158}:7878:7878" # Radarr
+      - "${HOST_BIND:-192.168.178.158}:9696:9696" # Prowlarr
+      - "${HOST_BIND:-192.168.178.158}:6767:6767" # Bazarr
+      - "${HOST_BIND:-192.168.178.158}:8787:8787" # Bookshelf (ebook manager)
+      - "${HOST_BIND:-192.168.178.158}:8686:8686" # Lidarr
+      - "${HOST_BIND:-192.168.178.158}:8282:8282" # qBittorrent WebUI
+      - "${HOST_BIND:-192.168.178.158}:51413:51413" # qBittorrent peer
+      - "${HOST_BIND:-192.168.178.158}:51413:51413/udp"
+      - "${HOST_BIND:-192.168.178.158}:6800:6800" # aria2 RPC
+      - "${HOST_BIND:-192.168.178.158}:6880:80" # aria2 WebUI
+      - "${HOST_BIND:-192.168.178.158}:6888:6888" # aria2 BT
+      - "${HOST_BIND:-192.168.178.158}:2234:2234" # slskd WebUI
+      - "${HOST_BIND:-192.168.178.158}:50000:50000" # slskd peer
+      - "${HOST_BIND:-192.168.178.158}:8097:8080" # SpotiFLAC
+      - "${HOST_BIND:-192.168.178.158}:8945:8945" # Pinchflat
     environment:
       <<: *common-env
       VPN_SERVICE_PROVIDER: ${VPN_PROVIDER:-surfshark}
@@ -725,7 +732,7 @@ services:
       - NET_ADMIN
       - SYS_MODULE
     ports:
-      - "${HOST_BIND:-192.168.178.40}:${WIREGUARD_SERVERPORT:-51820}:51820/udp"
+      - "${HOST_BIND:-192.168.178.158}:${WIREGUARD_SERVERPORT:-51820}:51820/udp"
     environment:
       <<: *common-env
       SERVERURL: ${WIREGUARD_SERVERURL:-auto}
@@ -785,8 +792,8 @@ services:
     logging: *default-logging
     init: true
     ports:
-      - "${HOST_BIND:-192.168.178.40}:8080:8080" # AIO interface
-      - "${HOST_BIND:-192.168.178.40}:8443:8443" # Nextcloud
+      - "${HOST_BIND:-192.168.178.158}:8080:8080" # AIO interface
+      - "${HOST_BIND:-192.168.178.158}:8443:8443" # Nextcloud
     environment:
       <<: *common-env
       APACHE_PORT: 11000
@@ -819,10 +826,10 @@ services:
     logging: *default-logging
     entrypoint: bash /syncthing-init.sh
     ports:
-      - "${HOST_BIND:-192.168.178.40}:8384:8384"
-      - "${HOST_BIND:-192.168.178.40}:22000:22000/tcp"
-      - "${HOST_BIND:-192.168.178.40}:22000:22000/udp"
-      - "${HOST_BIND:-192.168.178.40}:21027:21027/udp"
+      - "${HOST_BIND:-192.168.178.158}:8384:8384"
+      - "${HOST_BIND:-192.168.178.158}:22000:22000/tcp"
+      - "${HOST_BIND:-192.168.178.158}:22000:22000/udp"
+      - "${HOST_BIND:-192.168.178.158}:21027:21027/udp"
     environment:
       <<: *common-env
     volumes:
@@ -866,7 +873,7 @@ services:
     container_name: miniflux
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:8093:8080"
+      - "${HOST_BIND:-192.168.178.158}:8093:8080"
     environment:
       <<: *common-env
       DATABASE_URL: postgres://postgres:${POSTGRES_SUPER_PASSWORD}@pgbouncer:5432/miniflux?sslmode=disable
@@ -917,7 +924,7 @@ services:
     container_name: actual-budget
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:5006:5006"
+      - "${HOST_BIND:-192.168.178.158}:5006:5006"
     environment:
       <<: *common-env
     volumes:
@@ -1178,7 +1185,7 @@ services:
     container_name: maintainerr
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:6246:6246"
+      - "${HOST_BIND:-192.168.178.158}:6246:6246"
     environment:
       <<: *common-env
     volumes:
@@ -1209,10 +1216,10 @@ services:
     container_name: jellyfin
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:8096:8096"
-      - "${HOST_BIND:-192.168.178.40}:8920:8920"
-      - "${HOST_BIND:-192.168.178.40}:7359:7359/udp"
-      - "${HOST_BIND:-192.168.178.40}:1900:1900/udp"
+      - "${HOST_BIND:-192.168.178.158}:8096:8096"
+      - "${HOST_BIND:-192.168.178.158}:8920:8920"
+      - "${HOST_BIND:-192.168.178.158}:7359:7359/udp"
+      - "${HOST_BIND:-192.168.178.158}:1900:1900/udp"
     environment:
       <<: *common-env
     # Uncomment group_add and devices for Intel/AMD hardware acceleration
@@ -1269,7 +1276,7 @@ services:
     container_name: jellyseerr
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:5055:5055"
+      - "${HOST_BIND:-192.168.178.158}:5055:5055"
     environment:
       <<: *common-env
     volumes:
@@ -1296,7 +1303,7 @@ services:
     container_name: audiobookshelf
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:13378:80"
+      - "${HOST_BIND:-192.168.178.158}:13378:80"
     environment:
       <<: *common-env
     volumes:
@@ -1425,7 +1432,11 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:6800/jsonrpc || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --spider -q http://127.0.0.1:6800/jsonrpc || exit 1",
+        ]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -1492,7 +1503,11 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:2234/ || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://127.0.0.1:2234/ || exit 1",
+        ]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -1518,7 +1533,7 @@ services:
     container_name: immich-server
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:2283:3001"
+      - "${HOST_BIND:-192.168.178.158}:2283:3001"
     environment:
       <<: *common-env
       DB_HOSTNAME: postgres
@@ -1539,7 +1554,11 @@ services:
       - storage-init
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:3001/api/server/ping || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --spider -q http://127.0.0.1:3001/api/server/ping || exit 1",
+        ]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -1574,7 +1593,11 @@ services:
       - /tmp:exec,mode=1777,size=500m
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", 'python3 -c ''import requests; requests.get("http://127.0.0.1:3003/ping")''']
+      test:
+        [
+          "CMD-SHELL",
+          'python3 -c ''import requests; requests.get("http://127.0.0.1:3003/ping")''',
+        ]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -1609,7 +1632,7 @@ services:
       - "--web.enable-lifecycle"
       - "--web.enable-admin-api"
     ports:
-      - "${HOST_BIND:-192.168.178.40}:9090:9090"
+      - "${HOST_BIND:-192.168.178.158}:9090:9090"
     environment:
       <<: *common-env
     volumes:
@@ -1653,7 +1676,7 @@ services:
       - "--http-address=0.0.0.0:10902"
       - "--objstore.config-file=/etc/thanos/bucket.yml"
     ports:
-      - "${HOST_BIND:-192.168.178.40}:10902:10902"
+      - "${HOST_BIND:-192.168.178.158}:10902:10902"
     environment:
       <<: *common-env
     volumes:
@@ -1712,7 +1735,7 @@ services:
       - "--store=thanos-store:10901"
       - "--query.replica-label=replica"
     ports:
-      - "${HOST_BIND:-192.168.178.40}:10903:10902"
+      - "${HOST_BIND:-192.168.178.158}:10903:10902"
     networks:
       - potatostack
     depends_on:
@@ -1720,7 +1743,8 @@ services:
       - thanos-store
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:10902/-/healthy"]
+      test:
+        ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:10902/-/healthy"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -1775,7 +1799,7 @@ services:
     container_name: grafana
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:3002:3000"
+      - "${HOST_BIND:-192.168.178.158}:3002:3000"
     environment:
       <<: *common-env
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
@@ -1800,7 +1824,11 @@ services:
       - loki
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:3000/api/health || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --spider -q http://127.0.0.1:3000/api/health || exit 1",
+        ]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -1829,7 +1857,7 @@ services:
     devices:
       - /dev/kmsg
     ports:
-      - "${HOST_BIND:-192.168.178.40}:8089:8080"
+      - "${HOST_BIND:-192.168.178.158}:8089:8080"
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
@@ -1976,7 +2004,7 @@ services:
     logging: *default-logging
     hostname: potatostack-main
     ports:
-      - "${HOST_BIND:-192.168.178.40}:19999:19999"
+      - "${HOST_BIND:-192.168.178.158}:19999:19999"
     cap_add:
       - SYS_PTRACE
       - SYS_ADMIN
@@ -2002,7 +2030,11 @@ services:
       - potatostack
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:19999/api/v1/info || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --spider -q http://127.0.0.1:19999/api/v1/info || exit 1",
+        ]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -2028,7 +2060,7 @@ services:
     container_name: loki
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:3100:3100"
+      - "${HOST_BIND:-192.168.178.158}:3100:3100"
     command: -config.file=/etc/loki/loki.yml
     volumes:
       - ./config/loki:/etc/loki
@@ -2078,7 +2110,7 @@ services:
     logging: *default-logging
     command: ["parseable", "local-store"]
     ports:
-      - "${HOST_BIND:-192.168.178.40}:8094:8000"
+      - "${HOST_BIND:-192.168.178.158}:8094:8000"
     environment:
       <<: *common-env
       P_USERNAME: ${PARSEABLE_USERNAME:-admin}
@@ -2114,7 +2146,7 @@ services:
       - SYS_RAWIO
       - SYS_ADMIN
     ports:
-      - "${HOST_BIND:-192.168.178.40}:8087:8080"
+      - "${HOST_BIND:-192.168.178.158}:8087:8080"
     volumes:
       - /run/udev:/run/udev:ro
       - /mnt/ssd/docker-data/scrutiny/config:/opt/scrutiny/config
@@ -2145,7 +2177,7 @@ services:
     container_name: uptime-kuma
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:3001:3001"
+      - "${HOST_BIND:-192.168.178.158}:3001:3001"
     environment:
       <<: *common-env
     volumes:
@@ -2154,7 +2186,11 @@ services:
       - potatostack
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:3001/api/push/monitor || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --spider -q http://127.0.0.1:3001/api/push/monitor || exit 1",
+        ]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -2182,7 +2218,7 @@ services:
     container_name: n8n
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:5678:5678"
+      - "${HOST_BIND:-192.168.178.158}:5678:5678"
     environment:
       <<: *common-env
       N8N_BASIC_AUTH_ACTIVE: "true"
@@ -2229,7 +2265,7 @@ services:
     container_name: healthchecks
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:8001:8000"
+      - "${HOST_BIND:-192.168.178.158}:8001:8000"
     environment:
       <<: *common-env
       SITE_ROOT: https://healthchecks.${HOST_DOMAIN:-local.domain}
@@ -2273,7 +2309,7 @@ services:
     container_name: rustypaste
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:8788:8000"
+      - "${HOST_BIND:-192.168.178.158}:8788:8000"
     environment:
       <<: *common-env
       CONFIG: /config/config.toml
@@ -2286,7 +2322,11 @@ services:
       - storage-init
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8000 || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://127.0.0.1:8000 || exit 1",
+        ]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -2314,7 +2354,7 @@ services:
     container_name: stirling-pdf
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:8086:8080"
+      - "${HOST_BIND:-192.168.178.158}:8086:8080"
     environment:
       <<: *common-env
       DOCKER_ENABLE_SECURITY: "false"
@@ -2348,7 +2388,7 @@ services:
     container_name: linkding
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:9091:9090"
+      - "${HOST_BIND:-192.168.178.158}:9091:9090"
     environment:
       <<: *common-env
       LD_DB_ENGINE: postgres
@@ -2385,7 +2425,7 @@ services:
     container_name: code-server
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:8444:8443"
+      - "${HOST_BIND:-192.168.178.158}:8444:8443"
     environment:
       <<: *common-env
       PASSWORD: ${CODE_SERVER_PASSWORD}
@@ -2418,7 +2458,7 @@ services:
     container_name: atuin
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:8889:8888"
+      - "${HOST_BIND:-192.168.178.158}:8889:8888"
     environment:
       <<: *common-env
       ATUIN_DB_URI: postgres://postgres:${POSTGRES_SUPER_PASSWORD}@postgres/atuin
@@ -2449,7 +2489,7 @@ services:
     container_name: it-tools
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:8091:80"
+      - "${HOST_BIND:-192.168.178.158}:8091:80"
     environment:
       <<: *common-env
     networks:
@@ -2498,7 +2538,7 @@ services:
     container_name: paperless-ngx
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:8092:8000"
+      - "${HOST_BIND:-192.168.178.158}:8092:8000"
     environment:
       <<: *common-env
       PAPERLESS_REDIS: redis://redis-cache:6379/1
@@ -2558,8 +2598,8 @@ services:
     container_name: gitea
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:3004:3000"
-      - "${HOST_BIND:-192.168.178.40}:2222:22"
+      - "${HOST_BIND:-192.168.178.158}:3004:3000"
+      - "${HOST_BIND:-192.168.178.158}:2222:22"
     environment:
       <<: *common-env
       GITEA__database__DB_TYPE: postgres
@@ -2631,7 +2671,7 @@ services:
     container_name: woodpecker-server
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:3006:8000"
+      - "${HOST_BIND:-192.168.178.158}:3006:8000"
     environment:
       <<: *common-env
       WOODPECKER_HOST: https://ci.${HOST_DOMAIN:-local.domain}
@@ -2702,7 +2742,7 @@ services:
     container_name: open-webui
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:3005:8080"
+      - "${HOST_BIND:-192.168.178.158}:3005:8080"
     environment:
       <<: *common-env
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
@@ -2792,7 +2832,8 @@ services:
     tmpfs:
       - /run
     healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:2375/_ping || exit 1"]
+      test:
+        ["CMD-SHELL", "wget --spider -q http://127.0.0.1:2375/_ping || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -2808,7 +2849,7 @@ services:
     container_name: homarr
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:7575:7575"
+      - "${HOST_BIND:-192.168.178.158}:7575:7575"
     environment:
       <<: *common-env
       SECRET_ENCRYPTION_KEY: ${HOMARR_SECRET_KEY}
@@ -2887,7 +2928,7 @@ services:
     logging: *default-logging
     command: ["server", "--listen", "0.0.0.0:8081"]
     ports:
-      - "${HOST_BIND:-192.168.178.40}:8081:8081"
+      - "${HOST_BIND:-192.168.178.158}:8081:8081"
     environment:
       <<: *common-env
       TRIVY_LISTEN: "0.0.0.0:8081"
@@ -2923,7 +2964,7 @@ services:
       - ./config/alertmanager:/etc/alertmanager:ro
       - alertmanager-data:/alertmanager
     ports:
-      - "${HOST_BIND:-192.168.178.40}:9093:9093"
+      - "${HOST_BIND:-192.168.178.158}:9093:9093"
     networks:
       - potatostack
     restart: unless-stopped
@@ -3119,7 +3160,7 @@ services:
     container_name: velld-api
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:8085:8080"
+      - "${HOST_BIND:-192.168.178.158}:8085:8080"
     environment:
       <<: *common-env
       JWT_SECRET: ${VELLD_JWT_SECRET}
@@ -3153,7 +3194,7 @@ services:
     container_name: velld-web
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.40}:3010:3000"
+      - "${HOST_BIND:-192.168.178.158}:3010:3000"
     environment:
       <<: *common-env
       NEXT_PUBLIC_API_URL: ${VELLD_API_URL}
@@ -3206,7 +3247,7 @@ services:
     hostname: kopia-server
     entrypoint: sh /kopia-init.sh
     ports:
-      - "${HOST_BIND:-192.168.178.40}:51515:51515"
+      - "${HOST_BIND:-192.168.178.158}:51515:51515"
     environment:
       <<: *common-env
       KOPIA_PASSWORD: ${KOPIA_PASSWORD}
