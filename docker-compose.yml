@@ -233,8 +233,8 @@ services:
       - potatostack
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "cscli", "version"]
-      interval: 30s
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:3000 || exit 1"]
+      interval: 60s
       timeout: 10s
       retries: 3
     deploy:
@@ -347,7 +347,7 @@ services:
       - "traefik.http.routers.traefik-gui.service=api@internal"
       - "traefik.http.routers.traefik-gui.tls=true"
       - "traefik.http.routers.traefik-gui.middlewares=sso-chain@docker"
-      - "traefik.http.middlewares.sso-chain.chain.middlewares=oauth2-proxy,security-headers"
+      - "traefik.http.middlewares.sso-chain.chain.middlewares=security-headers"
       # Security headers middleware
       - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.X-Robots-Tag=noindex,nofollow,nosnippet,noarchive,notranslate,noimageindex"
       - "traefik.http.middlewares.security-headers.headers.sslRedirect=true"
@@ -401,10 +401,9 @@ services:
       test:
         [
           "CMD",
-          "wget",
-          "--spider",
-          "-q",
-          "http://127.0.0.1:9000/-/health/live/",
+          "python3",
+          "-c",
+          "import requests; requests.get('http://127.0.0.1:9000/-/health/live/')",
         ]
       interval: 30s
       timeout: 10s
@@ -451,53 +450,6 @@ services:
           cpus: "1.0"
           memory: 128M
 
-  # OAuth2-Proxy - Unified SSO gateway (OIDC/Auth Server)
-  oauth2-proxy:
-    image: quay.io/oauth2-proxy/oauth2-proxy:${OAUTH2_PROXY_TAG:-latest}
-    container_name: oauth2-proxy
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.158}:4180:4180"
-    environment:
-      <<: *common-env
-      OAUTH2_PROXY_PROVIDER: oidc
-      OAUTH2_PROXY_OIDC_ISSUER_URL: ${OAUTH2_PROXY_OIDC_ISSUER_URL}
-      OAUTH2_PROXY_CLIENT_ID: ${OAUTH2_PROXY_CLIENT_ID}
-      OAUTH2_PROXY_CLIENT_SECRET: ${OAUTH2_PROXY_CLIENT_SECRET}
-      OAUTH2_PROXY_COOKIE_SECRET: ${OAUTH2_PROXY_COOKIE_SECRET}
-      OAUTH2_PROXY_REDIRECT_URL: ${OAUTH2_PROXY_REDIRECT_URL}
-      OAUTH2_PROXY_EMAIL_DOMAINS: ${OAUTH2_PROXY_EMAIL_DOMAINS:-*}
-      OAUTH2_PROXY_COOKIE_DOMAINS: ${OAUTH2_PROXY_COOKIE_DOMAINS:-.${HOST_DOMAIN:-local.domain}}
-      OAUTH2_PROXY_WHITELIST_DOMAINS: ${OAUTH2_PROXY_WHITELIST_DOMAINS:-.${HOST_DOMAIN:-local.domain}}
-      OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:4180
-      OAUTH2_PROXY_REVERSE_PROXY: "true"
-      OAUTH2_PROXY_SET_XAUTHREQUEST: "true"
-      OAUTH2_PROXY_UPSTREAMS: static://200
-    networks:
-      - potatostack
-    depends_on:
-      authentik-server:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:4180/ping"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 128M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.oauth2.rule=Host(`auth.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.oauth2.entrypoints=websecure"
-      - "traefik.http.routers.oauth2.tls=true"
-      - "traefik.http.services.oauth2.loadbalancer.server.port=4180"
-      - "traefik.http.middlewares.oauth2-proxy.forwardauth.address=http://oauth2-proxy:4180/oauth2/auth"
-      - "traefik.http.middlewares.oauth2-proxy.forwardauth.trustForwardHeader=true"
-      - "traefik.http.middlewares.oauth2-proxy.forwardauth.authResponseHeaders=X-Auth-Request-User,X-Auth-Request-Email,Authorization"
 
   # Vaultwarden - Password manager and 2FA aggregator
   vaultwarden:
@@ -520,17 +472,17 @@ services:
       ICON_CACHE_TTL: 2592000
       LOG_LEVEL: warn
     volumes:
-      - vaultwarden-data:/data
-    networks:
-      - potatostack
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:80/alive"]
-      interval: 60s
-      timeout: 10s
-      retries: 5
-    deploy:
-      resources:
+       - vaultwarden-data:/data
+     networks:
+       - potatostack
+     restart: unless-stopped
+     healthcheck:
+       test: ["CMD-SHELL", "curl -f http://127.0.0.1:3000 || exit 1"]
+       interval: 60s
+       timeout: 10s
+       retries: 5
+     deploy:
+       resources:
         limits:
           cpus: "0.25"
           memory: 128M
@@ -802,14 +754,14 @@ services:
       <<: *common-env
       APACHE_PORT: 11000
       APACHE_IP_BINDING: 0.0.0.0
-      NEXTCLOUD_DATADIR: /mnt/storage/nextcloud
+      NEXTCLOUD_DATADIR: /mnt/storage/nextcloud/data
       NEXTCLOUD_MOUNT: /mnt/storage/nextcloud
       NEXTCLOUD_UPLOAD_LIMIT: 10G
       NEXTCLOUD_MAX_TIME: 3600
       NEXTCLOUD_MEMORY_LIMIT: 512M
       SKIP_DOMAIN_VALIDATION: "true"
     volumes:
-      - nextcloud-aio-mastercontainer:/mnt/docker-aio-config
+      - nextcloud_aio_mastercontainer:/mnt/docker-aio-config
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /mnt/storage/nextcloud:/mnt/storage/nextcloud:rw
     networks:
@@ -937,7 +889,7 @@ services:
       - potatostack
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:5006/ || exit 1"]
+      test: ["CMD-SHELL", "timeout 5 bash -c 'cat < /dev/null > /dev/tcp/127.0.0.1/5006' || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -1561,7 +1513,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "wget --spider -q http://127.0.0.1:3001/api/server/ping || exit 1",
+          "curl -f http://127.0.0.1:2283/api/server/ping || exit 1",
         ]
       interval: 60s
       timeout: 10s
@@ -1871,17 +1823,17 @@ services:
     command:
       - "--housekeeping_interval=30s"
       - "--docker_only=true"
-      - "--disable_metrics=percpu,sched,tcp,udp,disk,diskIO,accelerator,hugetlb,referenced_memory,cpu_topology,resctrl"
+      - "--disable_metrics=tcp,udp,disk,diskIO,hugetlb,referenced_memory,cpu_topology,resctrl"
     networks:
       - potatostack
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          cpus: "0.25"
-          memory: 128M
+          cpus: "0.5"
+          memory: 256M
         reservations:
-          cpus: "0.1"
+          cpus: "0.2"
           memory: 128M
     labels:
       - "traefik.enable=true"
@@ -2037,7 +1989,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "wget --spider -q http://127.0.0.1:19999/api/v1/info || exit 1",
+          "curl -f http://127.0.0.1:19999/api/v1/info || exit 1",
         ]
       interval: 60s
       timeout: 10s
@@ -2193,7 +2145,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "wget --spider -q http://127.0.0.1:3001/api/push/monitor || exit 1",
+          "curl -f http://127.0.0.1:3001 || exit 1",
         ]
       interval: 60s
       timeout: 10s
@@ -2329,7 +2281,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "wget --no-verbose --tries=1 --spider http://127.0.0.1:8000 || exit 1",
+          "timeout 5 bash -c 'cat < /dev/null > /dev/tcp/127.0.0.1/8000' || exit 1",
         ]
       interval: 60s
       timeout: 10s
@@ -2709,31 +2661,31 @@ services:
       - "traefik.http.routers.woodpecker.middlewares=sso-chain@docker"
       - "traefik.http.services.woodpecker.loadbalancer.server.port=8000"
 
-  woodpecker-agent:
-    image: woodpeckerci/woodpecker-agent:${WOODPECKER_AGENT_TAG:-latest}
-    container_name: woodpecker-agent
-    logging: *default-logging
-    environment:
-      <<: *common-env
-      WOODPECKER_SERVER: woodpecker-server:9000
-      WOODPECKER_AGENT_SECRET: ${WOODPECKER_AGENT_SECRET}
-      WOODPECKER_BACKEND: docker
-      WOODPECKER_BACKEND_DOCKER_HOST: unix:///var/run/docker.sock
-      WOODPECKER_BACKEND_DOCKER_NETWORK: potatostack
-      WOODPECKER_MAX_WORKFLOWS: ${WOODPECKER_MAX_WORKFLOWS:-2}
-      WOODPECKER_GRPC_SECURE: "false"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - potatostack
-    depends_on:
-      - woodpecker-server
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 256M
+  # woodpecker-agent:
+  #   image: woodpeckerci/woodpecker-agent:${WOODPECKER_AGENT_TAG:-latest}
+  #   container_name: woodpecker-agent
+  #   logging: *default-logging
+  #   environment:
+  #     <<: *common-env
+  #     WOODPECKER_SERVER: woodpecker-server:9000
+  #     WOODPECKER_AGENT_SECRET: ${WOODPECKER_AGENT_SECRET}
+  #     WOODPECKER_BACKEND: docker
+  #     WOODPECKER_BACKEND_DOCKER_HOST: unix:///var/run/docker.sock
+  #     WOODPECKER_BACKEND_DOCKER_NETWORK: potatostack
+  #     WOODPECKER_MAX_WORKFLOWS: ${WOODPECKER_MAX_WORKFLOWS:-2}
+  #     WOODPECKER_GRPC_SECURE: "false"
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - woodpecker-server
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.5"
+  #         memory: 256M
 
   # Sentry - Error tracking
   ################################################################################
@@ -3073,16 +3025,16 @@ services:
         dns proxy = no
         map to guest = Bad User
         usershare allow guests = yes
-      ACCOUNT_${SAMBA_USER:-potato}: ${SAMBA_PASSWORD:-changeme}
-      UID_${SAMBA_USER:-potato}: "${PUID:-1000}"
-      GROUP_${SAMBA_USER:-potato}: "${PGID:-1000}"
+      ACCOUNT_daniel: ${SAMBA_PASSWORD:-changeme}
+      UID_daniel: "${PUID:-1000}"
+      GROUP_daniel: "${PGID:-1000}"
       SAMBA_VOLUME_CONFIG_storage: |
         [storage]
         path = /mnt/storage
         browsable = yes
         read only = no
         guest ok = no
-        valid users = ${SAMBA_USER:-potato}
+        valid users = daniel
         create mask = 0755
         directory mask = 0755
       SAMBA_VOLUME_CONFIG_cachehdd: |
@@ -3091,7 +3043,7 @@ services:
         browsable = yes
         read only = no
         guest ok = no
-        valid users = ${SAMBA_USER:-potato}
+        valid users = daniel
         create mask = 0755
         directory mask = 0755
       SAMBA_VOLUME_CONFIG_media: |
@@ -3100,7 +3052,7 @@ services:
         browsable = yes
         read only = no
         guest ok = no
-        valid users = ${SAMBA_USER:-potato}
+        valid users = daniel
         create mask = 0755
         directory mask = 0755
     volumes:
@@ -3329,7 +3281,7 @@ volumes:
   tailscale-data:
 
   # Cloud Storage
-  nextcloud-aio-mastercontainer:
+  nextcloud_aio_mastercontainer:
   syncthing-config:
 
   # Media Management

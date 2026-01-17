@@ -17,9 +17,9 @@ http:
       headers:
         customResponseHeaders:
           X-Robots-Tag: "noindex,nofollow,nosnippet,noarchive,notranslate,noimageindex"
-          Server: ""  # Hide server version
+          Server: "" # Hide server version
         sslRedirect: true
-        stsSeconds: 31536000  # 1 year HSTS
+        stsSeconds: 31536000 # 1 year HSTS
         stsIncludeSubdomains: true
         stsPreload: true
         forceSTSHeader: true
