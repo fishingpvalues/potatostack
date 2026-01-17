@@ -384,16 +384,14 @@ step_dev_tools_installation() {
   else
     print_info "prettier already installed: $(prettier --version)"
   fi
-  # Install trivy (Security scanner)
+  # Install trivy (Security scanner) via binary download
   if ! command -v trivy &>/dev/null; then
     print_info "Installing trivy (Security scanner)..."
-    apt-get install -y wget gnupg lsb-release
-    wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor \
-      -o /usr/share/keyrings/trivy-archive-keyring.gpg
-    echo "deb [signed-by=/usr/share/keyrings/trivy-archive-keyring.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" |
-      tee /etc/apt/sources.list.d/trivy.list
-    apt-get update
-    apt-get install -y trivy
+    # Clean up any broken trivy apt repo
+    rm -f /etc/apt/sources.list.d/trivy.list 2>/dev/null || true
+    TRIVY_VERSION=$(curl -s https://api.github.com/repos/aquasecurity/trivy/releases/latest | jq -r '.tag_name' | tr -d 'v')
+    curl -fsSL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" | tar xzf - -C /usr/local/bin trivy
+    chmod +x /usr/local/bin/trivy
     print_success "trivy installed: $(trivy --version)"
   else
     print_info "trivy already installed: $(trivy --version)"
