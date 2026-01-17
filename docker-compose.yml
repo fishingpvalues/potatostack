@@ -1665,7 +1665,7 @@ services:
 
   # Thanos Sidecar - Long-term metrics storage (SOTA 2025)
   thanos-sidecar:
-    image: quay.io/thanos/thanos-linux-amd64:${THANOS_TAG:-v0.37.2}
+    image: quay.io/thanos/thanos:${THANOS_TAG:-v0.37.2}
     container_name: thanos-sidecar
     logging: *default-logging
     command:
@@ -1698,7 +1698,7 @@ services:
 
   # Thanos Store - Long-term storage gateway
   thanos-store:
-    image: quay.io/thanos/thanos-linux-amd64:${THANOS_TAG:-v0.37.2}
+    image: quay.io/thanos/thanos:${THANOS_TAG:-v0.37.2}
     container_name: thanos-store
     logging: *default-logging
     command:
@@ -1724,7 +1724,7 @@ services:
 
   # Thanos Query - Unified query interface
   thanos-query:
-    image: quay.io/thanos/thanos-linux-amd64:${THANOS_TAG:-v0.37.2}
+    image: quay.io/thanos/thanos:${THANOS_TAG:-v0.37.2}
     container_name: thanos-query
     logging: *default-logging
     command:
@@ -1766,7 +1766,7 @@ services:
 
   # Thanos Compactor - Metrics compaction and downsampling
   thanos-compactor:
-    image: quay.io/thanos/thanos-linux-amd64:${THANOS_TAG:-v0.37.2}
+    image: quay.io/thanos/thanos:${THANOS_TAG:-v0.37.2}
     container_name: thanos-compactor
     logging: *default-logging
     command:
