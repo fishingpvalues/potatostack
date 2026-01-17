@@ -1,6 +1,6 @@
 # PotatoStack Deployment & Testing Guide
 
-## Quick Start (For Server: 192.168.178.40)
+## Quick Start (For Server: 192.168.178.158)
 
 ### Step 1: Copy Files to Server
 
@@ -9,7 +9,7 @@ From your local machine with access to the server:
 ```bash
 # Copy entire stack to server
 scp -r docker-compose.yml .env.example config/ scripts/monitor/run-and-monitor.sh \
-    daniel@192.168.178.40:~/light/
+    daniel@192.168.178.158:~/light/
 ```
 
 ### Step 2: Run Stack with Monitoring
@@ -17,7 +17,7 @@ scp -r docker-compose.yml .env.example config/ scripts/monitor/run-and-monitor.s
 SSH to server and execute:
 
 ```bash
-ssh daniel@192.168.178.40
+ssh daniel@192.168.178.158
 cd ~/light
 chmod +x run-and-monitor.sh
 ./scripts/monitor/run-and-monitor.sh 90  # Monitor for 90 seconds
@@ -159,21 +159,21 @@ sudo chmod -R 755 /mnt/storage /mnt/cachehdd /mnt/ssd/docker-data
 Access these from your browser:
 
 ### Primary
-- **Grafana**: http://192.168.178.40:3002 (main monitoring dashboard)
-- **Homarr**: http://192.168.178.40:7575 (dashboard)
-- **Traefik**: http://192.168.178.40:8080 (reverse proxy dashboard)
+- **Grafana**: http://192.168.178.158:3002 (main monitoring dashboard)
+- **Homarr**: http://192.168.178.158:7575 (dashboard)
+- **Traefik**: http://192.168.178.158:8080 (reverse proxy dashboard)
 
 ### Monitoring
-- **Prometheus**: http://192.168.178.40:9090
-- **Thanos Query**: http://192.168.178.40:10903
-- **Netdata**: http://192.168.178.40:19999 (real-time system stats)
-- **Uptime Kuma**: http://192.168.178.40:3001
+- **Prometheus**: http://192.168.178.158:9090
+- **Thanos Query**: http://192.168.178.158:10903
+- **Netdata**: http://192.168.178.158:19999 (real-time system stats)
+- **Uptime Kuma**: http://192.168.178.158:3001
 
 ### Applications
-- **Nextcloud**: http://192.168.178.40:8443
-- **Jellyfin**: http://192.168.178.40:8096
-- **Immich**: http://192.168.178.40:2283
-- **Paperless**: http://192.168.178.40:8000
+- **Nextcloud**: http://192.168.178.158:8443
+- **Jellyfin**: http://192.168.178.158:8096
+- **Immich**: http://192.168.178.158:2283
+- **Paperless**: http://192.168.178.158:8000
 
 ## Performance Optimization
 

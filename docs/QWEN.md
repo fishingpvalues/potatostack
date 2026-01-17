@@ -160,7 +160,7 @@ API keys are stored in `/keys/` volume, auto-generated if missing, format: `<ser
 
 ## Service Access
 
-All services accessible via **https://192.168.178.40** (or your HOST_BIND IP) with locally-trusted certificates:
+All services accessible via **https://192.168.178.158** (or your HOST_BIND IP) with locally-trusted certificates:
 
 | Service | HTTPS URL (Traefik) | Direct HTTP (Legacy) |
 |---------|---------------------|---------------------|

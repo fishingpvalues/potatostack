@@ -1,7 +1,7 @@
 #!/bin/bash
 # Remote Stack Runner - Executes run-and-monitor.sh on target server via SSH
 
-SERVER="192.168.178.40"
+SERVER="192.168.178.158"
 USER="daniel"
 PASSWORD="schneck0"
 REMOTE_DIR="~/light"

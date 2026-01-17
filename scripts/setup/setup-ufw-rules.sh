@@ -149,7 +149,7 @@ apply_docker_rules() {
   print_info ""
   print_info "All other containers are protected and accessible only via:"
   echo "  • Traefik reverse proxy (https://service.yourdomain.com)"
-  echo "  • Local network (HOST_BIND=${HOST_BIND:-192.168.178.40})"
+  echo "  • Local network (HOST_BIND=${HOST_BIND:-192.168.178.158})"
 }
 
 enable_ufw() {

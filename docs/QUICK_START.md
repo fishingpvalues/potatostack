@@ -46,7 +46,7 @@ docker ps | grep -E "prometheus|thanos|grafana|cadvisor|netdata|loki"
 # Wait 30 seconds for startup
 sleep 30
 
-# Open in browser: http://192.168.178.40:3002
+# Open in browser: http://192.168.178.158:3002
 # Login: admin / <your GRAFANA_ADMIN_PASSWORD>
 ```
 
@@ -73,14 +73,14 @@ Repeat for these IDs:
 ## 7. Verify Metrics Collection
 ```bash
 # Check Prometheus targets (should all be UP)
-curl -s http://192.168.178.40:9090/api/v1/targets | grep -o '"health":"[^"]*"' | sort | uniq -c
+curl -s http://192.168.178.158:9090/api/v1/targets | grep -o '"health":"[^"]*"' | sort | uniq -c
 
 # Check Thanos can query data
-curl -s http://192.168.178.40:10903/api/v1/query?query=up | jq '.data.result | length'
+curl -s http://192.168.178.158:10903/api/v1/query?query=up | jq '.data.result | length'
 # Should return number > 0
 
 # Check cAdvisor metrics
-curl -s http://192.168.178.40:8089/metrics | grep container_memory_usage_bytes | wc -l
+curl -s http://192.168.178.158:8089/metrics | grep container_memory_usage_bytes | wc -l
 # Should return number > 0 (one per container)
 ```
 
@@ -95,7 +95,7 @@ In Grafana:
 ## 9. Configure Alerts (Optional)
 ```bash
 # Check alerts loaded
-curl -s http://192.168.178.40:9090/api/v1/rules | jq '.data.groups[].name'
+curl -s http://192.168.178.158:9090/api/v1/rules | jq '.data.groups[].name'
 
 # Should show: "PotatoStack Infrastructure" and "Application Health"
 ```
@@ -119,13 +119,13 @@ curl -s http://192.168.178.40:9090/api/v1/rules | jq '.data.groups[].name'
    - Log volume
 
 ### Real-time Monitoring
-- **Netdata**: http://192.168.178.40:19999
+- **Netdata**: http://192.168.178.158:19999
   - Live system metrics
   - CPU per core
   - RAM breakdown
 
 ### Long-term Analysis
-- **Thanos Query**: http://192.168.178.40:10903
+- **Thanos Query**: http://192.168.178.158:10903
   - Query metrics from last year
   - Downsampled historical data
 
@@ -166,6 +166,6 @@ docker exec cadvisor ls /var/run/docker.sock
 **Metrics Retention:** 7 days (Prometheus) + 365 days (Thanos)  
 **Log Retention:** 30 days (Loki)
 
-**Main URL:** http://192.168.178.40:3002 (Grafana)
+**Main URL:** http://192.168.178.158:3002 (Grafana)
 
 Done! 🎉

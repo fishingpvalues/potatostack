@@ -55,7 +55,7 @@ All issues from `fixes_needed.txt` have been addressed with code fixes and docum
 - Increased start_period: 30s → 120s
 
 **Android App Configuration**:
-- Server URL: `http://192.168.178.40:8080`
+- Server URL: `http://192.168.178.158:8080`
 - Leave all other fields empty
 - No certificate needed (HTTP on LAN)
 
@@ -267,7 +267,7 @@ docker compose restart slskd
 2. Verify Vaultwarden starts successfully:
    ```bash
    docker logs -f vaultwarden
-   curl http://192.168.178.40:8080
+   curl http://192.168.178.158:8080
    ```
 
 3. Monitor stack health:

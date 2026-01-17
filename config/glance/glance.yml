@@ -56,14 +56,14 @@ pages:
             title: Services
             sites:
               - title: Jellyfin
-                url: http://192.168.178.40:8096
+                url: http://192.168.178.158:8096
                 icon: si:jellyfin
               - title: Nextcloud
-                url: http://192.168.178.40:8082
+                url: http://192.168.178.158:8082
                 icon: si:nextcloud
               - title: Vaultwarden
-                url: http://192.168.178.40:8888
+                url: http://192.168.178.158:8888
                 icon: si:bitwarden
               - title: Grafana
-                url: http://192.168.178.40:3000
+                url: http://192.168.178.158:3000
                 icon: si:grafana

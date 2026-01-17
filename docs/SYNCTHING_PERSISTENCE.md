@@ -134,7 +134,7 @@ kopia:
 ```bash
 docker restart syncthing
 # Wait for startup
-curl http://192.168.178.40:8384
+curl http://192.168.178.158:8384
 # Check if devices and folders are still configured
 ```
 

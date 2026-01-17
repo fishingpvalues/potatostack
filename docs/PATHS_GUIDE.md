@@ -125,7 +125,7 @@ Full tree:
 ## Common Setup Scenarios
 
 ### Adding smartphone camera backup to Syncthing
-1. Open Syncthing UI: `http://192.168.178.40:8384`
+1. Open Syncthing UI: `http://192.168.178.158:8384`
 2. Add folder in Syncthing UI
 3. Folder path (Android): `/data/camera-sync/android`
 4. Folder path (iOS): `/data/camera-sync/ios`

@@ -29,6 +29,8 @@ NC='\033[0m'
 DOCKER_USER="${DOCKER_USER:-${SUDO_USER:-$(whoami)}}"
 SETUP_ROOTLESS="${SETUP_ROOTLESS:-false}"
 SETUP_AUTOSTART="${SETUP_AUTOSTART:-true}"
+SETUP_GENERATE_ENV="${SETUP_GENERATE_ENV:-true}"
+SETUP_SOULSEEK_SYMLINKS="${SETUP_SOULSEEK_SYMLINKS:-false}"
 HARDWARE_CPU="Intel Twin Lake N150"
 HARDWARE_RAM="16GB"
 HARDWARE_STORAGE="512GB SSD"
@@ -506,6 +508,66 @@ step_storage_setup() {
   print_success "Storage directories created and validated"
 }
 ################################################################################
+# Step 7b: Generate Environment File (.env)
+################################################################################
+step_generate_env() {
+  print_header "Step 7b: Generate Environment Configuration (.env)"
+
+  if [[ "$SETUP_GENERATE_ENV" != "true" ]]; then
+    print_info "Skipping .env generation (SETUP_GENERATE_ENV=false)"
+    return 0
+  fi
+
+  local project_root
+  project_root="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+  local env_file="$project_root/.env"
+
+  # Check if .env already exists
+  if [[ -f "$env_file" ]]; then
+    print_info ".env file already exists at $env_file"
+    echo -ne "  ${YELLOW}Skip generation? [Y/n]:${NC} "
+    read -r skip_confirm
+    if [[ ! "$skip_confirm" =~ ^[Nn]$ ]]; then
+      print_info "Keeping existing .env file"
+      return 0
+    fi
+  fi
+
+  if [[ -f "${SCRIPT_DIR}/generate-env.sh" ]]; then
+    print_info "Running generate-env.sh to create .env with secure secrets..."
+    # Run as non-root user if possible for proper file ownership
+    if [[ -n "$DOCKER_USER" && "$DOCKER_USER" != "root" ]]; then
+      su - "$DOCKER_USER" -c "cd '$project_root' && bash '${SCRIPT_DIR}/generate-env.sh'"
+    else
+      bash "${SCRIPT_DIR}/generate-env.sh"
+    fi
+    print_success "Environment configuration generated"
+  else
+    print_error "generate-env.sh not found at ${SCRIPT_DIR}/generate-env.sh"
+    print_info "You can generate .env manually later with: ./scripts/setup/generate-env.sh"
+  fi
+}
+################################################################################
+# Step 7c: Soulseek Symlinks (Optional)
+################################################################################
+step_soulseek_symlinks() {
+  print_header "Step 7c: Soulseek Symlinks (Optional)"
+
+  if [[ "$SETUP_SOULSEEK_SYMLINKS" != "true" ]]; then
+    print_info "Skipping Soulseek symlinks (SETUP_SOULSEEK_SYMLINKS=false)"
+    print_info "To enable, run: SETUP_SOULSEEK_SYMLINKS=true sudo bash scripts/setup/setup-potatostack.sh"
+    return 0
+  fi
+
+  if [[ -f "${SCRIPT_DIR}/setup-soulseek-symlinks.sh" ]]; then
+    print_info "Creating Soulseek shared folder symlinks..."
+    bash "${SCRIPT_DIR}/setup-soulseek-symlinks.sh"
+    print_success "Soulseek symlinks created"
+  else
+    print_info "setup-soulseek-symlinks.sh not found, skipping."
+  fi
+}
+################################################################################
 # Step 8: Autostart & Security Hardening
 ################################################################################
 step_autostart_hardening() {
@@ -616,7 +678,7 @@ step_firewall_setup() {
   echo "IMPORTANT - Docker Container Firewall Rules:"
   echo "  All other Docker containers are protected by UFW and accessible only:"
   echo "  1. Through Traefik reverse proxy (ports 80/443)"
-  echo "  2. From localhost/LAN (HOST_BIND=${HOST_BIND:-192.168.178.40})"
+  echo "  2. From localhost/LAN (HOST_BIND=${HOST_BIND:-192.168.178.158})"
   echo ""
   echo "To expose additional Docker container ports:"
   echo "  sudo ufw-docker allow <container-name> <port>/<protocol>"
@@ -821,22 +883,18 @@ NEXT STEPS:
 1. Log out and log back in for group permissions to take effect:
     $ logout
     # Then log back in
-2. Create a directory for your docker-compose.yml:
-    $ mkdir -p ~/potatostack
-    $ cd ~/potatostack
-3. Place your docker-compose.yml file in this directory
-4. Create a .env file with your configuration:
-    $ cp .env.example .env
-    # Edit with your settings:
-    $ nano .env
-5. Start PotatoStack:
+2. Navigate to the PotatoStack directory:
+    $ cd ~/potatostack  # or wherever you cloned the repo
+3. If .env was not generated during setup, create it now:
+    $ ./scripts/setup/generate-env.sh
+4. Start PotatoStack:
     $ docker compose up -d
-6. Verify services are running:
+5. Verify services are running:
     $ docker compose ps
     $ docker compose logs -f
-7. Optional: Enable autostart/hardening later (if skipped):
+6. Optional: Enable autostart/hardening later (if skipped):
     $ sudo ./scripts/setup/setup-autostart.sh
-8. Optional: Create Soulseek symlinks for sharing:
+7. Optional: Create Soulseek symlinks for sharing:
     $ sudo ./scripts/setup/setup-soulseek-symlinks.sh
 VALIDATION COMMANDS:
   • make validate  - Validate docker-compose.yml syntax
@@ -872,8 +930,10 @@ IMPORTANT NOTES:
   $ docker compose logs <service-name>
   $ docker compose logs -f --tail=100
 OPTIONAL FLAGS:
-  • SETUP_AUTOSTART=false  # Skip autostart/hardening step
-  • SETUP_ROOTLESS=true    # Enable rootless Docker setup
+  • SETUP_AUTOSTART=false       # Skip autostart/hardening step
+  • SETUP_ROOTLESS=true         # Enable rootless Docker setup
+  • SETUP_GENERATE_ENV=false    # Skip .env generation (if already exists)
+  • SETUP_SOULSEEK_SYMLINKS=true # Create Soulseek shared folder symlinks
 USEFUL COMMANDS:
   # View running containers
   docker compose ps
@@ -935,6 +995,8 @@ main() {
   step_system_optimization
   step_host_tuning
   step_storage_setup
+  step_generate_env
+  step_soulseek_symlinks
   step_autostart_hardening
   step_additional_tools
   step_firewall_setup

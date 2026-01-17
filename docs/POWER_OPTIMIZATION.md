@@ -13,7 +13,7 @@ All services have `deploy.resources` with CPU limits:
 - Light services (most): 0.1-0.5 CPU
 
 ## 2. RAM Monitoring (Implemented)
-- **Netdata**: Real-time monitoring at `http://192.168.178.40:19999`
+- **Netdata**: Real-time monitoring at `http://192.168.178.158:19999`
 - **Prometheus + Grafana**: Metrics collection and visualization
 - **Beszel**: Docker-specific monitoring
 

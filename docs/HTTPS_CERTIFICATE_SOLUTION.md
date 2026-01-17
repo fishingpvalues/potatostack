@@ -145,14 +145,14 @@ In docker-compose.yml, change Vaultwarden domain:
 At your DNS provider (Cloudflare), add A record:
 
 ```
-vault.yourdomain.com → 192.168.178.40 (your HOST_BIND)
-backup.yourdomain.com → 192.168.178.40
-paste.yourdomain.com → 192.168.178.40
+vault.yourdomain.com → 192.168.178.158 (your HOST_BIND)
+backup.yourdomain.com → 192.168.178.158
+paste.yourdomain.com → 192.168.178.158
 ```
 
 Or use wildcard:
 ```
-*.yourdomain.com → 192.168.178.40
+*.yourdomain.com → 192.168.178.158
 ```
 
 **Important**: These can be local IPs! DNS challenge doesn't require internet-accessible servers.

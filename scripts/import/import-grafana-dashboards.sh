@@ -1,7 +1,7 @@
 #!/bin/bash
 # Auto-import Grafana dashboards from Grafana.com
 
-GRAFANA_URL="${GRAFANA_URL:-http://192.168.178.40:3002}"
+GRAFANA_URL="${GRAFANA_URL:-http://192.168.178.158:3002}"
 GRAFANA_USER="${GRAFANA_ADMIN_USER:-admin}"
 GRAFANA_PASSWORD="${GRAFANA_ADMIN_PASSWORD}"
 
