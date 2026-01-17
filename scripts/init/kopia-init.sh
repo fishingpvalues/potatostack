@@ -11,7 +11,7 @@ KOPIA_SERVER_PASSWORD="${KOPIA_SERVER_PASSWORD:-}"
 echo "Initializing Kopia repository..."
 
 # Check if repository directory exists and is non-empty
-if [ ! -f /repository/f.kopia.repository ] && [ ! -d /repository/.kopia ]; then
+if [ ! -f /repository/kopia.repository.f ] && [ ! -d /repository/.kopia ]; then
 	echo "Repository not initialized. Creating new repository..."
 
 	if kopia repository create filesystem --path=/repository; then
