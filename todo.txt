@@ -1,0 +1,8 @@
+- comment out complete elastic stack
+- copmment out openweb.ui
+- comment out stirling pdf
+- comment out cadvisor
+
+use docker stats and completely adapt resources ALL based on how they are consumed 
+
+FIX ALL REMAINING ISSUES AND MAEK SURE ALL RUNS PERFECTLY AND WELL
