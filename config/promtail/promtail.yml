@@ -34,4 +34,4 @@ scrape_configs:
           - localhost
         labels:
           job: traefik
-          __path__: /var/log/traefik/*.log
+          __path__: /logs/*.log

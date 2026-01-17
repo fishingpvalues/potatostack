@@ -5,8 +5,7 @@
 # Runs once at startup via storage-init container
 ################################################################################
 
-# shellcheck disable=SC3040
-set -euo pipefail
+set -eu
 
 STORAGE_BASE="/mnt/storage"
 CACHE_BASE="/mnt/cachehdd"
@@ -208,18 +207,24 @@ fi
 
 if swapon --show 2>/dev/null | grep -q "$SWAP_FILE"; then
 	printf '%s\n' "✓ Swap already enabled: 2GB active"
+elif grep -q "$SWAP_FILE" /proc/swaps 2>/dev/null; then
+	printf '%s\n' "✓ Swap already active: 2GB"
 else
-	if ! file "$SWAP_FILE" 2>/dev/null | grep -q "swap file"; then
+	# Only initialize if not already a swap file
+	if [ -f "$SWAP_FILE" ] && ! file "$SWAP_FILE" 2>/dev/null | grep -q "swap"; then
 		printf '%s\n' "Initializing swap file..."
-		mkswap "$SWAP_FILE"
-		printf '%s\n' "✓ Swap file initialized"
+		if mkswap "$SWAP_FILE" 2>/dev/null; then
+			printf '%s\n' "✓ Swap file initialized"
+		else
+			printf '%s\n' "⚠ Swap file may already be in use, skipping mkswap"
+		fi
 	fi
 
 	printf '%s\n' "Enabling swap..."
 	if swapon "$SWAP_FILE" 2>/dev/null; then
 		printf '%s\n' "✓ Swap enabled: 2GB active"
 	else
-		printf '%s\n' "⚠ Could not enable swap (may need host privileges)"
+		printf '%s\n' "⚠ Could not enable swap (may need host privileges or already active)"
 		printf '%s\n' "  Run on host: sudo swapon $SWAP_FILE"
 	fi
 fi
@@ -246,6 +251,35 @@ if [ -f "$SWAP_FILE" ]; then
 fi
 
 chmod 775 "${CACHE_BASE}/syncthing-versions"
+
+################################################################################
+# Service-specific permissions (UIDs vary by image)
+################################################################################
+printf '%s\n' "Setting service-specific permissions..."
+
+# PostgreSQL (UID 999)
+[ -d "${SSD_BASE}/postgres" ] && chown -R 999:999 "${SSD_BASE}/postgres" && chmod -R 700 "${SSD_BASE}/postgres"
+
+# Redis (UID 999, GID 1000)
+[ -d "${SSD_BASE}/redis-cache" ] && chown -R 999:1000 "${SSD_BASE}/redis-cache"
+
+# Prometheus (UID 65534 - nobody)
+[ -d "${CACHE_BASE}/prometheus" ] && chown -R 65534:65534 "${CACHE_BASE}/prometheus"
+
+# Loki (UID 10001)
+[ -d "${CACHE_BASE}/loki" ] && chown -R 10001:10001 "${CACHE_BASE}/loki"
+
+# Grafana (UID 472)
+[ -d "${SSD_BASE}/grafana" ] && chown -R 472:472 "${SSD_BASE}/grafana"
+
+# Thanos (UID 1001)
+mkdir -p "${CACHE_BASE}/thanos/store" "${CACHE_BASE}/thanos/compact"
+chown -R 1001:1001 "${CACHE_BASE}/thanos"
+
+# Alertmanager (UID 65534)
+[ -d "${CACHE_BASE}/alertmanager" ] && chown -R 65534:65534 "${CACHE_BASE}/alertmanager"
+
+printf '%s\n' "✓ Service permissions set"
 
 ################################################################################
 # Generate API Keys for Shared Services

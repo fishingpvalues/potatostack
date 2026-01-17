@@ -3,8 +3,7 @@
 # Kopia Init Script - Auto-initialize repository if not exists
 ################################################################################
 
-# shellcheck disable=SC3040
-set -euo pipefail
+set -eu
 
 KOPIA_SERVER_USER="${KOPIA_SERVER_USER:-admin}"
 KOPIA_SERVER_PASSWORD="${KOPIA_SERVER_PASSWORD:-}"

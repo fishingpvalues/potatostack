@@ -20,7 +20,7 @@ nano .env
 # Add these (replace with secure passwords):
 GRAFANA_ADMIN_PASSWORD=your-secure-password
 MINIFLUX_ADMIN_PASSWORD=your-secure-password
-THANOS_TAG=latest
+THANOS_TAG=v0.37.2
 CADVISOR_TAG=latest
 ```
 
