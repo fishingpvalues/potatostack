@@ -104,9 +104,9 @@ END_TIME=$((START_TIME + MONITOR_TIME))
 # Arrays to track issues
 declare -a FAILED_SERVICES
 declare -a ERROR_SERVICES
-declare -a WARNING_SERVICES
+# declare -a WARNING_SERVICES  # Unused variable, removed to fix SC2034
 
-while [ $(date +%s) -lt $END_TIME ]; do
+while [ "$(date +%s)" -lt "$END_TIME" ]; do
 	CURRENT_TIME=$(date +%s)
 	ELAPSED=$((CURRENT_TIME - START_TIME))
 
@@ -122,7 +122,7 @@ while [ $(date +%s) -lt $END_TIME ]; do
 	FAILED=$(docker compose ps --filter status=exited --format '{{.Service}}')
 	if [ -n "$FAILED" ]; then
 		for service in $FAILED; do
-			if [[ ! " ${FAILED_SERVICES[@]} " =~ " ${service} " ]]; then
+			if ! printf '%s\n' "${FAILED_SERVICES[@]}" | grep -q "$service"; then
 				FAILED_SERVICES+=("$service")
 				echo "  ✗ $service exited!"
 			fi
@@ -151,14 +151,16 @@ ERROR_PATTERNS=(
 echo ""
 echo "Scanning logs for errors (last 100 lines per service)..."
 
-docker compose ps --format '{{.Service}}' | while read service; do
+# Collect services with errors
+SERVICES_WITH_ERRORS=$(mktemp)
+docker compose ps --format '{{.Service}}' | while IFS= read -r service; do
 	# Skip if service not running
-	if ! docker compose ps --filter name=$service --filter status=running | grep -q $service; then
+	if ! docker compose ps --filter name="$service" --filter status=running | grep -q "$service"; then
 		continue
 	fi
 
 	# Get recent logs
-	LOGS=$(docker compose logs --tail 100 $service 2>&1)
+	LOGS=$(docker compose logs --tail 100 "$service" 2>&1)
 
 	# Check for errors
 	ERROR_COUNT=0
@@ -172,9 +174,15 @@ docker compose ps --format '{{.Service}}' | while read service; do
 		echo ""
 		echo "⚠ $service has errors in logs:"
 		echo "$LOGS" | grep -i -E "error|fatal|panic|exception|failed" | tail -5 | sed 's/^/  /'
-		ERROR_SERVICES+=("$service")
+		echo "$service" >> "$SERVICES_WITH_ERRORS"
 	fi
 done
+
+# Read services with errors into array
+if [ -f "$SERVICES_WITH_ERRORS" ]; then
+mapfile -t ERROR_SERVICES < "$SERVICES_WITH_ERRORS"
+rm -f "$SERVICES_WITH_ERRORS"
+fi
 
 # Phase 8: Generate report
 echo ""
@@ -209,7 +217,7 @@ if [ ${#FAILED_SERVICES[@]} -gt 0 ]; then
 	for service in "${FAILED_SERVICES[@]}"; do
 		echo "  ✗ $service"
 		echo "    Last logs:"
-		docker compose logs --tail 10 $service 2>&1 | sed 's/^/      /'
+		docker compose logs --tail 10 "$service" 2>&1 | sed 's/^/      /'
 	done
 	echo ""
 fi
@@ -225,20 +233,20 @@ fi
 
 # Health summary
 echo "Health Summary:"
-if [ $EXITED -eq 0 ] && [ $UNHEALTHY -eq 0 ]; then
+if [ "$EXITED" -eq 0 ] && [ "$UNHEALTHY" -eq 0 ]; then
 	echo "  ✅ All services healthy"
-elif [ $EXITED -gt 0 ]; then
+elif [ "$EXITED" -gt 0 ]; then
 	echo "  ❌ $EXITED services failed"
-elif [ $UNHEALTHY -gt 0 ]; then
+elif [ "$UNHEALTHY" -gt 0 ]; then
 	echo "  ⚠ $UNHEALTHY services unhealthy"
 fi
 
 echo ""
 echo "To view logs for a specific service:"
-echo "  docker compose logs -f <service-name>"
+echo "  docker compose logs -f \"<service-name>\""
 echo ""
 echo "To restart failed services:"
-echo "  docker compose restart <service-name>"
+echo "  docker compose restart \"<service-name>\""
 echo ""
 echo "To stop all:"
 echo "  docker compose down"
