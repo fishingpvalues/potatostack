@@ -133,12 +133,7 @@ scrape_configs:
   #   static_configs:
   #   - targets: ['node-exporter:9100']
 
-# Storage optimization for 16GB RAM system
-storage:
-  tsdb:
-    max-block-duration: 2h
-    min-block-duration: 2h
-
 # Remote write to Thanos (optional - using sidecar instead)
+# Note: storage.tsdb settings moved to command line flags
 # remote_write:
 #   - url: http://thanos-receive:19291/api/v1/receive

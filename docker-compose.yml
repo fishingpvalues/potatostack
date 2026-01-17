@@ -228,7 +228,7 @@ services:
       - /mnt/ssd/docker-data/crowdsec-db:/var/lib/crowdsec/data/
       - /mnt/ssd/docker-data/crowdsec-config:/etc/crowdsec/
       - /var/log:/var/log:ro
-      - traefik-logs:/var/log/traefik:ro
+      - traefik-logs:/logs:ro
     networks:
       - potatostack
     restart: unless-stopped
@@ -315,10 +315,10 @@ services:
       # Observability
       - "--log.level=INFO"
       - "--accesslog=true"
-      - "--accesslog.filepath=/var/log/traefik/access.log"
+      - "--accesslog.filepath=/logs/access.log"
       - "--accesslog.format=json"
       - "--accesslog.fields.headers.defaultmode=drop"
-      - "--log.filepath=/var/log/traefik/traefik.log"
+      - "--log.filepath=/logs/traefik.log"
       - "--metrics.prometheus=true"
       - "--metrics.prometheus.addServicesLabels=true"
       - "--metrics.prometheus.addEntryPointsLabels=true"
@@ -326,7 +326,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./config/traefik:/etc/traefik/dynamic:ro
       - traefik-certs:/letsencrypt
-      - traefik-logs:/var/log/traefik
+      - traefik-logs:/logs
     networks:
       - potatostack
     depends_on:
@@ -385,6 +385,7 @@ services:
       AUTHENTIK_POSTGRESQL__USER: postgres
       AUTHENTIK_POSTGRESQL__NAME: authentik
       AUTHENTIK_POSTGRESQL__PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+      AUTHENTIK_REDIS__HOST: redis-cache
       AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
       AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
     volumes:
@@ -394,6 +395,7 @@ services:
       - potatostack
     depends_on:
       - postgres
+      - redis-cache
     restart: unless-stopped
     healthcheck:
       test:
@@ -432,6 +434,7 @@ services:
       AUTHENTIK_POSTGRESQL__USER: postgres
       AUTHENTIK_POSTGRESQL__NAME: authentik
       AUTHENTIK_POSTGRESQL__PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+      AUTHENTIK_REDIS__HOST: redis-cache
       AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
     volumes:
       - authentik-media:/media
@@ -440,6 +443,7 @@ services:
       - potatostack
     depends_on:
       - postgres
+      - redis-cache
     restart: unless-stopped
     deploy:
       resources:
@@ -640,7 +644,7 @@ services:
       - potatostack
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "pgrep", "openvpn"]
+      test: ["CMD", "/gluetun-entrypoint", "healthcheck"]
       interval: 120s
       timeout: 10s
       retries: 3
@@ -876,7 +880,7 @@ services:
       - "${HOST_BIND:-192.168.178.158}:8093:8080"
     environment:
       <<: *common-env
-      DATABASE_URL: postgres://postgres:${POSTGRES_SUPER_PASSWORD}@pgbouncer:5432/miniflux?sslmode=disable
+      DATABASE_URL: postgres://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/miniflux?sslmode=disable
       RUN_MIGRATIONS: "1"
       CREATE_ADMIN: "1"
       ADMIN_USERNAME: ${MINIFLUX_ADMIN_USER:-admin}
@@ -1807,7 +1811,7 @@ services:
       GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel
       GF_SERVER_ROOT_URL: https://grafana.${HOST_DOMAIN:-local.domain}
       GF_DATABASE_TYPE: postgres
-      GF_DATABASE_HOST: pgbouncer:5432
+      GF_DATABASE_HOST: postgres:5432
       GF_DATABASE_NAME: grafana
       GF_DATABASE_USER: postgres
       GF_DATABASE_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
@@ -2090,7 +2094,7 @@ services:
     volumes:
       - ./config/promtail:/etc/promtail
       - /var/log:/var/log:ro
-      - traefik-logs:/var/log/traefik:ro
+      - traefik-logs:/logs:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - potatostack
@@ -2515,10 +2519,10 @@ services:
 
   # DuckDB - Ad-hoc analytics container
   duckdb:
-    image: duckdb/duckdb:${DUCKDB_TAG:-latest}
+    image: alpine:latest
     container_name: duckdb
     logging: *default-logging
-    command: ["sleep", "infinity"]
+    entrypoint: ["/bin/sh", "-c", "tail -f /dev/null"]
     volumes:
       - /mnt/storage/duckdb:/data
     networks:
@@ -2910,7 +2914,7 @@ services:
     volumes:
       - fail2ban-data:/data
       - /var/log:/var/log:ro
-      - traefik-logs:/var/log/traefik:ro
+      - traefik-logs:/logs:ro
     restart: unless-stopped
     deploy:
       resources:
@@ -2955,7 +2959,6 @@ services:
     logging: *default-logging
     command:
       - "--config.file=/etc/alertmanager/config.yml"
-      - "--config.expand-env"
       - "--storage.path=/alertmanager"
       - "--web.external-url=https://alerts.${HOST_DOMAIN:-local.domain}"
     environment:

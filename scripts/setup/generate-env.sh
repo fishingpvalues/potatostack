@@ -194,7 +194,8 @@ main() {
     read_input "VPN Provider" VPN_PROVIDER "surfshark"
     read_input "VPN Type" VPN_TYPE "wireguard"
     read_optional "WireGuard Private Key" WIREGUARD_PRIVATE_KEY
-    read_input "WireGuard Addresses" WIREGUARD_ADDRESSES "10.64.222.21/16"
+    # NOTE: WIREGUARD_ADDRESSES is your VPN client IP (from Surfshark config), NOT the server hostname
+    read_input "WireGuard Addresses (client VPN IP, e.g. 10.14.0.2/16)" WIREGUARD_ADDRESSES "10.64.222.21/16"
     read_input "VPN Country" VPN_COUNTRY "Germany"
 
     print_header "Tailscale (Optional)"
@@ -550,9 +551,13 @@ NETDATA_CLAIM_ROOMS=
 
 ################################################################################
 # IMAGE TAGS (databases pinned, apps latest)
+# NOTE: Some images don't publish "latest" tag or use different tag formats:
+#   - pgvector/pgvector: uses "pg16" format (not "16-alpine" or "latest")
+#   - quay.io/thanos/thanos: uses "vX.Y.Z" format (no "latest" tag)
+#   - docker (CLI): uses "27-cli" format (tag + "-cli" suffix)
 ################################################################################
 ALPINE_TAG=latest
-POSTGRES_TAG=16-alpine
+POSTGRES_TAG=pg16
 MONGO_TAG=8
 REDIS_TAG=alpine
 ADMINER_TAG=latest
@@ -637,12 +642,12 @@ KIBANA_TAG=8
 LOGSTASH_TAG=8
 
 GLANCE_TAG=latest
-THANOS_TAG=latest
+THANOS_TAG=v0.37.2
 
 DIUN_TAG=latest
 AUTOHEAL_TAG=latest
 PORTAINER_TAG=latest
-DOCKER_CLI_TAG=latest
+DOCKER_CLI_TAG=27
 
 WIREGUARD_TAG=latest
 SLSKD_TAG=latest

@@ -3,8 +3,7 @@
 # slskd Init Script - Auto-configure API key on startup
 ################################################################################
 
-# shellcheck disable=SC3040
-set -euo pipefail
+set -eu
 
 CONFIG_DIR="/app"
 CONFIG_FILE="$CONFIG_DIR/slskd.yml"
