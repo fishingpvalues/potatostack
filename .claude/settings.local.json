@@ -141,7 +141,8 @@
       "Bash(sudo -S chmod:*)",
       "Bash(sudo -S bash -c '\n# Fix thanos directories\nmkdir -p /mnt/cachehdd/thanos/store /mnt/cachehdd/thanos/compact\nchown -R 1001:1001 /mnt/cachehdd/thanos\n\n# Fix grafana\nchown -R 472:472 /mnt/ssd/docker-data/grafana 2>/dev/null || true\n\n# Fix alertmanager  \nchown -R 65534:65534 /mnt/cachehdd/alertmanager 2>/dev/null || true\n\n# Fix kopia\nchown -R 0:0 /mnt/ssd/docker-data/kopia 2>/dev/null || true\n\n# Fix samba\nchown -R 0:0 /mnt/storage/samba 2>/dev/null || true\n\n# Fix diun\nmkdir -p /mnt/ssd/docker-data/diun\nchown -R 1000:1000 /mnt/ssd/docker-data/diun 2>/dev/null || true\n\n# Fix cadvisor \\(runs as root\\)\n# No data dir to fix\n\necho \"\"Permissions fixed\"\"\n')",
       "Bash(sudo -S bash -c '\n# Fix thanos named volumes \\(UID 1001\\)\nchown -R 1001:1001 /var/lib/docker/volumes/potatostack_thanos-store-data/_data 2>/dev/null || true\nchown -R 1001:1001 /var/lib/docker/volumes/potatostack_thanos-compact-data/_data 2>/dev/null || true\n\n# Fix alertmanager volume \\(UID 65534\\)\nchown -R 65534:65534 /var/lib/docker/volumes/potatostack_alertmanager-data/_data 2>/dev/null || true\n\n# Fix grafana volume \\(UID 472\\)\nchown -R 472:472 /var/lib/docker/volumes/potatostack_grafana-data/_data 2>/dev/null || true\n\necho \"\"Named volume permissions fixed\"\"\n')",
-      "Bash(sort:*)"
+      "Bash(sort:*)",
+      "Bash(/home/daniel/potatostack/scripts/setup/generate-local-certs.sh:*)"
     ],
     "deny": [],
     "ask": []
