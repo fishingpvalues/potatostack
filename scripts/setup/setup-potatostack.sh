@@ -89,7 +89,6 @@ step_system_update() {
     gnupg \
     lsb-release \
     apt-transport-https \
-    software-properties-common \
     git \
     wget \
     nano \
@@ -117,13 +116,9 @@ step_system_update() {
     starship \
     tmux \
     neovim \
-    helix \
     lazygit \
-    lazydocker \
-    yazi \
-    zellij \
     atuin \
-    exa \
+    eza \
     imagemagick \
     ffmpeg \
     poppler-utils \
@@ -148,8 +143,6 @@ step_system_update() {
     multitail \
     logwatch \
     p7zip-full \
-    dive \
-    ctop \
     fzf \
     tealdeer \
     silversearcher-ag \
@@ -158,6 +151,69 @@ step_system_update() {
     mediainfo \
     nfs-common \
     samba
+
+  # Install tools not in Debian repos via binary downloads
+  print_info "Installing additional CLI tools (binary downloads)..."
+
+  # dive (Docker image explorer)
+  if ! command -v dive &>/dev/null; then
+    print_info "Installing dive..."
+    DIVE_VERSION=$(curl -s https://api.github.com/repos/wagoodman/dive/releases/latest | jq -r '.tag_name' | tr -d 'v')
+    curl -fsSL "https://github.com/wagoodman/dive/releases/download/v${DIVE_VERSION}/dive_${DIVE_VERSION}_linux_amd64.tar.gz" | tar xzf - -C /usr/local/bin dive
+    chmod +x /usr/local/bin/dive
+    print_success "dive installed"
+  fi
+
+  # ctop (container top)
+  if ! command -v ctop &>/dev/null; then
+    print_info "Installing ctop..."
+    CTOP_VERSION=$(curl -s https://api.github.com/repos/bcicen/ctop/releases/latest | jq -r '.tag_name' | tr -d 'v')
+    curl -fsSL "https://github.com/bcicen/ctop/releases/download/v${CTOP_VERSION}/ctop-${CTOP_VERSION}-linux-amd64" -o /usr/local/bin/ctop
+    chmod +x /usr/local/bin/ctop
+    print_success "ctop installed"
+  fi
+
+  # lazydocker (Docker TUI)
+  if ! command -v lazydocker &>/dev/null; then
+    print_info "Installing lazydocker..."
+    LAZYDOCKER_VERSION=$(curl -s https://api.github.com/repos/jesseduffield/lazydocker/releases/latest | jq -r '.tag_name' | tr -d 'v')
+    curl -fsSL "https://github.com/jesseduffield/lazydocker/releases/download/v${LAZYDOCKER_VERSION}/lazydocker_${LAZYDOCKER_VERSION}_Linux_x86_64.tar.gz" | tar xzf - -C /usr/local/bin lazydocker
+    chmod +x /usr/local/bin/lazydocker
+    print_success "lazydocker installed"
+  fi
+
+  # yazi (file manager)
+  if ! command -v yazi &>/dev/null; then
+    print_info "Installing yazi..."
+    YAZI_VERSION=$(curl -s https://api.github.com/repos/sxyazi/yazi/releases/latest | jq -r '.tag_name' | tr -d 'v')
+    curl -fsSL "https://github.com/sxyazi/yazi/releases/download/v${YAZI_VERSION}/yazi-x86_64-unknown-linux-gnu.zip" -o /tmp/yazi.zip
+    unzip -q -o /tmp/yazi.zip -d /tmp/yazi
+    mv /tmp/yazi/yazi-x86_64-unknown-linux-gnu/yazi /usr/local/bin/
+    chmod +x /usr/local/bin/yazi
+    rm -rf /tmp/yazi /tmp/yazi.zip
+    print_success "yazi installed"
+  fi
+
+  # zellij (terminal multiplexer)
+  if ! command -v zellij &>/dev/null; then
+    print_info "Installing zellij..."
+    ZELLIJ_VERSION=$(curl -s https://api.github.com/repos/zellij-org/zellij/releases/latest | jq -r '.tag_name' | tr -d 'v')
+    curl -fsSL "https://github.com/zellij-org/zellij/releases/download/v${ZELLIJ_VERSION}/zellij-x86_64-unknown-linux-musl.tar.gz" | tar xzf - -C /usr/local/bin
+    chmod +x /usr/local/bin/zellij
+    print_success "zellij installed"
+  fi
+
+  # helix (editor)
+  if ! command -v hx &>/dev/null; then
+    print_info "Installing helix..."
+    HELIX_VERSION=$(curl -s https://api.github.com/repos/helix-editor/helix/releases/latest | jq -r '.tag_name')
+    curl -fsSL "https://github.com/helix-editor/helix/releases/download/${HELIX_VERSION}/helix-${HELIX_VERSION}-x86_64-linux.tar.xz" -o /tmp/helix.tar.xz
+    tar xJf /tmp/helix.tar.xz -C /opt/
+    ln -sf /opt/helix-${HELIX_VERSION}-x86_64-linux/hx /usr/local/bin/hx
+    rm /tmp/helix.tar.xz
+    print_success "helix installed (as 'hx')"
+  fi
+
   print_success "System dependencies installed"
 }
 ################################################################################
