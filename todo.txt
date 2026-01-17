@@ -3,6 +3,9 @@
 - comment out stirling pdf
 - comment out cadvisor
 
-use docker stats and completely adapt resources ALL based on how they are consumed 
+then make docker compose down and create all fresh and fix errors with dbs and write these fixes persistent
 
-FIX ALL REMAINING ISSUES AND MAEK SURE ALL RUNS PERFECTLY AND WELL
+use docker stats and completely adapt resources ALL based on how they are consumed and how many are available and that streaming seevices and homarr etc basically all serv ices which nEED more resorucces get them make sure to do a clever approach 
+
+
+FIX ALL REMAINING ISSUES AND MAEK SURE ALL RUNS PERFECTLY AND WELL check logs etc and make sure all foixes are persisted
