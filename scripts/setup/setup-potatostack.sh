@@ -440,7 +440,13 @@ EOF
     print_success "File descriptor limits configured"
   fi
   # Optimize sysctl for Docker (N150 low-power optimized)
+  # Create sysctl.conf if it doesn't exist
+  touch /etc/sysctl.conf
   if ! grep -q "POTATOSTACK_OPTIMIZATIONS" /etc/sysctl.conf; then
+    # Load br_netfilter module for bridge settings (required for Docker)
+    modprobe br_netfilter 2>/dev/null || true
+    # Ensure br_netfilter loads on boot
+    echo "br_netfilter" > /etc/modules-load.d/br_netfilter.conf 2>/dev/null || true
     cat >>/etc/sysctl.conf <<EOF
 # POTATOSTACK_OPTIMIZATIONS - N150/16GB RAM optimized
 # Docker networking optimization
@@ -465,7 +471,8 @@ net.ipv4.tcp_congestion_control = bbr
 # Container runtime optimizations
 net.ipv4.ip_local_port_range = 1024 65535
 EOF
-    sysctl -p
+    # Apply sysctl settings (ignore bridge errors if module not loaded)
+    sysctl -p 2>/dev/null || sysctl --system
     print_success "Sysctl parameters optimized for N150/16GB RAM"
   fi
   # Create docker data directory structure
