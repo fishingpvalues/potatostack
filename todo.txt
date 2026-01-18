@@ -84,7 +84,9 @@ Actual benötigt Zugriff auf SharedArrayBuffer, um richtig zu funktionieren. Wen
 
 MAKE SURE ALL CONFIG AND SETTIGNS FILES ARE PERSISTED ON SSD AND CAN BE RECOVERED AND ARE AUTOMATICALLY RELOADED
 - I NEED A backup containe rwhioh makes a host backup completely can i confgigure kopia to do this? i want to clone the internal ssd or maek snapshots for debian 13 with all basically cloning or atleast the necessary files
-- Gitea This instance is configured to run under HTTPS (by ROOT_URL config), you are accessing by HTTP. Mismatched scheme might cause problems for sign-in/sign-up.
-
-- Dein Sicherheitsschlüssel konnte nicht gelesen werden.
+- Gitea This instance is configured to run under HTTPS (by ROOT_URL config), you are accessing by HTTP. Mismatched scheme might cause problems for sign-in/sign-up. - Dein Sicherheitsschlüssel konnte nicht gelesen werden.
 WebAuthn only supports secure connections. For testing over HTTP, you can use the origin "localhost" or "127.0.0.1".
+
+- check why samba login doesnt work
+
+make sure to integrate all services to env, scripts and docs and traefikl etc. and update links.md 
