@@ -761,6 +761,9 @@ services:
       NEXTCLOUD_MAX_TIME: 3600
       NEXTCLOUD_MEMORY_LIMIT: 512M
       SKIP_DOMAIN_VALIDATION: "true"
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     volumes:
       - nextcloud_aio_mastercontainer:/mnt/docker-aio-config
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -2013,7 +2016,7 @@ services:
     logging: *default-logging
     ports:
       - "${HOST_BIND:-192.168.178.158}:3100:3100"
-    command: -config.file=/etc/loki/loki.yml
+    command: -config.file=/etc/loki/loki.yml -target=all
     volumes:
       - ./config/loki:/etc/loki
       - /mnt/cachehdd/loki/data:/loki
@@ -2472,60 +2475,61 @@ services:
           cpus: "0.1"
           memory: 64M
 
-  # Memos - Lightweight note-taking (SOTA 2025)
-  paperless-ngx:
-    image: ghcr.io/paperless-ngx/paperless-ngx:${PAPERLESS_TAG:-latest}
-    container_name: paperless-ngx
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.158}:8092:8000"
-    environment:
-      <<: *common-env
-      PAPERLESS_REDIS: redis://redis-cache:6379/1
-      PAPERLESS_DBHOST: postgres
-      PAPERLESS_DBNAME: paperless
-      PAPERLESS_DBUSER: postgres
-      PAPERLESS_DBPASS: ${POSTGRES_SUPER_PASSWORD}
-      PAPERLESS_URL: https://docs.${HOST_DOMAIN:-local.domain}
-      PAPERLESS_SECRET_KEY: ${PAPERLESS_SECRET_KEY}
-      PAPERLESS_ADMIN_USER: ${PAPERLESS_ADMIN_USER:-admin}
-      PAPERLESS_ADMIN_PASSWORD: ${PAPERLESS_ADMIN_PASSWORD}
-      PAPERLESS_OCR_LANGUAGE: deu+eng
-      PAPERLESS_TIME_ZONE: Europe/Berlin
-    volumes:
-      - /mnt/ssd/docker-data/paperless-data:/usr/src/paperless/data
-      - /mnt/storage/paperless/media:/usr/src/paperless/media
-      - /mnt/storage/paperless/consume:/usr/src/paperless/consume
-      - /mnt/storage/paperless/export:/usr/src/paperless/export
-    networks:
-      - potatostack
-    depends_on:
-      - postgres
-      - redis-cache
-      - storage-init
-    tmpfs:
-      - /tmp:exec,mode=1777,size=1g
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8000/ || exit 1"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 1G
-        reservations:
-          cpus: "0.5"
-          memory: 512M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.paperless.rule=Host(`docs.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.paperless.entrypoints=websecure"
-      - "traefik.http.routers.paperless.tls=true"
-      - "traefik.http.routers.paperless.middlewares=sso-chain@docker"
-      - "traefik.http.services.paperless.loadbalancer.server.port=8000"
+  # Paperless-ngx - DISABLED (OOM issues with Celery workers)
+  # Uncomment to re-enable document management
+  # paperless-ngx:
+  #   image: ghcr.io/paperless-ngx/paperless-ngx:${PAPERLESS_TAG:-latest}
+  #   container_name: paperless-ngx
+  #   logging: *default-logging
+  #   ports:
+  #     - "${HOST_BIND:-192.168.178.158}:8092:8000"
+  #   environment:
+  #     <<: *common-env
+  #     PAPERLESS_REDIS: redis://redis-cache:6379/1
+  #     PAPERLESS_DBHOST: postgres
+  #     PAPERLESS_DBNAME: paperless
+  #     PAPERLESS_DBUSER: postgres
+  #     PAPERLESS_DBPASS: ${POSTGRES_SUPER_PASSWORD}
+  #     PAPERLESS_URL: https://docs.${HOST_DOMAIN:-local.domain}
+  #     PAPERLESS_SECRET_KEY: ${PAPERLESS_SECRET_KEY}
+  #     PAPERLESS_ADMIN_USER: ${PAPERLESS_ADMIN_USER:-admin}
+  #     PAPERLESS_ADMIN_PASSWORD: ${PAPERLESS_ADMIN_PASSWORD}
+  #     PAPERLESS_OCR_LANGUAGE: deu+eng
+  #     PAPERLESS_TIME_ZONE: Europe/Berlin
+  #   volumes:
+  #     - /mnt/ssd/docker-data/paperless-data:/usr/src/paperless/data
+  #     - /mnt/storage/paperless/media:/usr/src/paperless/media
+  #     - /mnt/storage/paperless/consume:/usr/src/paperless/consume
+  #     - /mnt/storage/paperless/export:/usr/src/paperless/export
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - postgres
+  #     - redis-cache
+  #     - storage-init
+  #   tmpfs:
+  #     - /tmp:exec,mode=1777,size=1g
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -f http://127.0.0.1:8000/ || exit 1"]
+  #     interval: 60s
+  #     timeout: 10s
+  #     retries: 3
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "2.0"
+  #         memory: 2G
+  #       reservations:
+  #         cpus: "0.5"
+  #         memory: 768M
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.paperless.rule=Host(`docs.${HOST_DOMAIN:-local.domain}`)"
+  #     - "traefik.http.routers.paperless.entrypoints=websecure"
+  #     - "traefik.http.routers.paperless.tls=true"
+  #     - "traefik.http.routers.paperless.middlewares=sso-chain@docker"
+  #     - "traefik.http.services.paperless.loadbalancer.server.port=8000"
 
   # Pingvin Share - Secure file sharing (SOTA 2025)
   ################################################################################
@@ -2783,33 +2787,43 @@ services:
           cpus: "0.1"
           memory: 64M
 
-  # Homarr - Modern drag-and-drop dashboard with 30+ integrations (SOTA 2025)
+  # Homarr - Modern drag-and-drop dashboard with 30+ integrations (homarr-labs v1.x)
   homarr:
-    image: ghcr.io/ajnart/homarr:${HOMARR_TAG:-latest}
+    image: ghcr.io/homarr-labs/homarr:${HOMARR_TAG:-latest}
     container_name: homarr
     logging: *default-logging
     ports:
       - "${HOST_BIND:-192.168.178.158}:7575:7575"
     environment:
       <<: *common-env
-      # Authentication - uses Authentik SSO via Traefik middleware
-      AUTH_SECRET: ${HOMARR_SECRET_KEY:-change_this_homarr_secret_key_64_chars}
-      # Database - PostgreSQL for user/settings persistence
-      DB_DRIVER: postgresql
+      # Encryption key (generate with: openssl rand -hex 32)
+      SECRET_ENCRYPTION_KEY: ${HOMARR_SECRET_KEY:-f95cefcebd962e7b56b1cb4e1a166c756cf7b821c91e759cfb7fd2995be4517a}
+      # Database - PostgreSQL for persistence
+      DRIVER: nodePostgres
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: homarr
       DB_USER: postgres
       DB_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      # Docker integration via socket-proxy
-      DOCKER_HOST: tcp://socket-proxy:2375
+      # Docker integration via socket-proxy (v1.x format)
+      DOCKER_HOSTNAMES: socket-proxy
+      DOCKER_PORTS: 2375
+      # Use external Redis (shared redis-cache)
+      REDIS_IS_EXTERNAL: "true"
+      REDIS_HOST: redis-cache
+      REDIS_PORT: 6379
+      REDIS_DATABASE_INDEX: 7
     volumes:
-      - homarr-data:/app/data/configs
-      - homarr-icons:/app/public/icons
+      - /mnt/ssd/docker-data/homarr:/appdata
     networks:
       - potatostack
     depends_on:
-      - socket-proxy
+      postgres:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+      socket-proxy:
+        condition: service_started
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:7575/ || exit 1"]
@@ -2901,6 +2915,7 @@ services:
       - "--config.file=/etc/alertmanager/config.yml"
       - "--storage.path=/alertmanager"
       - "--web.external-url=https://alerts.${HOST_DOMAIN:-local.domain}"
+      - "--cluster.listen-address="
     environment:
       <<: *common-env
     volumes:
@@ -3326,8 +3341,9 @@ volumes:
   pinchflat-config:
 
   # Dashboard & Container Management
-  homarr-data:
-  homarr-icons:
+  homarr-data:        # Legacy v0.x - keep for migration backup
+  homarr-icons:       # Legacy v0.x - keep for migration backup
+  homarr-appdata:     # New v1.x volume
 
   # Security
   crowdsec-db:

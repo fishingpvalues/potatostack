@@ -1,0 +1,31 @@
+- all discovered links in homarr are wrong we need the HOST_IP and https links for them 
+
+
+marr is now working (307 redirect is normal). Services are running. The DNS issue is that *.danielhomelab.local
+  isn't resolving to your server.
+
+  Try accessing via direct IP:
+  - Homarr: http://192.168.178.158:7575
+  - Grafana: http://192.168.178.158:3002
+  - Jellyfin: http://192.168.178.158:8096
+
+  For HTTPS domains to work, add to your /etc/hosts or configure DNS:
+  192.168.178.158 home.danielhomelab.local grafana.danielhomelab.local jellyfin.danielhomelab.local
+
+● Bash(curl -s -o /dev/null -w "%{http_code}" http://192.168.178.158:3002/ 2>&1)
+  ⎿  302
+
+● All services are running. Access them directly:
+  ┌────────────┬─────────────────────────────┐
+  │  Service   │         Direct URL          │
+  ├────────────┼─────────────────────────────┤
+  │ Homarr     │ http://192.168.178.158:7575 │
+  ├────────────┼─────────────────────────────┤
+  │ Grafana    │ http://192.168.178.158:3002 │
+  ├────────────┼─────────────────────────────┤
+  │ Jellyfin   │ http://192.168.178.158:8096 │
+  ├────────────┼─────────────────────────────┤
+  │ Prometheus │ http://192.168.178.158:9090 │
+  └────────────┴─────────────────────────────┘
+  For HTTPS via Traefik, configure your local DNS (router/AdGuard/Pi-hole) to point *.danielhomelab.local →
+  192.168.178.158.

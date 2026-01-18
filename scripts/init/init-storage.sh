@@ -100,6 +100,7 @@ mkdir -p \
 	"${STORAGE_BASE}/syncthing/camera-sync/ios" \
 	"${STORAGE_BASE}/syncthing/photos/2024" \
 	"${STORAGE_BASE}/syncthing/photos/2025" \
+	"${STORAGE_BASE}/syncthing/photos/2026" \
 	"${STORAGE_BASE}/syncthing/photos/albums" \
 	"${STORAGE_BASE}/syncthing/videos/personal" \
 	"${STORAGE_BASE}/syncthing/videos/projects" \
@@ -125,12 +126,16 @@ mkdir -p \
 	"${CACHE_BASE}/kopia-cache" \
 	"${CACHE_BASE}/immich-ml-cache" \
 	"${CACHE_BASE}/loki/data" \
+	"${CACHE_BASE}/loki/wal" \
 	"${CACHE_BASE}/pinchflat-incomplete" \
 	"${CACHE_BASE}/prometheus" \
 	"${CACHE_BASE}/slskd/logs" \
 	"${CACHE_BASE}/slskd-incomplete" \
 	"${CACHE_BASE}/syncthing-versions" \
-	"${CACHE_BASE}/transmission-incomplete"
+	"${CACHE_BASE}/transmission-incomplete" \
+	"${CACHE_BASE}/thanos/store" \
+	"${CACHE_BASE}/thanos/compact" \
+	"${CACHE_BASE}/alertmanager"
 
 ################################################################################
 # SSD Directories (Databases and App Data)
@@ -152,7 +157,12 @@ mkdir -p \
 	"${SSD_BASE}/paperless-data" \
 	"${SSD_BASE}/crowdsec-db" \
 	"${SSD_BASE}/crowdsec-config" \
-	"${SSD_BASE}/sentry"
+	"${SSD_BASE}/sentry" \
+	"${SSD_BASE}/homarr" \
+	"${SSD_BASE}/grafana" \
+	"${SSD_BASE}/authentik" \
+	"${SSD_BASE}/woodpecker" \
+	"${SSD_BASE}/code-server"
 
 ################################################################################
 # Snapshot Schedule (Cron for Kopia)
@@ -278,6 +288,15 @@ chown -R 1001:1001 "${CACHE_BASE}/thanos"
 
 # Alertmanager (UID 65534)
 [ -d "${CACHE_BASE}/alertmanager" ] && chown -R 65534:65534 "${CACHE_BASE}/alertmanager"
+
+# Homarr (UID 1000)
+[ -d "${SSD_BASE}/homarr" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/homarr"
+
+# Authentik (UID 1000)
+[ -d "${SSD_BASE}/authentik" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/authentik"
+
+# Code-server (UID 1000)
+[ -d "${SSD_BASE}/code-server" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/code-server"
 
 printf '%s\n' "✓ Service permissions set"
 

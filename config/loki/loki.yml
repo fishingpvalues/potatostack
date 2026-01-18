@@ -3,7 +3,9 @@ auth_enabled: false
 server:
   http_listen_port: 3100
   grpc_listen_port: 9096
+  log_level: warn
 
+# Single-node mode - disable clustering
 common:
   path_prefix: /loki
   storage:
@@ -12,8 +14,15 @@ common:
       rules_directory: /loki/rules
   replication_factor: 1
   ring:
+    instance_addr: 127.0.0.1
     kvstore:
       store: inmemory
+
+# Disable memberlist for single-node deployment
+memberlist:
+  join_members: []
+  bind_addr: []
+  abort_if_cluster_join_fails: false
 
 ingester:
   lifecycler:
@@ -35,7 +44,7 @@ schema_config:
     - from: 2024-01-01
       store: tsdb
       object_store: filesystem
-      schema: v12
+      schema: v13
       index:
         prefix: index_
         period: 24h
@@ -49,7 +58,7 @@ storage_config:
 
 # Optimized for 16GB RAM system with 90+ containers
 limits_config:
-  allow_structured_metadata: false
+  allow_structured_metadata: true
   reject_old_samples: true
   reject_old_samples_max_age: 168h
   retention_period: 30d
