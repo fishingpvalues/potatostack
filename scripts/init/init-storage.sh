@@ -3,6 +3,11 @@
 # Storage Initialization Script
 # Creates required directory structure for PotatoStack
 # Runs once at startup via storage-init container
+#
+# Structure (2025 consolidated):
+# - /mnt/storage: Main HDD - media, downloads, syncthing, kopia
+# - /mnt/cachehdd: Cache HDD - organized by function (downloads, media, observability, sync, system)
+# - /mnt/ssd/docker-data: SSD - databases and app configs
 ################################################################################
 
 set -eu
@@ -16,41 +21,109 @@ PGID="${PGID:-1000}"
 printf '%s\n' "Initializing storage directories..."
 
 ################################################################################
-# Cleanup old directory structure
+# Cleanup - Remove deprecated directories
 ################################################################################
-printf '%s\n' "Cleaning up old directory structure..."
+printf '%s\n' "Cleaning up deprecated directories..."
 
-if [ -d "${STORAGE_BASE}/slskd-incomplete" ]; then
-	printf '%s\n' "Removing old ${STORAGE_BASE}/slskd-incomplete..."
-	rm -rf "${STORAGE_BASE}/slskd-incomplete"
+# DELETE: /mnt/storage/photos - use syncthing/photos instead
+if [ -d "${STORAGE_BASE}/photos" ]; then
+	printf '%s\n' "Removing deprecated ${STORAGE_BASE}/photos (use syncthing/photos)..."
+	rm -rf "${STORAGE_BASE}/photos"
 fi
 
-if [ -d "${STORAGE_BASE}/transmission-incomplete" ]; then
-	printf '%s\n' "Removing old ${STORAGE_BASE}/transmission-incomplete..."
-	rm -rf "${STORAGE_BASE}/transmission-incomplete"
-fi
-
-if [ -d "${STORAGE_BASE}/aria2-downloads" ]; then
-	printf '%s\n' "Moving ${STORAGE_BASE}/aria2-downloads to ${STORAGE_BASE}/downloads/aria2..."
-	mkdir -p "${STORAGE_BASE}/downloads/aria2"
-	if [ "$(ls -A "${STORAGE_BASE}/aria2-downloads" 2>/dev/null)" ]; then
-		mv "${STORAGE_BASE}/aria2-downloads"/* "${STORAGE_BASE}/downloads/aria2/" 2>/dev/null || true
+# DELETE: /mnt/storage/duckdb - moved to SSD
+if [ -d "${STORAGE_BASE}/duckdb" ]; then
+	printf '%s\n' "Moving ${STORAGE_BASE}/duckdb to ${SSD_BASE}/duckdb..."
+	mkdir -p "${SSD_BASE}/duckdb"
+	if [ "$(ls -A "${STORAGE_BASE}/duckdb" 2>/dev/null)" ]; then
+		cp -a "${STORAGE_BASE}/duckdb"/* "${SSD_BASE}/duckdb/" 2>/dev/null || true
 	fi
-	rm -rf "${STORAGE_BASE}/aria2-downloads"
+	rm -rf "${STORAGE_BASE}/duckdb"
 fi
 
-if [ -d "${STORAGE_BASE}/downloads" ] && [ ! -d "${STORAGE_BASE}/downloads/torrent" ]; then
-	printf '%s\n' "Migrating downloads to downloads/torrent structure..."
-	mkdir -p "${STORAGE_BASE}/downloads/torrent"
-	find "${STORAGE_BASE}/downloads" -maxdepth 1 -type f \
-		\( -name "*.torrent" -o -name "*.iso" -o -name "*.zip" -o -name "*.tar.*" \) \
-		-exec mv {} "${STORAGE_BASE}/downloads/torrent/" \; 2>/dev/null || true
+# Migrate old incomplete dirs to new cache structure
+if [ -d "${CACHE_BASE}/qbittorrent-incomplete" ] && [ ! -d "${CACHE_BASE}/downloads/torrent" ]; then
+	printf '%s\n' "Migrating qbittorrent-incomplete to new cache structure..."
+	mkdir -p "${CACHE_BASE}/downloads/torrent"
+	if [ "$(ls -A "${CACHE_BASE}/qbittorrent-incomplete" 2>/dev/null)" ]; then
+		mv "${CACHE_BASE}/qbittorrent-incomplete"/* "${CACHE_BASE}/downloads/torrent/" 2>/dev/null || true
+	fi
+	rm -rf "${CACHE_BASE}/qbittorrent-incomplete"
+fi
+
+if [ -d "${CACHE_BASE}/aria2-incomplete" ] && [ ! -d "${CACHE_BASE}/downloads/aria2" ]; then
+	printf '%s\n' "Migrating aria2-incomplete to new cache structure..."
+	mkdir -p "${CACHE_BASE}/downloads/aria2"
+	if [ "$(ls -A "${CACHE_BASE}/aria2-incomplete" 2>/dev/null)" ]; then
+		mv "${CACHE_BASE}/aria2-incomplete"/* "${CACHE_BASE}/downloads/aria2/" 2>/dev/null || true
+	fi
+	rm -rf "${CACHE_BASE}/aria2-incomplete"
+fi
+
+if [ -d "${CACHE_BASE}/slskd-incomplete" ] && [ ! -d "${CACHE_BASE}/downloads/slskd" ]; then
+	printf '%s\n' "Migrating slskd-incomplete to new cache structure..."
+	mkdir -p "${CACHE_BASE}/downloads/slskd"
+	if [ "$(ls -A "${CACHE_BASE}/slskd-incomplete" 2>/dev/null)" ]; then
+		mv "${CACHE_BASE}/slskd-incomplete"/* "${CACHE_BASE}/downloads/slskd/" 2>/dev/null || true
+	fi
+	rm -rf "${CACHE_BASE}/slskd-incomplete"
+fi
+
+if [ -d "${CACHE_BASE}/pinchflat-incomplete" ] && [ ! -d "${CACHE_BASE}/downloads/pinchflat" ]; then
+	printf '%s\n' "Migrating pinchflat-incomplete to new cache structure..."
+	mkdir -p "${CACHE_BASE}/downloads/pinchflat"
+	if [ "$(ls -A "${CACHE_BASE}/pinchflat-incomplete" 2>/dev/null)" ]; then
+		mv "${CACHE_BASE}/pinchflat-incomplete"/* "${CACHE_BASE}/downloads/pinchflat/" 2>/dev/null || true
+	fi
+	rm -rf "${CACHE_BASE}/pinchflat-incomplete"
+fi
+
+# Migrate jellyfin-cache to new structure
+if [ -d "${CACHE_BASE}/jellyfin-cache" ] && [ ! -d "${CACHE_BASE}/media/jellyfin" ]; then
+	printf '%s\n' "Migrating jellyfin-cache to new cache structure..."
+	mkdir -p "${CACHE_BASE}/media/jellyfin"
+	if [ "$(ls -A "${CACHE_BASE}/jellyfin-cache" 2>/dev/null)" ]; then
+		mv "${CACHE_BASE}/jellyfin-cache"/* "${CACHE_BASE}/media/jellyfin/" 2>/dev/null || true
+	fi
+	rm -rf "${CACHE_BASE}/jellyfin-cache"
+fi
+
+# Migrate observability dirs
+if [ -d "${CACHE_BASE}/loki" ] && [ ! -d "${CACHE_BASE}/observability/loki" ]; then
+	printf '%s\n' "Migrating loki to observability namespace..."
+	mkdir -p "${CACHE_BASE}/observability"
+	mv "${CACHE_BASE}/loki" "${CACHE_BASE}/observability/" 2>/dev/null || true
+fi
+
+if [ -d "${CACHE_BASE}/prometheus" ] && [ ! -d "${CACHE_BASE}/observability/prometheus" ]; then
+	printf '%s\n' "Migrating prometheus to observability namespace..."
+	mkdir -p "${CACHE_BASE}/observability"
+	mv "${CACHE_BASE}/prometheus" "${CACHE_BASE}/observability/" 2>/dev/null || true
+fi
+
+if [ -d "${CACHE_BASE}/thanos" ] && [ ! -d "${CACHE_BASE}/observability/thanos" ]; then
+	printf '%s\n' "Migrating thanos to observability namespace..."
+	mkdir -p "${CACHE_BASE}/observability"
+	mv "${CACHE_BASE}/thanos" "${CACHE_BASE}/observability/" 2>/dev/null || true
+fi
+
+if [ -d "${CACHE_BASE}/alertmanager" ] && [ ! -d "${CACHE_BASE}/observability/alertmanager" ]; then
+	printf '%s\n' "Migrating alertmanager to observability namespace..."
+	mkdir -p "${CACHE_BASE}/observability"
+	mv "${CACHE_BASE}/alertmanager" "${CACHE_BASE}/observability/" 2>/dev/null || true
+fi
+
+# Migrate syncthing-versions
+if [ -d "${CACHE_BASE}/syncthing-versions" ] && [ ! -d "${CACHE_BASE}/sync/syncthing-versions" ]; then
+	printf '%s\n' "Migrating syncthing-versions to sync namespace..."
+	mkdir -p "${CACHE_BASE}/sync"
+	mv "${CACHE_BASE}/syncthing-versions" "${CACHE_BASE}/sync/" 2>/dev/null || true
 fi
 
 printf '%s\n' "✓ Cleanup complete"
 
 ################################################################################
-# Main Storage Directories
+# Main Storage Directories (HDD)
 ################################################################################
 printf '%s\n' "Creating main storage directories..."
 mkdir -p \
@@ -58,8 +131,6 @@ mkdir -p \
 	"${STORAGE_BASE}/syncthing" \
 	"${STORAGE_BASE}/downloads/torrent" \
 	"${STORAGE_BASE}/downloads/aria2" \
-	"${STORAGE_BASE}/duckdb" \
-	"${STORAGE_BASE}/photos" \
 	"${STORAGE_BASE}/projects" \
 	"${STORAGE_BASE}/kopia/repository" \
 	"${STORAGE_BASE}/velld/backups" \
@@ -67,10 +138,15 @@ mkdir -p \
 	"${STORAGE_BASE}/slskd-shared" \
 	"${STORAGE_BASE}/paperless/media" \
 	"${STORAGE_BASE}/paperless/consume" \
-	"${STORAGE_BASE}/paperless/export"
+	"${STORAGE_BASE}/paperless/export" \
+	"${STORAGE_BASE}/photos"
+
+# Create Immich required directories and markers
+mkdir -p "${STORAGE_BASE}/photos/encoded-video"
+touch "${STORAGE_BASE}/photos/encoded-video/.immich" 2>/dev/null || true
 
 ################################################################################
-# Media Directories for *arr stack and Jellyfin
+# Media Directories - AUTHORITATIVE source for *arr stack and Jellyfin
 ################################################################################
 printf '%s\n' "Creating media directories..."
 mkdir -p \
@@ -83,9 +159,9 @@ mkdir -p \
 	"${STORAGE_BASE}/media/youtube"
 
 ################################################################################
-# Syncthing OneDrive Mirror Structure
+# Syncthing - INPUT/PERSONAL data (synced from devices)
 ################################################################################
-printf '%s\n' "Creating Syncthing OneDrive mirror directories..."
+printf '%s\n' "Creating Syncthing directories..."
 mkdir -p \
 	"${STORAGE_BASE}/syncthing/Desktop" \
 	"${STORAGE_BASE}/syncthing/Obsidian-Vault" \
@@ -94,7 +170,6 @@ mkdir -p \
 	"${STORAGE_BASE}/syncthing/workdir" \
 	"${STORAGE_BASE}/syncthing/Attachments" \
 	"${STORAGE_BASE}/syncthing/Privates" \
-	"${STORAGE_BASE}/syncthing/Privates/porn" \
 	"${STORAGE_BASE}/syncthing/Berufliches" \
 	"${STORAGE_BASE}/syncthing/camera-sync/android" \
 	"${STORAGE_BASE}/syncthing/camera-sync/ios" \
@@ -115,27 +190,44 @@ mkdir -p \
 	"${STORAGE_BASE}/syncthing/OneDrive-Archive"
 
 ################################################################################
-# Cache Directories (High I/O)
+# Cache Directories (HDD) - Organized by function
 ################################################################################
-printf '%s\n' "Creating cache directories..."
+printf '%s\n' "Creating cache directories with normalized namespace..."
+
+# Downloads - incomplete/in-progress
 mkdir -p \
-	"${CACHE_BASE}/qbittorrent-incomplete" \
-	"${CACHE_BASE}/aria2-incomplete" \
-	"${CACHE_BASE}/audiobookshelf/metadata" \
-	"${CACHE_BASE}/jellyfin-cache" \
-	"${CACHE_BASE}/kopia-cache" \
-	"${CACHE_BASE}/immich-ml-cache" \
-	"${CACHE_BASE}/loki/data" \
-	"${CACHE_BASE}/loki/wal" \
-	"${CACHE_BASE}/pinchflat-incomplete" \
-	"${CACHE_BASE}/prometheus" \
-	"${CACHE_BASE}/slskd/logs" \
-	"${CACHE_BASE}/slskd-incomplete" \
-	"${CACHE_BASE}/syncthing-versions" \
-	"${CACHE_BASE}/transmission-incomplete" \
-	"${CACHE_BASE}/thanos/store" \
-	"${CACHE_BASE}/thanos/compact" \
-	"${CACHE_BASE}/alertmanager"
+	"${CACHE_BASE}/downloads/torrent" \
+	"${CACHE_BASE}/downloads/aria2" \
+	"${CACHE_BASE}/downloads/slskd" \
+	"${CACHE_BASE}/downloads/pinchflat"
+
+# Media caches
+mkdir -p \
+	"${CACHE_BASE}/media/jellyfin" \
+	"${CACHE_BASE}/media/audiobookshelf" \
+	"${CACHE_BASE}/media/immich-ml"
+
+# Observability stack
+mkdir -p \
+	"${CACHE_BASE}/observability/loki/data" \
+	"${CACHE_BASE}/observability/loki/wal" \
+	"${CACHE_BASE}/observability/prometheus" \
+	"${CACHE_BASE}/observability/thanos/store" \
+	"${CACHE_BASE}/observability/thanos/compact" \
+	"${CACHE_BASE}/observability/alertmanager"
+
+# Sync caches
+mkdir -p \
+	"${CACHE_BASE}/sync/syncthing-versions" \
+	"${CACHE_BASE}/sync/kopia-cache"
+
+# System
+mkdir -p \
+	"${CACHE_BASE}/system"
+
+# Misc app caches
+mkdir -p \
+	"${CACHE_BASE}/slskd/logs"
 
 ################################################################################
 # SSD Directories (Databases and App Data)
@@ -152,22 +244,24 @@ mkdir -p \
 	"${SSD_BASE}/scrutiny/config" \
 	"${SSD_BASE}/scrutiny/influxdb" \
 	"${SSD_BASE}/wireguard" \
-	"${SSD_BASE}/cron" \
+	"${SSD_BASE}/duckdb" \
 	"${SSD_BASE}/n8n" \
 	"${SSD_BASE}/paperless-data" \
 	"${SSD_BASE}/crowdsec-db" \
 	"${SSD_BASE}/crowdsec-config" \
-	"${SSD_BASE}/sentry" \
 	"${SSD_BASE}/homarr" \
 	"${SSD_BASE}/grafana" \
 	"${SSD_BASE}/authentik" \
 	"${SSD_BASE}/woodpecker" \
 	"${SSD_BASE}/code-server"
 
+# System directory on SSD (cron, etc)
+mkdir -p "/mnt/ssd/system/cron"
+
 ################################################################################
 # Snapshot Schedule (Cron for Kopia)
 ################################################################################
-CRON_DIR="${SSD_BASE}/cron"
+CRON_DIR="/mnt/ssd/system/cron"
 CRON_FILE="${CRON_DIR}/root"
 SNAPSHOT_CRON_SCHEDULE="${SNAPSHOT_CRON_SCHEDULE:-0 3 * * *}"
 SNAPSHOT_PATHS="${SNAPSHOT_PATHS:-/data}"
@@ -189,11 +283,18 @@ fi
 ################################################################################
 # Swap File Setup (2GB on Cache HDD)
 ################################################################################
-SWAP_FILE="${CACHE_BASE}/swapfile"
+SWAP_FILE="${CACHE_BASE}/system/swapfile"
 SWAP_SIZE_BYTES=$((2 * 1024 * 1024 * 1024))
 
 printf '%s\n' ""
 printf '%s\n' "Setting up 2GB swap on cache HDD..."
+
+# Migrate old swap location
+if [ -f "${CACHE_BASE}/swapfile" ] && [ ! -f "$SWAP_FILE" ]; then
+	printf '%s\n' "Migrating swap to new location..."
+	swapoff "${CACHE_BASE}/swapfile" 2>/dev/null || true
+	mv "${CACHE_BASE}/swapfile" "$SWAP_FILE" 2>/dev/null || true
+fi
 
 if [ -f "$SWAP_FILE" ]; then
 	CURRENT_SIZE=$(stat -c%s "$SWAP_FILE" 2>/dev/null || echo "0")
@@ -220,7 +321,6 @@ if swapon --show 2>/dev/null | grep -q "$SWAP_FILE"; then
 elif grep -q "$SWAP_FILE" /proc/swaps 2>/dev/null; then
 	printf '%s\n' "✓ Swap already active: 2GB"
 else
-	# Only initialize if not already a swap file
 	if [ -f "$SWAP_FILE" ] && ! file "$SWAP_FILE" 2>/dev/null | grep -q "swap"; then
 		printf '%s\n' "Initializing swap file..."
 		if mkswap "$SWAP_FILE" 2>/dev/null; then
@@ -248,19 +348,21 @@ swapon --show 2>/dev/null || free -h | grep -i swap
 printf '%s\n' "Setting ownership to ${PUID}:${PGID}..."
 chown -R "${PUID}:${PGID}" "${STORAGE_BASE}"
 chown -R "${PUID}:${PGID}" "${SSD_BASE}"
-find "${CACHE_BASE}" -not -name "swapfile" -exec chown "${PUID}:${PGID}" {} + 2>/dev/null || true
+chown -R "${PUID}:${PGID}" "/mnt/ssd/system"
+find "${CACHE_BASE}" -not -path "*swapfile*" -exec chown "${PUID}:${PGID}" {} + 2>/dev/null || true
 
 printf '%s\n' "Setting permissions..."
 chmod -R 755 "${STORAGE_BASE}"
 chmod -R 755 "${SSD_BASE}"
-find "${CACHE_BASE}" -not -name "swapfile" -exec chmod 755 {} + 2>/dev/null || true
+chmod -R 755 "/mnt/ssd/system"
+find "${CACHE_BASE}" -not -path "*swapfile*" -exec chmod 755 {} + 2>/dev/null || true
 
 if [ -f "$SWAP_FILE" ]; then
 	chown root:root "$SWAP_FILE"
 	chmod 600 "$SWAP_FILE"
 fi
 
-chmod 775 "${CACHE_BASE}/syncthing-versions"
+chmod 775 "${CACHE_BASE}/sync/syncthing-versions"
 
 ################################################################################
 # Service-specific permissions (UIDs vary by image)
@@ -274,20 +376,19 @@ printf '%s\n' "Setting service-specific permissions..."
 [ -d "${SSD_BASE}/redis-cache" ] && chown -R 999:1000 "${SSD_BASE}/redis-cache"
 
 # Prometheus (UID 65534 - nobody)
-[ -d "${CACHE_BASE}/prometheus" ] && chown -R 65534:65534 "${CACHE_BASE}/prometheus"
+[ -d "${CACHE_BASE}/observability/prometheus" ] && chown -R 65534:65534 "${CACHE_BASE}/observability/prometheus"
 
 # Loki (UID 10001)
-[ -d "${CACHE_BASE}/loki" ] && chown -R 10001:10001 "${CACHE_BASE}/loki"
+[ -d "${CACHE_BASE}/observability/loki" ] && chown -R 10001:10001 "${CACHE_BASE}/observability/loki"
 
 # Grafana (UID 472)
 [ -d "${SSD_BASE}/grafana" ] && chown -R 472:472 "${SSD_BASE}/grafana"
 
 # Thanos (UID 1001)
-mkdir -p "${CACHE_BASE}/thanos/store" "${CACHE_BASE}/thanos/compact"
-chown -R 1001:1001 "${CACHE_BASE}/thanos"
+[ -d "${CACHE_BASE}/observability/thanos" ] && chown -R 1001:1001 "${CACHE_BASE}/observability/thanos"
 
 # Alertmanager (UID 65534)
-[ -d "${CACHE_BASE}/alertmanager" ] && chown -R 65534:65534 "${CACHE_BASE}/alertmanager"
+[ -d "${CACHE_BASE}/observability/alertmanager" ] && chown -R 65534:65534 "${CACHE_BASE}/observability/alertmanager"
 
 # Homarr (UID 1000)
 [ -d "${SSD_BASE}/homarr" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/homarr"
@@ -357,6 +458,8 @@ chmod 644 /keys/*
 
 printf '%s\n' ""
 printf '%s\n' "✓ Storage initialization complete"
-printf '%s\n' "✓ Main HDD: downloads, syncthing mirror, kopia repository, rustypaste, paperless"
-printf '%s\n' "✓ Cache HDD: incomplete downloads, kopia cache, syncthing versions, 2GB swap"
-printf '%s\n' "✓ SSD: databases and high-I/O app data"
+printf '%s\n' ""
+printf '%s\n' "Directory structure:"
+printf '%s\n' "  /mnt/storage     - Main HDD (media, downloads, syncthing, kopia)"
+printf '%s\n' "  /mnt/cachehdd    - Cache HDD (downloads/media/observability/sync/system)"
+printf '%s\n' "  /mnt/ssd         - SSD (docker-data, system)"

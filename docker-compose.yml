@@ -795,7 +795,7 @@ services:
     volumes:
       - syncthing-config:/config
       - /mnt/storage/syncthing:/data
-      - /mnt/cachehdd/syncthing-versions:/data/.stversions
+      - /mnt/cachehdd/sync/syncthing-versions:/data/.stversions
       - shared-keys:/keys:ro
       - ./scripts/init/syncthing-init.sh:/syncthing-init.sh:ro
     networks:
@@ -967,7 +967,7 @@ services:
       - sonarr-config:/config
       - /mnt/storage/media/tv:/tv
       - /mnt/storage/downloads:/downloads
-      - /mnt/cachehdd/qbittorrent-incomplete:/downloads/incomplete
+      - /mnt/cachehdd/downloads/torrent:/downloads/incomplete
     depends_on:
       gluetun:
         condition: service_healthy
@@ -1004,7 +1004,7 @@ services:
       - radarr-config:/config
       - /mnt/storage/media/movies:/movies
       - /mnt/storage/downloads:/downloads
-      - /mnt/cachehdd/qbittorrent-incomplete:/downloads/incomplete
+      - /mnt/cachehdd/downloads/torrent:/downloads/incomplete
     depends_on:
       gluetun:
         condition: service_healthy
@@ -1041,7 +1041,7 @@ services:
       - lidarr-config:/config
       - /mnt/storage/media/music:/music
       - /mnt/storage/downloads:/downloads
-      - /mnt/cachehdd/qbittorrent-incomplete:/downloads/incomplete
+      - /mnt/cachehdd/downloads/torrent:/downloads/incomplete
     depends_on:
       gluetun:
         condition: service_healthy
@@ -1078,7 +1078,7 @@ services:
       - bookshelf-config:/config
       - /mnt/storage/media/books:/books
       - /mnt/storage/downloads:/downloads
-      - /mnt/cachehdd/qbittorrent-incomplete:/downloads/incomplete
+      - /mnt/cachehdd/downloads/torrent:/downloads/incomplete
     depends_on:
       gluetun:
         condition: service_healthy
@@ -1203,7 +1203,7 @@ services:
       - /mnt/storage/media/movies:/data/movies
       - /mnt/storage/media/music:/data/music
       - /mnt/storage/media/audiobooks:/data/audiobooks
-      - /mnt/cachehdd/jellyfin-cache:/cache
+      - /mnt/cachehdd/media/jellyfin:/cache
     tmpfs:
       - /tmp:exec,mode=1777,size=500m
       - /transcode:exec,mode=1777,size=2g
@@ -1272,7 +1272,7 @@ services:
       <<: *common-env
     volumes:
       - audiobookshelf-config:/config
-      - /mnt/cachehdd/audiobookshelf/metadata:/metadata
+      - /mnt/cachehdd/media/audiobookshelf/metadata:/metadata
       - /mnt/storage/media/audiobooks:/audiobooks
       - /mnt/storage/media/podcasts:/podcasts
     networks:
@@ -1343,7 +1343,7 @@ services:
     volumes:
       - qbittorrent-config:/config
       - /mnt/storage/downloads:/downloads
-      - /mnt/cachehdd/qbittorrent-incomplete:/incomplete
+      - /mnt/cachehdd/downloads/torrent:/incomplete
       - ./scripts/init/qbittorrent-init.sh:/qb-init.sh:ro
     depends_on:
       gluetun:
@@ -1385,7 +1385,7 @@ services:
     volumes:
       - aria2-config:/config
       - /mnt/storage/downloads/aria2:/downloads
-      - /mnt/cachehdd/aria2-incomplete:/incomplete
+      - /mnt/cachehdd/downloads/aria2:/incomplete
       - ./scripts/init/aria2-init.sh:/aria2-init.sh:ro
       - shared-keys:/keys:ro
     depends_on:
@@ -1450,7 +1450,7 @@ services:
       - slskd-config:/app
       - /mnt/cachehdd/slskd/logs:/app/logs
       - /mnt/storage/slskd-shared:/var/slskd/shared
-      - /mnt/cachehdd/slskd-incomplete:/var/slskd/incomplete
+      - /mnt/cachehdd/downloads/slskd:/var/slskd/incomplete
       - shared-keys:/keys:ro
       - ./scripts/init/slskd-init.sh:/init.sh:ro
     tmpfs:
@@ -1540,7 +1540,7 @@ services:
     environment:
       <<: *common-env
     volumes:
-      - /mnt/cachehdd/immich-ml-cache:/cache
+      - /mnt/cachehdd/media/immich-ml:/cache
     networks:
       - potatostack
     depends_on:
@@ -1594,7 +1594,7 @@ services:
       <<: *common-env
     volumes:
       - ./config/prometheus:/etc/prometheus:ro
-      - /mnt/cachehdd/prometheus:/prometheus
+      - /mnt/cachehdd/observability/prometheus:/prometheus
     networks:
       - potatostack
     restart: unless-stopped
@@ -1637,7 +1637,7 @@ services:
     environment:
       <<: *common-env
     volumes:
-      - /mnt/cachehdd/prometheus:/prometheus
+      - /mnt/cachehdd/observability/prometheus:/prometheus
       - ./config/thanos:/etc/thanos:ro
     networks:
       - potatostack
@@ -2019,7 +2019,7 @@ services:
     command: -config.file=/etc/loki/loki.yml -target=all
     volumes:
       - ./config/loki:/etc/loki
-      - /mnt/cachehdd/loki/data:/loki
+      - /mnt/cachehdd/observability/loki/data:/loki
     networks:
       - potatostack
     restart: unless-stopped
@@ -2726,7 +2726,7 @@ services:
     volumes:
       - pinchflat-config:/config
       - /mnt/storage/media/youtube:/downloads
-      - /mnt/cachehdd/pinchflat-incomplete:/incomplete
+      - /mnt/cachehdd/downloads/pinchflat:/incomplete
     depends_on:
       gluetun:
         condition: service_healthy
@@ -2834,10 +2834,10 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 384M
+          memory: 768M
         reservations:
           cpus: "0.25"
-          memory: 128M
+          memory: 256M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.homarr.rule=Host(`home.${HOST_DOMAIN:-local.domain}`)"
@@ -3217,7 +3217,7 @@ services:
     volumes:
       - /mnt/storage/kopia/repository:/repository
       - kopia-config:/app/config
-      - /mnt/cachehdd/kopia-cache:/app/cache
+      - /mnt/cachehdd/sync/kopia-cache:/app/cache
       - kopia-logs:/app/logs
       - ./scripts/init/kopia-init.sh:/kopia-init.sh:ro
       # Backup targets
@@ -3309,7 +3309,7 @@ volumes:
 
   # Monitoring
   uptime-kuma-data:
-  # prometheus uses bind mount to /mnt/cachehdd/prometheus
+  # prometheus uses bind mount to /mnt/cachehdd/observability/prometheus
   grafana-data:
   netdata-config:
   netdata-lib:
