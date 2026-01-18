@@ -1,3 +1,5 @@
+- check all services and modify init storage to create a SOTA folder structure for all it changed a lot i think 
+- my system crashed check dmesg why and harden my setup systemctl that all is up healthy again
 - migrate homarr to new homarrlabs version latest stable check online for migration guides and make all 
 . hommarr doesnt give https HOST_IP links it redictecds to localhost:port pattern with http fix that homarr should be my starting point always which i can access with HTTP no problem
 - make sure all scripts are up to date delete obsolete ones
