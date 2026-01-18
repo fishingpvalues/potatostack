@@ -75,6 +75,9 @@ directories:
 
 shares:
   directories:
+    # Share music and audiobook libraries
+    - /music
+    - /audiobooks
     - /var/slskd/shared
 
 web:
@@ -85,7 +88,7 @@ web:
         role: readonly
         cidr: 0.0.0.0/0,::/0
 EOF
-	echo "✓ slskd configuration created with API key"
+	echo "✓ slskd configuration created with API key and media shares"
 elif ! grep -q "api_keys:" "$CONFIG_FILE"; then
 	echo "Adding API key to existing config..."
 	# Backup

@@ -59,14 +59,14 @@ scrape_configs:
       - targets: ["miniflux:8080"]
     metrics_path: "/metrics"
 
-  # Netdata real-time monitoring
-  - job_name: "netdata"
-    static_configs:
-      - targets: ["netdata:19999"]
-    metrics_path: "/api/v1/allmetrics"
-    params:
-      format: ["prometheus"]
-    honor_labels: true
+  # Netdata - DISABLED: Use node-exporter and cadvisor instead
+  # - job_name: "netdata"
+  #   static_configs:
+  #     - targets: ["netdata:19999"]
+  #   metrics_path: "/api/v1/allmetrics"
+  #   params:
+  #     format: ["prometheus"]
+  #   honor_labels: true
 
   # Alertmanager
   - job_name: "alertmanager"

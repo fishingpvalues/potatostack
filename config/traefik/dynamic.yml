@@ -94,6 +94,24 @@ http:
           - rate-limit-auth
           - compress
 
+    # COOP/COEP headers for SharedArrayBuffer support (Actual Budget, etc.)
+    # Required for WebAssembly and SharedArrayBuffer to work properly
+    coop-coep-headers:
+      headers:
+        customResponseHeaders:
+          Cross-Origin-Opener-Policy: "same-origin"
+          Cross-Origin-Embedder-Policy: "require-corp"
+          Cross-Origin-Resource-Policy: "same-origin"
+
+    # Security chain for apps requiring SharedArrayBuffer (Actual Budget)
+    shared-array-chain:
+      chain:
+        middlewares:
+          - crowdsec-bouncer
+          - coop-coep-headers
+          - rate-limit-public
+          - compress
+
 tls:
   # Local self-signed certificates for *.danielhomelab.local
   # Generate with: ./scripts/setup/generate-local-certs.sh

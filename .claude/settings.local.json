@@ -147,7 +147,18 @@
       "Bash(sudo dmesg:*)",
       "WebFetch(domain:homarr.dev)",
       "Bash(openssl rand:*)",
-      "Bash(sudo chown:*)"
+      "Bash(sudo chown:*)",
+      "Bash(journalctl:*)",
+      "Bash(mount:*)",
+      "Bash(git pull:*)",
+      "Bash(test:*)",
+      "Bash(ufw status:*)",
+      "Bash(iptables:*)",
+      "Bash(ip addr show:*)",
+      "Bash(nc:*)",
+      "Bash(git reset:*)",
+      "Bash(sudo touch:*)",
+      "Bash(sudo -S touch:*)"
     ],
     "deny": [],
     "ask": []
