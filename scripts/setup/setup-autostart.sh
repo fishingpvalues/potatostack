@@ -139,23 +139,67 @@ cat >/etc/systemd/system/potatostack.service <<EOF
 [Unit]
 Description=PotatoStack - Self-hosted stack services
 Requires=docker.service
-After=docker.service network-online.target
+After=docker.service network-online.target local-fs.target
 Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=3
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
 User=$ACTUAL_USER
+Group=docker
 WorkingDirectory=$REPO_ROOT
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+ExecStartPre=/bin/sleep 10
 ExecStart=/usr/bin/docker compose up -d --remove-orphans
-ExecStop=/usr/bin/docker compose down
-TimeoutStartSec=300
+ExecStop=/usr/bin/docker compose down --timeout 60
+ExecReload=/usr/bin/docker compose up -d --remove-orphans
+TimeoutStartSec=600
+TimeoutStopSec=120
 Restart=on-failure
-RestartSec=10
+RestartSec=30
+
+# Security hardening
+ProtectSystem=strict
+ReadWritePaths=$REPO_ROOT /mnt/ssd /mnt/storage /mnt/cachehdd /var/run/docker.sock
+NoNewPrivileges=false
+PrivateTmp=false
 
 [Install]
 WantedBy=multi-user.target
 EOF
+
+# Create health check timer
+echo "Creating health check timer..."
+cat >/etc/systemd/system/potatostack-health.service <<EOF
+[Unit]
+Description=PotatoStack Health Check
+After=potatostack.service
+Requires=potatostack.service
+
+[Service]
+Type=oneshot
+User=$ACTUAL_USER
+WorkingDirectory=$REPO_ROOT
+ExecStart=/bin/bash -c 'docker compose ps --format json | grep -q "running" || (echo "Unhealthy containers detected, restarting..." && docker compose up -d)'
+EOF
+
+cat >/etc/systemd/system/potatostack-health.timer <<EOF
+[Unit]
+Description=PotatoStack Health Check Timer
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=15min
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target
+EOF
+
+systemctl daemon-reload
+systemctl enable potatostack-health.timer
 
 echo "✓ Service file created at /etc/systemd/system/potatostack.service"
 
