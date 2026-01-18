@@ -20,80 +20,123 @@ This repository contains a Docker Compose-based self-hosted infrastructure stack
 
 ### Running Single Tests
 The test suite (scripts/test/stack-test.sh) runs all tests by default. To test individual components:
+
+#### Container Status & Health
 - `docker ps --filter "name=service_name"` - Check specific container status
 - `docker logs -f service_name` - View logs for specific service
 - `docker exec service_name command` - Execute command in container
 - `curl -I http://localhost:PORT` - Test HTTP endpoint availability
 
-### Service-Specific Testing
+#### Service-Specific Testing
 Test services using `test_service_endpoints()` function in scripts/test/stack-test.sh:347-439
-- HTTP endpoint tests with curl
+- HTTP endpoint tests with curl (GET/HEAD requests)
 - Database connectivity (PostgreSQL, Redis, MongoDB)
-- Healthcheck validation
-- Log analysis for errors/warnings
+- Healthcheck validation via Docker API
+- Log analysis for errors/warnings/critical messages
+
+#### Database Testing
+- PostgreSQL: `PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d postgres -c "SELECT version();"`
+- Redis: `redis-cli -h localhost ping`
+- MongoDB: `mongosh --eval "db.runCommand('ping')"`
+
+#### Quick Validation Commands
+- `make validate-compose` - Validate docker-compose.yml syntax only
+- `make lint-yaml` - Lint YAML files with yamllint
+- `make lint-shell` - Lint shell scripts with shellcheck
+- `make health` - Check all service health statuses
 
 ## Code Style Guidelines
 
 ### Shell Scripts
-- Shebang: Use `#!/bin/bash` for bash-specific features, `#!/bin/sh` for POSIX compliance
-- Strict mode: Always use `set -euo pipefail`
-- Functions: Use snake_case with descriptive names
-- Colors: Define color variables at top (RED, GREEN, YELLOW, BLUE, NC)
-- Error handling: Check return codes, use conditional logic with `|| true` where appropriate
-- Comments: Use `#` for single-line, `#` followed by blank line for section headers
-- Quoting: Always quote variables `"$VAR"` to prevent word splitting
-- OS detection: Include detect_os() function for Termux/Linux compatibility (see scripts/test/stack-test.sh:27-53)
+- **Shebang**: Use `#!/bin/bash` for bash-specific features, `#!/bin/sh` for POSIX compliance
+- **Strict mode**: Always use `set -euo pipefail` for robust error handling
+- **Functions**: Use snake_case with descriptive names (e.g., `detect_os`, `validate_yaml_syntax`)
+- **Colors**: Define color variables at top (RED, GREEN, YELLOW, BLUE, NC) for consistent output
+- **Error handling**: Check return codes, use conditional logic with `|| true` where appropriate
+- **Comments**: Use `#` for single-line, `#` followed by blank line for section headers
+- **Quoting**: Always quote variables `"$VAR"` to prevent word splitting and globbing
+- **OS detection**: Include detect_os() function for Termux/Linux compatibility (see scripts/test/stack-test.sh:27-53)
+- **Variable naming**: UPPER_CASE for constants, lower_case for local variables
+- **Function parameters**: Use positional parameters ($1, $2) with descriptive names in comments
+- **Exit codes**: Use meaningful exit codes (0=success, 1=error, 2=invalid usage)
 
 ### YAML / Docker Compose
-- Line length: Max 120 characters
-- Indentation: 2 spaces
-- Quotes: Use double quotes for strings, single for string interpolation
-- Anchors/Aliases: Use for common configurations (x-common-env, x-logging in docker-compose.yml:4-10)
-- Section headers: Use `#` with descriptive comments
-- Service naming: Use lowercase with hyphens
-- Environment variables: UPPER_CASE with underscores
-- Network: Define networks explicitly when services communicate
-- Volumes: Use named volumes for persistence, bind mounts for configs
+- **Line length**: Max 200 characters (yamllint config), aim for 120 for readability
+- **Indentation**: 2 spaces consistently
+- **Quotes**: Use double quotes for strings, single quotes for string interpolation
+- **Anchors/Aliases**: Use `&` for anchors, `*` for aliases to reuse common configurations
+- **Section headers**: Use `#` with descriptive comments for major sections
+- **Service naming**: lowercase-with-hyphens (e.g., `postgres`, `redis-cache`)
+- **Environment variables**: UPPER_CASE with underscores (e.g., `POSTGRES_USER`, `TZ`)
+- **Networks**: Define networks explicitly when services communicate
+- **Volumes**: Use named volumes for persistence, bind mounts for configs
+- **Resource limits**: Set CPU/memory limits via `deploy.resources` for production
+- **Healthchecks**: Define healthchecks for critical services with appropriate intervals
+- **Labels**: Use consistent labeling for service discovery and monitoring
 
 ### File Organization
-- Scripts: In `./scripts/` with purpose-based subdirectories (init, setup, monitor, test, validate, security, import, backup)
-- Config files: In `./config/` directory
-- Service configs: In `./config/<service_name>/` subdirectories
-- Documentation: Markdown files in `./docs/`
-- Tests: In `./tests/` directory
+- **Scripts**: In `./scripts/` with purpose-based subdirectories (init, setup, monitor, test, validate, security, import, backup)
+- **Config files**: In `./config/` directory with service-specific subdirectories
+- **Service configs**: In `./config/<service_name>/` subdirectories
+- **Documentation**: Markdown files in `./docs/` directory
+- **Environment files**: `.env.example` as template, `.env` for local overrides (gitignored)
+- **Test files**: Integration tests in `./scripts/test/`, validation scripts in `./scripts/validate/`
+
+### Formatting & Linting
+- **Shell scripts**: Use shfmt for formatting (`make format-shell`)
+- **YAML files**: Use prettier or yq for formatting (`make format-yaml`)
+- **Dockerfiles**: Use dockfmt for formatting (`make format-dockerfiles`)
+- **Linting**: Run `make lint` before committing (shellcheck, yamllint, dclint)
+- **Line length**: 200 chars max for YAML, aim for 120; shell scripts follow shfmt defaults
+- **Trailing whitespace**: Remove all trailing whitespace
+- **Final newlines**: Ensure files end with a single newline
 
 ### Error Handling
-- Shell: Use `set -e` to exit on error, `|| true` to ignore specific errors
-- Functions should return meaningful exit codes (0 = success, non-zero = failure)
-- Log errors to report files in addition to console output
-- Use try/catch patterns: `if command; then success; else error_handling; fi`
+- **Shell**: Use `set -e` to exit on error, `|| true` to ignore specific errors
+- **Functions**: Return meaningful exit codes (0=success, non-zero=failure)
+- **Error messages**: Use consistent color coding (RED for errors, YELLOW for warnings)
+- **Log errors**: Write to report files and console output
+- **Try/catch patterns**: Use `if command; then success; else error_handling; fi`
+- **Resource cleanup**: Use trap commands for cleanup on script exit
+- **Input validation**: Validate inputs before processing
 
 ### Naming Conventions
-- Shell scripts: `name-action.sh` (e.g., `scripts/init/init-storage.sh`, `scripts/security/security-scan.sh`)
-- Functions: snake_case descriptive names (e.g., `detect_os`, `validate_yaml_syntax`)
-- Variables: UPPER_CASE for constants, lower_case for local variables
-- Docker services: lowercase-with-hyphens (e.g., `postgres`, `redis-cache`)
-- Environment variables: UPPER_CASE (e.g., `POSTGRES_USER`, `TZ`)
+- **Shell scripts**: `name-action.sh` (e.g., `scripts/init/init-storage.sh`, `scripts/security/security-scan.sh`)
+- **Functions**: snake_case descriptive names (e.g., `detect_os`, `validate_yaml_syntax`)
+- **Variables**: UPPER_CASE for constants and environment vars, lower_case for local variables
+- **Docker services**: lowercase-with-hyphens (e.g., `postgres`, `redis-cache`)
+- **Environment variables**: UPPER_CASE with underscores (e.g., `POSTGRES_USER`, `TZ`)
+- **Config files**: lowercase-with-hyphens (e.g., `traefik-config.yml`)
+- **Directories**: lowercase-with-hyphens for consistency
 
 ### Import/Include Patterns
-- Docker Compose: Use `&` for anchors, `*` for aliases to reuse configs
-- Shell scripts: Source common functions with `. ./script.sh` or `source script.sh`
-- Avoid duplication: Use YAML anchors and shell functions to eliminate repeated code
+- **Docker Compose**: Use `&` for anchors, `*` for aliases to reuse common configurations
+- **Shell scripts**: Source common functions with `. ./script.sh` or `source script.sh`
+- **Avoid duplication**: Use YAML anchors and shell functions to eliminate repeated code
+- **Modular design**: Break large scripts into smaller, reusable functions
+- **Path handling**: Use absolute paths when possible, validate directory existence
 
-### Comments and Documentation
-- Shell scripts: Add header comment block with purpose, date, author optional
-- Complex logic: Add inline comments explaining WHY, not WHAT
-- YAML: Add section comments before major blocks
-- Environment variables: Document required variables in .env.example
+### Types & Data Structures
+- **Shell arrays**: Use indexed arrays for lists, associative arrays for key-value pairs
+- **String manipulation**: Use parameter expansion `${VAR#prefix}` instead of external tools when possible
+- **Numeric operations**: Use `$(( ))` for arithmetic, validate numeric inputs
+- **Boolean logic**: Use 0/non-zero exit codes for boolean operations
+- **Configuration**: Use environment variables with defaults `${VAR:-default}`
 
 ### Security Best Practices
-- Never commit secrets or credentials to repository
-- Use .env.example as template, .gitignore to protect .env
-- Generate secrets at runtime (see scripts/init/init-storage.sh:72-99)
-- Run `make security` to scan for vulnerabilities before committing
-- Use `make validate` to check docker-compose.yml syntax
-- Validate with shellcheck: `shellcheck script.sh`
-- Format with shfmt: `shfmt -w script.sh`
+- **Secrets**: Never commit secrets, use environment variables or external secret management
+- **File permissions**: Set appropriate permissions on scripts (755 for executables)
+- **Input sanitization**: Validate and sanitize all user inputs
+- **Command injection**: Use arrays for safe command execution: `cmd=(docker exec "$container" ls); "${cmd[@]}"`
+- **Privilege escalation**: Avoid running scripts as root unless absolutely necessary
+
+### Comments and Documentation
+- **Shell scripts**: Add header comment block with purpose, usage, and date
+- **Complex logic**: Add inline comments explaining WHY, not WHAT the code does
+- **YAML**: Add section comments before major blocks using `#` headers
+- **Environment variables**: Document all required variables in .env.example with descriptions
+- **Function documentation**: Use comment blocks above functions describing parameters and return values
+- **API endpoints**: Document service endpoints and their purposes in comments
 
 ### Git Workflow
 - Feature branches: `feature/description` or `fix/issue-description`
@@ -139,3 +182,18 @@ Test services using `test_service_endpoints()` function in scripts/test/stack-te
 - Use shared services (Redis, PostgreSQL) to reduce overhead
 - Configure tmpfs for temporary files to reduce disk I/O
 - Use hardware acceleration where available (e.g., Quick Sync for Jellyfin)
+
+### Development Workflow
+- **Pre-commit**: Always run `make lint && make format` before committing
+- **Testing**: Run `make test-quick` for changes affecting container startup
+- **Documentation**: Update docs/README.md and docs/AGENTS.md with functional changes
+- **Branch naming**: Use `feature/description` or `fix/issue-description` for branches
+- **Commit messages**: Follow Conventional Commits: `type(scope): description`
+- **Code review**: Ensure all automated checks pass before requesting review
+- **Environment setup**: Copy `.env.example` to `.env` and configure service-specific variables
+
+### Tooling & Dependencies
+- **Required tools**: docker, docker-compose/docker compose, make
+- **Optional tools**: yamllint, shellcheck, shfmt, prettier, yq, trivy, hadolint, dockfmt
+- **Validation**: Run `make doctor` to check tool availability and versions
+- **Updates**: Keep tools updated to latest versions for security and feature improvements

@@ -143,7 +143,17 @@ mkdir -p \
 
 # Create Immich required directories and markers
 mkdir -p "${STORAGE_BASE}/photos/encoded-video"
+mkdir -p "${STORAGE_BASE}/photos/library"
+mkdir -p "${STORAGE_BASE}/photos/upload"
+mkdir -p "${STORAGE_BASE}/photos/profile"
+mkdir -p "${STORAGE_BASE}/photos/thumbs"
+mkdir -p "${STORAGE_BASE}/photos/backups"
 touch "${STORAGE_BASE}/photos/encoded-video/.immich" 2>/dev/null || true
+touch "${STORAGE_BASE}/photos/library/.immich" 2>/dev/null || true
+touch "${STORAGE_BASE}/photos/upload/.immich" 2>/dev/null || true
+touch "${STORAGE_BASE}/photos/profile/.immich" 2>/dev/null || true
+touch "${STORAGE_BASE}/photos/thumbs/.immich" 2>/dev/null || true
+touch "${STORAGE_BASE}/photos/backups/.immich" 2>/dev/null || true
 
 ################################################################################
 # Media Directories - AUTHORITATIVE source for *arr stack and Jellyfin
@@ -253,7 +263,9 @@ mkdir -p \
 	"${SSD_BASE}/grafana" \
 	"${SSD_BASE}/authentik" \
 	"${SSD_BASE}/woodpecker" \
-	"${SSD_BASE}/code-server"
+	"${SSD_BASE}/code-server" \
+	"${SSD_BASE}/filebrowser" \
+	"${SSD_BASE}/jellyseerr"
 
 # System directory on SSD (cron, etc)
 mkdir -p "/mnt/ssd/system/cron"

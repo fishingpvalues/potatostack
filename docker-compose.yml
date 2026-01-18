@@ -817,7 +817,49 @@ services:
       - "traefik.http.routers.syncthing.entrypoints=websecure"
       - "traefik.http.routers.syncthing.tls=true"
       - "traefik.http.services.syncthing.loadbalancer.server.port=8384"
-      - "traefik.http.routers.syncthing.middlewares=sso-chain@docker"
+
+  # Filebrowser - Web-based file manager with full RW access
+  filebrowser:
+    image: filebrowser/filebrowser:${FILEBROWSER_TAG:-latest}
+    container_name: filebrowser
+    logging: *default-logging
+    user: "${PUID:-1000}:${PGID:-1000}"
+    entrypoint: sh /filebrowser-init.sh
+    ports:
+      - "${HOST_BIND:-192.168.178.158}:8090:80"
+    environment:
+      <<: *common-env
+      FILEBROWSER_USER: ${FILEBROWSER_USER:-admin}
+      FILEBROWSER_PASSWORD: ${FILEBROWSER_PASSWORD:-}
+    volumes:
+      - /mnt/storage:/srv/storage
+      - /mnt/cachehdd:/srv/cachehdd
+      - /mnt/ssd/docker-data:/srv/docker-data
+      - /mnt/ssd/docker-data/filebrowser:/config
+      - ./scripts/init/filebrowser-init.sh:/filebrowser-init.sh:ro
+    networks:
+      - potatostack
+    depends_on:
+      - storage-init
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:80/health || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.filebrowser.rule=Host(`filebrowser.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.filebrowser.entrypoints=websecure"
+      - "traefik.http.routers.filebrowser.tls=true"
+      - "traefik.http.services.filebrowser.loadbalancer.server.port=80"
+      - "traefik.http.routers.filebrowser.middlewares=sso-chain@docker"
 
   ################################################################################
   # KNOWLEDGE MANAGEMENT
@@ -914,7 +956,8 @@ services:
       - "traefik.http.routers.actual.rule=Host(`budget.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.actual.entrypoints=websecure"
       - "traefik.http.routers.actual.tls=true"
-      - "traefik.http.routers.actual.middlewares=sso-chain@docker"
+      # Use shared-array-chain for SharedArrayBuffer support (COOP/COEP headers)
+      - "traefik.http.routers.actual.middlewares=shared-array-chain@file"
       - "traefik.http.services.actual.loadbalancer.server.port=5006"
 
   ################################################################################
@@ -1143,32 +1186,32 @@ services:
     labels:
       - "autoheal=true"
 
-  # Maintainerr - Media library cleanup
-  maintainerr:
-    image: jorenn92/maintainerr:${MAINTAINERR_TAG:-latest}
-    container_name: maintainerr
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.158}:6246:6246"
-    environment:
-      <<: *common-env
-    volumes:
-      - maintainerr-data:/opt/data
-    networks:
-      - potatostack
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 192M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.maintainerr.rule=Host(`maintainerr.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.maintainerr.entrypoints=websecure"
-      - "traefik.http.routers.maintainerr.tls=true"
-      - "traefik.http.services.maintainerr.loadbalancer.server.port=6246"
-      - "traefik.http.routers.maintainerr.middlewares=sso-chain@docker"
+  # Maintainerr - DISABLED: Media library cleanup
+  # maintainerr:
+  #   image: jorenn92/maintainerr:${MAINTAINERR_TAG:-latest}
+  #   container_name: maintainerr
+  #   logging: *default-logging
+  #   ports:
+  #     - "${HOST_BIND:-192.168.178.158}:6246:6246"
+  #   environment:
+  #     <<: *common-env
+  #   volumes:
+  #     - maintainerr-data:/opt/data
+  #   networks:
+  #     - potatostack
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.25"
+  #         memory: 192M
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.maintainerr.rule=Host(`maintainerr.${HOST_DOMAIN:-local.domain}`)"
+  #     - "traefik.http.routers.maintainerr.entrypoints=websecure"
+  #     - "traefik.http.routers.maintainerr.tls=true"
+  #     - "traefik.http.services.maintainerr.loadbalancer.server.port=6246"
+  #     - "traefik.http.routers.maintainerr.middlewares=sso-chain@docker"
 
   ################################################################################
   # MEDIA SERVERS & REQUEST MANAGEMENT
@@ -1244,9 +1287,11 @@ services:
     environment:
       <<: *common-env
     volumes:
-      - jellyseerr-config:/app/config
+      - /mnt/ssd/docker-data/jellyseerr:/app/config
     networks:
       - potatostack
+    depends_on:
+      - storage-init
     restart: unless-stopped
     deploy:
       resources:
@@ -1453,6 +1498,9 @@ services:
       - /mnt/cachehdd/downloads/slskd:/var/slskd/incomplete
       - shared-keys:/keys:ro
       - ./scripts/init/slskd-init.sh:/init.sh:ro
+      # Share music and audiobook libraries
+      - /mnt/storage/media/music:/music:ro
+      - /mnt/storage/media/audiobooks:/audiobooks:ro
     tmpfs:
       - /tmp:exec,mode=1777,size=256m
     depends_on:
@@ -1493,7 +1541,7 @@ services:
     container_name: immich-server
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.158}:2283:3001"
+      - "${HOST_BIND:-192.168.178.158}:2283:2283"
     environment:
       <<: *common-env
       DB_HOSTNAME: postgres
@@ -1530,7 +1578,7 @@ services:
       - "traefik.http.routers.immich.rule=Host(`immich.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.immich.entrypoints=websecure"
       - "traefik.http.routers.immich.tls=true"
-      - "traefik.http.services.immich.loadbalancer.server.port=3001"
+      - "traefik.http.services.immich.loadbalancer.server.port=2283"
       - "traefik.http.routers.immich.middlewares=sso-chain@docker"
 
   immich-machine-learning:
@@ -1806,44 +1854,50 @@ services:
       - "traefik.http.routers.grafana.middlewares=sso-chain@docker"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 
-  # cAdvisor - Container metrics for Prometheus (SOTA 2025)
-  # cadvisor:
-  #   image: gcr.io/cadvisor/cadvisor:${CADVISOR_TAG:-latest}
-  #   container_name: cadvisor
-  #   logging: *default-logging
-  #   privileged: true
-  #   devices:
-  #     - /dev/kmsg
-  #   ports:
-  #     - "${HOST_BIND:-192.168.178.158}:8089:8080"
-  #   volumes:
-  #     - /:/rootfs:ro
-  #     - /var/run:/var/run:ro
-  #     - /sys:/sys:ro
-  #     - /var/lib/docker/:/var/lib/docker:ro
-  #     - /dev/disk/:/dev/disk:ro
-  #   command:
-  #     - "--housekeeping_interval=30s"
-  #     - "--docker_only=true"
-  #     - "--disable_metrics=tcp,udp,disk,diskIO,hugetlb,referenced_memory,cpu_topology,resctrl"
-  #   networks:
-  #     - potatostack
-  #   restart: unless-stopped
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: "0.5"
-  #         memory: 256M
-  #       reservations:
-  #         cpus: "0.2"
-  #         memory: 128M
-  #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.cadvisor.rule=Host(`cadvisor.${HOST_DOMAIN:-local.domain}`)"
-  #     - "traefik.http.routers.cadvisor.entrypoints=websecure"
-  #     - "traefik.http.routers.cadvisor.tls=true"
-  #     - "traefik.http.services.cadvisor.loadbalancer.server.port=8080"
-  #     - "traefik.http.routers.cadvisor.middlewares=sso-chain@docker"
+  # cAdvisor - Container metrics for Prometheus and Grafana dashboards
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:${CADVISOR_TAG:-latest}
+    container_name: cadvisor
+    logging: *default-logging
+    privileged: true
+    devices:
+      - /dev/kmsg
+    ports:
+      - "${HOST_BIND:-192.168.178.158}:8089:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    command:
+      - "--housekeeping_interval=30s"
+      - "--docker_only=true"
+      - "--disable_metrics=tcp,udp,disk,diskIO,hugetlb,referenced_memory,cpu_topology,resctrl"
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:8080/healthz || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.2"
+          memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cadvisor.rule=Host(`cadvisor.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.cadvisor.entrypoints=websecure"
+      - "traefik.http.routers.cadvisor.tls=true"
+      - "traefik.http.services.cadvisor.loadbalancer.server.port=8080"
+      - "traefik.http.routers.cadvisor.middlewares=sso-chain@docker"
 
   # Node Exporter - Host metrics for Prometheus (SOTA 2025)
   node-exporter:
@@ -1955,59 +2009,59 @@ services:
           cpus: "0.05"
           memory: 32M
 
-  # Netdata - Real-time system monitoring (SOTA 2025 - ultra-lightweight)
-  netdata:
-    image: netdata/netdata:${NETDATA_TAG:-latest}
-    container_name: netdata
-    logging: *default-logging
-    hostname: potatostack-main
-    ports:
-      - "${HOST_BIND:-192.168.178.158}:19999:19999"
-    cap_add:
-      - SYS_PTRACE
-      - SYS_ADMIN
-    security_opt:
-      - apparmor:unconfined
-    environment:
-      <<: *common-env
-      NETDATA_CLAIM_TOKEN: ${NETDATA_CLAIM_TOKEN:-}
-      NETDATA_CLAIM_ROOMS: ${NETDATA_CLAIM_ROOMS:-}
-      NETDATA_CLAIM_URL: https://app.netdata.cloud
-      DOCKER_HOST: /var/run/docker.sock
-    volumes:
-      - netdata-config:/etc/netdata
-      - netdata-lib:/var/lib/netdata
-      - netdata-cache:/var/cache/netdata
-      - /etc/passwd:/host/etc/passwd:ro
-      - /etc/group:/host/etc/group:ro
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /etc/os-release:/host/etc/os-release:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    networks:
-      - potatostack
-    restart: unless-stopped
-    healthcheck:
-      test:
-        ["CMD-SHELL", "curl -f http://127.0.0.1:19999/api/v1/info || exit 1"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 384M
-        reservations:
-          cpus: "0.1"
-          memory: 64M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.netdata.rule=Host(`netdata.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.netdata.entrypoints=websecure"
-      - "traefik.http.routers.netdata.tls=true"
-      - "traefik.http.routers.netdata.middlewares=sso-chain@docker"
-      - "traefik.http.services.netdata.loadbalancer.server.port=19999"
+  # Netdata - DISABLED: Use Prometheus + Grafana instead for monitoring
+  # netdata:
+  #   image: netdata/netdata:${NETDATA_TAG:-latest}
+  #   container_name: netdata
+  #   logging: *default-logging
+  #   hostname: potatostack-main
+  #   ports:
+  #     - "${HOST_BIND:-192.168.178.158}:19999:19999"
+  #   cap_add:
+  #     - SYS_PTRACE
+  #     - SYS_ADMIN
+  #   security_opt:
+  #     - apparmor:unconfined
+  #   environment:
+  #     <<: *common-env
+  #     NETDATA_CLAIM_TOKEN: ${NETDATA_CLAIM_TOKEN:-}
+  #     NETDATA_CLAIM_ROOMS: ${NETDATA_CLAIM_ROOMS:-}
+  #     NETDATA_CLAIM_URL: https://app.netdata.cloud
+  #     DOCKER_HOST: /var/run/docker.sock
+  #   volumes:
+  #     - netdata-config:/etc/netdata
+  #     - netdata-lib:/var/lib/netdata
+  #     - netdata-cache:/var/cache/netdata
+  #     - /etc/passwd:/host/etc/passwd:ro
+  #     - /etc/group:/host/etc/group:ro
+  #     - /proc:/host/proc:ro
+  #     - /sys:/host/sys:ro
+  #     - /etc/os-release:/host/etc/os-release:ro
+  #     - /var/run/docker.sock:/var/run/docker.sock:ro
+  #   networks:
+  #     - potatostack
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test:
+  #       ["CMD-SHELL", "curl -f http://127.0.0.1:19999/api/v1/info || exit 1"]
+  #     interval: 60s
+  #     timeout: 10s
+  #     retries: 3
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.5"
+  #         memory: 384M
+  #       reservations:
+  #         cpus: "0.1"
+  #         memory: 64M
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.netdata.rule=Host(`netdata.${HOST_DOMAIN:-local.domain}`)"
+  #     - "traefik.http.routers.netdata.entrypoints=websecure"
+  #     - "traefik.http.routers.netdata.tls=true"
+  #     - "traefik.http.routers.netdata.middlewares=sso-chain@docker"
+  #     - "traefik.http.services.netdata.loadbalancer.server.port=19999"
 
   # Loki - Log aggregation
   loki:
@@ -2126,7 +2180,7 @@ services:
       - "traefik.http.routers.scrutiny.middlewares=sso-chain@docker"
       - "traefik.http.services.scrutiny.loadbalancer.server.port=8080"
 
-  # Uptime Kuma - Uptime monitoring
+  # Uptime Kuma - Uptime monitoring with Docker container support
   uptime-kuma:
     image: louislam/uptime-kuma:${UPTIME_KUMA_TAG:-latest}
     container_name: uptime-kuma
@@ -2135,10 +2189,14 @@ services:
       - "${HOST_BIND:-192.168.178.158}:3001:3001"
     environment:
       <<: *common-env
+      # Docker socket access via socket-proxy for container monitoring
+      DOCKER_HOST: tcp://socket-proxy:2375
     volumes:
       - uptime-kuma-data:/app/data
     networks:
       - potatostack
+    depends_on:
+      - socket-proxy
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://127.0.0.1:3001 || exit 1"]
@@ -2362,40 +2420,40 @@ services:
       - "traefik.http.services.linkding.loadbalancer.server.port=9090"
       - "traefik.http.routers.linkding.middlewares=sso-chain@docker"
 
-  # Cal.com - Calendar scheduling
-  code-server:
-    image: lscr.io/linuxserver/code-server:${CODE_SERVER_TAG:-latest}
-    container_name: code-server
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.158}:8444:8443"
-    environment:
-      <<: *common-env
-      PASSWORD: ${CODE_SERVER_PASSWORD}
-      SUDO_PASSWORD: ${CODE_SERVER_SUDO_PASSWORD}
-    volumes:
-      - code-server-config:/config
-      - /mnt/storage/projects:/config/workspace
-    networks:
-      - potatostack
-    depends_on:
-      - storage-init
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "2.0"
-          memory: 384M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.code-server.rule=Host(`code.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.code-server.entrypoints=websecure"
-      - "traefik.http.routers.code-server.tls=true"
-      - "traefik.http.services.code-server.loadbalancer.server.port=8443"
-      - "traefik.http.services.code-server.loadbalancer.server.scheme=https"
-      - "traefik.http.routers.code-server.middlewares=sso-chain@docker"
+  # Code-server - DISABLED: VS Code in browser
+  # code-server:
+  #   image: lscr.io/linuxserver/code-server:${CODE_SERVER_TAG:-latest}
+  #   container_name: code-server
+  #   logging: *default-logging
+  #   ports:
+  #     - "${HOST_BIND:-192.168.178.158}:8444:8443"
+  #   environment:
+  #     <<: *common-env
+  #     PASSWORD: ${CODE_SERVER_PASSWORD}
+  #     SUDO_PASSWORD: ${CODE_SERVER_SUDO_PASSWORD}
+  #   volumes:
+  #     - code-server-config:/config
+  #     - /mnt/storage/projects:/config/workspace
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - storage-init
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "2.0"
+  #         memory: 384M
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.code-server.rule=Host(`code.${HOST_DOMAIN:-local.domain}`)"
+  #     - "traefik.http.routers.code-server.entrypoints=websecure"
+  #     - "traefik.http.routers.code-server.tls=true"
+  #     - "traefik.http.services.code-server.loadbalancer.server.port=8443"
+  #     - "traefik.http.services.code-server.loadbalancer.server.scheme=https"
+  #     - "traefik.http.routers.code-server.middlewares=sso-chain@docker"
 
-  # Excalidraw - Sketching tool
+  # Atuin - Shell history sync
   atuin:
     image: ghcr.io/atuinsh/atuin:${ATUIN_TAG:-latest}
     container_name: atuin
@@ -2552,8 +2610,11 @@ services:
       GITEA__database__USER: postgres
       GITEA__database__PASSWD: ${POSTGRES_SUPER_PASSWORD}
       GITEA__server__DOMAIN: git.${HOST_DOMAIN:-local.domain}
+      # For HTTPS via Traefik - access via https://git.danielhomelab.local
       GITEA__server__ROOT_URL: https://git.${HOST_DOMAIN:-local.domain}/
       GITEA__server__SSH_DOMAIN: git.${HOST_DOMAIN:-local.domain}
+      # Allow HTTP access for local development (WebAuthn requires HTTPS for full functionality)
+      GITEA__server__LOCAL_ROOT_URL: http://localhost:3000/
       GITEA__security__INSTALL_LOCK: "true"
       GITEA__cache__ENABLED: "true"
       GITEA__cache__ADAPTER: redis
@@ -3026,9 +3087,11 @@ services:
         log file = /var/log/samba/log.%m
         max log size = 50
         dns proxy = no
-        map to guest = Bad User
-        usershare allow guests = yes
-      ACCOUNT_daniel: ${SAMBA_PASSWORD:-changeme}
+        security = user
+        passdb backend = tdbsam
+        map to guest = Never
+      # User configuration - use quoted password for special characters
+      ACCOUNT_daniel: "${SAMBA_PASSWORD:-changeme}"
       UID_daniel: "${PUID:-1000}"
       GROUP_daniel: "${PGID:-1000}"
       SAMBA_VOLUME_CONFIG_storage: |
@@ -3227,6 +3290,12 @@ services:
       - /mnt/storage/slskd-shared:/data/slskd-shared:ro
       - /mnt/storage/photos:/data/photos:ro
       - /mnt/storage/media:/data/media:ro
+      # Host system backup (Debian 13) - includes /etc, /home, /root, /var
+      - /etc:/data/host-etc:ro
+      - /home:/data/host-home:ro
+      - /root:/data/host-root:ro
+      - /var/log:/data/host-var-log:ro
+      - /mnt/ssd/docker-data:/data/docker-data:ro
     networks:
       - potatostack
     depends_on:
