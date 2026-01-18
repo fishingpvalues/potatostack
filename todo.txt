@@ -1,33 +1,5 @@
-- comment out adguard 
-- check all and make nice grafana dashboards which make sense for me 
-- maek sure all is via HTTPS
-- why do i have to create an accoutn with homarr when i set ait in .env?
-
-● Homarr is now working (307 redirect is normal). Services are running. The DNS issue is that *.danielhomelab.local
-  isn't resolving to your server.
-
-  Try accessing via direct IP:
-  - Homarr: http://192.168.178.158:7575
-  - Grafana: http://192.168.178.158:3002
-  - Jellyfin: http://192.168.178.158:8096
-
-  For HTTPS domains to work, add to your /etc/hosts or configure DNS:
-  192.168.178.158 home.danielhomelab.local grafana.danielhomelab.local jellyfin.danielhomelab.local
-
-● Bash(curl -s -o /dev/null -w "%{http_code}" http://192.168.178.158:3002/ 2>&1)
-  ⎿  302
-
-● All services are running. Access them directly:
-  ┌────────────┬─────────────────────────────┐
-  │  Service   │         Direct URL          │
-  ├────────────┼─────────────────────────────┤
-  │ Homarr     │ http://192.168.178.158:7575 │
-  ├────────────┼─────────────────────────────┤
-  │ Grafana    │ http://192.168.178.158:3002 │
-  ├────────────┼─────────────────────────────┤
-  │ Jellyfin   │ http://192.168.178.158:8096 │
-  ├────────────┼─────────────────────────────┤
-  │ Prometheus │ http://192.168.178.158:9090 │
-  └────────────┴─────────────────────────────┘
-  For HTTPS via Traefik, configure your local DNS (router/AdGuard/Pi-hole) to point *.danielhomelab.local →
-  192.168.178.158.
+- migrate homarr to new homarrlabs version latest stable check online for migration guides and make all 
+. hommarr doesnt give https HOST_IP links it redictecds to localhost:port pattern with http fix that homarr should be my starting point always which i can access with HTTP no problem
+- make sure all scripts are up to date delete obsolete ones
+- prioritize to make the stack work 100% all services healthy and reachjable with https give domain and router settings for me what i need to forward
+- i want this recommend best service free of cost etc and document it how: Forwarding a domain to a local IP address in a FRITZ!Box involves connecting a public domain name to your dynamic public IP address (via Dynamic DNS) and then directing incoming traffic to a specific device inside your network (via Port Forwarding). Here is how to set up this connection: 1. Set Up Dynamic DNS (DynDNS) Since most internet connections have a dynamic IP address that changes, you need a domain that updates to your current IP. Use MyFRITZ! (Built-in): Go to Internet > MyFRITZ! Account to set up a free <name>.myfritz.net address.Use Third-Party (DuckDNS, No-IP, etc.): Go to Internet > Permit Access > Dynamic DNS. Choose "User-defined" and enter your custom domain and update URL. 2. Configure Port Forwarding To direct traffic from the domain to a specific device (e.g., a NAS, home server) on your network: Go to Internet > Permit Access > Port Sharing.Click "Add Device for Sharing" and select the device.Click "New Sharing".Select "Port Forwarding".Set the Application (e.g., HTTP server), and define the internal/external ports (e.g., 80/443 for web services).IPv6 note: If using IPv6, specify the Interface ID of the device manually to ensure it doesn't change. 3. Handle Local Access (DNS Rebind Protection) If you try to access yourdomain.com from inside your home network, the FRITZ!Box may block it to prevent DNS rebinding attacks. Go to Home Network > Network > Network Settings.Scroll down to DNS Rebind Protection.Add your domain (e.g., mydomain.com or *.myfritz.net) to the allowed list. 4. Alternative: Local DNS Server (Pi-hole) If you want to use your domain name internally to point to a local IP without going out to the internet and back, you can set up a local DNS server (like Pi-hole) and set it as the DHCP server in the FRITZ!Box settings. Summary of Key Settings DynDNS: Maps domain.com \(\rightarrow \) Dynamic Public IP.Port Forwarding: Maps Public IP:Port \(\rightarrow \) Internal IP:Port.Rebind Protection: Allows internal resolution of external domains
