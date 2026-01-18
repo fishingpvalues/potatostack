@@ -1,0 +1,21 @@
+[Unit]
+Description=PotatoStack Docker Compose Startup
+Documentation=https://github.com/yourusername/potatostack
+After=docker.service docker.socket network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=daniel
+Group=docker
+WorkingDirectory=/home/daniel/potatostack
+ExecStart=/home/daniel/potatostack/scripts/init/startup.sh
+ExecStop=/usr/bin/docker compose down
+TimeoutStartSec=300
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
