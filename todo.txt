@@ -1,513 +1,87 @@
-- i configured tailscale the general auth key is alraey in .env and my ts nmet is tale-iwato.ts.net connect all services to this idont want to use fritzbox at all make sure tailscale container is running and up and working make sure tailscale is congifured for ALL and http and https workjs all with it and traefik and hjomar create a links.md with tailscale links of ALL my services i want to use tailscale everytime but also be able to access all via http
-- migrate homarr to new homarrlabs version latest stable check online for migration guides and make all working i want homarr to redicrect to my tailscale apps they should all receive the tailscale link 
-- make sure all scripts are up to date delete obsolete ones change init-storage to this one and adapt all services:
+- aria2 doesnt connect it says disconnected adapt aria2-init so it works with new adress of http://potatostack.tale-iwato.ts.net:6800/jsonrpc
+- ### Update to Filebrowser Configuration
+Thanks for the clarification, Daniel—understood, you want full read/write capabilities (upload, download, edit, delete, rename, etc.) across your homelab storage, not just read-only browsing. I've adjusted the recommendation accordingly. Filebrowser supports all these operations out of the box when volumes are mounted read-write (default without `:ro`).
 
-Yes. There is **real consolidation potential** here. The structure is solid, but it’s grown organically and now shows **duplication by responsibility drift**. I’ll be blunt and practical.
+A quick note: Granting full write access via a web UI increases risk (e.g., accidental deletions), so ensure strong auth (your Authentik SSO helps here) and perhaps set user-specific scopes in Filebrowser's config (via UI or `.filebrowser.json`) to limit access if needed. If you're in Frankfurt and managing sensitive data, consider enabling Filebrowser's audit logging for tracking changes.
 
-I’ll split this into **DELETE**, **MERGE / INTEGRATE**, and **KEEP AS-IS**.
+Nextcloud in your stack already allows full file management with similar mounts—check if expanding its external storages covers this without adding a new service. But if you prefer a simpler, dedicated browser, here's the updated docker-compose snippet for Filebrowser (add under `services:`):
 
----
-
-## 1. High-confidence DELETE candidates (or stop creating)
-
-These add complexity without long-term value.
-
-### ❌ `/mnt/storage/photos`
-
-**Why:**
-You already have:
-
-* `syncthing/photos/...`
-* `media/...` (if Jellyfin ever indexes photos)
-
-This standalone `photos` dir has no unique role.
-
-**Action:**
-Delete **unless** you explicitly mount it into a photo app.
-If needed → symlink it to `syncthing/photos`.
-
-```
-rm -rf /mnt/storage/photos
-```
-
----
-
-### ❌ `/mnt/storage/duckdb`
-
-**Why:**
-DuckDB is an **embedded analytics artifact**, not primary storage.
-Leaving it on HDD encourages sloppy state.
-
-**Action:**
-Move to:
-
-```
-/mnt/ssd/docker-data/duckdb
+```yaml
+  filebrowser:
+    image: filebrowser/filebrowser:${FILEBROWSER_TAG:-latest}
+    container_name: filebrowser
+    logging: *default-logging
+    user: "${PUID:-1000}:${PGID:-1000}"
+    volumes:
+      - /mnt/storage:/srv/storage  # Full RW access to main storage
+      - /mnt/cachehdd:/srv/cachehdd
+      - /mnt/ssd/docker-data:/srv/docker-data  # Docker volumes (be cautious with writes here)
+      - filebrowser-config:/database
+      - filebrowser-json:/.filebrowser.json  # Config file
+    environment:
+      <<: *common-env
+      FB_PORT: 80
+      FB_BASEURL: /filebrowser
+      FB_NOAUTH: "false"  # Enable auth
+    networks:
+      - potatostack
+    depends_on:
+      - storage-init
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.filebrowser.rule=Host(`files.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.filebrowser.entrypoints=websecure"
+      - "traefik.http.routers.filebrowser.tls=true"
+      - "traefik.http.services.filebrowser.loadbalancer.server.port=80"
+      - "traefik.http.routers.filebrowser.middlewares=sso-chain@docker"  # Your SSO middleware
 ```
 
-or kill entirely if it’s transient.
-
----
-
-### ❌ `/mnt/cachehdd/jellyfin-cache`
-
-**Why:**
-Jellyfin regenerates this safely. Keeping it is fine, but naming is inconsistent.
-
-**Action:**
-Merge under a unified cache namespace (see below).
-
----
-
-## 2. Strong MERGE / INTEGRATION opportunities
-
-This is where you gain clarity and operational calm.
-
----
-
-### 🔁 1. Download flow is fragmented
-
-Current:
-
-```
-downloads/torrent
-downloads/aria2
-cachehdd/*-incomplete
-```
-
-**Better (classic layout):**
-
-```
-downloads
-├── incoming      (cache, incomplete)
-├── completed
-│   ├── torrent
-│   └── aria2
-```
-
-**Action:**
-
-* Keep incomplete on cache HDD
-* Bind-mount to `/downloads/incoming`
-
-This reduces *mental branching* when debugging broken pipelines.
-
----
-
-### 🔁 2. Media vs Syncthing duplication (BIG one)
-
-You currently have:
-
-* `syncthing/music`
-* `media/music`
-* `syncthing/audiobooks`
-* `media/audiobooks`
-* same for podcasts, books
-
-This is **data schizophrenia**.
-
-**Truth:**
-Media libraries should be **authoritative** in ONE place.
-
-**Recommended rule (old-school, proven):**
-
-* `syncthing` = **input / personal**
-* `media` = **curated / served**
-
-**Action:**
-
-* One-way move from `syncthing/*` → `media/*`
-* Or bind-mount:
-
-```
-/mnt/storage/media/music  -> syncthing/music/albums
-```
-
-Do **not** keep both writable.
-
----
-
-### 🔁 3. Cache namespace hygiene
-
-Current cache root is a junk drawer.
-
-**Integrate into:**
-
-```
-/mnt/cachehdd
-├── downloads
-│   ├── torrent
-│   ├── aria2
-│   └── slskd
-├── media
-│   ├── jellyfin
-│   └── audiobookshelf
-├── observability
-│   ├── loki
-│   ├── prometheus
-│   ├── thanos
-│   └── alertmanager
-├── sync
-│   └── syncthing-versions
-└── system
-    └── swapfile
-```
-
-This makes failures *legible at a glance*.
-
----
-
-## 3. SSD side: minor cleanup only
-
-Mostly good. Two tweaks.
-
-### ⚠️ `/mnt/ssd/docker-data/cron`
-
-**Why:**
-This is infrastructure, not app data.
-
-**Better:**
-
-```
-/mnt/ssd/system/cron
-```
-
-Keeps docker-data pure.
-
----
-
-### ⚠️ `/mnt/ssd/docker-data/parseable`
-
-If you keep Loki + Thanos:
-
-* Parseable is redundant **unless** you need SQL on logs.
-
-**Decision point:**
-
-* Metrics stack → Prom/Loki/Thanos
-* Logs analytics → Parseable
-  Don’t half-commit.
-
----
-
-## 4. Things I would NOT touch
-
-These are correct and conservative.
-
-✔ `kopia/repository` on HDD
-✔ `kopia-cache` on cache disk
-✔ `databases on SSD`
-✔ `swap on cache disk` (correct tradeoff)
-✔ `/keys` volume (clean, explicit)
-
----
-
-## Bottom line (hard truth)
-
-You don’t have a mess.
-You have a **successful system that needs a second pruning**.
-
-If you do only **three things**, do these:
-
-1. Kill duplicate photo/music roots
-2. Normalize cache namespace
-3. Define ONE authoritative media tree
-
-CHECK THIS AS WELL 
-
-Hey Daniel,
-
-It sounds like you've lost connection to your PotatoStack homelab server (the "potatostack" host), possibly due to a Tailscale hiccup or network glitch around 2:45 PM CET. Thanks for sharing the details—your email (dfischer9966@gmail.com), Tailscale version (1.92.5—assuming that's what you meant; if not, clarify), and OS/kernel (Linux 6.1.0-63+deb13u-amd64 or similar on Debian 13) help narrow it down. This is a common issue on Debian setups where Tailscale can become unresponsive after idle, upgrades, or kernel interactions (e.g., sleep/wake cycles or routing conflicts). I'll walk you through troubleshooting and fixing it step by step. If you have physical/local access to the server, start there; otherwise, use remote workarounds.
-
-### Quick Checks Before Diving In
-- **Is the Server Online?** Ping it locally if possible (e.g., from another device in your Frankfurt home LAN): `ping 192.168.178.158`. If it responds but Tailscale doesn't, it's a VPN-specific issue.
-- **Tailscale Admin Console**: Log in at [login.tailscale.com](https://login.tailscale.com) with your account (tied to dfischer9966@gmail.com). Check if "potatostack" shows as offline or with errors. If offline, it might need a restart.
-- **Recent Changes**: If this happened after a commit/push (like your earlier "fix all"), a script (e.g., UFW rules) might have blocked ports or conflicted.
-
-### Step-by-Step Fix
-1. **Restart Tailscale on the Server (Easiest Fix for Unresponsiveness)**:
-   - If you have local access (e.g., via keyboard/monitor or another LAN SSH): SSH in with `ssh daniel@192.168.178.158` and run:
-     ```
-     docker restart tailscale
-     ```
-     - Then check status: `docker exec -it tailscale tailscale status`. It should show "Running" and connected peers.
-     - If Docker isn't responding, restart the whole stack: `cd ~/potatostack && docker compose restart tailscale`.
-   - No local access? If your FRITZ!Box WireGuard is still set up, connect via that as a fallback and run the above.
-
-2. **Reconnect from Your Client (PC/Phone)**:
-   - On your remote device, restart the Tailscale client: In the app, disconnect/reconnect or run `tailscale up` (CLI).
-   - Try accessing via Tailscale hostname: `ssh daniel@potatostack.tailnet-name.ts.net` (replace with your actual tailnet, e.g., from your TS_AUTHKEY).
-   - If DNS fails (common on Debian), use the IP: Find it in the Tailscale app/console, then `ssh daniel@100.x.y.z`.
-
-3. **Check for Kernel/Firewall Conflicts (Debian-Specific)**:
-   - Debian 13 kernels (like 6.1.x) can have module issues with Tailscale's WireGuard. On the server:
-     ```
-     sudo modprobe wireguard
-     tailscale debug prefs  # Check for errors
-     ```
-     - UFW/iptables: `sudo ufw status` – ensure port 41641/udp (Tailscale) and 22/tcp (SSH) are allowed. If blocked: `sudo ufw allow 41641/udp` and `sudo ufw reload`.
-     - If sleep/wake caused it (e.g., server idled): Add a systemd service to auto-restart Tailscale on resume (see source for script).
-
-4. **Advanced Troubleshooting**:
-   - Logs: On server, `docker logs tailscale | tail -n 50` for errors (e.g., "connection lost" or DERP issues).
-   - Update Tailscale: If 1.92.5 is outdated/custom, pull latest: `docker compose pull tailscale && docker compose up -d tailscale`.
-   - Routing Conflicts: If using Surfshark on your PC, ensure Tailscale is whitelisted (as we discussed). Test without Surfshark.
-   - Full Reboot: As a last resort, reboot the server and retry.
-
-This should get you reconnected quickly—Tailscale is resilient, but Debian quirks can trip it up. If it persists, share more logs (e.g., from `tailscale status`) or email me at [support@x.ai] with your details for deeper help. Hang in there!
-
-   376  # Loki (UID 10001)
-      280 -[ -d "${CACHE_BASE}/loki" ] && chown -R 10001:10001 "${CACHE_BASE}/loki"
-      377 +[ -d "${CACHE_BASE}/observability/loki" ] && chown -R 10001:10001 "${CACHE_BASE}/observability/loki"
-      378
-      379  # Grafana (UID 472)
-      380  [ -d "${SSD_BASE}/grafana" ] && chown -R 472:472 "${SSD_BASE}/grafana"
-      381
-      382  # Thanos (UID 1001)
-      286 -mkdir -p "${CACHE_BASE}/thanos/store" "${CACHE_BASE}/thanos/compact"
-      287 -chown -R 1001:1001 "${CACHE_BASE}/thanos"
-      383 +[ -d "${CACHE_BASE}/observability/thanos" ] && chown -R 1001:1001 "${CACHE_BASE}/observability/thanos"
-      384
-      385  # Alertmanager (UID 65534)
-      290 -[ -d "${CACHE_BASE}/alertmanager" ] && chown -R 65534:65534 "${CACHE_BASE}/alertmanager"
-      386 +[ -d "${CACHE_BASE}/observability/alertmanager" ] && chown -R 65534:65534 "${CACHE_BASE}/observability/alertmanager"
-      387
-      388  # Homarr (UID 1000)
-      389  [ -d "${SSD_BASE}/homarr" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/homarr"
-     ...
-      453
-      454  printf '%s\n' ""
-      455  printf '%s\n' "✓ Storage initialization complete"
-      360 -printf '%s\n' "✓ Main HDD: downloads, syncthing mirror, kopia repository, rustypaste, paperless"
-      361 -printf '%s\n' "✓ Cache HDD: incomplete downloads, kopia cache, syncthing versions, 2GB swap"
-      362 -printf '%s\n' "✓ SSD: databases and high-I/O app data"
-      456 +printf '%s\n' ""
-      457 +printf '%s\n' "Directory structure:"
-      458 +printf '%s\n' "  /mnt/storage     - Main HDD (media, downloads, syncthing, kopia)"
-      459 +printf '%s\n' "  /mnt/cachehdd    - Cache HDD (downloads/media/observability/sync/system)"
-      460 +printf '%s\n' "  /mnt/ssd         - SSD (docker-data, system)"
-
-● Now updating docker-compose.yml with new cache paths.
-
-● Search(pattern: "/mnt/cachehdd/qbittorrent-incomplete|/mnt/cachehdd/aria2-incomplete|/mnt/cachehdd/slskd-incomplete|/mnt/cachehdd/jellyfin-cache|/mnt/cachehdd/loki|/mnt/cachehdd/promethe
-        us|/mnt/cachehdd/thanos|/mnt/cachehdd/alertmanager|/mnt/cachehdd/syncthing-versions|/mnt/cachehdd/kopia-cache|/mnt/cachehdd/pinchflat-incomplete|/mnt/cachehdd/immich-ml-cache|/mnt/
-        cachehdd/audiobookshelf", path: "docker-compose.yml", output_mode: "content")
-  ⎿  Found 17 lines (ctrl+o to expand)
-
-● Update(docker-compose.yml)
-  ⎿  Added 5 lines, removed 5 lines
-      967        - sonarr-config:/config
-      968        - /mnt/storage/media/tv:/tv
-      969        - /mnt/storage/downloads:/downloads
-      970 -      - /mnt/cachehdd/qbittorrent-incomplete:/downloads/incomplete
-      970 +      - /mnt/cachehdd/downloads/torrent:/downloads/incomplete
-      971      depends_on:
-      972        gluetun:
-      973          condition: service_healthy
-     ...
-      1004        - radarr-config:/config
-      1005        - /mnt/storage/media/movies:/movies
-      1006        - /mnt/storage/downloads:/downloads
-      1007 -      - /mnt/cachehdd/qbittorrent-incomplete:/downloads/incomplete
-      1007 +      - /mnt/cachehdd/downloads/torrent:/downloads/incomplete
-      1008      depends_on:
-      1009        gluetun:
-      1010          condition: service_healthy
-     ...
-      1041        - lidarr-config:/config
-      1042        - /mnt/storage/media/music:/music
-      1043        - /mnt/storage/downloads:/downloads
-      1044 -      - /mnt/cachehdd/qbittorrent-incomplete:/downloads/incomplete
-      1044 +      - /mnt/cachehdd/downloads/torrent:/downloads/incomplete
-      1045      depends_on:
-      1046        gluetun:
-      1047          condition: service_healthy
-     ...
-      1078        - bookshelf-config:/config
-      1079        - /mnt/storage/media/books:/books
-      1080        - /mnt/storage/downloads:/downloads
-      1081 -      - /mnt/cachehdd/qbittorrent-incomplete:/downloads/incomplete
-      1081 +      - /mnt/cachehdd/downloads/torrent:/downloads/incomplete
-      1082      depends_on:
-      1083        gluetun:
-      1084          condition: service_healthy
-     ...
-      1343      volumes:
-      1344        - qbittorrent-config:/config
-      1345        - /mnt/storage/downloads:/downloads
-      1346 -      - /mnt/cachehdd/qbittorrent-incomplete:/incomplete
-      1346 +      - /mnt/cachehdd/downloads/torrent:/incomplete
-      1347        - ./scripts/init/qbittorrent-init.sh:/qb-init.sh:ro
-      1348      depends_on:
-      1349        gluetun:
-
-● Update(docker-compose.yml)
-  ⎿  Added 1 line, removed 1 line
-      1385      volumes:
-      1386        - aria2-config:/config
-      1387        - /mnt/storage/downloads/aria2:/downloads
-      1388 -      - /mnt/cachehdd/aria2-incomplete:/incomplete
-      1388 +      - /mnt/cachehdd/downloads/aria2:/incomplete
-      1389        - ./scripts/init/aria2-init.sh:/aria2-init.sh:ro
-      1390        - shared-keys:/keys:ro
-      1391      depends_on:
-
-● Update(docker-compose.yml)
-  ⎿  Added 1 line, removed 1 line
-      1450        - slskd-config:/app
-      1451        - /mnt/cachehdd/slskd/logs:/app/logs
-      1452        - /mnt/storage/slskd-shared:/var/slskd/shared
-      1453 -      - /mnt/cachehdd/slskd-incomplete:/var/slskd/incomplete
-      1453 +      - /mnt/cachehdd/downloads/slskd:/var/slskd/incomplete
-      1454        - shared-keys:/keys:ro
-      1455        - ./scripts/init/slskd-init.sh:/init.sh:ro
-      1456      tmpfs:
-
-● Update(docker-compose.yml)
-  ⎿  Added 1 line, removed 1 line
-      2726      volumes:
-      2727        - pinchflat-config:/config
-      2728        - /mnt/storage/media/youtube:/downloads
-      2729 -      - /mnt/cachehdd/pinchflat-incomplete:/incomplete
-      2729 +      - /mnt/cachehdd/downloads/pinchflat:/incomplete
-      2730      depends_on:
-      2731        gluetun:
-      2732          condition: service_healthy
-
-● Update(docker-compose.yml)
-  ⎿  Added 1 line, removed 1 line
-      1203        - /mnt/storage/media/movies:/data/movies
-      1204        - /mnt/storage/media/music:/data/music
-      1205        - /mnt/storage/media/audiobooks:/data/audiobooks
-      1206 -      - /mnt/cachehdd/jellyfin-cache:/cache
-      1206 +      - /mnt/cachehdd/media/jellyfin:/cache
-      1207      tmpfs:
-      1208        - /tmp:exec,mode=1777,size=500m
-      1209        - /transcode:exec,mode=1777,size=2g
-
-● Update(docker-compose.yml)
-  ⎿  Added 1 line, removed 1 line
-      1272        <<: *common-env
-      1273      volumes:
-      1274        - audiobookshelf-config:/config
-      1275 -      - /mnt/cachehdd/audiobookshelf/metadata:/metadata
-      1275 +      - /mnt/cachehdd/media/audiobookshelf/metadata:/metadata
-      1276        - /mnt/storage/media/audiobooks:/audiobooks
-      1277        - /mnt/storage/media/podcasts:/podcasts
-      1278      networks:
-
-● Update(docker-compose.yml)
-  ⎿  Added 1 line, removed 1 line
-      1540      environment:
-      1541        <<: *common-env
-      1542      volumes:
-      1543 -      - /mnt/cachehdd/immich-ml-cache:/cache
-      1543 +      - /mnt/cachehdd/media/immich-ml:/cache
-      1544      networks:
-      1545        - potatostack
-      1546      depends_on:
-
-● Update(docker-compose.yml)
-  ⎿  Added 1 line, removed 1 line
-      2019      command: -config.file=/etc/loki/loki.yml -target=all
-      2020      volumes:
-      2021        - ./config/loki:/etc/loki
-      2022 -      - /mnt/cachehdd/loki/data:/loki
-      2022 +      - /mnt/cachehdd/observability/loki/data:/loki
-      2023      networks:
-      2024        - potatostack
-      2025      restart: unless-stopped
-
-● Update(docker-compose.yml)
-  ⎿  Added 3 lines, removed 3 lines
-      1594        <<: *common-env
-      1595      volumes:
-      1596        - ./config/prometheus:/etc/prometheus:ro
-      1597 -      - /mnt/cachehdd/prometheus:/prometheus
-      1597 +      - /mnt/cachehdd/observability/prometheus:/prometheus
-      1598      networks:
-      1599        - potatostack
-      1600      restart: unless-stopped
-     ...
-      1637      environment:
-      1638        <<: *common-env
-      1639      volumes:
-      1640 -      - /mnt/cachehdd/prometheus:/prometheus
-      1640 +      - /mnt/cachehdd/observability/prometheus:/prometheus
-      1641        - ./config/thanos:/etc/thanos:ro
-      1642      networks:
-      1643        - potatostack
-     ...
-      3309
-      3310    # Monitoring
-      3311    uptime-kuma-data:
-      3312 -  # prometheus uses bind mount to /mnt/cachehdd/prometheus
-      3312 +  # prometheus uses bind mount to /mnt/cachehdd/observability/prometheus
-      3313    grafana-data:
-      3314    netdata-config:
-      3315    netdata-lib:
-
-● Update(docker-compose.yml)
-  ⎿  Error editing file
-
-● Update(docker-compose.yml)
-  ⎿  Error editing file
-
-● Update(docker-compose.yml)
-  ⎿  Added 1 line, removed 1 line
-      795      volumes:
-      796        - syncthing-config:/config
-      797        - /mnt/storage/syncthing:/data
-      798 -      - /mnt/cachehdd/syncthing-versions:/data/.stversions
-      798 +      - /mnt/cachehdd/sync/syncthing-versions:/data/.stversions
-      799        - shared-keys:/keys:ro
-      800        - ./scripts/init/syncthing-init.sh:/syncthing-init.sh:ro
-      801      networks:
-
-● Update(docker-compose.yml)
-  ⎿  Added 1 line, removed 1 line
-      3217      volumes:
-      3218        - /mnt/storage/kopia/repository:/repository
-      3219        - kopia-config:/app/config
-      3220 -      - /mnt/cachehdd/kopia-cache:/app/cache
-      3220 +      - /mnt/cachehdd/sync/kopia-cache:/app/cache
-      3221        - kopia-logs:/app/logs
-      3222        - ./scripts/init/kopia-init.sh:/kopia-init.sh:ro
-      3223        # Backup targets
-
-● Search(pattern: "thanos|alertmanager", path: "docker-compose.yml", output_mode: "content", head_limit: 30)
-  ⎿  Found 30 lines (ctrl+o to expand)
-
-● Bash(grep -E "/mnt/cachehdd/[a-z]+-" /home/daniel/potatostack/docker-compose.yml 2>/dev/null || echo "No old paths found")
-  ⎿  No old paths found
-
-● Now running storage-init and restarting services with new paths.
-
-● Bash(docker compose rm -f storage-init 2>/dev/null; docker compose up storage-init 2>&1)
-  ⎿  Going to remove storage-init
-     time="2026-01-18T15:33:57+01:00" level=warning msg="No services to build"
-      Container storage-init Creating
-     … +54 lines (ctrl+o to expand)
-
-● Storage migrated. Restarting affected services.
-
-● Bash(docker compose up -d qbittorrent aria2 slskd pinchflat jellyfin audiobookshelf immich-ml loki prometheus syncthing kopia 2>&1) timeout: 3m 0s
-  ⎿  Error: Exit code 1
-     no such service: immich-ml
-
-● Bash(docker compose up -d qbittorrent aria2 slskd pinchflat jellyfin audiobookshelf immich-machine-learning loki prometheus syncthing kopia 2>&1) timeout: 3m 0s
-  ⎿  time="2026-01-18T15:34:13+01:00" level=warning msg="No services to build"
-      Container redis-cache Running
-      Container postgres Running
-     … +66 lines (ctrl+o to expand)
-
-● Bash(docker ps -a --format "{{.Names}} {{.Status}}" | grep -E "(Restarting|Exited|unhealthy)" | grep -v "storage-init" | head -20)
-  ⎿  (No content)
-  ⎿  You've hit your limit · resets 5pm (Europe/Berlin)
-
-✻ Crunched for 3m 23s
-
-❯ Unknown skill: copy
-
-❯ /export
-  ⎿  Failed to copy to clipboard. Make sure xclip or wl-copy ianti-coercion instrument"
+- **Changes**: Removed `:ro` from volumes for full RW access. Filebrowser will now allow all operations on these paths.
+- **Setup Steps**:
+  1. Add new volumes `filebrowser-config` and `filebrowser-json` under `volumes:` in your compose file.
+  2. Run `docker compose up -d` (or pull/recreate if updating).
+  3. Access at `https://files.${HOST_DOMAIN}` (default login: admin/admin—change ASAP in the UI under Settings > Users).
+  4. In the UI, you can add users, set permissions (e.g., lock certain paths to read-only), enable sharing, or run shell commands.
+- **Resource Impact**: Still minimal—fits your 16GB mini PC easily.
+- **Alternatives if Needed**: If Filebrowser feels too basic after trying, OwnCloud Infinite Scale (from awesome-selfhosted) is a lighter Nextcloud alternative with full features, but stick with this for simplicity.
+
+If this doesn't fully "do all" what you need (e.g., specific integrations or mobile apps), let me know more details! but not files.xxx i want the same pattern as the other services 
+
+- check why i cant sign up in qBittorrent WebUI with my global env stuff 
+- adapt my soulseek shares to new folder structure share all music and audiobook files
+- uptime kuma doesnt registr any services or stuff i want it to work with my docker containers?!
+- comment out and remove netdata and rebuild their stuff with prometheuis and grafana
+- the grafana dashboards dont work fix them
+- comment out maintainerrr
+- jellyseeer : The /app/config volume mount was not configured properly. All data will be cleared when the container is stopped or restarted.
+- immich-server doesnt workj at all: 
+Verbindung fehlgeschlagen
+
+Firefox kann keine Verbindung zu dem Server unter potatostack.tale-iwato.ts.net:2283 aufbauen.
+
+    Die Website könnte vorübergehend nicht erreichbar sein, versuchen Sie es bitte später nochmals.
+    Wenn Sie auch keine andere Website aufrufen können, überprüfen Sie bitte die Netzwerk-/Internetverbindung.
+    Wenn Ihr Computer oder Netzwerk von einer Firewall oder einem Proxy geschützt wird, stellen Sie bitte sicher, dass Firefox auf das Internet zugreifen darf.
+
+    - nextcloud and nexctlud AIO also both not reachable
+    - comment out code-server
+
+    - can i do this? Vaultwarden
+You are not using a secure context which is required for the Subtle Crypto API to work. You need to enable HTTPS!
+`;
+also i need to have admin enabvle auth enable login for vaultwarden to work
+
+- Schwerwiegender Fehler
+Actual benötigt Zugriff auf SharedArrayBuffer, um richtig zu funktionieren. Wenn du diesen Fehler siehst, unterstützt entweder dein Browser SharedArrayBuffer nicht, dein Server sendet nicht die entsprechenden Header oder du verwendest kein HTTPS. Lies unsere Dokumentation zur Fehlerbehebung, um mehr zu erfahren. Erweiterte Optionen
+
+- velld is not cinfigured
+
+MAKE SURE ALL CONFIG AND SETTIGNS FILES ARE PERSISTED ON SSD AND CAN BE RECOVERED AND ARE AUTOMATICALLY RELOADED
+- I NEED A backup containe rwhioh makes a host backup completely can i confgigure kopia to do this? i want to clone the internal ssd or maek snapshots for debian 13 with all basically cloning or atleast the necessary files
+- Gitea This instance is configured to run under HTTPS (by ROOT_URL config), you are accessing by HTTP. Mismatched scheme might cause problems for sign-in/sign-up.
