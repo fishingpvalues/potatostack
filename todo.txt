@@ -1,9 +1,3 @@
-- [x] Actual - SharedArrayBuffer error (configuration seems correct, clarified access method)
-- [x] aria2 - auth errors (made init script more robust)
-- [x] atuin - connection issue (already fixed)
-- [x] uptime kuma - docker.sock access issue (already fixed)
-- [ ] vaultwarden - https doesn't work (requires user action, see FIX_VAULTWARDEN_HTTPS.md)
-- [x] n8n - secure cookie issue (fixed environment variable)
-- [x] slskd - shared directories issue (already fixed)
-- [x] qbittorrent - unauthorized issue (already fixed)
-- [x] kopia - repo issue (made init script more robust)
+- fix thge guides to use vaultwarden i enabled https with tailascale so maybe can all services now use https? especially rustypaste?
+- fix immmich-server grep its logs every minute for errors like redis not found etc and if so restart it (i dont know the exact message, but if it jhappens i cant use it on my andrpoid phione and i need it to autoheal itself)
+- [ ] vaultwarden - https doesn't work (requires user action, see FIX_VAULTWARDEN_HTTPS.md
