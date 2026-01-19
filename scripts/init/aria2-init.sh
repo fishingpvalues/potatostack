@@ -35,8 +35,8 @@ echo -n "$ARIA2_RPC_SECRET" > /var/run/s6/container_environment/RPC_SECRET
 touch "$CONFIG_DIR/aria2.session"
 
 # Configure aria2.conf for external access (Tailscale/LAN)
-if [ ! -f "$ARIA_CONF" ]; then
-	cat > "$ARIA_CONF" << EOF
+rm -f "$ARIA_CONF"
+cat > "$ARIA_CONF" << EOF
 # Aria2 Configuration - PotatoStack
 # RPC endpoint: http://potatostack.tale-iwato.ts.net:6800/jsonrpc
 
@@ -73,19 +73,7 @@ file-allocation=falloc
 disk-cache=64M
 continue=true
 EOF
-	echo "✓ Created aria2.conf with RPC enabled for external access"
-else
-	# Ensure rpc-listen-all and rpc-allow-origin-all are enabled
-	if ! grep -q "rpc-listen-all=true" "$ARIA_CONF"; then
-		echo "rpc-listen-all=true" >> "$ARIA_CONF"
-	fi
-	if ! grep -q "rpc-allow-origin-all=true" "$ARIA_CONF"; then
-		echo "rpc-allow-origin-all=true" >> "$ARIA_CONF"
-	fi
-	# Update RPC secret
-	sed -i "s/^rpc-secret=.*/rpc-secret=${ARIA2_RPC_SECRET}/" "$ARIA_CONF"
-	echo "✓ Updated aria2.conf RPC settings"
-fi
+echo "✓ Created aria2.conf with RPC enabled for external access"
 
 echo "✓ Aria2 RPC secret configured: ${ARIA2_RPC_SECRET:0:16}..."
 echo "✓ AriaNg connection URL: http://potatostack.tale-iwato.ts.net:6800/jsonrpc"

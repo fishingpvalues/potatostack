@@ -2244,7 +2244,7 @@ services:
       WEBHOOK_URL: https://n8n.${HOST_DOMAIN:-local.domain}/
       GENERIC_TIMEZONE: Europe/Berlin
       # Allow access without HTTPS (for direct port access via Tailscale)
-      N8N_SECURE_COOKIE: "false"
+      N8N_SECURE_COOKIE: false
       DB_TYPE: postgresdb
       DB_POSTGRESDB_HOST: postgres
       DB_POSTGRESDB_PORT: 5432
