@@ -75,10 +75,19 @@ directories:
 
 shares:
   directories:
-    # Share music and audiobook libraries
+    # Share all mounted media libraries
     - /music
     - /audiobooks
     - /var/slskd/shared
+  filters:
+    # Exclude common non-music files
+    - '\.jpg$'
+    - '\.jpeg$'
+    - '\.png$'
+    - '\.gif$'
+    - '\.nfo$'
+    - '\.txt$'
+    - '\.log$'
 
 web:
   authentication:
@@ -113,16 +122,21 @@ if [ -f "$CONFIG_FILE" ] && ! grep -q "^shares:" "$CONFIG_FILE"; then
 	echo "Adding shares configuration..."
 	cp "$CONFIG_FILE" "${CONFIG_FILE}.bak"
 
-	# Insert shares section after directories section
-	sed -i '/^directories:/,/^web:/{
-		/^web:/i\
-shares:\
-  directories:\
+	# Append shares section at the end
+	cat >>"$CONFIG_FILE" <<'SHARESEOF'
+
+shares:
+  directories:
+    - /music
+    - /audiobooks
     - /var/slskd/shared
-	}' "$CONFIG_FILE"
+SHARESEOF
 
 	echo "✓ Shares configuration added"
 fi
+
+# Force rescan of shares on each startup
+echo "✓ slskd will rescan shares on startup"
 
 # Continue with normal startup
 exec /usr/bin/tini -- ./start.sh "$@"

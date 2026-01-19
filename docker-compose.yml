@@ -925,6 +925,8 @@ services:
     image: actualbudget/actual-server:${ACTUAL_TAG:-latest}
     container_name: actual-budget
     logging: *default-logging
+    # NOTE: Access via Traefik HTTPS (https://budget.danielhomelab.local) for SharedArrayBuffer support
+    # Direct port access won't work as browsers require COOP/COEP headers only sent via secure context
     ports:
       - "${HOST_BIND:-192.168.178.158}:5006:5006"
     environment:
@@ -2190,9 +2192,12 @@ services:
     environment:
       <<: *common-env
       # Docker socket access via socket-proxy for container monitoring
+      # NOTE: When creating Docker monitors in UI, set Docker Host to: tcp://socket-proxy:2375
       DOCKER_HOST: tcp://socket-proxy:2375
     volumes:
       - uptime-kuma-data:/app/data
+      # Mount docker.sock for Docker monitors (socket-proxy env var may not work for all features)
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - potatostack
     depends_on:
@@ -2238,6 +2243,8 @@ services:
       N8N_PROTOCOL: https
       WEBHOOK_URL: https://n8n.${HOST_DOMAIN:-local.domain}/
       GENERIC_TIMEZONE: Europe/Berlin
+      # Allow access without HTTPS (for direct port access via Tailscale)
+      N8N_SECURE_COOKIE: "false"
       DB_TYPE: postgresdb
       DB_POSTGRESDB_HOST: postgres
       DB_POSTGRESDB_PORT: 5432
@@ -2463,6 +2470,10 @@ services:
     environment:
       <<: *common-env
       ATUIN_DB_URI: postgres://postgres:${POSTGRES_SUPER_PASSWORD}@postgres/atuin
+      # Bind to all interfaces for external access (Tailscale/LAN)
+      ATUIN_HOST: "0.0.0.0"
+      ATUIN_PORT: "8888"
+      ATUIN_OPEN_REGISTRATION: "true"
     command: server start
     volumes:
       - atuin-config:/config
