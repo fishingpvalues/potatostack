@@ -3,7 +3,8 @@
 Tailnet: `tale-iwato.ts.net`
 Host: `potatostack.tale-iwato.ts.net` (100.108.216.90)
 
-**IMPORTANT:** Run `docker compose up -d tailscale-https-setup` once to wrap all HTTP ports with Tailscale TLS.
+**IMPORTANT:** Run `docker compose up -d tailscale-https-setup` once to wrap all HTTP ports with Tailscale TLS.  
+For auto-reapply on reboot, keep `tailscale-https-monitor` running.
 
 Example: `https://100.108.216.90:7575` or via hostname when Tailscale DNS is configured.
 
