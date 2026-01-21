@@ -11,3 +11,5 @@ Fehlercode: SSL_ERROR_RX_RECORD_TOO_LONG
 Weitere Informationen…
 
 THIS IS FOR ALL HTTPS SERVICES I WANT ALL TO WORK WITH HTTPS USE LETS ENCRYPT I WANT ALL TO WORK OUT OF THE BOX NO MANUAL CERTIFICATE SHIT
+
+- modify pipeline so heat based on gut tag it gets deployed locally at my stack not totally the GitHub runner should only verify that it runs and lonzing 
