@@ -7,6 +7,7 @@ DroidyPaste is an Android client for RustyPaste that allows easy file sharing fr
 - RustyPaste server running (included in stack on port 8787)
 - Android device on same LAN as your PotatoStack host
 - DroidyPaste app installed from F-Droid or GitHub
+- Tailscale HTTPS enabled for port 8787 (`docker compose up -d tailscale-https-setup`)
 
 ## Installation
 
@@ -30,7 +31,12 @@ DroidyPaste is an Android client for RustyPaste that allows easy file sharing fr
 
 ### Step 2: Add RustyPaste Server
 
-**Server URL**: `http://HOST_BIND:8787`
+**Server URL**: `https://HOST_BIND:8787`
+
+If you prefer Traefik HTTPS, use:
+```
+https://paste.<HOST_DOMAIN>
+```
 
 Replace `HOST_BIND` with your actual HOST_BIND IP.
 
@@ -48,7 +54,7 @@ If fails:
 ```bash
 # On the PotatoStack host, check if rustypaste is running
 docker ps | grep rustypaste
-curl http://HOST_BIND:8787
+curl https://HOST_BIND:8787
 ```
 
 ## Usage
@@ -96,11 +102,11 @@ In DroidyPaste settings:
 
 ### Custom URLs (Naming)
 
-Instead of random URLs like `http://HOST_BIND:8787/a3Kf9s.jpg`, use custom names:
+Instead of random URLs like `https://HOST_BIND:8787/a3Kf9s.jpg`, use custom names:
 
 1. In DroidyPaste settings, enable "Ask for custom URL"
 2. When uploading, app will prompt for name
-3. Example: `vacation-photo` → `http://HOST_BIND:8787/vacation-photo.jpg`
+3. Example: `vacation-photo` → `https://HOST_BIND:8787/vacation-photo.jpg`
 
 ### Automatic Upload on Capture
 
@@ -142,7 +148,7 @@ sudo ufw status
 **Test manually**:
 ```bash
 # From Android (Termux or browser)
-curl http://HOST_BIND:8787
+curl https://HOST_BIND:8787
 # Should return RustyPaste web interface
 ```
 
@@ -176,7 +182,7 @@ ip addr show | grep inet
 
 **Firewall blocking**: Check router/firewall allows HTTP on port 8787
 
-**Wrong URL format**: DroidyPaste returns full URL like `http://HOST_BIND:8787/abc123.jpg`
+**Wrong URL format**: DroidyPaste returns full URL like `https://HOST_BIND:8787/abc123.jpg`
 
 ## Integration Tips
 

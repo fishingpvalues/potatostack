@@ -4,7 +4,8 @@ RustyPaste is a minimal file sharing and pastebin server running on port **8787*
 
 ## Access
 
-- **Web Interface**: http://HOST_BIND:8787
+- **Web Interface (Tailscale HTTPS)**: https://HOST_BIND:8787
+- **Web Interface (Traefik path)**: https://HOST_DOMAIN/paste
 - **CLI Upload**: See examples below
 - **Storage**: Files stored in `/mnt/storage/rustypaste/uploads/`
 
@@ -20,37 +21,37 @@ RustyPaste is a minimal file sharing and pastebin server running on port **8787*
 
 ### Upload a text file:
 ```bash
-curl -F "file=@document.txt" http://HOST_BIND:8787
-# Returns: http://HOST_BIND:8787/a3Kf9s.txt
+curl -F "file=@document.txt" https://HOST_BIND:8787
+# Returns: https://HOST_BIND:8787/a3Kf9s.txt
 ```
 
 ### Upload from clipboard/stdin:
 ```bash
-echo "Hello from PotatoStack" | curl -F "file=@-" http://HOST_BIND:8787
-# Returns: http://HOST_BIND:8787/b7Jk2p.txt
+echo "Hello from PotatoStack" | curl -F "file=@-" https://HOST_BIND:8787
+# Returns: https://HOST_BIND:8787/b7Jk2p.txt
 ```
 
 ### Upload with custom URL:
 ```bash
-curl -F "file=@report.pdf" -F "url=monthly-report" http://HOST_BIND:8787
-# Returns: http://HOST_BIND:8787/monthly-report.pdf
+curl -F "file=@report.pdf" -F "url=monthly-report" https://HOST_BIND:8787
+# Returns: https://HOST_BIND:8787/monthly-report.pdf
 ```
 
 ### Upload with expiry (1 hour):
 ```bash
-curl -F "file=@secret.txt" -F "expire=1h" http://HOST_BIND:8787
+curl -F "file=@secret.txt" -F "expire=1h" https://HOST_BIND:8787
 # File will auto-delete after 1 hour
 ```
 
 ### Upload with expiry (1 day):
 ```bash
-curl -F "file=@temp.jpg" -F "expire=1d" http://HOST_BIND:8787
+curl -F "file=@temp.jpg" -F "expire=1d" https://HOST_BIND:8787
 # File will auto-delete after 1 day
 ```
 
 ### Upload with expiry (7 days):
 ```bash
-curl -F "file=@backup.zip" -F "expire=7d" http://HOST_BIND:8787
+curl -F "file=@backup.zip" -F "expire=7d" https://HOST_BIND:8787
 # File will auto-delete after 7 days
 ```
 
@@ -70,7 +71,7 @@ Examples: `30s`, `15m`, `2h`, `7d`
 ### Upload multiple files:
 ```bash
 for file in *.txt; do
-    url=$(curl -s -F "file=@$file" http://HOST_BIND:8787)
+    url=$(curl -s -F "file=@$file" https://HOST_BIND:8787)
     echo "$file -> $url"
 done
 ```
@@ -78,12 +79,12 @@ done
 ### Upload screenshot from clipboard (Linux):
 ```bash
 xclip -selection clipboard -t image/png -o | \
-  curl -F "file=@-;filename=screenshot.png" http://HOST_BIND:8787
+  curl -F "file=@-;filename=screenshot.png" https://HOST_BIND:8787
 ```
 
 ### Download a shared file:
 ```bash
-curl http://HOST_BIND:8787/a3Kf9s.txt
+curl https://HOST_BIND:8787/a3Kf9s.txt
 # Or open in browser
 ```
 
@@ -95,7 +96,7 @@ Custom uploader configuration:
 {
   "Name": "PotatoStack RustyPaste",
   "DestinationType": "ImageUploader, FileUploader",
-  "RequestURL": "http://HOST_BIND:8787",
+  "RequestURL": "https://HOST_BIND:8787",
   "FileFormName": "file",
   "URL": "$response$"
 }
@@ -104,7 +105,7 @@ Custom uploader configuration:
 ### macOS Shortcut
 Create an Automator Quick Action:
 ```bash
-curl -F "file=@$1" http://HOST_BIND:8787 | pbcopy
+curl -F "file=@$1" https://HOST_BIND:8787 | pbcopy
 ```
 
 ## Monitoring

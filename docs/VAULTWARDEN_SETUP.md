@@ -4,11 +4,19 @@ Complete step-by-step guide to register and use Vaultwarden across all devices.
 
 ## Initial Access
 
-Vaultwarden runs on **HTTPS port 8443** (not 8080) with self-signed certificates.
+Vaultwarden is exposed via Traefik HTTPS:
 
-**Web Vault URL**: `https://HOST_BIND:8443`
+**Web Vault URL**: `https://vault.<HOST_DOMAIN>`
 
-When you first visit, your browser will warn about the self-signed certificate. Accept the warning to proceed.
+If you're accessing via Tailscale HTTPS, use:
+```
+https://HOST_BIND:8888
+```
+
+If you haven't enabled Tailscale HTTPS yet, run:
+```
+docker compose up -d tailscale-https-setup
+```
 
 ## Step 1: Enable Signups (First Time Only)
 
@@ -40,7 +48,7 @@ docker compose restart vaultwarden
 
 ### Option B: Use Admin Panel to Invite
 
-1. Access admin panel: `https://HOST_BIND:8443/admin`
+1. Access admin panel: `https://vault.<HOST_DOMAIN>/admin`
 
 2. Enter admin token (get from `.env` file):
 ```bash
@@ -53,7 +61,7 @@ grep VAULTWARDEN_ADMIN_TOKEN .env
 
 ## Step 2: Register Your First Account
 
-1. Open web browser: `https://HOST_BIND:8443`
+1. Open web browser: `https://vault.<HOST_DOMAIN>`
 
 2. Accept certificate warning (click "Advanced" → "Proceed to site")
 
@@ -80,7 +88,7 @@ grep VAULTWARDEN_ADMIN_TOKEN .env
 
 3. Tap **"Self-hosted environment"**
 
-4. Enter **Server URL**: `https://HOST_BIND:8443`
+4. Enter **Server URL**: `https://vault.<HOST_DOMAIN>`
 
 5. Leave all other fields EMPTY:
    - Web Vault Server URL: (empty)
@@ -99,7 +107,7 @@ grep VAULTWARDEN_ADMIN_TOKEN .env
 If connection fails with certificate error:
 
 **Option 1: Trust certificate in Android**
-1. In browser on phone, visit `https://HOST_BIND:8443`
+1. In browser on phone, visit `https://vault.<HOST_DOMAIN>`
 2. Accept certificate warning
 3. Return to Bitwarden app and try logging in again
 
@@ -113,7 +121,7 @@ If connection fails with certificate error:
 
 2. Tap Settings → **Server URL**
 
-3. Enter: `https://HOST_BIND:8443`
+3. Enter: `https://vault.<HOST_DOMAIN>`
 
 4. Tap **"Save"**
 
@@ -133,7 +141,7 @@ If connection fails with certificate error:
 
 3. Click **"Self-hosted environment"**
 
-4. Server URL: `https://HOST_BIND:8443`
+4. Server URL: `https://vault.<HOST_DOMAIN>`
 
 5. Click **"Save"**
 
@@ -149,7 +157,7 @@ If connection fails with certificate error:
 
 3. Click Settings (gear icon) → **"Self-hosted environment"**
 
-4. Server URL: `https://HOST_BIND:8443`
+4. Server URL: `https://vault.<HOST_DOMAIN>`
 
 5. Click **"Save"** → **"Log In"**
 
@@ -170,7 +178,7 @@ chmod +x Bitwarden-*.AppImage
 ./Bitwarden-*.AppImage
 ```
 
-Configure with server URL: `https://HOST_BIND:8443`
+Configure with server URL: `https://vault.<HOST_DOMAIN>`
 
 ## Step 7: Test Login Sync
 
@@ -194,19 +202,19 @@ docker logs vaultwarden
 
 2. **Test from the host itself**:
 ```bash
-curl -k https://127.0.0.1:8443/alive
+curl -f http://127.0.0.1:8888/alive
 # Should return: {"status":"ok"}
 ```
 
 3. **Test from your device**:
 ```bash
-curl -k https://HOST_BIND:8443/alive
+curl -k https://vault.<HOST_DOMAIN>/alive
 ```
 
 4. **Check firewall** (host):
 ```bash
 sudo ufw status
-sudo ufw allow 8443/tcp
+sudo ufw allow 8888/tcp
 sudo ufw allow 3012/tcp
 ```
 
@@ -234,7 +242,7 @@ docker compose restart vaultwarden
 sleep 30  # Wait for startup on low-RAM devices
 
 # Manual healthcheck test
-docker exec vaultwarden curl -fk https://127.0.0.1:8443/alive
+docker exec vaultwarden curl -f http://127.0.0.1:80/alive
 ```
 
 ### Forgot admin token
@@ -253,7 +261,7 @@ docker compose restart vaultwarden
 
 ## Admin Panel Features
 
-Access: `https://HOST_BIND:8443/admin`
+Access: `https://vault.<HOST_DOMAIN>/admin`
 
 **Functions**:
 - View all registered users
@@ -280,7 +288,7 @@ docker run --rm -v vaultwarden-data:/data -v /mnt/storage/backups:/backup alpine
 
 ## Service Details
 
-**Web Vault**: HTTPS port 8443
+**Web Vault**: HTTPS via Traefik (preferred) or Tailscale HTTPS on port 8888
 **WebSocket**: Port 3012 (live sync)
 **Database**: SQLite at `/data/db.sqlite3` (in volume)
 **Certs**: Auto-generated self-signed in `/ssl/` volume
@@ -290,9 +298,10 @@ docker run --rm -v vaultwarden-data:/data -v /mnt/storage/backups:/backup alpine
 
 | Access Point | URL |
 |--------------|-----|
-| Web Vault | `https://HOST_BIND:8443` |
-| Admin Panel | `https://HOST_BIND:8443/admin` |
-| Health Check | `https://HOST_BIND:8443/alive` |
+| Web Vault | `https://vault.<HOST_DOMAIN>` |
+| Admin Panel | `https://vault.<HOST_DOMAIN>/admin` |
+| Health Check | `https://vault.<HOST_DOMAIN>/alive` |
+| Tailscale HTTPS | `https://HOST_BIND:8888` |
 | Homarr Link | Click "Vaultwarden" card on dashboard |
 
 **Note**: Replace `HOST_BIND` with your actual host IP from `.env`
