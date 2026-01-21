@@ -24,7 +24,7 @@ Files Created:
 
 ### Main Stack (65 services)
 **Databases (4)**: postgres, pgbouncer, mongo, redis-cache
-**Monitoring (12)**: prometheus, grafana, alertmanager, loki, promtail, netdata, cadvisor, uptime-kuma, thanos-*
+**Monitoring (12)**: prometheus, grafana, alertmanager, loki, alloy, netdata, cadvisor, uptime-kuma, thanos-*
 **Media (14)**: sonarr, radarr, lidarr, readarr, bazarr, prowlarr, jellyfin, jellyseerr, qbittorrent, audiobookshelf, pinchflat, slskd, aria2, ariang
 **Productivity (7)**: homarr, paperless-ngx, linkding, miniflux, actual-budget, stirling-pdf, it-tools
 **Development (3)**: gitea, gitea-runner, code-server
