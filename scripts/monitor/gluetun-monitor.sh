@@ -14,6 +14,9 @@ fi
 GLUETUN_URL="${GLUETUN_URL:-http://gluetun:8000}"
 CHECK_INTERVAL="${CHECK_INTERVAL:-10}"
 RESTART_CONTAINERS="${RESTART_CONTAINERS:-transmission slskd}"
+RESTART_ON_STOP="${RESTART_ON_STOP:-true}"
+RESTART_ON_FAILURE="${RESTART_ON_FAILURE:-true}"
+RESTART_COOLDOWN="${RESTART_COOLDOWN:-120}"
 
 echo "=========================================="
 echo "Gluetun VPN Monitor Started"
@@ -26,6 +29,26 @@ echo "=========================================="
 LAST_STATUS=""
 CONSECUTIVE_FAILURES=0
 MAX_FAILURES=3
+LAST_RESTART_AT=0
+
+restart_containers() {
+	local reason="$1"
+	local now
+	now=$(date +%s)
+
+	if [ $((now - LAST_RESTART_AT)) -lt "$RESTART_COOLDOWN" ]; then
+		echo "[$(date +'%Y-%m-%d %H:%M:%S')] ⏳ Restart cooldown active (${RESTART_COOLDOWN}s)"
+		return
+	fi
+
+	echo "[$(date +'%Y-%m-%d %H:%M:%S')] → Restarting dependent containers ($reason)..."
+	for container in $RESTART_CONTAINERS; do
+		echo "[$(date +'%Y-%m-%d %H:%M:%S')]   • Restarting $container..."
+		docker restart "$container" 2>&1 | sed "s/^/    /"
+	done
+	echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ All containers restarted"
+	LAST_RESTART_AT="$now"
+}
 
 while true; do
 	# Query Gluetun VPN status
@@ -37,6 +60,9 @@ while true; do
 
 		if [ $CONSECUTIVE_FAILURES -ge $MAX_FAILURES ]; then
 			echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✗ Gluetun unreachable after $MAX_FAILURES attempts"
+			if [ "$RESTART_ON_FAILURE" = "true" ]; then
+				restart_containers "gluetun-unreachable"
+			fi
 			LAST_STATUS=""
 		fi
 
@@ -66,18 +92,15 @@ while true; do
 
 		if [ "$CURRENT_STATUS" = "running" ]; then
 			echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ VPN connection restored!"
-			echo "[$(date +'%Y-%m-%d %H:%M:%S')] → Restarting dependent containers..."
-
-			for container in $RESTART_CONTAINERS; do
-				echo "[$(date +'%Y-%m-%d %H:%M:%S')]   • Restarting $container..."
-				docker restart "$container" 2>&1 | sed "s/^/    /"
-			done
-
-			echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ All containers restarted"
+			restart_containers "vpn-restored"
 
 		elif [ "$CURRENT_STATUS" = "stopped" ]; then
 			echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✗ VPN connection lost!"
-			echo "[$(date +'%Y-%m-%d %H:%M:%S')] → Waiting for reconnection..."
+			if [ "$RESTART_ON_STOP" = "true" ]; then
+				restart_containers "vpn-stopped"
+			else
+				echo "[$(date +'%Y-%m-%d %H:%M:%S')] → Waiting for reconnection..."
+			fi
 		fi
 
 		echo "=========================================="

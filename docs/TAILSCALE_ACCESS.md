@@ -11,18 +11,24 @@ All services are now configured to accept connections from **all interfaces** (0
 
 ### From Windows PC (danielfischer - 100.109.19.109)
 
-**Option 1: Use Tailscale IP (Recommended)**
+**Option 1: Use Tailscale HTTPS (Recommended)**
+First enable HTTPS wrapping for ports:
 ```
-http://100.108.216.90:7575    (Homarr)
-http://100.108.216.90:2283    (Immich)
-http://100.108.216.90:8096    (Jellyfin)
+docker compose up -d tailscale-https-setup
+```
+
+Then access services with HTTPS:
+```
+https://100.108.216.90:7575    (Homarr)
+https://100.108.216.90:2283    (Immich)
+https://100.108.216.90:8096    (Jellyfin)
 ```
 
 **Option 2: Use Hostname (if MagicDNS enabled)**
 ```
-http://potatostack:7575
-http://potatostack:2283
-http://potatostack:8096
+https://potatostack:7575
+https://potatostack:2283
+https://potatostack:8096
 ```
 
 ### Troubleshooting Connection Issues
@@ -47,7 +53,7 @@ telnet 100.108.216.90 7575
 1. Open Tailscale app
 2. Click on "potatostack"
 3. Verify status shows "Connected"
-4. Try the IP directly: `http://100.108.216.90:7575`
+4. Try the IP directly: `https://100.108.216.90:7575`
 
 **On Server (via SSH):**
 ```bash
@@ -61,7 +67,7 @@ docker exec tailscale tailscale ping danielfischer
 
 #### 3. DNS Not Working
 
-If `http://potatostack:7575` doesn't work but `http://100.108.216.90:7575` does:
+If `https://potatostack:7575` doesn't work but `https://100.108.216.90:7575` does:
 
 **Enable MagicDNS on server:**
 ```bash
@@ -95,6 +101,9 @@ HOST_BIND=0.0.0.0
 
 # Your Tailscale auth key
 TAILSCALE_AUTHKEY=tskey-auth-...
+
+# Optional: HTTPS wrapping for ports (see links.md)
+TAILSCALE_SERVE_PORTS=7575,8088,3001,3002,...
 ```
 
 ### Services Running on All Interfaces
@@ -137,7 +146,7 @@ Services are still **NOT** accessible from the internet - only from:
 **From your Windows PC:**
 
 1. Open browser
-2. Go to: `http://100.108.216.90:7575`
+2. Go to: `https://100.108.216.90:7575`
 3. You should see Homarr dashboard
 
 **If you see "Connection refused" or "Can't connect":**
@@ -151,9 +160,17 @@ See `links.md` for complete list of all 77 services with their ports.
 
 ## Common Issues
 
+### HTTPS Errors (PR_END_OF_FILE_ERROR)
+
+If you see `PR_END_OF_FILE_ERROR`, you're likely hitting an HTTP port with HTTPS.
+
+Fix:
+1. Run `docker compose up -d tailscale-https-setup`
+2. Retry with `https://` on the same port.
+
 ### Firefox-Specific Issues
 
-Firefox might block `http://` connections to private IPs by default.
+Firefox might block plain `http://` connections to private IPs by default. Use `https://` instead.
 
 **Fix:**
 1. Type `about:config` in Firefox address bar
@@ -179,7 +196,7 @@ If you're using Surfshark or other VPN on Windows:
 ## Next Steps
 
 1. **Save this IP**: `100.108.216.90` (your potatostack)
-2. **Bookmark**: `http://100.108.216.90:7575` (Homarr dashboard)
+2. **Bookmark**: `https://100.108.216.90:7575` (Homarr dashboard)
 3. **Enable MagicDNS** (optional): For hostname support
 4. **Configure Authentik**: Set up SSO for services
 

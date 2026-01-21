@@ -738,6 +738,24 @@ services:
           cpus: "0.25"
           memory: 192M
 
+  # Tailscale HTTPS Setup - Wrap HTTP ports with Tailscale TLS
+  tailscale-https-setup:
+    image: alpine:${ALPINE_TAG:-3.21}
+    container_name: tailscale-https-setup
+    logging: *default-logging
+    entrypoint: sh /tailscale-serve-https.sh
+    environment:
+      TAILSCALE_SERVE_PORTS: ${TAILSCALE_SERVE_PORTS:-}
+      TAILSCALE_CONTAINER: tailscale
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./scripts/init/tailscale-serve-https.sh:/tailscale-serve-https.sh:ro
+    depends_on:
+      tailscale:
+        condition: service_started
+    network_mode: none
+    restart: "no"
+
   ################################################################################
   # CLOUD STORAGE & FILE SYNC
   ################################################################################
@@ -1388,6 +1406,8 @@ services:
     environment:
       <<: *common-env
       WEBUI_PORT: 8282
+      QBITTORRENT_USER: ${QBITTORRENT_USER:-admin}
+      QBITTORRENT_PASSWORD: ${QBITTORRENT_PASSWORD:-}
     volumes:
       - qbittorrent-config:/config
       - /mnt/storage/downloads:/downloads
@@ -1618,6 +1638,26 @@ services:
         reservations:
           cpus: "0.5"
           memory: 512M
+
+  # Immich Log Monitor - Restart on error patterns
+  immich-log-monitor:
+    image: alpine:${ALPINE_TAG:-3.21}
+    container_name: immich-log-monitor
+    logging: *default-logging
+    entrypoint: sh /immich-log-monitor.sh
+    environment:
+      IMMICH_CONTAINER: immich-server
+      IMMICH_ML_CONTAINER: immich-ml
+      CHECK_INTERVAL: ${IMMICH_LOG_CHECK_INTERVAL:-60}
+      RESTART_COOLDOWN: ${IMMICH_RESTART_COOLDOWN:-300}
+      IMMICH_LOG_PATTERNS: ${IMMICH_LOG_PATTERNS:-redis|Redis|ECONNREFUSED|Connection refused|connect ECONNREFUSED|socket hang up}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./scripts/monitor/immich-log-monitor.sh:/immich-log-monitor.sh:ro
+    depends_on:
+      - immich-server
+    network_mode: none
+    restart: unless-stopped
 
   ################################################################################
   # MONITORING & OBSERVABILITY
@@ -2474,7 +2514,7 @@ services:
       # Bind to all interfaces for external access (Tailscale/LAN)
       ATUIN_HOST: "0.0.0.0"
       ATUIN_PORT: "8888"
-      ATUIN_OPEN_REGISTRATION: "true"
+      ATUIN_OPEN_REGISTRATION: ${ATUIN_OPEN_REGISTRATION:-false}
     command: server start
     volumes:
       - atuin-config:/config
@@ -3206,7 +3246,10 @@ services:
     environment:
       - GLUETUN_URL=http://gluetun:8000
       - CHECK_INTERVAL=${GLUETUN_CHECK_INTERVAL:-10}
-      - RESTART_CONTAINERS=prowlarr sonarr radarr lidarr bookshelf bazarr qbittorrent aria2 ariang slskd
+      - RESTART_CONTAINERS=prowlarr sonarr radarr lidarr bookshelf bazarr qbittorrent aria2 ariang slskd pinchflat spotiflac
+      - RESTART_ON_STOP=${GLUETUN_RESTART_ON_STOP:-true}
+      - RESTART_ON_FAILURE=${GLUETUN_RESTART_ON_FAILURE:-true}
+      - RESTART_COOLDOWN=${GLUETUN_RESTART_COOLDOWN:-120}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./scripts/monitor/gluetun-monitor.sh:/monitor.sh:ro
