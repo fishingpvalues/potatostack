@@ -771,7 +771,8 @@ services:
     networks:
       - potatostack
     depends_on:
-      - storage-init
+      storage-init:
+        condition: service_completed_successfully
     restart: unless-stopped
     deploy:
       resources:
@@ -2612,7 +2613,7 @@ services:
     logging: *default-logging
     ports:
       - "${HOST_BIND:-192.168.178.158}:3004:3000"
-      - "${HOST_BIND:-192.168.178.158}:2222:22"
+      - "${HOST_BIND:-192.168.178.158}:${GITEA_SSH_PORT:-2223}:22"
     environment:
       <<: *common-env
       GITEA__database__DB_TYPE: postgres
@@ -2624,6 +2625,7 @@ services:
       # For HTTPS via Traefik - access via https://git.danielhomelab.local
       GITEA__server__ROOT_URL: https://git.${HOST_DOMAIN:-local.domain}/
       GITEA__server__SSH_DOMAIN: git.${HOST_DOMAIN:-local.domain}
+      GITEA__server__SSH_PORT: ${GITEA_SSH_PORT:-2223}
       # Allow HTTP access for local development (WebAuthn requires HTTPS for full functionality)
       GITEA__server__LOCAL_ROOT_URL: http://localhost:3000/
       GITEA__security__INSTALL_LOCK: "true"
@@ -3081,6 +3083,45 @@ services:
           cpus: "0.05"
           memory: 32M
 
+  # OpenSSH Server - Secure remote shell and SFTP access
+  openssh-server:
+    image: lscr.io/linuxserver/openssh-server:${OPENSSH_SERVER_TAG:-latest}
+    container_name: openssh-server
+    logging: *default-logging
+    hostname: openssh-server
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "${HOST_BIND:-192.168.178.158}:${OPENSSH_PORT:-2222}:2222"
+    environment:
+      <<: *common-env
+      USER_NAME: ${OPENSSH_USER:-sshuser}
+      USER_PASSWORD: ${OPENSSH_PASSWORD}
+      PASSWORD_ACCESS: ${OPENSSH_PASSWORD_ACCESS:-true}
+      SUDO_ACCESS: ${OPENSSH_SUDO_ACCESS:-false}
+      PUBLIC_KEY: ${OPENSSH_PUBLIC_KEY:-}
+      PUBLIC_KEY_FILE: ${OPENSSH_PUBLIC_KEY_FILE:-}
+      PUBLIC_KEY_DIR: ${OPENSSH_PUBLIC_KEY_DIR:-}
+      PUBLIC_KEY_URL: ${OPENSSH_PUBLIC_KEY_URL:-}
+      LOG_STDOUT: ${OPENSSH_LOG_STDOUT:-true}
+    volumes:
+      - openssh-config:/config
+      - /mnt/storage:/data/storage
+      - /mnt/cachehdd:/data/cachehdd
+    networks:
+      - potatostack
+    depends_on:
+      - storage-init
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+
   # Samba - Windows file sharing for HDD access
   samba:
     image: ghcr.io/servercontainers/samba:${SAMBA_TAG:-latest}
@@ -3445,6 +3486,7 @@ volumes:
 
   # System
   diun-data:
+  openssh-config:
   samba-lib:
   samba-cache:
   samba-run:
