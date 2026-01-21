@@ -1,4 +1,1 @@
-- fix thge guides to use vaultwarden i enabled https with tailascale so maybe can all services now use https? especially rustypaste?
-- fix immmich-server grep its logs every minute for errors like redis not found etc and if so restart it (i dont know the exact message, but if it jhappens i cant use it on my andrpoid phione and i need it to autoheal itself)
-- [ ] vaultwarden - https doesn't work (requires user action, see FIX_VAULTWARDEN_HTTPS.md
-- add and fully integrate linuxserver/openssh-server let it ocntrol for CI CD and development all but nothing more its scope should still be safe and secure 
+- adapt generate_env with new env vars 
