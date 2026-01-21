@@ -34,7 +34,7 @@ apply_rules() {
 		fi
 		echo "→ Enabling HTTPS on port $port"
 		if docker exec "$TAILSCALE_CONTAINER" \
-			tailscale serve --https="$port" "127.0.0.1:$port" --bg --yes >/dev/null; then
+			tailscale serve --https="$port" "127.0.0.1:$port" --bg >/dev/null; then
 			echo "  ✓ Port $port mapped"
 		else
 			echo "  ⚠ Failed to map port $port (service may be down)"

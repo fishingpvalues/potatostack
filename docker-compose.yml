@@ -57,7 +57,7 @@ services:
       <<: *common-env
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-nextcloud,authentik,gitea,woodpecker,immich,calibre,linkding,n8n,healthchecks,stirlingpdf,atuin,homarr,paperless,openwebui,miniflux,grafana}
+      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-nextcloud,authentik,gitea,woodpecker,immich,calibre,linkding,n8n,healthchecks,stirlingpdf,atuin,homarr,paperless,openwebui,miniflux,grafana,infisical}
     command:
       - "postgres"
       - "-c"
@@ -2154,17 +2154,18 @@ services:
       - "traefik.http.services.loki.loadbalancer.server.port=3100"
       - "traefik.http.routers.loki.middlewares=sso-chain@docker"
 
-  # Promtail - Log collector
-  promtail:
-    image: grafana/promtail:${PROMTAIL_TAG:-latest}
-    container_name: promtail
+  # Grafana Alloy - Unified collector (Promtail replacement)
+  alloy:
+    image: grafana/alloy:${ALLOY_TAG:-latest}
+    container_name: alloy
     logging: *default-logging
-    command: -config.file=/etc/promtail/promtail.yml
+    command: run /etc/alloy/config.alloy --storage.path=/var/lib/alloy
     volumes:
-      - ./config/promtail:/etc/promtail
+      - ./config/alloy:/etc/alloy
       - /var/log:/var/log:ro
       - traefik-logs:/logs:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy-data:/var/lib/alloy
     networks:
       - potatostack
     depends_on:
@@ -2986,6 +2987,43 @@ services:
   # ENTERPRISE SECURITY & SECRETS MANAGEMENT
   ################################################################################
 
+  # Infisical - Secrets management
+  infisical:
+    image: infisical/infisical:${INFISICAL_TAG:-latest}
+    container_name: infisical
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.158}:8288:8080"
+    environment:
+      <<: *common-env
+      NODE_ENV: production
+      SITE_URL: https://secrets.${HOST_DOMAIN:-local.domain}
+      ENCRYPTION_KEY: ${INFISICAL_ENCRYPTION_KEY}
+      AUTH_SECRET: ${INFISICAL_AUTH_SECRET}
+      DB_CONNECTION_URI: postgres://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/infisical?sslmode=disable
+      REDIS_URL: redis://redis-cache:6379
+    networks:
+      - potatostack
+    depends_on:
+      - postgres
+      - redis-cache
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.infisical.rule=Host(`secrets.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.infisical.entrypoints=websecure"
+      - "traefik.http.routers.infisical.tls=true"
+      - "traefik.http.services.infisical.loadbalancer.server.port=8080"
+      - "traefik.http.routers.infisical.middlewares=security-headers@docker"
+
   # HashiCorp Vault - Enterprise secrets management
   fail2ban:
     image: crazymax/fail2ban:${FAIL2BAN_TAG:-latest}
@@ -3087,6 +3125,48 @@ services:
   # SYSTEM UTILITIES
   ################################################################################
 
+  # ntfy - Notification hub (push/webhook)
+  ntfy:
+    image: binwiederhier/ntfy:${NTFY_TAG:-latest}
+    container_name: ntfy
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.158}:8060:80"
+    environment:
+      <<: *common-env
+      NTFY_BASE_URL: https://ntfy.${HOST_DOMAIN:-local.domain}
+      NTFY_BEHIND_PROXY: "true"
+      NTFY_AUTH_DEFAULT_ACCESS: ${NTFY_AUTH_DEFAULT_ACCESS:-read-write}
+      NTFY_ENABLE_LOGIN: ${NTFY_ENABLE_LOGIN:-false}
+      NTFY_CACHE_FILE: /var/cache/ntfy/cache.db
+      NTFY_AUTH_FILE: /var/lib/ntfy/user.db
+    volumes:
+      - ntfy-cache:/var/cache/ntfy
+      - ntfy-data:/var/lib/ntfy
+    networks:
+      - potatostack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:80/v1/health || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 128M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ntfy.rule=Host(`ntfy.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.ntfy.entrypoints=websecure"
+      - "traefik.http.routers.ntfy.tls=true"
+      - "traefik.http.services.ntfy.loadbalancer.server.port=80"
+      - "traefik.http.routers.ntfy.middlewares=security-headers@docker"
+
   # Diun - Docker Image Update Notifier (SOTA 2025 best practice)
   # Monitors for updates but doesn't auto-update, giving full control
   diun:
@@ -3103,6 +3183,9 @@ services:
       DIUN_WATCH_JITTER: 30s
       DIUN_PROVIDERS_DOCKER: "true"
       DIUN_PROVIDERS_DOCKER_WATCHBYDEFAULT: "true"
+      DIUN_NOTIF_NTFY_ENDPOINT: ${NTFY_INTERNAL_URL:-http://ntfy:80}
+      DIUN_NOTIF_NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
+      DIUN_NOTIF_NTFY_TOKEN: ${NTFY_TOKEN:-}
       # DIUN_NOTIF_GOTIFY_ENDPOINT: ${DIUN_GOTIFY_ENDPOINT:-}
       # DIUN_NOTIF_GOTIFY_TOKEN: ${DIUN_GOTIFY_TOKEN:-}
       DIUN_NOTIF_DISCORD_WEBHOOKURL: ${DIUN_DISCORD_WEBHOOK:-}
@@ -3601,6 +3684,7 @@ volumes:
   netdata-config:
   netdata-lib:
   netdata-cache:
+  alloy-data:
   thanos-store-data:
   thanos-compact-data:
 
@@ -3652,6 +3736,8 @@ volumes:
 
   # System
   diun-data:
+  ntfy-cache:
+  ntfy-data:
   openssh-config:
   samba-lib:
   samba-cache:

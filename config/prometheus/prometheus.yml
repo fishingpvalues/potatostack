@@ -79,11 +79,6 @@ scrape_configs:
       - targets: ["loki:3100"]
     metrics_path: "/metrics"
 
-  # Promtail log collector
-  - job_name: "promtail"
-    static_configs:
-      - targets: ["promtail:9080"]
-
   # Grafana
   - job_name: "grafana"
     static_configs:

@@ -20,6 +20,7 @@ Your services are accessible at `192.168.178.158` or via Traefik at `*.danielhom
 | Authentik (SSO) | https://authentik.danielhomelab.local | 192.168.178.158:9000 |
 | AdGuard Home (DNS) | - | 192.168.178.158:3000 |
 | Vaultwarden (Passwords) | https://vault.danielhomelab.local | 192.168.178.158:8043 |
+| Infisical (Secrets) | https://secrets.danielhomelab.local | 192.168.178.158:8288 |
 
 ### Media Streaming
 | Service | HTTPS URL | Direct IP:Port |
@@ -72,6 +73,7 @@ Your services are accessible at `192.168.178.158` or via Traefik at `*.danielhom
 | n8n (Workflows) | https://n8n.danielhomelab.local | 192.168.178.158:5678 |
 | Healthchecks | https://healthchecks.danielhomelab.local | 192.168.178.158:8001 |
 | Kopia (Backups) | https://kopia.danielhomelab.local | 192.168.178.158:51515 |
+| ntfy (Notifications) | https://ntfy.danielhomelab.local | 192.168.178.158:8060 |
 
 ### Productivity
 | Service | HTTPS URL | Direct IP:Port |

@@ -12,23 +12,28 @@ route:
   group_wait: 10s
   group_interval: 10s
   repeat_interval: 12h
-  receiver: "default"
+  receiver: "ntfy"
 
   routes:
     # Critical alerts go immediately
     - match:
         severity: critical
-      receiver: "critical"
+      receiver: "ntfy"
       repeat_interval: 5m
 
     # Warning alerts
     - match:
         severity: warning
-      receiver: "warning"
+      receiver: "ntfy"
       repeat_interval: 1h
 
 # Receivers configuration
 receivers:
+  - name: "ntfy"
+    webhook_configs:
+      - url: "http://ntfy:80/potatostack"
+        send_resolved: true
+
   - name: "default"
     # Uncomment and configure webhook URLs in .env file for notifications
     # discord_configs:

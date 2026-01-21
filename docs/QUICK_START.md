@@ -27,16 +27,16 @@ CADVISOR_TAG=latest
 ## 3. Start Monitoring Stack
 ```bash
 # Pull images first (faster startup)
-docker compose pull prometheus grafana thanos-sidecar thanos-store thanos-query thanos-compactor cadvisor loki
+docker compose pull prometheus grafana thanos-sidecar thanos-store thanos-query thanos-compactor cadvisor loki alloy
 
 # Start all monitoring services
-docker compose up -d prometheus grafana thanos-sidecar thanos-store thanos-query thanos-compactor cadvisor loki promtail netdata
+docker compose up -d prometheus grafana thanos-sidecar thanos-store thanos-query thanos-compactor cadvisor loki alloy netdata
 ```
 
 ## 4. Verify Services Started
 ```bash
 # Check all monitoring containers are running
-docker ps | grep -E "prometheus|thanos|grafana|cadvisor|netdata|loki"
+docker ps | grep -E "prometheus|thanos|grafana|cadvisor|netdata|loki|alloy"
 
 # Should see 10+ containers
 ```

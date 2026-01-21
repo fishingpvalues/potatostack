@@ -97,6 +97,7 @@ Example `/etc/hosts` entry:
 | Authentik | https://potatostack.tale-iwato.ts.net:9000 | Identity Provider |
 | Authentik HTTPS | https://potatostack.tale-iwato.ts.net:9443 | Identity Provider (HTTPS) |
 | Vaultwarden | https://potatostack.tale-iwato.ts.net:8888 | Password Manager (**USE HTTPS for signup/WebAuthn**) |
+| Infisical | https://potatostack.tale-iwato.ts.net:8288 | Secrets Management |
 
 ## Knowledge & Notes
 
@@ -131,6 +132,7 @@ Example `/etc/hosts` entry:
 | IT Tools | https://potatostack.tale-iwato.ts.net:8091 | Developer Utilities |
 | Healthchecks | https://potatostack.tale-iwato.ts.net:8001 | Cron Monitoring |
 | Rustypaste | https://potatostack.tale-iwato.ts.net:8788 | Paste Service |
+| ntfy | https://potatostack.tale-iwato.ts.net:8060 | Notification Hub |
 | Atuin | https://potatostack.tale-iwato.ts.net:8889 | Shell History Sync |
 | Trivy | https://potatostack.tale-iwato.ts.net:8081 | Vulnerability Scanner |
 | Velld Web | https://potatostack.tale-iwato.ts.net:3010 | Velld Web UI |
