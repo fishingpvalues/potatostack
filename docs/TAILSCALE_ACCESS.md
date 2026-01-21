@@ -12,9 +12,14 @@ All services are now configured to accept connections from **all interfaces** (0
 ### From Windows PC (danielfischer - 100.109.19.109)
 
 **Option 1: Use Tailscale HTTPS (Recommended)**
-First enable HTTPS wrapping for ports:
+First enable HTTPS wrapping for ports (one-shot):
 ```
 docker compose up -d tailscale-https-setup
+```
+
+For automatic re-apply on reboot, keep this running:
+```
+docker compose up -d tailscale-https-monitor
 ```
 
 Then access services with HTTPS:
@@ -165,7 +170,7 @@ See `links.md` for complete list of all 77 services with their ports.
 If you see `PR_END_OF_FILE_ERROR`, you're likely hitting an HTTP port with HTTPS.
 
 Fix:
-1. Run `docker compose up -d tailscale-https-setup`
+1. Run `docker compose up -d tailscale-https-setup` (or keep `tailscale-https-monitor` running)
 2. Retry with `https://` on the same port.
 
 ### Firefox-Specific Issues

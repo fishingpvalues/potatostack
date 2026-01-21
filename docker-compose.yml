@@ -747,6 +747,7 @@ services:
     environment:
       TAILSCALE_SERVE_PORTS: ${TAILSCALE_SERVE_PORTS:-}
       TAILSCALE_CONTAINER: tailscale
+      TAILSCALE_SERVE_LOOP: "false"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./scripts/init/tailscale-serve-https.sh:/tailscale-serve-https.sh:ro
@@ -755,6 +756,26 @@ services:
         condition: service_started
     network_mode: none
     restart: "no"
+
+  # Tailscale HTTPS Monitor - Re-apply serve rules on reboot/changes
+  tailscale-https-monitor:
+    image: alpine:${ALPINE_TAG:-3.21}
+    container_name: tailscale-https-monitor
+    logging: *default-logging
+    entrypoint: sh /tailscale-serve-https.sh
+    environment:
+      TAILSCALE_SERVE_PORTS: ${TAILSCALE_SERVE_PORTS:-}
+      TAILSCALE_CONTAINER: tailscale
+      TAILSCALE_SERVE_LOOP: "true"
+      TAILSCALE_SERVE_INTERVAL: ${TAILSCALE_SERVE_INTERVAL:-300}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./scripts/init/tailscale-serve-https.sh:/tailscale-serve-https.sh:ro
+    depends_on:
+      tailscale:
+        condition: service_started
+    network_mode: none
+    restart: unless-stopped
 
   ################################################################################
   # CLOUD STORAGE & FILE SYNC
@@ -3267,6 +3288,108 @@ services:
         reservations:
           cpus: "0.025"
           memory: 8M
+
+  # Disk Space Monitor
+  disk-space-monitor:
+    image: alpine:${ALPINE_TAG:-3.21}
+    container_name: disk-space-monitor
+    logging: *default-logging
+    entrypoint: sh /disk-space-monitor.sh
+    environment:
+      DISK_MONITOR_PATHS: ${DISK_MONITOR_PATHS:-/mnt/storage /mnt/ssd /mnt/cachehdd}
+      DISK_MONITOR_INTERVAL: ${DISK_MONITOR_INTERVAL:-300}
+      DISK_MONITOR_WARN: ${DISK_MONITOR_WARN:-80}
+      DISK_MONITOR_CRIT: ${DISK_MONITOR_CRIT:-90}
+    volumes:
+      - /mnt/storage:/mnt/storage:ro
+      - /mnt/cachehdd:/mnt/cachehdd:ro
+      - /mnt/ssd:/mnt/ssd:ro
+      - ./scripts/monitor/disk-space-monitor.sh:/disk-space-monitor.sh:ro
+    network_mode: none
+    restart: unless-stopped
+
+  # Traefik Log Monitor
+  traefik-log-monitor:
+    image: alpine:${ALPINE_TAG:-3.21}
+    container_name: traefik-log-monitor
+    logging: *default-logging
+    entrypoint: sh /traefik-log-monitor.sh
+    environment:
+      TRAEFIK_CONTAINER: traefik
+      TRAEFIK_LOG_CHECK_INTERVAL: ${TRAEFIK_LOG_CHECK_INTERVAL:-60}
+      TRAEFIK_LOG_PATTERNS: ${TRAEFIK_LOG_PATTERNS:-acme|certificate|x509|tls}
+      TRAEFIK_LOG_LEVEL_PATTERN: ${TRAEFIK_LOG_LEVEL_PATTERN:-level=error}
+      TRAEFIK_RESTART_ON_ERROR: ${TRAEFIK_RESTART_ON_ERROR:-false}
+      TRAEFIK_RESTART_COOLDOWN: ${TRAEFIK_RESTART_COOLDOWN:-300}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./scripts/monitor/traefik-log-monitor.sh:/traefik-log-monitor.sh:ro
+    depends_on:
+      - traefik
+    network_mode: none
+    restart: unless-stopped
+
+  # Backup Monitor
+  backup-monitor:
+    image: alpine:${ALPINE_TAG:-3.21}
+    container_name: backup-monitor
+    logging: *default-logging
+    entrypoint: sh /backup-monitor.sh
+    environment:
+      BACKUP_MONITOR_PATHS: ${BACKUP_MONITOR_PATHS:-/mnt/storage/kopia/stack-snapshot.log /mnt/storage/velld/backups}
+      BACKUP_MAX_AGE_HOURS: ${BACKUP_MAX_AGE_HOURS:-48}
+      BACKUP_MONITOR_INTERVAL: ${BACKUP_MONITOR_INTERVAL:-3600}
+    volumes:
+      - /mnt/storage:/mnt/storage:ro
+      - ./scripts/monitor/backup-monitor.sh:/backup-monitor.sh:ro
+    network_mode: none
+    restart: unless-stopped
+
+  # DB Health Monitor
+  db-health-monitor:
+    image: alpine:${ALPINE_TAG:-3.21}
+    container_name: db-health-monitor
+    logging: *default-logging
+    entrypoint: sh /db-health-monitor.sh
+    environment:
+      DB_MONITOR_INTERVAL: ${DB_MONITOR_INTERVAL:-30}
+      DB_FAIL_THRESHOLD: ${DB_FAIL_THRESHOLD:-3}
+      DB_RESTART_COOLDOWN: ${DB_RESTART_COOLDOWN:-180}
+      DB_RESTART_ON_FAILURE: ${DB_RESTART_ON_FAILURE:-true}
+      DB_CHECK_POSTGRES: ${DB_CHECK_POSTGRES:-true}
+      DB_CHECK_REDIS: ${DB_CHECK_REDIS:-true}
+      DB_CHECK_MONGO: ${DB_CHECK_MONGO:-false}
+      POSTGRES_CONTAINER: postgres
+      REDIS_CONTAINER: redis-cache
+      MONGO_CONTAINER: mongo
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./scripts/monitor/db-health-monitor.sh:/db-health-monitor.sh:ro
+    depends_on:
+      - postgres
+      - redis-cache
+    network_mode: none
+    restart: unless-stopped
+
+  # Tailscale Connectivity Monitor
+  tailscale-connectivity-monitor:
+    image: alpine:${ALPINE_TAG:-3.21}
+    container_name: tailscale-connectivity-monitor
+    logging: *default-logging
+    entrypoint: sh /tailscale-connectivity-monitor.sh
+    environment:
+      TAILSCALE_CONTAINER: tailscale
+      TAILSCALE_PING_TARGET: ${TAILSCALE_PING_TARGET:-}
+      TAILSCALE_PING_INTERVAL: ${TAILSCALE_PING_INTERVAL:-60}
+      TAILSCALE_PING_FAIL_THRESHOLD: ${TAILSCALE_PING_FAIL_THRESHOLD:-3}
+      TAILSCALE_RESTART_COOLDOWN: ${TAILSCALE_RESTART_COOLDOWN:-300}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./scripts/monitor/tailscale-connectivity-monitor.sh:/tailscale-connectivity-monitor.sh:ro
+    depends_on:
+      - tailscale
+    network_mode: none
+    restart: unless-stopped
 
   ################################################################################
   # Velld - Database Backup Scheduler (Postgres, Mongo, Redis)
