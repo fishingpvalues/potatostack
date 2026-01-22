@@ -1,4 +1,4 @@
-fix https errprs 
+fix https errors for every service via tailscale https and urls 
 Fehler: Gesicherte Verbindung fehlgeschlagen
 
 Beim Verbinden mit potatostack.tale-iwato.ts.net:7575:7575 trat ein Fehler auf. SSL hat einen Eintrag erhalten, der die maximal erlaubte Länge überschritten hat.
@@ -10,11 +10,11 @@ Fehlercode: SSL_ERROR_RX_RECORD_TOO_LONG
 
 Weitere Informationen…
 
-THIS IS FOR ALL HTTPS SERVICES I WANT ALL TO WORK WITH HTTPS USE LETS ENCRYPT I WANT ALL TO WORK OUT OF THE BOX NO MANUAL CERTIFICATE SHIT
+THIS IS FOR ALL HTTPS SERVICES I WANT ALL TO WORK WITH HTTPS USE LETS ENCRYPT I WANT ALL TO WORK OUT OF THE BOX NO MANUAL CERTIFICATE SHIT it shgould work with traefik and tailscale all https the more services with https the better 
 
 - modify pipeline so heat based on gut tag it gets deployed locally at my stack not totally the GitHub runner should only verify that it runs and linting stuff then it should deploy automatically on my homelab i need to utiize woodpecker and gitea for this which are in the stack itself so i have no redundancy i need dual pipeline clever apprach for this so it gets automatically deployed when tagging with git tag, but also i can sloways be sure it worls and is linting and maybe on github runners there is also a way to fully deploy and check all health states or logs for failures idk
 - grep all logs fix all check all for unhealthy etc. check logs for each container
-- after fixing https, authentik is still not working. either we kick it out (i want central auth if poossible) or you fix it all i want all to work well
+- after fixing https, authentik is still not working. either we kick it out (i want central auth if poossible) or you fix it all i want all to work well with all services
 - check all logs for errors i cant access nextcloud for example 
 - check kernel logs for cadvisor it gets cancelled every time. But it usees 15GB RAM when no limit which is too much why so many?
 - Apply this: Better production setup (with the community helper):
