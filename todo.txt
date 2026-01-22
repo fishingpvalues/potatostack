@@ -1,1 +1,15 @@
-- adapt generate_env with new env vars 
+fix https errprs 
+Fehler: Gesicherte Verbindung fehlgeschlagen
+
+Beim Verbinden mit potatostack.tale-iwato.ts.net:7575:7575 trat ein Fehler auf. SSL hat einen Eintrag erhalten, der die maximal erlaubte Länge überschritten hat.
+
+Fehlercode: SSL_ERROR_RX_RECORD_TOO_LONG
+
+    Die Website kann nicht angezeigt werden, da die Authentizität der erhaltenen Daten nicht verifiziert werden konnte.
+    Kontaktieren Sie bitte den Inhaber der Website, um ihn über dieses Problem zu informieren.
+
+Weitere Informationen…
+
+THIS IS FOR ALL HTTPS SERVICES I WANT ALL TO WORK WITH HTTPS USE LETS ENCRYPT I WANT ALL TO WORK OUT OF THE BOX NO MANUAL CERTIFICATE SHIT
+
+- modify pipeline so heat based on gut tag it gets deployed locally at my stack not totally the GitHub runner should only verify that it runs and lonzing 
