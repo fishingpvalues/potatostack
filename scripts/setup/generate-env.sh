@@ -22,239 +22,240 @@ ENV_EXAMPLE="$PROJECT_ROOT/.env.example"
 # Helper Functions
 ################################################################################
 print_header() {
-  echo -e "\n${BLUE}════════════════════════════════════════════════════════════════${NC}"
-  echo -e "${CYAN}  $1${NC}"
-  echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}\n"
+	echo -e "\n${BLUE}════════════════════════════════════════════════════════════════${NC}"
+	echo -e "${CYAN}  $1${NC}"
+	echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}\n"
 }
 print_step() {
-  echo -e "${GREEN}▸${NC} $1"
+	echo -e "${GREEN}▸${NC} $1"
 }
 print_warning() {
-  echo -e "${YELLOW}⚠${NC} $1"
+	echo -e "${YELLOW}⚠${NC} $1"
 }
 print_error() {
-  echo -e "${RED}✖${NC} $1"
+	echo -e "${RED}✖${NC} $1"
 }
 print_success() {
-  echo -e "${GREEN}✔${NC} $1"
+	echo -e "${GREEN}✔${NC} $1"
 }
 
 # Generate random base64 secret
 gen_base64() {
-  local bytes="${1:-32}"
-  openssl rand -base64 "$bytes" | tr -d '\n'
+	local bytes="${1:-32}"
+	openssl rand -base64 "$bytes" | tr -d '\n'
 }
 gen_hex() {
-  local bytes="${1:-32}"
-  openssl rand -hex "$bytes" | tr -d '\n'
+	local bytes="${1:-32}"
+	openssl rand -hex "$bytes" | tr -d '\n'
 }
 gen_cookie_secret() {
-  openssl rand -base64 32 | tr -d '\n'
+	openssl rand -base64 32 | tr -d '\n'
 }
 gen_firefly_key() {
-  echo -n "base64:$(gen_base64 32)"
+	echo -n "base64:$(gen_base64 32)"
 }
 
 validate_password() {
-  local pw="$1"
-  local min_len="${2:-12}"
-  [[ ${#pw} -ge $min_len ]]
+	local pw="$1"
+	local min_len="${2:-12}"
+	[[ ${#pw} -ge $min_len ]]
 }
 
 read_password() {
-  local prompt="$1"
-  local var_name="$2"
-  local min_len="${3:-12}"
-  local pw1 pw2
-  while true; do
-    echo -ne "${CYAN}$prompt${NC} (min $min_len chars): "
-    read -rs pw1
-    echo
-    if ! validate_password "$pw1" "$min_len"; then
-      print_error "Password must be at least $min_len characters"
-      continue
-    fi
-    echo -ne "${CYAN}Confirm password:${NC} "
-    read -rs pw2
-    echo
-    if [[ "$pw1" != "$pw2" ]]; then
-      print_error "Passwords do not match. Try again."
-      continue
-    fi
-    eval "$var_name=\"\$pw1\""
-    break
-  done
+	local prompt="$1"
+	local var_name="$2"
+	local min_len="${3:-12}"
+	local pw1 pw2
+	while true; do
+		echo -ne "${CYAN}$prompt${NC} (min $min_len chars): "
+		read -rs pw1
+		echo
+		if ! validate_password "$pw1" "$min_len"; then
+			print_error "Password must be at least $min_len characters"
+			continue
+		fi
+		echo -ne "${CYAN}Confirm password:${NC} "
+		read -rs pw2
+		echo
+		if [[ "$pw1" != "$pw2" ]]; then
+			print_error "Passwords do not match. Try again."
+			continue
+		fi
+		eval "$var_name=\"\$pw1\""
+		break
+	done
 }
 
 read_input() {
-  local prompt="$1"
-  local var_name="$2"
-  local default="${3:-}"
-  local value
-  if [[ -n "$default" ]]; then
-    echo -ne "${CYAN}$prompt${NC} [${default}]: "
-  else
-    echo -ne "${CYAN}$prompt${NC}: "
-  fi
-  read -r value
-  if [[ -z "$value" && -n "$default" ]]; then
-    value="$default"
-  fi
-  eval "$var_name=\"\$value\""
+	local prompt="$1"
+	local var_name="$2"
+	local default="${3:-}"
+	local value
+	if [[ -n "$default" ]]; then
+		echo -ne "${CYAN}$prompt${NC} [${default}]: "
+	else
+		echo -ne "${CYAN}$prompt${NC}: "
+	fi
+	read -r value
+	if [[ -z "$value" && -n "$default" ]]; then
+		value="$default"
+	fi
+	eval "$var_name=\"\$value\""
 }
 
 read_optional() {
-  local prompt="$1"
-  local var_name="$2"
-  local value
-  echo -ne "${CYAN}$prompt${NC} (optional, press Enter to skip): "
-  read -r value
-  eval "$var_name=\"\$value\""
+	local prompt="$1"
+	local var_name="$2"
+	local value
+	echo -ne "${CYAN}$prompt${NC} (optional, press Enter to skip): "
+	read -r value
+	eval "$var_name=\"\$value\""
 }
 
 ################################################################################
 # Main Script
 ################################################################################
 main() {
-  print_header "PotatoStack Environment Generator"
+	print_header "PotatoStack Environment Generator"
 
-  if [[ -f "$ENV_FILE" ]]; then
-    print_warning "Existing .env file found at $ENV_FILE"
-    echo -ne "${YELLOW}Overwrite? (y/N):${NC} "
-    read -r confirm
-    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
-      print_error "Aborted. Existing .env preserved."
-      exit 1
-    fi
-    cp "$ENV_FILE" "${ENV_FILE}.backup.$(date +%Y%m%d_%H%M%S)"
-    print_step "Backed up existing .env"
-  fi
+	if [[ -f "$ENV_FILE" ]]; then
+		print_warning "Existing .env file found at $ENV_FILE"
+		echo -ne "${YELLOW}Overwrite? (y/N):${NC} "
+		read -r confirm
+		if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+			print_error "Aborted. Existing .env preserved."
+			exit 1
+		fi
+		cp "$ENV_FILE" "${ENV_FILE}.backup.$(date +%Y%m%d_%H%M%S)"
+		print_step "Backed up existing .env"
+	fi
 
-  echo -e "\nThis script will generate a complete .env file with secure secrets."
-  echo -e "You'll be asked for a few credentials.\n"
+	echo -e "\nThis script will generate a complete .env file with secure secrets."
+	echo -e "You'll be asked for a few credentials.\n"
 
-  ############################################################################
-  # Collect User Input
-  ############################################################################
-  print_header "Network Configuration"
-  read_input "Host IP address (bind address)" HOST_BIND "192.168.178.158"
-  read_input "Local network subnet (CIDR)" LAN_NETWORK "192.168.178.0/24"
-  read_input "Domain for services" HOST_DOMAIN "local.domain"
-  read_input "Email for SSL certificates" ACME_EMAIL "admin@example.com"
+	############################################################################
+	# Collect User Input
+	############################################################################
+	print_header "Network Configuration"
+	read_input "Host IP address (bind address)" HOST_BIND "192.168.178.158"
+	read_input "Local network subnet (CIDR)" LAN_NETWORK "192.168.178.0/24"
+	read_input "Domain for services" HOST_DOMAIN "local.domain"
+	read_input "Email for SSL certificates" ACME_EMAIL "admin@example.com"
 
-  print_header "Master Credentials"
-  echo -e "These credentials will be used for ALL services that require login.\n"
-  read_input "Admin username" ADMIN_USER "admin"
-  read_password "Admin password" ADMIN_PASSWORD 12
+	print_header "Master Credentials"
+	echo -e "These credentials will be used for ALL services that require login.\n"
+	read_input "Admin username" ADMIN_USER "admin"
+	read_password "Admin password" ADMIN_PASSWORD 12
 
-  print_header "File Sharing (Samba)"
-  read_input "Samba username" SAMBA_USER "potato"
-  echo -e "${CYAN}Using admin password for Samba${NC}"
-  SAMBA_PASSWORD="$ADMIN_PASSWORD"
+	print_header "File Sharing (Samba)"
+	read_input "Samba username" SAMBA_USER "potato"
+	echo -e "${CYAN}Using admin password for Samba${NC}"
+	SAMBA_PASSWORD="$ADMIN_PASSWORD"
 
-  print_header "VPN Configuration"
-  read_input "VPN Provider" VPN_PROVIDER "surfshark"
-  read_input "VPN Type" VPN_TYPE "wireguard"
-  read_optional "WireGuard Private Key" WIREGUARD_PRIVATE_KEY
-  read_input "WireGuard Addresses (client VPN IP)" WIREGUARD_ADDRESSES "10.64.222.21/16"
-  read_input "VPN Country" VPN_COUNTRY "Germany"
+	print_header "VPN Configuration"
+	read_input "VPN Provider" VPN_PROVIDER "surfshark"
+	read_input "VPN Type" VPN_TYPE "wireguard"
+	read_optional "WireGuard Private Key" WIREGUARD_PRIVATE_KEY
+	read_input "WireGuard Addresses (client VPN IP)" WIREGUARD_ADDRESSES "10.64.222.21/16"
+	read_input "VPN Country" VPN_COUNTRY "Germany"
 
-  print_header "Tailscale (Optional)"
-  read_optional "Tailscale Auth Key" TAILSCALE_AUTHKEY
+	print_header "Tailscale (Optional)"
+	read_optional "Tailscale Auth Key" TAILSCALE_AUTHKEY
 
-  print_header "External Services (Optional)"
-  read_optional "Soulseek Username" SLSKD_SOULSEEK_USERNAME
-  read_optional "Soulseek Password" SLSKD_SOULSEEK_PASSWORD
-  read_optional "FritzBox Username" FRITZ_USERNAME
-  read_optional "FritzBox Password" FRITZ_PASSWORD
-  read_input "FritzBox Hostname" FRITZ_HOSTNAME "fritz.box"
+	print_header "External Services (Optional)"
+	read_optional "Soulseek Username" SLSKD_SOULSEEK_USERNAME
+	read_optional "Soulseek Password" SLSKD_SOULSEEK_PASSWORD
+	read_optional "FritzBox Username" FRITZ_USERNAME
+	read_optional "FritzBox Password" FRITZ_PASSWORD
+	read_input "FritzBox Hostname" FRITZ_HOSTNAME "fritz.box"
 
-  print_header "Development (CI/CD)"
-  read_input "Gitea Admin Username" WOODPECKER_ADMIN "$ADMIN_USER"
+	print_header "Development (CI/CD)"
+	read_input "Gitea Admin Username" WOODPECKER_ADMIN "$ADMIN_USER"
 
-  print_header "SSH Server (Optional)"
-  read_input "OpenSSH port" OPENSSH_PORT "2222"
-  read_input "OpenSSH username" OPENSSH_USER "sshuser"
-  echo -e "${CYAN}Using admin password for OpenSSH${NC}"
-  OPENSSH_PASSWORD="$ADMIN_PASSWORD"
+	print_header "SSH Server (Optional)"
+	read_input "OpenSSH port" OPENSSH_PORT "2222"
+	read_input "OpenSSH username" OPENSSH_USER "sshuser"
+	echo -e "${CYAN}Using admin password for OpenSSH${NC}"
+	OPENSSH_PASSWORD="$ADMIN_PASSWORD"
 
-  ############################################################################
-  # Generate All Secrets
-  ############################################################################
-  print_header "Generating Secure Secrets"
-  print_step "Database passwords..."
-  POSTGRES_SUPER_PASSWORD="$ADMIN_PASSWORD"
-  MONGO_ROOT_PASSWORD="$ADMIN_PASSWORD"
-  AUTHENTIK_DB_PASSWORD="$ADMIN_PASSWORD"
-  FIREFLY_DB_PASSWORD="$ADMIN_PASSWORD"
-  CALIBRE_DB_PASSWORD="$ADMIN_PASSWORD"
-  SENTRY_DB_PASSWORD="$ADMIN_PASSWORD"
+	############################################################################
+	# Generate All Secrets
+	############################################################################
+	print_header "Generating Secure Secrets"
+	print_step "Database passwords..."
+	POSTGRES_SUPER_PASSWORD="$ADMIN_PASSWORD"
+	MONGO_ROOT_PASSWORD="$ADMIN_PASSWORD"
+	AUTHENTIK_DB_PASSWORD="$ADMIN_PASSWORD"
+	FIREFLY_DB_PASSWORD="$ADMIN_PASSWORD"
+	CALIBRE_DB_PASSWORD="$ADMIN_PASSWORD"
+	SENTRY_DB_PASSWORD="$ADMIN_PASSWORD"
 
-  print_step "Service passwords..."
-  GRAFANA_PASSWORD="$ADMIN_PASSWORD"
-  GRAFANA_ADMIN_PASSWORD="$ADMIN_PASSWORD"
-  N8N_PASSWORD="$ADMIN_PASSWORD"
-  LINKDING_ADMIN_PASSWORD="$ADMIN_PASSWORD"
-  HEALTHCHECKS_ADMIN_PASSWORD="$ADMIN_PASSWORD"
-  COUCHDB_PASSWORD="$ADMIN_PASSWORD"
-  SLSKD_PASSWORD="$ADMIN_PASSWORD"
-  PARSEABLE_PASSWORD="$ADMIN_PASSWORD"
-  MINIFLUX_ADMIN_PASSWORD="$ADMIN_PASSWORD"
-  CODE_SERVER_PASSWORD="$ADMIN_PASSWORD"
-  CODE_SERVER_SUDO_PASSWORD="$ADMIN_PASSWORD"
-  KOPIA_PASSWORD="$ADMIN_PASSWORD"
-  KOPIA_SERVER_PASSWORD="$ADMIN_PASSWORD"
-  VELLD_ADMIN_PASSWORD="$ADMIN_PASSWORD"
-  ELASTIC_PASSWORD="$ADMIN_PASSWORD"
-  PAPERLESS_ADMIN_PASSWORD="$ADMIN_PASSWORD"
+	print_step "Service passwords..."
+	GRAFANA_PASSWORD="$ADMIN_PASSWORD"
+	GRAFANA_ADMIN_PASSWORD="$ADMIN_PASSWORD"
+	N8N_PASSWORD="$ADMIN_PASSWORD"
+	LINKDING_ADMIN_PASSWORD="$ADMIN_PASSWORD"
+	HEALTHCHECKS_ADMIN_PASSWORD="$ADMIN_PASSWORD"
+	COUCHDB_PASSWORD="$ADMIN_PASSWORD"
+	SLSKD_PASSWORD="$ADMIN_PASSWORD"
+	PARSEABLE_PASSWORD="$ADMIN_PASSWORD"
+	MINIFLUX_ADMIN_PASSWORD="$ADMIN_PASSWORD"
+	CODE_SERVER_PASSWORD="$ADMIN_PASSWORD"
+	CODE_SERVER_SUDO_PASSWORD="$ADMIN_PASSWORD"
+	KOPIA_PASSWORD="$ADMIN_PASSWORD"
+	KOPIA_SERVER_PASSWORD="$ADMIN_PASSWORD"
+	VELLD_ADMIN_PASSWORD="$ADMIN_PASSWORD"
+	ELASTIC_PASSWORD="$ADMIN_PASSWORD"
+	PAPERLESS_ADMIN_PASSWORD="$ADMIN_PASSWORD"
 
-  print_step "Base64 secrets..."
-  AUTHENTIK_SECRET_KEY="$(gen_base64 48)"
-  VAULTWARDEN_ADMIN_TOKEN="$(gen_base64 32)"
-  OAUTH2_PROXY_CLIENT_SECRET="$(gen_base64 32)"
-  OAUTH2_PROXY_COOKIE_SECRET="$(gen_cookie_secret)"
-  HEALTHCHECKS_SECRET_KEY="$(gen_base64 32)"
-  CALCOM_NEXTAUTH_SECRET="$(gen_base64 32)"
-  CALCOM_ENCRYPTION_KEY="$(gen_base64 32)"
-  WOODPECKER_AGENT_SECRET="$(gen_base64 32)"
-  DRONE_RPC_SECRET="$(gen_base64 32)"
-  SENTRY_SECRET_KEY="$(gen_base64 32)"
-  OPEN_WEBUI_SECRET_KEY="$(gen_base64 32)"
-  VELLD_JWT_SECRET="$(gen_base64 32)"
-  PAPERLESS_SECRET_KEY="$(gen_base64 32)"
-  INFISICAL_AUTH_SECRET="$(gen_base64 32)"
-  INFISICAL_ENCRYPTION_KEY="$(gen_base64 32)"
+	print_step "Base64 secrets..."
+	AUTHENTIK_SECRET_KEY="$(gen_base64 48)"
+	VAULTWARDEN_ADMIN_TOKEN="$(gen_base64 32)"
+	OAUTH2_PROXY_CLIENT_SECRET="$(gen_base64 32)"
+	OAUTH2_PROXY_COOKIE_SECRET="$(gen_cookie_secret)"
+	HEALTHCHECKS_SECRET_KEY="$(gen_base64 32)"
+	CALCOM_NEXTAUTH_SECRET="$(gen_base64 32)"
+	CALCOM_ENCRYPTION_KEY="$(gen_base64 32)"
+	WOODPECKER_AGENT_SECRET="$(gen_base64 32)"
+	DRONE_RPC_SECRET="$(gen_base64 32)"
+	SENTRY_SECRET_KEY="$(gen_base64 32)"
+	OPEN_WEBUI_SECRET_KEY="$(gen_base64 32)"
+	VELLD_JWT_SECRET="$(gen_base64 32)"
+	PAPERLESS_SECRET_KEY="$(gen_base64 32)"
+	MEALIE_SECRET_KEY="$(gen_base64 32)"
+	INFISICAL_AUTH_SECRET="$(gen_base64 32)"
+	INFISICAL_ENCRYPTION_KEY="$(gen_base64 32)"
 
-  print_step "Hex secrets..."
-  HOMARR_SECRET_KEY="$(gen_hex 32)"
-  HUGINN_SECRET_TOKEN="$(gen_hex 32)"
-  ARIA2_RPC_SECRET="$(gen_hex 16)"
-  VELLD_ENCRYPTION_KEY="$(gen_hex 32)"
-  CROWDSEC_BOUNCER_KEY="$(gen_hex 32)"
+	print_step "Hex secrets..."
+	HOMARR_SECRET_KEY="$(gen_hex 32)"
+	HUGINN_SECRET_TOKEN="$(gen_hex 32)"
+	ARIA2_RPC_SECRET="$(gen_hex 16)"
+	VELLD_ENCRYPTION_KEY="$(gen_hex 32)"
+	CROWDSEC_BOUNCER_KEY="$(gen_hex 32)"
 
-  print_step "Special format secrets..."
-  FIREFLY_APP_KEY="$(gen_firefly_key)"
-  HUGINN_INVITATION_CODE="$(gen_hex 8)"
+	print_step "Special format secrets..."
+	FIREFLY_APP_KEY="$(gen_firefly_key)"
+	HUGINN_INVITATION_CODE="$(gen_hex 8)"
 
-  print_step "Placeholder tokens..."
-  GITEA_RUNNER_TOKEN="get_from_gitea_after_setup"
-  WOODPECKER_GITEA_CLIENT="get_from_gitea_oauth_app"
-  WOODPECKER_GITEA_SECRET="get_from_gitea_oauth_app"
-  DRONE_GITEA_CLIENT_ID="get_from_gitea_oauth_app"
-  DRONE_GITEA_CLIENT_SECRET="get_from_gitea_oauth_app"
-  OAUTH2_PROXY_CLIENT_ID="get_from_authentik_after_setup"
-  FIREFLY_ACCESS_TOKEN="get_from_firefly_after_setup"
-  SYNCTHING_API_KEY=""
-  PORTAINER_API_KEY=""
-  SLSKD_API_KEY=""
+	print_step "Placeholder tokens..."
+	GITEA_RUNNER_TOKEN="get_from_gitea_after_setup"
+	WOODPECKER_GITEA_CLIENT="get_from_gitea_oauth_app"
+	WOODPECKER_GITEA_SECRET="get_from_gitea_oauth_app"
+	DRONE_GITEA_CLIENT_ID="get_from_gitea_oauth_app"
+	DRONE_GITEA_CLIENT_SECRET="get_from_gitea_oauth_app"
+	OAUTH2_PROXY_CLIENT_ID="get_from_authentik_after_setup"
+	FIREFLY_ACCESS_TOKEN="get_from_firefly_after_setup"
+	SYNCTHING_API_KEY=""
+	PORTAINER_API_KEY=""
+	SLSKD_API_KEY=""
 
-  print_success "All secrets generated!"
+	print_success "All secrets generated!"
 
-  ############################################################################
-  # Generate .env File
-  ############################################################################
-  print_header "Writing .env File"
-  cat >"$ENV_FILE" <<ENVFILE
+	############################################################################
+	# Generate .env File
+	############################################################################
+	print_header "Writing .env File"
+	cat >"$ENV_FILE" <<ENVFILE
 ################################################################################
 # PotatoStack Main Environment Configuration
 # Generated: $(date '+%Y-%m-%d %H:%M:%S')
@@ -395,6 +396,9 @@ SOCKET_PROXY_TAG=latest
 ################################################################################
 COUCHDB_USER=${ADMIN_USER}
 COUCHDB_PASSWORD=${COUCHDB_PASSWORD}
+
+# Recipe Management
+MEALIE_SECRET_KEY=${MEALIE_SECRET_KEY}
 
 ################################################################################
 # FINANCE
@@ -639,58 +643,58 @@ ACTUAL_TAG=latest
 BOOKSHELF_TAG=hardcover
 ENVFILE
 
-  chmod 600 "$ENV_FILE"
-  print_success ".env file created at $ENV_FILE"
-  print_success "File permissions set to 600"
+	chmod 600 "$ENV_FILE"
+	print_success ".env file created at $ENV_FILE"
+	print_success "File permissions set to 600"
 
-  ############################################################################
-  # Summary
-  ############################################################################
-  print_header "Configuration Summary"
-  echo -e "  ${GREEN}Network:${NC}    Host IP: ${HOST_BIND}   Domain: ${HOST_DOMAIN}"
-  echo -e "  ${GREEN}Admin User:${NC} ${ADMIN_USER}"
-  echo -e "  ${GREEN}Admin Password:${NC} [hidden]"
-  echo -e "\n  ${GREEN}Generated Secrets:${NC}"
-  echo -e "    • 6 database passwords (master)"
-  echo -e "    • 15+ service passwords (master)"
-  echo -e "    • 12+ base64/hex secrets"
-  echo -e "    • All image tags & monitor config"
+	############################################################################
+	# Summary
+	############################################################################
+	print_header "Configuration Summary"
+	echo -e "  ${GREEN}Network:${NC}    Host IP: ${HOST_BIND}   Domain: ${HOST_DOMAIN}"
+	echo -e "  ${GREEN}Admin User:${NC} ${ADMIN_USER}"
+	echo -e "  ${GREEN}Admin Password:${NC} [hidden]"
+	echo -e "\n  ${GREEN}Generated Secrets:${NC}"
+	echo -e "    • 6 database passwords (master)"
+	echo -e "    • 15+ service passwords (master)"
+	echo -e "    • 12+ base64/hex secrets"
+	echo -e "    • All image tags & monitor config"
 
-  echo -e "\n  ${YELLOW}Post-Setup Required:${NC}"
-  echo -e "    • GITEA_RUNNER_TOKEN, WOODPECKER_GITEA_*, DRONE_GITEA_*, OAUTH2_PROXY_CLIENT_ID, SYNCTHING_API_KEY, PORTAINER_API_KEY"
+	echo -e "\n  ${YELLOW}Post-Setup Required:${NC}"
+	echo -e "    • GITEA_RUNNER_TOKEN, WOODPECKER_GITEA_*, DRONE_GITEA_*, OAUTH2_PROXY_CLIENT_ID, SYNCTHING_API_KEY, PORTAINER_API_KEY"
 
-  ############################################################################
-  # Launch Stack
-  ############################################################################
-  print_header "Launch Stack"
-  echo -ne "${CYAN}Pull images and start stack? (Y/n):${NC} "
-  read -r launch_confirm
-  if [[ ! "$launch_confirm" =~ ^[Nn]$ ]]; then
-    print_step "Pulling Docker images..."
-    cd "$PROJECT_ROOT"
-    if docker compose pull --quiet; then
-      print_success "Images pulled successfully!"
-    else
-      print_warning "Some images failed to pull. Continuing..."
-    fi
-    print_step "Starting stack..."
-    if docker compose up -d; then
-      print_success "Stack started successfully!"
-      echo -e "\n${GREEN}PotatoStack is now running!${NC}"
-      echo -e "Check status: ${CYAN}docker compose ps${NC}"
-    else
-      print_error "Failed to start stack. Check logs: docker compose logs"
-      exit 1
-    fi
-  else
-    echo -e "\n${YELLOW}Stack not started.${NC}"
-    echo -e "To start manually: cd $PROJECT_ROOT && docker compose pull && docker compose up -d"
-  fi
+	############################################################################
+	# Launch Stack
+	############################################################################
+	print_header "Launch Stack"
+	echo -ne "${CYAN}Pull images and start stack? (Y/n):${NC} "
+	read -r launch_confirm
+	if [[ ! "$launch_confirm" =~ ^[Nn]$ ]]; then
+		print_step "Pulling Docker images..."
+		cd "$PROJECT_ROOT"
+		if docker compose pull --quiet; then
+			print_success "Images pulled successfully!"
+		else
+			print_warning "Some images failed to pull. Continuing..."
+		fi
+		print_step "Starting stack..."
+		if docker compose up -d; then
+			print_success "Stack started successfully!"
+			echo -e "\n${GREEN}PotatoStack is now running!${NC}"
+			echo -e "Check status: ${CYAN}docker compose ps${NC}"
+		else
+			print_error "Failed to start stack. Check logs: docker compose logs"
+			exit 1
+		fi
+	else
+		echo -e "\n${YELLOW}Stack not started.${NC}"
+		echo -e "To start manually: cd $PROJECT_ROOT && docker compose pull && docker compose up -d"
+	fi
 
-  print_header "Done!"
-  echo -e "Your PotatoStack environment is fully configured."
-  echo -e "Credentials: ${CYAN}$ENV_FILE${NC}"
-  echo -e "\n${YELLOW}IMPORTANT:${NC} Never commit .env to git!"
+	print_header "Done!"
+	echo -e "Your PotatoStack environment is fully configured."
+	echo -e "Credentials: ${CYAN}$ENV_FILE${NC}"
+	echo -e "\n${YELLOW}IMPORTANT:${NC} Never commit .env to git!"
 }
 
 main "$@"

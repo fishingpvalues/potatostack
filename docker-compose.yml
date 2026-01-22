@@ -993,8 +993,76 @@ services:
       - "traefik.http.services.miniflux.loadbalancer.server.port=8080"
 
   ################################################################################
-  # FINANCE
+   # RECIPE MANAGEMENT
+   ################################################################################
+
+   # Mealie - Recipe management and meal planning (SOTA 2025)
+   mealie:
+     image: ghcr.io/mealie-recipes/mealie:${MEALIE_TAG:-latest}
+     container_name: mealie
+     logging: *default-logging
+     environment:
+       <<: *common-env
+       # Core settings
+       BASE_URL: https://mealie.${HOST_DOMAIN:-local.domain}
+       API_PORT: 9000
+       SECRET_KEY: ${MEALIE_SECRET_KEY}
+       ALLOW_SIGNUP: "false"                    # Use Authentik SSO instead
+       LOG_LEVEL: info
+
+       # PostgreSQL (your primary DB)
+       POSTGRES_SERVER: postgres
+       POSTGRES_PORT: 5432
+       POSTGRES_DB: mealie
+       POSTGRES_USER: postgres
+       POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+
+       # Redis (your shared redis-cache)
+       REDIS_URL: redis://redis-cache:6379/10   # DB 10 - avoid conflicts
+
+       # Optional nice-to-haves
+       MEALIE_LOG_LEVEL: info
+       MEALIE_THEME: light                      # or system, dark
+       MEALIE_DEFAULT_GROUP: Home
+       MEALIE_DEFAULT_HOUSEHOLD: Main
+
+       # Disable built-in auth (Traefik + Authentik will handle it)
+       OIDC_ENABLED: "false"
+    volumes:
+      - /mnt/storage/mealie-data:/app/data
+     networks:
+       - potatostack
+     depends_on:
+       postgres:
+         condition: service_healthy
+       redis-cache:
+         condition: service_healthy
+     restart: unless-stopped
+     healthcheck:
+       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9000/api/health"]
+       interval: 60s
+       timeout: 10s
+       retries: 3
+       start_period: 45s
+     deploy:
+       resources:
+         limits:
+           cpus: "1.0"
+           memory: 512M
+         reservations:
+           cpus: "0.5"
+           memory: 256M
+     labels:
+       - "traefik.enable=true"
+       - "traefik.http.routers.mealie.rule=Host(`mealie.${HOST_DOMAIN:-local.domain}`)"
+       - "traefik.http.routers.mealie.entrypoints=websecure"
+       - "traefik.http.routers.mealie.tls=true"
+       - "traefik.http.routers.mealie.middlewares=sso-chain@docker"
+       - "traefik.http.services.mealie.loadbalancer.server.port=9000"
+
   ################################################################################
+   # FINANCE
+   ################################################################################
 
   # Actual Budget - Modern budgeting with bank sync (SOTA 2025)
   actual-budget:
@@ -3693,17 +3761,17 @@ volumes:
   nextcloud_aio_mastercontainer:
   syncthing-config:
 
-  # Media Management
-  prowlarr-config:
-  sonarr-config:
-  radarr-config:
-  lidarr-config:
-  bookshelf-config:
-  bazarr-config:
-  maintainerr-data:
-  jellyfin-config:
-  jellyseerr-config:
-  audiobookshelf-config:
+   # Media Management
+   prowlarr-config:
+   sonarr-config:
+   radarr-config:
+   lidarr-config:
+   bookshelf-config:
+   bazarr-config:
+   maintainerr-data:
+   jellyfin-config:
+   jellyseerr-config:
+   audiobookshelf-config:
 
   # Downloads
   qbittorrent-config:

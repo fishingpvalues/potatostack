@@ -31,7 +31,7 @@ make format        # Format all files (shfmt, prettier)
 
 **Storage Layout:**
 - SSD (`/mnt/ssd/docker-data`) - Databases, configs, critical data
-- HDD (`/mnt/storage`) - Media, photos, documents
+- HDD (`/mnt/storage`) - Media, photos, documents, recipes (mealie), knowledge (obsidian)
 - HDD (`/mnt/cachehdd`) - Caches, incomplete downloads, metrics
 
 **Core Services:**
