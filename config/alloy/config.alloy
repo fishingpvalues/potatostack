@@ -8,38 +8,75 @@ loki.write "loki" {
   }
 }
 
+//// ---------------- Docker logs ----------------
+
 discovery.docker "containers" {
-  host             = "unix:///var/run/docker.sock"
-  refresh_interval = "5s"
-}
-
-discovery.relabel "containers" {
-  targets = discovery.docker.containers.targets
-
-  rule {
-    source_labels = ["__meta_docker_container_name"]
-    regex         = "/(.*)"
-    target_label  = "container"
-  }
+  host = "unix:///var/run/docker.sock"
 }
 
 loki.source.docker "containers" {
-  host        = "unix:///var/run/docker.sock"
-  targets     = discovery.relabel.containers.targets
-  labels      = { job = "docker" }
-  forward_to  = [loki.write.loki.receiver]
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.docker.containers.targets
+  forward_to = [loki.process.docker.receiver]
+}
+
+loki.process "docker" {
+  stage.labels {
+    values = {
+      job = "docker",
+    }
+  }
+
+  forward_to = [loki.write.loki.receiver]
+}
+
+//// ---------------- Host logs ----------------
+
+local.file_match "varlogs" {
+  path_targets = [
+    {
+      __path__ = "/var/log/*.log",
+      job      = "varlogs",
+    },
+  ]
 }
 
 loki.source.file "varlogs" {
-  forward_to = [loki.write.loki.receiver]
-  file_match {
-    path_targets = [{ __path__ = "/var/log/*.log", job = "varlogs" }]
+  targets    = local.file_match.varlogs.targets
+  forward_to = [loki.process.varlogs.receiver]
+}
+
+loki.process "varlogs" {
+  stage.labels {
+    values = {
+      job = "varlogs",
+    }
   }
+
+  forward_to = [loki.write.loki.receiver]
+}
+
+//// ---------------- Traefik logs ----------------
+
+local.file_match "traefik" {
+  path_targets = [
+    {
+      __path__ = "/logs/*.log",
+    },
+  ]
 }
 
 loki.source.file "traefik" {
-  forward_to = [loki.write.loki.receiver]
-  file_match {
-    path_targets = [{ __path__ = "/logs/*.log", job = "traefik" }]
+  targets    = local.file_match.traefik.targets
+  forward_to = [loki.process.traefik.receiver]
+}
+
+loki.process "traefik" {
+  stage.labels {
+    values = {
+      job = "traefik",
+    }
   }
+
+  forward_to = [loki.write.loki.receiver]
 }
