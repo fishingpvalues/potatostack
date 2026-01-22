@@ -5,7 +5,7 @@
 # Runs once at startup via storage-init container
 #
 # Structure (2025 consolidated):
-# - /mnt/storage: Main HDD - media, downloads, syncthing, kopia, obsidian
+# - /mnt/storage: Main HDD - media, downloads, syncthing, kopia, obsidian, mealie
 # - /mnt/cachehdd: Cache HDD - organized by function (downloads, media, observability, sync, system)
 # - /mnt/ssd/docker-data: SSD - databases and app configs
 ################################################################################
@@ -130,6 +130,7 @@ mkdir -p \
 	"${STORAGE_BASE}/nextcloud" \
 	"${STORAGE_BASE}/syncthing" \
 	"${STORAGE_BASE}/obsidian-couchdb" \
+	"${STORAGE_BASE}/mealie-data" \
 	"${STORAGE_BASE}/downloads/torrent" \
 	"${STORAGE_BASE}/downloads/aria2" \
 	"${STORAGE_BASE}/projects" \
@@ -473,6 +474,6 @@ printf '%s\n' ""
 printf '%s\n' "✓ Storage initialization complete"
 printf '%s\n' ""
 printf '%s\n' "Directory structure:"
-printf '%s\n' "  /mnt/storage     - Main HDD (media, downloads, syncthing, kopia, obsidian)"
+printf '%s\n' "  /mnt/storage     - Main HDD (media, downloads, syncthing, kopia, obsidian, mealie)"
 printf '%s\n' "  /mnt/cachehdd    - Cache HDD (downloads/media/observability/sync/system)"
 printf '%s\n' "  /mnt/ssd         - SSD (docker-data, system)"

@@ -17,31 +17,18 @@ THIS IS FOR ALL HTTPS SERVICES I WANT ALL TO WORK WITH HTTPS USE LETS ENCRYPT I 
 - after fixing https, authentik is still not working. either we kick it out (i want central auth if poossible) or you fix it all i want all to work well with all services
 - check all logs for errors i cant access nextcloud for example 
 - check kernel logs for cadvisor it gets cancelled every time. But it usees 15GB RAM when no limit which is too much why so many?
-- Apply this: Better production setup (with the community helper):
-Use oleduc/docker-obsidian-livesync-couchdb (automates admin user, databases, CORS, etc.):
-YAMLservices:
-  obsidian-livesync:
-    image: oleduc/docker-obsidian-livesync-couchdb:latest
-    container_name: obsidian-livesync
-    environment:
-      - COUCHDB_USER=obsidian
-      - COUCHDB_PASSWORD=SuperSecretPass123!
-      - COUCHDB_DATABASE=obsidian-vault
-    volumes:
-      - ./couchdb-data:/opt/couchdb/data
-    ports:
-      - "5984:5984"
-    restart: unless-stopped
-Client Setup (on every device)
+- check if obsidian sxerver and mealie are intebrfrated and wor,ing
 
-Install the Self-hosted LiveSync community plugin in Obsidian
-Go to plugin settings → Self-hosted LiveSync
-Use the Setup URI generator (or enter manually):
-CouchDB URL: http://your-server-ip:5984 (or HTTPS via reverse proxy)
-Username + Password
-Database name (usually obsidian-vault)
+add 1. Stash (stashapp/stash) — Strongly Recommended
 
-Enable "LiveSync" and "Periodic sync"
+The de-facto standard for adult video libraries.
+Excellent metadata scraping (ThePornDB, Pornhub, etc.).
+Scene detection, performer tagging, studio management, galleries, tags, markers, custom fields.
+Supports multiple libraries (you can separate mainstream vs. niche content).
+Web UI with search, playlists, random picker, VR support.
+Integrates with Jellyfin (via plugin or separate library).
+Resource usage: ~300–600 MB RAM (similar to Jellyfin).
 
-Strongly recommended: Put it behind a reverse proxy (Traefik/Nginx/Caddy) with HTTPS + authentication.
- 
+Other good options:
+
+Stash + Stash-Box → Community-driven metadata server (highly recommended addition). BEHIND KILLSWITCH INTEGRATE FULLY WITH PORN FOLDER AND GLUETUN AND TRAEFIK AND AUTHENTIK AND HTTPS ETC
