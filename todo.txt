@@ -28,7 +28,11 @@ Supports multiple libraries (you can separate mainstream vs. niche content).
 Web UI with search, playlists, random picker, VR support.
 Integrates with Jellyfin (via plugin or separate library).
 Resource usage: ~300–600 MB RAM (similar to Jellyfin).
+add Navidrome as well 
 
 Other good options:
 
 Stash + Stash-Box → Community-driven metadata server (highly recommended addition). BEHIND KILLSWITCH INTEGRATE FULLY WITH PORN FOLDER AND GLUETUN AND TRAEFIK AND AUTHENTIK AND HTTPS ETC
+
+ read todo.txt make a plan and work it off step by step be cautious and stay in token limits mini,mize chat toklens, maximize code tokens only communicate whats necessary and for questions, do short summary at the     
+  end mnohting more        
