@@ -190,7 +190,8 @@ main() {
 	CALIBRE_DB_PASSWORD="$ADMIN_PASSWORD"
 	SENTRY_DB_PASSWORD="$ADMIN_PASSWORD"
 
-	print_step "Service passwords..."
+	print_step "Service passwords (using master credentials)..."
+	# All services use ADMIN_USER and ADMIN_PASSWORD for consistency
 	GRAFANA_PASSWORD="$ADMIN_PASSWORD"
 	GRAFANA_ADMIN_PASSWORD="$ADMIN_PASSWORD"
 	N8N_PASSWORD="$ADMIN_PASSWORD"
@@ -207,6 +208,9 @@ main() {
 	VELLD_ADMIN_PASSWORD="$ADMIN_PASSWORD"
 	ELASTIC_PASSWORD="$ADMIN_PASSWORD"
 	PAPERLESS_ADMIN_PASSWORD="$ADMIN_PASSWORD"
+	FILEBROWSER_PASSWORD="$ADMIN_PASSWORD"
+	QBITTORRENT_PASSWORD="$ADMIN_PASSWORD"
+	ACTUAL_PASSWORD="$ADMIN_PASSWORD"
 
 	print_step "Base64 secrets..."
 	AUTHENTIK_SECRET_KEY="$(gen_base64 48)"
@@ -269,6 +273,8 @@ HOST_BIND=${HOST_BIND}
 LAN_NETWORK=${LAN_NETWORK}
 HOST_DOMAIN=${HOST_DOMAIN}
 ACME_EMAIL=${ACME_EMAIL}
+CF_API_EMAIL=${ACME_EMAIL}
+CF_DNS_API_TOKEN=
 
 ################################################################################
 # FILE SHARING (Samba)
@@ -280,7 +286,7 @@ SAMBA_PASSWORD=${SAMBA_PASSWORD}
 # CORE DATABASES
 ################################################################################
 POSTGRES_SUPER_PASSWORD=${POSTGRES_SUPER_PASSWORD}
-POSTGRES_DATABASES=nextcloud,authentik,gitea,woodpecker,immich,calibre,linkding,n8n,healthchecks,stirlingpdf,atuin,homarr,paperless,openwebui,miniflux,grafana,infisical
+POSTGRES_DATABASES=nextcloud,authentik,gitea,woodpecker,immich,calibre,linkding,n8n,healthchecks,atuin,homarr,miniflux,grafana,infisical,mealie
 MONGO_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
 
 ################################################################################
@@ -377,10 +383,14 @@ TAILSCALE_PING_TARGET=
 TAILSCALE_PING_INTERVAL=60
 TAILSCALE_PING_FAIL_THRESHOLD=3
 TAILSCALE_RESTART_COOLDOWN=300
+TAILSCALE_SERVE_PORTS=7575,8088,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,8945,8282,6880,6800,2234,8097,8000,2283,8090,8080,8384,3004,3006,5678,9000,9091,8093,5006,9090,3100,9093,10903,10902,8094,8087,6060,8091,8001,8788,8888,8889,8081,3010,8085,8060,8288,5984
+TAILSCALE_SERVE_INTERVAL=300
 
 NTFY_INTERNAL_URL=http://ntfy:80
 NTFY_TOPIC=potatostack
 NTFY_TOKEN=
+NTFY_AUTH_DEFAULT_ACCESS=read-write
+NTFY_ENABLE_LOGIN=false
 
 ################################################################################
 # DASHBOARD & MANAGEMENT
@@ -396,9 +406,16 @@ SOCKET_PROXY_TAG=latest
 ################################################################################
 COUCHDB_USER=${ADMIN_USER}
 COUCHDB_PASSWORD=${COUCHDB_PASSWORD}
+COUCHDB_DATABASE=obsidian-vault
 
 # Recipe Management
 MEALIE_SECRET_KEY=${MEALIE_SECRET_KEY}
+
+################################################################################
+# FILE BROWSER
+################################################################################
+FILEBROWSER_USER=${ADMIN_USER}
+FILEBROWSER_PASSWORD=${ADMIN_PASSWORD}
 
 ################################################################################
 # FINANCE
@@ -414,6 +431,8 @@ SPECTRE_SECRET=
 ################################################################################
 # DOWNLOAD CLIENTS
 ################################################################################
+QBITTORRENT_USER=${ADMIN_USER}
+QBITTORRENT_PASSWORD=${ADMIN_PASSWORD}
 ARIA2_RPC_SECRET=${ARIA2_RPC_SECRET}
 SLSKD_USER=${ADMIN_USER}
 SLSKD_PASSWORD=${SLSKD_PASSWORD}
@@ -465,6 +484,7 @@ CALCOM_NEXTAUTH_SECRET=${CALCOM_NEXTAUTH_SECRET}
 CALCOM_ENCRYPTION_KEY=${CALCOM_ENCRYPTION_KEY}
 ATUIN_HOST=0.0.0.0
 ATUIN_PORT=8888
+ATUIN_OPEN_REGISTRATION=true
 CODE_SERVER_PASSWORD=${CODE_SERVER_PASSWORD}
 CODE_SERVER_SUDO_PASSWORD=${CODE_SERVER_SUDO_PASSWORD}
 
@@ -498,11 +518,16 @@ OPEN_WEBUI_SECRET_KEY=${OPEN_WEBUI_SECRET_KEY}
 ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
 
 ################################################################################
-# BACKUPS
+# BACKUPS (Kopia)
 ################################################################################
+# Repository encryption password (CRITICAL - store this safely!)
 KOPIA_PASSWORD=${KOPIA_PASSWORD}
+# Web UI credentials
 KOPIA_SERVER_USER=${ADMIN_USER}
 KOPIA_SERVER_PASSWORD=${KOPIA_SERVER_PASSWORD}
+# Hostname identifier for snapshots
+KOPIA_HOSTNAME=potatostack
+# Automated snapshot schedule
 SNAPSHOT_CRON_SCHEDULE=0 3 * * *
 SNAPSHOT_PATHS=/data
 SNAPSHOT_LOG_FILE=/mnt/storage/kopia/stack-snapshot.log
@@ -546,24 +571,49 @@ NETDATA_CLAIM_ROOMS=
 ################################################################################
 # IMAGE TAGS (all required tags defined)
 ################################################################################
+# Core
 ALPINE_TAG=latest
-POSTGRES_TAG=pg16
+POSTGRES_TAG=16-alpine
+PGBOUNCER_TAG=latest
 MONGO_TAG=8
 REDIS_TAG=alpine
 ADMINER_TAG=latest
+
+# Reverse Proxy
 TRAEFIK_TAG=latest
 NPM_TAG=latest
+
+# Authentication & Security
 AUTHENTIK_TAG=latest
 VAULTWARDEN_TAG=latest
 OAUTH2_PROXY_TAG=latest
+CROWDSEC_TAG=latest
+CROWDSEC_BOUNCER_TAG=latest
+FAIL2BAN_TAG=latest
+TRIVY_TAG=latest
+
+# VPN
 GLUETUN_TAG=latest
 TAILSCALE_TAG=latest
+WIREGUARD_TAG=latest
+
+# Cloud Storage
 NEXTCLOUD_AIO_TAG=latest
 SYNCTHING_TAG=latest
+FILEBROWSER_TAG=latest
+
+# Knowledge Management
 COUCHDB_TAG=latest
+OBSIDIAN_LIVESYNC_TAG=latest
 CURL_TAG=latest
+MEALIE_TAG=latest
+
+# Finance
 FIREFLY_TAG=latest
 FIREFLY_IMPORTER_TAG=latest
+ACTUAL_TAG=latest
+
+# Media Management
 PROWLARR_TAG=latest
 SONARR_TAG=latest
 RADARR_TAG=latest
@@ -571,28 +621,53 @@ LIDARR_TAG=latest
 READARR_TAG=develop
 BAZARR_TAG=latest
 MAINTAINERR_TAG=latest
+BOOKSHELF_TAG=hardcover
 JELLYFIN_TAG=latest
 JELLYSEERR_TAG=latest
 OVERSEERR_TAG=latest
 AUDIOBOOKSHELF_TAG=latest
+NAVIDROME_TAG=latest
+STASH_TAG=latest
+
+# Downloads
 QBITTORRENT_TAG=latest
 ARIA2_TAG=latest
 ARIANG_TAG=latest
+SLSKD_TAG=latest
+
+# Photos
 IMMICH_TAG=release
+
+# Monitoring
 PROMETHEUS_TAG=latest
 GRAFANA_TAG=latest
 LOKI_TAG=latest
 PROMTAIL_TAG=latest
+ALLOY_TAG=latest
 NODE_EXPORTER_TAG=latest
 CADVISOR_TAG=latest
 FRITZBOX_EXPORTER_TAG=latest
+NETDATA_TAG=latest
 UPTIME_KUMA_TAG=latest
 PARSEABLE_TAG=latest
 SCRUTINY_TAG=latest
+ALERTMANAGER_TAG=latest
+
+# Exporters
+POSTGRES_EXPORTER_TAG=latest
+REDIS_EXPORTER_TAG=latest
+MONGODB_EXPORTER_TAG=0.43
+SMARTCTL_EXPORTER_TAG=latest
+
+# Automation
 N8N_TAG=latest
 HUGINN_TAG=latest
 HEALTHCHECKS_TAG=latest
+
+# Utilities
 SAMBA_TAG=latest
+OPENSSH_SERVER_TAG=latest
+NTFY_TAG=latest
 RUSTYPASTE_TAG=latest
 STIRLING_PDF_TAG=latest
 LINKDING_TAG=latest
@@ -602,6 +677,9 @@ DRAWIO_TAG=latest
 EXCALIDRAW_TAG=latest
 ATUIN_TAG=latest
 DUCKDB_TAG=latest
+IT_TOOLS_TAG=latest
+
+# Development
 GITEA_TAG=latest
 GITEA_RUNNER_TAG=latest
 WOODPECKER_TAG=latest
@@ -609,38 +687,38 @@ WOODPECKER_AGENT_TAG=latest
 DRONE_TAG=latest
 DRONE_RUNNER_TAG=latest
 SENTRY_TAG=latest
+
+# AI & Special
 OPEN_WEBUI_TAG=latest
 OCTOBOT_TAG=latest
 PINCHFLAT_TAG=latest
+
+# Elasticsearch
 ELASTICSEARCH_TAG=8
 KIBANA_TAG=8
 LOGSTASH_TAG=8
+
+# Dashboard
 GLANCE_TAG=latest
-THANOS_TAG=v0.37.2
+HOMARR_TAG=latest
+
+# System
 DIUN_TAG=latest
 AUTOHEAL_TAG=latest
 PORTAINER_TAG=latest
-DOCKER_CLI_TAG=27
-WIREGUARD_TAG=latest
-SLSKD_TAG=latest
+DOCKER_CLI_TAG=latest
+DOCKER_TAG=cli
+
+# Secrets
+INFISICAL_TAG=latest
+
+# Long-term Storage
+THANOS_TAG=v0.37.2
+
+# Backups
 KOPIA_TAG=latest
 VELLD_API_TAG=latest
 VELLD_WEB_TAG=latest
-
-# Missing tags from compose.yml
-PGBOUNCER_TAG=latest
-POSTGRES_EXPORTER_TAG=latest
-REDIS_EXPORTER_TAG=latest
-MONGODB_EXPORTER_TAG=0.43
-SMARTCTL_EXPORTER_TAG=latest
-ALLOY_TAG=latest
-FAIL2BAN_TAG=latest
-TRIVY_TAG=latest
-ALERTMANAGER_TAG=latest
-NTFY_TAG=latest
-OPENSSH_SERVER_TAG=latest
-ACTUAL_TAG=latest
-BOOKSHELF_TAG=hardcover
 ENVFILE
 
 	chmod 600 "$ENV_FILE"
