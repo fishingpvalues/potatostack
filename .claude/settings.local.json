@@ -161,7 +161,8 @@
       "Bash(sudo -S touch:*)",
       "Bash(docker-compose:*)",
       "Bash(comm:*)",
-      "Bash(shellcheck:*)"
+      "Bash(shellcheck:*)",
+      "WebFetch(domain:www.fuzzygrim.com)"
     ],
     "deny": [],
     "ask": []

@@ -3799,6 +3799,7 @@ services:
       KOPIA_PASSWORD: ${KOPIA_PASSWORD}
       KOPIA_SERVER_USER: ${KOPIA_SERVER_USER:-admin}
       KOPIA_SERVER_PASSWORD: ${KOPIA_SERVER_PASSWORD}
+      KOPIA_HOSTNAME: ${KOPIA_HOSTNAME:-potatostack}
       KOPIA_CONFIG_PATH: /app/config/repository.config
       KOPIA_CACHE_DIRECTORY: /app/cache
       KOPIA_LOG_DIR: /app/logs
