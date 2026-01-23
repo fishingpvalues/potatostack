@@ -25,12 +25,16 @@ These services need HTTPS for full functionality (WebAuthn, SharedArrayBuffer, C
 | Grafana | https://grafana.danielhomelab.local | Dashboard security |
 | Immich | https://immich.danielhomelab.local | Photo uploads and encryption |
 | Filebrowser | https://filebrowser.danielhomelab.local | File upload/download security |
+| Mealie | https://mealie.danielhomelab.local | Recipe management |
+| Nextcloud | https://nextcloud.danielhomelab.local | Cloud storage |
+| Navidrome | https://music.danielhomelab.local | Music streaming |
+| Obsidian | https://obsidian.danielhomelab.local | Note sync (CouchDB) |
 
 **Note:** Add `danielhomelab.local` to your `/etc/hosts` file pointing to your server IP, or configure DNS to resolve these domains.
 
 Example `/etc/hosts` entry:
 ```
-192.168.178.158  vault.danielhomelab.local git.danielhomelab.local budget.danielhomelab.local auth.danielhomelab.local grafana.danielhomelab.local immich.danielhomelab.local filebrowser.danielhomelab.local
+192.168.178.158  vault.danielhomelab.local git.danielhomelab.local budget.danielhomelab.local auth.danielhomelab.local grafana.danielhomelab.local immich.danielhomelab.local filebrowser.danielhomelab.local mealie.danielhomelab.local nextcloud.danielhomelab.local music.danielhomelab.local obsidian.danielhomelab.local
 ```
 
 ## Dashboards & Management
@@ -56,7 +60,9 @@ Example `/etc/hosts` entry:
 | Bazarr | https://potatostack.tale-iwato.ts.net:6767 | Subtitle Manager |
 | Bookshelf | https://potatostack.tale-iwato.ts.net:8787 | Ebook Manager |
 | Audiobookshelf | https://potatostack.tale-iwato.ts.net:13378 | Audiobook Server |
+| Navidrome | https://potatostack.tale-iwato.ts.net:4533 | Music Streaming (Subsonic) |
 | Pinchflat | https://potatostack.tale-iwato.ts.net:8945 | YouTube Downloader |
+| Stash | https://potatostack.tale-iwato.ts.net:9999 | Adult Media Organizer (via VPN) |
 
 ## Download Clients (via Gluetun VPN)
 

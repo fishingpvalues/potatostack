@@ -283,6 +283,8 @@ services:
       - "${HOST_BIND:-192.168.178.158}:8088:8080" # Dashboard (alt port to avoid conflicts)
     environment:
       <<: *common-env
+      CF_API_EMAIL: ${CF_API_EMAIL}
+      CF_DNS_API_TOKEN: ${CF_DNS_API_TOKEN}
     command:
       # Global
       - "--global.checknewversion=false"
@@ -308,10 +310,12 @@ services:
       - "--api.insecure=false"
       - "--ping=true"
       - "--ping.entrypoint=traefik"
-      # SSL/TLS
+      # SSL/TLS - DNS-01 Challenge (works behind firewall/VPN)
       - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
-      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.dnschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare"
+      - "--certificatesresolvers.letsencrypt.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53"
       # Observability
       - "--log.level=INFO"
       - "--accesslog=true"
@@ -569,6 +573,7 @@ services:
       - "${HOST_BIND:-192.168.178.158}:50000:50000" # slskd peer
       - "${HOST_BIND:-192.168.178.158}:8097:8080" # SpotiFLAC
       - "${HOST_BIND:-192.168.178.158}:8945:8945" # Pinchflat
+      - "${HOST_BIND:-192.168.178.158}:9999:9999" # Stash
     environment:
       <<: *common-env
       VPN_SERVICE_PROVIDER: ${VPN_PROVIDER:-surfshark}
@@ -818,6 +823,14 @@ services:
         limits:
           cpus: "1.0"
           memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nextcloud-aio.rule=Host(`nextcloud.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.nextcloud-aio.entrypoints=websecure"
+      - "traefik.http.routers.nextcloud-aio.tls=true"
+      - "traefik.http.routers.nextcloud-aio.tls.certresolver=letsencrypt"
+      - "traefik.http.services.nextcloud-aio.loadbalancer.server.port=11000"
+      - "traefik.http.routers.nextcloud-aio.middlewares=security-headers@docker"
 
   # Syncthing - P2P file sync
   syncthing:
@@ -915,6 +928,7 @@ services:
       COUCHDB_USER: ${COUCHDB_USER:-obsidian}
       COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
       COUCHDB_DATABASE: ${COUCHDB_DATABASE:-obsidian-vault}
+      COUCHDB_CORS_ORIGINS: https://obsidian.${HOST_DOMAIN:-local.domain},app://obsidian.md
     volumes:
       - /mnt/storage/obsidian-couchdb:/opt/couchdb/data
     networks:
@@ -993,76 +1007,72 @@ services:
       - "traefik.http.services.miniflux.loadbalancer.server.port=8080"
 
   ################################################################################
-   # RECIPE MANAGEMENT
-   ################################################################################
+  # RECIPE MANAGEMENT
+  ################################################################################
 
-   # Mealie - Recipe management and meal planning (SOTA 2025)
-   mealie:
-     image: ghcr.io/mealie-recipes/mealie:${MEALIE_TAG:-latest}
-     container_name: mealie
-     logging: *default-logging
-     environment:
-       <<: *common-env
-       # Core settings
-       BASE_URL: https://mealie.${HOST_DOMAIN:-local.domain}
-       API_PORT: 9000
-       SECRET_KEY: ${MEALIE_SECRET_KEY}
-       ALLOW_SIGNUP: "false"                    # Use Authentik SSO instead
-       LOG_LEVEL: info
-
-       # PostgreSQL (your primary DB)
-       POSTGRES_SERVER: postgres
-       POSTGRES_PORT: 5432
-       POSTGRES_DB: mealie
-       POSTGRES_USER: postgres
-       POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-
-       # Redis (your shared redis-cache)
-       REDIS_URL: redis://redis-cache:6379/10   # DB 10 - avoid conflicts
-
-       # Optional nice-to-haves
-       MEALIE_LOG_LEVEL: info
-       MEALIE_THEME: light                      # or system, dark
-       MEALIE_DEFAULT_GROUP: Home
-       MEALIE_DEFAULT_HOUSEHOLD: Main
-
-       # Disable built-in auth (Traefik + Authentik will handle it)
-       OIDC_ENABLED: "false"
+  # Mealie - Recipe management and meal planning (SOTA 2025)
+  mealie:
+    image: ghcr.io/mealie-recipes/mealie:${MEALIE_TAG:-latest}
+    container_name: mealie
+    logging: *default-logging
+    environment:
+      <<: *common-env
+      # Core settings
+      BASE_URL: https://mealie.${HOST_DOMAIN:-local.domain}
+      API_PORT: 9000
+      SECRET_KEY: ${MEALIE_SECRET_KEY}
+      ALLOW_SIGNUP: "false"                    # Use Authentik SSO instead
+      LOG_LEVEL: info
+      # PostgreSQL (your primary DB)
+      POSTGRES_SERVER: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: mealie
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+      # Redis (your shared redis-cache)
+      REDIS_URL: redis://redis-cache:6379/10   # DB 10 - avoid conflicts
+      # Optional nice-to-haves
+      MEALIE_LOG_LEVEL: info
+      MEALIE_THEME: light                      # or system, dark
+      MEALIE_DEFAULT_GROUP: Home
+      MEALIE_DEFAULT_HOUSEHOLD: Main
+      # Disable built-in auth (Traefik + Authentik will handle it)
+      OIDC_ENABLED: "false"
     volumes:
       - /mnt/storage/mealie-data:/app/data
-     networks:
-       - potatostack
-     depends_on:
-       postgres:
-         condition: service_healthy
-       redis-cache:
-         condition: service_healthy
-     restart: unless-stopped
-     healthcheck:
-       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9000/api/health"]
-       interval: 60s
-       timeout: 10s
-       retries: 3
-       start_period: 45s
-     deploy:
-       resources:
-         limits:
-           cpus: "1.0"
-           memory: 512M
-         reservations:
-           cpus: "0.5"
-           memory: 256M
-     labels:
-       - "traefik.enable=true"
-       - "traefik.http.routers.mealie.rule=Host(`mealie.${HOST_DOMAIN:-local.domain}`)"
-       - "traefik.http.routers.mealie.entrypoints=websecure"
-       - "traefik.http.routers.mealie.tls=true"
-       - "traefik.http.routers.mealie.middlewares=sso-chain@docker"
-       - "traefik.http.services.mealie.loadbalancer.server.port=9000"
+    networks:
+      - potatostack
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9000/api/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.5"
+          memory: 256M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mealie.rule=Host(`mealie.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.mealie.entrypoints=websecure"
+      - "traefik.http.routers.mealie.tls=true"
+      - "traefik.http.routers.mealie.middlewares=sso-chain@docker"
+      - "traefik.http.services.mealie.loadbalancer.server.port=9000"
 
   ################################################################################
-   # FINANCE
-   ################################################################################
+  # FINANCE
+  ################################################################################
 
   # Actual Budget - Modern budgeting with bank sync (SOTA 2025)
   actual-budget:
@@ -1483,6 +1493,50 @@ services:
       - "traefik.http.routers.audiobookshelf.tls=true"
       - "traefik.http.services.audiobookshelf.loadbalancer.server.port=80"
       - "traefik.http.routers.audiobookshelf.middlewares=sso-chain@docker"
+
+  # Navidrome - Music streaming server (Subsonic/Airsonic compatible)
+  navidrome:
+    image: deluan/navidrome:${NAVIDROME_TAG:-latest}
+    container_name: navidrome
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.158}:4533:4533"
+    environment:
+      <<: *common-env
+      ND_SCANSCHEDULE: 1h
+      ND_LOGLEVEL: info
+      ND_SESSIONTIMEOUT: 24h
+      ND_BASEURL: ""
+      ND_ENABLETRANSCODINGCONFIG: "true"
+      ND_ENABLESHARING: "true"
+    volumes:
+      - navidrome-data:/data
+      - /mnt/storage/media/music:/music:ro
+    networks:
+      - potatostack
+    depends_on:
+      - storage-init
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:4533/ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 256M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.navidrome.rule=Host(`music.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.navidrome.entrypoints=websecure"
+      - "traefik.http.routers.navidrome.tls=true"
+      - "traefik.http.services.navidrome.loadbalancer.server.port=4533"
+      - "traefik.http.routers.navidrome.middlewares=sso-chain@docker"
 
   # SpotiFLAC - Spotify to FLAC downloader (Tidal/Qobuz/Amazon sources)
   spotiflac:
@@ -2039,9 +2093,10 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
     command:
-      - "--housekeeping_interval=30s"
+      - "--housekeeping_interval=60s"
       - "--docker_only=true"
-      - "--disable_metrics=tcp,udp,disk,diskIO,hugetlb,referenced_memory,cpu_topology,resctrl"
+      - "--store_container_labels=false"
+      - "--disable_metrics=tcp,udp,disk,diskIO,hugetlb,referenced_memory,cpu_topology,resctrl,percpu,sched,process"
     networks:
       - potatostack
     restart: unless-stopped
@@ -2889,31 +2944,31 @@ services:
       - "traefik.http.routers.woodpecker.middlewares=sso-chain@docker"
       - "traefik.http.services.woodpecker.loadbalancer.server.port=8000"
 
-  # woodpecker-agent:
-  #   image: woodpeckerci/woodpecker-agent:${WOODPECKER_AGENT_TAG:-latest}
-  #   container_name: woodpecker-agent
-  #   logging: *default-logging
-  #   environment:
-  #     <<: *common-env
-  #     WOODPECKER_SERVER: woodpecker-server:9000
-  #     WOODPECKER_AGENT_SECRET: ${WOODPECKER_AGENT_SECRET}
-  #     WOODPECKER_BACKEND: docker
-  #     WOODPECKER_BACKEND_DOCKER_HOST: unix:///var/run/docker.sock
-  #     WOODPECKER_BACKEND_DOCKER_NETWORK: potatostack
-  #     WOODPECKER_MAX_WORKFLOWS: ${WOODPECKER_MAX_WORKFLOWS:-2}
-  #     WOODPECKER_GRPC_SECURE: "false"
-  #   volumes:
-  #     - /var/run/docker.sock:/var/run/docker.sock
-  #   networks:
-  #     - potatostack
-  #   depends_on:
-  #     - woodpecker-server
-  #   restart: unless-stopped
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: "0.5"
-  #         memory: 256M
+  woodpecker-agent:
+    image: woodpeckerci/woodpecker-agent:${WOODPECKER_AGENT_TAG:-latest}
+    container_name: woodpecker-agent
+    logging: *default-logging
+    environment:
+      <<: *common-env
+      WOODPECKER_SERVER: woodpecker-server:9000
+      WOODPECKER_AGENT_SECRET: ${WOODPECKER_AGENT_SECRET}
+      WOODPECKER_BACKEND: docker
+      WOODPECKER_BACKEND_DOCKER_HOST: unix:///var/run/docker.sock
+      WOODPECKER_BACKEND_DOCKER_NETWORK: potatostack
+      WOODPECKER_MAX_WORKFLOWS: ${WOODPECKER_MAX_WORKFLOWS:-2}
+      WOODPECKER_GRPC_SECURE: "false"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - potatostack
+    depends_on:
+      - woodpecker-server
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
 
   # Sentry - Error tracking
   ################################################################################
@@ -2979,6 +3034,42 @@ services:
         limits:
           cpus: "1.0"
           memory: 384M
+    labels:
+      - "autoheal=true"
+
+  # Stash - Adult media organizer (behind VPN)
+  stash:
+    image: stashapp/stash:${STASH_TAG:-latest}
+    container_name: stash
+    logging: *default-logging
+    network_mode: "service:gluetun"
+    environment:
+      <<: *common-env
+      STASH_STASH: /data
+      STASH_GENERATED: /generated
+      STASH_METADATA: /metadata
+      STASH_CACHE: /cache
+    volumes:
+      - stash-config:/root/.stash
+      - stash-generated:/generated
+      - stash-metadata:/metadata
+      - stash-cache:/cache
+      - /mnt/storage/media/adult:/data
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+      storage-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1024M
+        reservations:
+          cpus: "0.5"
+          memory: 256M
     labels:
       - "autoheal=true"
 
@@ -3761,17 +3852,22 @@ volumes:
   nextcloud_aio_mastercontainer:
   syncthing-config:
 
-   # Media Management
-   prowlarr-config:
-   sonarr-config:
-   radarr-config:
-   lidarr-config:
-   bookshelf-config:
-   bazarr-config:
-   maintainerr-data:
-   jellyfin-config:
-   jellyseerr-config:
-   audiobookshelf-config:
+  # Media Management
+  prowlarr-config:
+  sonarr-config:
+  radarr-config:
+  lidarr-config:
+  bookshelf-config:
+  bazarr-config:
+  maintainerr-data:
+  jellyfin-config:
+  jellyseerr-config:
+  audiobookshelf-config:
+  navidrome-data:
+  stash-config:
+  stash-generated:
+  stash-metadata:
+  stash-cache:
 
   # Downloads
   qbittorrent-config:
