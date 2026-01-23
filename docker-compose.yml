@@ -573,7 +573,7 @@ services:
       - "${HOST_BIND:-192.168.178.158}:50000:50000" # slskd peer
       - "${HOST_BIND:-192.168.178.158}:8097:8080" # SpotiFLAC
       - "${HOST_BIND:-192.168.178.158}:8945:8945" # Pinchflat
-      - "${HOST_BIND:-192.168.178.158}:9999:9999" # Stash
+      - "${HOST_BIND:-192.168.178.158}:9900:9900" # Stash
     environment:
       <<: *common-env
       VPN_SERVICE_PROVIDER: ${VPN_PROVIDER:-surfshark}
@@ -732,55 +732,80 @@ services:
     volumes:
       - tailscale-data:/var/lib/tailscale
       - /dev/net/tun:/dev/net/tun
+      - tailscale-https-marker:/https-marker
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
     network_mode: host
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "tailscale status --json 2>/dev/null | grep -q '\"Self\"' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     deploy:
       resources:
         limits:
           cpus: "0.25"
           memory: 192M
 
-  # Tailscale HTTPS Setup - Wrap HTTP ports with Tailscale TLS
+  # Tailscale HTTPS Setup - Wraps HTTP ports with Tailscale TLS certificates
   tailscale-https-setup:
-    image: alpine:${ALPINE_TAG:-3.21}
+    image: alpine:${ALPINE_TAG:-latest}
     container_name: tailscale-https-setup
     logging: *default-logging
-    entrypoint: sh /tailscale-serve-https.sh
+    entrypoint: ["/bin/sh", "/init.sh"]
     environment:
-      TAILSCALE_SERVE_PORTS: ${TAILSCALE_SERVE_PORTS:-}
+      <<: *common-env
       TAILSCALE_CONTAINER: tailscale
-      TAILSCALE_SERVE_LOOP: "false"
+      # All service ports to expose via HTTPS
+      TAILSCALE_SERVE_PORTS: "7575,8088,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,8945,9900,8282,6880,6800,2234,8097,8000,2283,8090,8443,8080,8384,51515,3004,3006,5678,9000,9443,8888,8288,9091,8093,5006,9090,3100,9093,10903,10902,8094,8087,6060,8091,8001,8788,8060,8889,8081,3010,8085,9925,5984"
+      TAILSCALE_MARKER_FILE: /https-marker/setup-complete
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./scripts/init/tailscale-serve-https.sh:/tailscale-serve-https.sh:ro
+      - ./scripts/init/tailscale-serve-https.sh:/init.sh:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - tailscale-https-marker:/https-marker
+    network_mode: host
     depends_on:
       tailscale:
-        condition: service_started
-    network_mode: none
+        condition: service_healthy
     restart: "no"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
 
-  # Tailscale HTTPS Monitor - Re-apply serve rules on reboot/changes
+  # Tailscale HTTPS Monitor - Periodically re-applies HTTPS serve rules
   tailscale-https-monitor:
-    image: alpine:${ALPINE_TAG:-3.21}
+    image: alpine:${ALPINE_TAG:-latest}
     container_name: tailscale-https-monitor
     logging: *default-logging
-    entrypoint: sh /tailscale-serve-https.sh
+    entrypoint: ["/bin/sh", "/init.sh"]
     environment:
-      TAILSCALE_SERVE_PORTS: ${TAILSCALE_SERVE_PORTS:-}
+      <<: *common-env
       TAILSCALE_CONTAINER: tailscale
+      TAILSCALE_SERVE_PORTS: "7575,8088,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,8945,9900,8282,6880,6800,2234,8097,8000,2283,8090,8443,8080,8384,51515,3004,3006,5678,9000,9443,8888,8288,9091,8093,5006,9090,3100,9093,10903,10902,8094,8087,6060,8091,8001,8788,8060,8889,8081,3010,8085,9925,5984"
       TAILSCALE_SERVE_LOOP: "true"
-      TAILSCALE_SERVE_INTERVAL: ${TAILSCALE_SERVE_INTERVAL:-300}
+      TAILSCALE_SERVE_INTERVAL: "300"
+      TAILSCALE_MARKER_FILE: /https-marker/monitor-alive
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./scripts/init/tailscale-serve-https.sh:/tailscale-serve-https.sh:ro
+      - ./scripts/init/tailscale-serve-https.sh:/init.sh:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - tailscale-https-marker:/https-marker
+    network_mode: host
     depends_on:
       tailscale:
-        condition: service_started
-    network_mode: none
+        condition: service_healthy
     restart: unless-stopped
+    profiles:
+      - monitor
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
 
   ################################################################################
   # CLOUD STORAGE & FILE SYNC
@@ -935,7 +960,7 @@ services:
       - potatostack
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:5984/ || exit 1"]
+      test: ["CMD-SHELL", "curl -f -u $$COUCHDB_USER:$$COUCHDB_PASSWORD http://127.0.0.1:5984/_up || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -1015,6 +1040,8 @@ services:
     image: ghcr.io/mealie-recipes/mealie:${MEALIE_TAG:-latest}
     container_name: mealie
     logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.158}:9925:9000"
     environment:
       <<: *common-env
       # Core settings
@@ -1049,7 +1076,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9000/api/health"]
+      test: ["CMD-SHELL", "/opt/mealie/bin/python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/api/app/about', timeout=5)\""]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -1175,7 +1202,7 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8989/ || exit 1"]
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:8989/ping || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -1820,7 +1847,7 @@ services:
 
   # Immich Log Monitor - Restart on error patterns
   immich-log-monitor:
-    image: alpine:${ALPINE_TAG:-3.21}
+    image: docker:${DOCKER_TAG:-cli}
     container_name: immich-log-monitor
     logging: *default-logging
     entrypoint: sh /immich-log-monitor.sh
@@ -2916,7 +2943,7 @@ services:
       WOODPECKER_HOST: https://ci.${HOST_DOMAIN:-local.domain}
       WOODPECKER_SERVER_ADDR: :8000
       WOODPECKER_GRPC_ADDR: :9000
-      WOODPECKER_GRPC_SECRET: ${WOODPECKER_AGENT_SECRET}
+      WOODPECKER_AGENT_SECRET: ${WOODPECKER_AGENT_SECRET}
       WOODPECKER_DATABASE_DRIVER: postgres
       WOODPECKER_DATABASE_DATASOURCE: postgres://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/woodpecker?sslmode=disable
       WOODPECKER_OPEN: "false"
@@ -2954,6 +2981,7 @@ services:
       WOODPECKER_AGENT_SECRET: ${WOODPECKER_AGENT_SECRET}
       WOODPECKER_BACKEND: docker
       WOODPECKER_BACKEND_DOCKER_HOST: unix:///var/run/docker.sock
+      DOCKER_API_VERSION: "1.44"
       WOODPECKER_BACKEND_DOCKER_NETWORK: potatostack
       WOODPECKER_MAX_WORKFLOWS: ${WOODPECKER_MAX_WORKFLOWS:-2}
       WOODPECKER_GRPC_SECURE: "false"
@@ -3325,6 +3353,7 @@ services:
     image: binwiederhier/ntfy:${NTFY_TAG:-latest}
     container_name: ntfy
     logging: *default-logging
+    command: serve
     ports:
       - "${HOST_BIND:-192.168.178.158}:8060:80"
     environment:
@@ -3588,7 +3617,7 @@ services:
 
   # Traefik Log Monitor
   traefik-log-monitor:
-    image: alpine:${ALPINE_TAG:-3.21}
+    image: docker:${DOCKER_TAG:-cli}
     container_name: traefik-log-monitor
     logging: *default-logging
     entrypoint: sh /traefik-log-monitor.sh
@@ -3625,7 +3654,7 @@ services:
 
   # DB Health Monitor
   db-health-monitor:
-    image: alpine:${ALPINE_TAG:-3.21}
+    image: docker:${DOCKER_TAG:-cli}
     container_name: db-health-monitor
     logging: *default-logging
     entrypoint: sh /db-health-monitor.sh
@@ -3651,7 +3680,7 @@ services:
 
   # Tailscale Connectivity Monitor
   tailscale-connectivity-monitor:
-    image: alpine:${ALPINE_TAG:-3.21}
+    image: docker:${DOCKER_TAG:-cli}
     container_name: tailscale-connectivity-monitor
     logging: *default-logging
     entrypoint: sh /tailscale-connectivity-monitor.sh
@@ -3847,6 +3876,7 @@ volumes:
   # VPN
   gluetun-config:
   tailscale-data:
+  tailscale-https-marker:
 
   # Cloud Storage
   nextcloud_aio_mastercontainer:

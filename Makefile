@@ -2,7 +2,8 @@
 	containers-check containers-unhealthy containers-exited pull verify validate validate-compose validate-files \
 	lint lint-compose lint-yaml lint-shell lint-dockerfiles lint-full format format-shell format-yaml \
 	format-dockerfiles security health resources doctor fix \
-	firewall firewall-status firewall-install firewall-apply firewall-list firewall-reset firewall-allow firewall-deny
+	firewall firewall-status firewall-install firewall-apply firewall-list firewall-reset firewall-allow firewall-deny \
+	tailscale-https tailscale-https-setup tailscale-https-monitor
 
 # Detect OS and set appropriate docker command
 ifeq ($(shell test -d /data/data/com.termux && echo yes),yes)
@@ -319,3 +320,34 @@ health: ## Check health of all services
 resources: ## Check resource usage
 	@echo "Resource Usage:"
 	@$(DOCKER_CMD) stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}"
+
+tailscale-https: ## Setup Tailscale HTTPS on all configured ports
+	@echo "Setting up Tailscale HTTPS on ports: $(TAILSCALE_SERVE_PORTS)..."
+	@if [ -z "$(TAILSCALE_SERVE_PORTS)" ]; then \
+		echo "❌ TAILSCALE_SERVE_PORTS not set in .env"; \
+		echo "Add TAILSCALE_SERVE_PORTS to your .env file"; \
+		exit 1; \
+	fi
+	@PORTS=$$(echo $(TAILSCALE_SERVE_PORTS) | tr ',' ' '); \
+	for port in $$PORTS; do \
+		if [ -n "$$port" ]; then \
+			echo "→ Enabling HTTPS on port $$port"; \
+			docker exec tailscale tailscale serve --bg --https $$port 127.0.0.1:$$port || true; \
+		fi; \
+	done; \
+	echo "✓ Tailscale HTTPS configured for: $(TAILSCALE_SERVE_PORTS)"
+
+tailscale-https-monitor: ## Start Tailscale HTTPS monitor (re-applies every 5 min)
+	@echo "Starting Tailscale HTTPS monitor..."
+	@docker run -d --name tailscale-https-monitor --restart unless-stopped \
+		-v /var/run/docker.sock:/var/run/docker.sock \
+		--network none \
+		alpine:3.21 sh -c "apk add --no-cache docker-cli >/dev/null 2>&1; while true; do sleep 300; \
+		PORTS=\$$(echo $(TAILSCALE_SERVE_PORTS) | tr ',' ' '); \
+		for port in \$\$PORTS; do \
+			if [ -n \"\$\$port\" ]; then \
+				docker exec tailscale tailscale serve --https \$\$port 127.0.0.1:\$\$port --bg || true; \
+			fi; \
+		done; \
+		done"
+

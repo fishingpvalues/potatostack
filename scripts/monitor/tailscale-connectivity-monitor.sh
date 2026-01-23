@@ -5,10 +5,7 @@
 
 set -eu
 
-if ! command -v docker >/dev/null 2>&1; then
-	echo "Installing Docker CLI..."
-	apk add --no-cache docker-cli >/dev/null 2>&1
-fi
+# docker:cli image already has docker command
 
 TAILSCALE_CONTAINER="${TAILSCALE_CONTAINER:-tailscale}"
 PING_TARGET="${TAILSCALE_PING_TARGET:-}"
@@ -17,8 +14,9 @@ FAIL_THRESHOLD="${TAILSCALE_PING_FAIL_THRESHOLD:-3}"
 RESTART_COOLDOWN="${TAILSCALE_RESTART_COOLDOWN:-300}"
 
 if [ -z "$PING_TARGET" ]; then
-	echo "TAILSCALE_PING_TARGET not set; exiting."
-	exit 0
+	echo "TAILSCALE_PING_TARGET not set; sleeping indefinitely."
+	echo "Set TAILSCALE_PING_TARGET to enable monitoring."
+	exec sleep infinity
 fi
 
 echo "=========================================="
