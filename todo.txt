@@ -1,38 +1,6 @@
-fix https errors for every service via tailscale https and urls 
-Fehler: Gesicherte Verbindung fehlgeschlagen
-
-Beim Verbinden mit potatostack.tale-iwato.ts.net:7575:7575 trat ein Fehler auf. SSL hat einen Eintrag erhalten, der die maximal erlaubte Länge überschritten hat.
-
-Fehlercode: SSL_ERROR_RX_RECORD_TOO_LONG
-
-    Die Website kann nicht angezeigt werden, da die Authentizität der erhaltenen Daten nicht verifiziert werden konnte.
-    Kontaktieren Sie bitte den Inhaber der Website, um ihn über dieses Problem zu informieren.
-
-Weitere Informationen…
-
-THIS IS FOR ALL HTTPS SERVICES I WANT ALL TO WORK WITH HTTPS USE LETS ENCRYPT I WANT ALL TO WORK OUT OF THE BOX NO MANUAL CERTIFICATE SHIT it shgould work with traefik and tailscale all https the more services with https the better 
-
-- modify pipeline so heat based on gut tag it gets deployed locally at my stack not totally the GitHub runner should only verify that it runs and linting stuff then it should deploy automatically on my homelab i need to utiize woodpecker and gitea for this which are in the stack itself so i have no redundancy i need dual pipeline clever apprach for this so it gets automatically deployed when tagging with git tag, but also i can sloways be sure it worls and is linting and maybe on github runners there is also a way to fully deploy and check all health states or logs for failures idk
-- grep all logs fix all check all for unhealthy etc. check logs for each container
-- after fixing https, authentik is still not working. either we kick it out (i want central auth if poossible) or you fix it all i want all to work well with all services
-- check all logs for errors i cant access nextcloud for example 
-- check kernel logs for cadvisor it gets cancelled every time. But it usees 15GB RAM when no limit which is too much why so many?
-- check if obsidian sxerver and mealie are intebrfrated and wor,ing
-
-add 1. Stash (stashapp/stash) — Strongly Recommended
-
-The de-facto standard for adult video libraries.
-Excellent metadata scraping (ThePornDB, Pornhub, etc.).
-Scene detection, performer tagging, studio management, galleries, tags, markers, custom fields.
-Supports multiple libraries (you can separate mainstream vs. niche content).
-Web UI with search, playlists, random picker, VR support.
-Integrates with Jellyfin (via plugin or separate library).
-Resource usage: ~300–600 MB RAM (similar to Jellyfin).
-add Navidrome as well 
-
-Other good options:
-
-Stash + Stash-Box → Community-driven metadata server (highly recommended addition). BEHIND KILLSWITCH INTEGRATE FULLY WITH PORN FOLDER AND GLUETUN AND TRAEFIK AND AUTHENTIK AND HTTPS ETC
+- first refresh all scripts based on the latest commit you did whicha re affected
+- then test if https is fully working or not on all services deploy and check if all is healthy 
+- refresh links.md with all new links based on docker-compose.yaml
 
  read todo.txt make a plan and work it off step by step be cautious and stay in token limits mini,mize chat toklens, maximize code tokens only communicate whats necessary and for questions, do short summary at the     
   end mnohting more        
