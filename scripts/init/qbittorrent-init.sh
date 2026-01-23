@@ -51,14 +51,14 @@ generate_password_hash() {
 		return
 	fi
 
-	"$python_bin" - <<PY
+	"$python_bin" - <<PY "$password"
 import base64, hashlib, os, sys
 password = sys.argv[1].encode()
 iters = 10000
 salt = os.urandom(16)
 dk = hashlib.pbkdf2_hmac("sha1", password, salt, iters, dklen=20)
 print(f"PBKDF2${iters}${base64.b64encode(salt).decode()}${base64.b64encode(dk).decode()}")
-PY "$password"
+PY
 }
 
 # Wait for initial config to be created by linuxserver init

@@ -3,4 +3,139 @@
 - refresh links.md with all new links based on docker-compose.yaml
 
  read todo.txt make a plan and work it off step by step be cautious and stay in token limits mini,mize chat toklens, maximize code tokens only communicate whats necessary and for questions, do short summary at the     
+  end mnohting more        - first refresh all scripts based on the latest commit you did whicha re affected
+- then test if https is fully working or not on all services deploy and check if all is healthy 
+- refresh links.md with all new links based on docker-compose.yaml
+- make sure https, authentik, tailscale and cloudflare, infisicial etc. stuff works out of the box perfectly when using tailscale https links on all services create a guide on what to consider and which settings to do
+
+│   /qb-init.sh: line 121: warning: here-document at line 54 delimited by end-of-file (wante   │
+│   d `PY')                                                                                    │
+│   /qb-init.sh: line 122: syntax error: unexpected end of file from `{' command on line 31    │
+│   /qb-init.sh: line 121: warning: here-document at line 54 delimited by end-of-file (wante   │
+│   d `PY')                                                                                    │
+│   /qb-init.sh: line 122: syntax error: unexpected end of file from `{' command on line 31    │
+│   /qb-init.sh: line 121: warning: here-document at line 54 delimited by end-of-file (wante   │
+│   d `PY')                                                                                    │
+│   /qb-init.sh: line 122: syntax error: unexpected end of file from `{' command on line 31    │
+│   /qb-init.sh: line 121: warning: here-document at line 54 delimited by end-of-file (wante   │
+│   d `PY')                                                                                    │
+│   /qb-init.sh: line 122: syntax error: unexpected end of file from `{' command on line 31    │
+│   /qb-init.sh: line 121: warning: here-document at line 54 delimited by end-of-file (wante   │
+│   d `PY')                                                                                    │
+│   /qb-init.sh: line 122: syntax error: unexpected end of file from `{' command on line 31    │
+│   /qb-init.sh: line 121: warning: here-document at line 54 delimited by end-of-file (wante   │
+│   d `PY')                                                                                    │
+│   /qb-init.sh: line 122: syntax error: unexpected end of file from `{' command on line 31    │
+│   /qb-init.sh: line 121: warning: here-document at line 54 delimited by end-of-file (wante   │
+│   d `PY')                          
+
+-       --no-log-dates, --no_log_dates                                                          │
+│                                     disable the date/time prefix (default: false) [$NTFY_N   │
+│   O_LOG_DATES]                                                                               │
+│      --log-level value, --log_level value                                                    │
+│                                     set log level (default: "INFO") [$NTFY_LOG_LEVEL]        │
+│      --log-level-overrides value, --log_level_overrides value [ --log-level-overrides valu   │
+│   e, --log_level_overrides value ]  set log level overrides [$NTFY_LOG_LEVEL_OVERRIDES]      │
+│      --log-format value, --log_format value                                                  │
+│                                     set log format (default: "text") [$NTFY_LOG_FORMAT]      │
+│      --log-file value, --log_file value                                                      │
+│                                     set log file, default is STDOUT [$NTFY_LOG_FILE]         │
+│      --help, -h                                                                              │
+│                                     show help                                                │
+│   2026-01-23T14:02:56.570638872Z                                                             │
+│   Try 'ntfy COMMAND --help' or https://ntfy.sh/docs/ for more information.                   │
+│   2026-01-23T14:02:56.570643899Z                                                             │
+│   To report a bug, open an issue on GitHub: https://github.com/binwiederhier/ntfy/issues.    │
+│   If you want to chat, simply join the Discord server (https://discord.gg/cT7ECsZj9w), or    │
+│   the Matrix room (https://matrix.to/#/#ntfy:matrix.org).                                    │
+│   2026-01-23T14:02:56.570651387Z    
+
+
+-   [31mERRO[0m[2026-01-23 15:02:56] http server error: listen tcp 0.0.0.0:9999: bind: add     │
+│   ress already in use                                                                        │
+│   http server error: listen tcp 0.0.0.0:9999: bind: address already in use                   │
+│   [33mWARN[0m[2026-01-23 15:03:10] config file /root/.stash/config.yml not found. Assumi     │
+│   ng new system...                                                                           │
+│   [36mINFO[0m[2026-01-23 15:03:10] stash version: v0.30.1 (b23b0267) - Official Build -      │
+│   2025-12-18 04:56:47                                                                        │
+│   [36mINFO[0m[2026-01-23 15:03:10] stash is listening on 0.0.0.0:9999                        │
+│   [36mINFO[0m[2026-01-23 15:03:10] stash is running at http://localhost:9999/                │
+│   http server error: listen tcp 0.0.0.0:9999: bind: address already in use                   │
+│   [31mERRO[0m[2026-01-23 15:03:10] http server error: listen tcp 0.0.0.0:9999: bind: add     │
+│   ress already in use                                                                        │
+│   [33mWARN[0m[2026-01-23 15:03:36] config file /root/.stash/config.yml not found. Assumi     │
+│   ng new system...                                                                           │
+│   [36mINFO[0m[2026-01-23 15:03:36] stash version: v0.30.1 (b23b0267) - Official Build -      │
+│   2025-12-18 04:56:47                                                                        │
+│   [36mINFO[0m[2026-01-23 15:03:36] stash is listening on 0.0.0.0:9999                        │
+│   [36mINFO[0m[2026-01-23 15:03:36] stash is running at http://localhost:9999/                │
+│   [31mERRO[0m[2026-01-23 15:03:36] http server error: listen tcp 0.0.0.0:9999: bind: add     │
+│   ress already in use                                                                        │
+│                                   
+
+- │   ⚠ Could not enable swap (may need host privileges or already active)                       │
+│     Run on host: sudo swapon /mnt/cachehdd/system/swapfile                                   │
+│   Current swap status:                                                                       │
+│   Swap:         21.6G        2.7G       19.0G                                                │
+│   Setting ownership to 1000:1000...                                                          │
+│   Setting permissions...                                                                     │
+│   Setting service-specific permissions...                                                    │
+│   ✓ Service permissions set                                                                  │
+│   2026-01-23T14:02:20.877073261Z                                                             │
+│   Generating API keys for shared services...                                                 │
+│   ✓ Using existing slskd API key from volume                                                 │
+│   ✓ Using existing Syncthing API key from volume                                             │
+│   ✓ Using existing Aria2 RPC secret from volume                                              │
+│   2026-01-23T14:02:20.888334438Z                                                             │
+│   ✓ Storage initialization complete                                                          │
+│   2026-01-23T14:02:20.888360137Z                                                             │
+│   Directory structure:                                                                       │
+│     /mnt/storage     - Main HDD (media, downloads, syncthing, kopia, obsidian, mealie)       │
+│     /mnt/cachehdd    - Cache HDD (downloads/media/observability/sync/system)                 │
+│     /mnt/ssd         - SSD (docker-data, system)                                             │
+│                                                          
+
+- ┌Logs [tailscale-https-setup]──────────────────────────────────────────────────────────────────┐
+│                                                                                              │
+│   Installing Docker CLI...                                                                   │
+│   No TAILSCALE_SERVE_PORTS set; nothing to configure.                                        │
+│   Installing Docker CLI...                                                                   │
+│   No TAILSCALE_SERVE_PORTS set; nothing to configure.                                        │
+│   Installing Docker CLI...                                                                   │
+│   No TAILSCALE_SERVE_PORTS set; nothing to configure.                                        │
+│   Installing Docker CLI...                                                                   │
+│   No TAILSCALE_SERVE_PORTS set; nothing to configure.                                        │
+│   Installing Docker CLI...                                                                   │
+│   No TAILSCALE_SERVE_PORTS set; nothing to configure.                                        │
+│                                                                                              │
+│                                                                                              │
+│                                                                                              │
+│                                                          
+
+- Logs [woodpecker-agent]───────────────────────────────────────────────────────────────────────┐
+│                                                                                              │
+│   {"level":"fatal","error":"rpc error: code = Unknown desc = agent could not auth: individ   │
+│   ual agent not found by token: sql: no rows in result set","time":"2026-01-23T14:03:04Z",   │
+│   "message":"error running agent"}                                                           │
+│   {"level":"info","time":"2026-01-23T14:03:30Z","message":"log level: info"}                 │
+│   {"level":"info","time":"2026-01-23T14:03:30Z","message":"no agent config found at '/etc/   │
+│   woodpecker/agent.conf', start with defaults"}                                              │
+│   {"level":"info","time":"2026-01-23T14:03:30Z","message":"shutdown of whole agent"}         │
+│   {"level":"fatal","error":"rpc error: code = Unknown desc = agent could not auth: individ   │
+│   ual agent not found by token: sql: no rows in result set","time":"2026-01-23T14:03:30Z",   │
+│   "message":"error running agent"}                                                           │
+│   {"level":"info","time":"2026-01-23T14:04:21Z","message":"log level: info"}                 │
+│   {"level":"info","time":"2026-01-23T14:04:21Z","message":"no agent config found at '/etc/   │
+│   woodpecker/agent.conf', start with defaults"}                                              │
+│   {"level":"info","time":"2026-01-23T14:04:21Z","message":"shutdown of whole agent"}         │
+│   {"level":"info","time":"2026-01-23T14:04:21Z","message":"shutdown healthcheck server ...   │
+│   "}                                                                                         │
+│   {"level":"error","error":"http: Server closed","time":"2026-01-23T14:04:21Z","message":"   │
+│   cannot listen on address :3000"}                                                           │
+│   {"level":"info","time":"2026-01-23T14:04:21Z","message":"healthcheck server stopped"}      │
+│   {"level":"fatal","error":"rpc error: code = Unknown desc = agent could not auth: individ   │
+│                                                                                              │
+ read todo.txt make a plan and work it off step by step be cautious and stay in token limits mini,mize chat toklens, maximize code tokens only communicate whats necessary and for questions, do short summary at the     
   end mnohting more        
+
+  i want a full guid eon the interaction and setup of https tailscale traefik and authentik run and start all and make sure all applied from todo and is working check all domain with https and ping etc i want to access all services over their tailscale alias link not pure ip

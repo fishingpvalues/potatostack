@@ -5,10 +5,7 @@
 
 set -eu
 
-if ! command -v docker >/dev/null 2>&1; then
-	echo "Installing Docker CLI..."
-	apk add --no-cache docker-cli >/dev/null 2>&1
-fi
+# docker:cli image already has docker command
 
 TRAEFIK_CONTAINER="${TRAEFIK_CONTAINER:-traefik}"
 CHECK_INTERVAL="${TRAEFIK_LOG_CHECK_INTERVAL:-60}"

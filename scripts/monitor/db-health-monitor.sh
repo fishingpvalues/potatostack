@@ -5,10 +5,7 @@
 
 set -eu
 
-if ! command -v docker >/dev/null 2>&1; then
-	echo "Installing Docker CLI..."
-	apk add --no-cache docker-cli >/dev/null 2>&1
-fi
+# docker:cli image already has docker command
 
 CHECK_INTERVAL="${DB_MONITOR_INTERVAL:-30}"
 FAIL_THRESHOLD="${DB_FAIL_THRESHOLD:-3}"
