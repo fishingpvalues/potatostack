@@ -1,7 +1,7 @@
 .PHONY: help up down restart logs test test-quick clean ps services images config containers \
 	containers-check containers-unhealthy containers-exited pull verify validate validate-compose validate-files \
 	lint lint-compose lint-yaml lint-shell lint-dockerfiles lint-full format format-shell format-yaml \
-	format-dockerfiles security health resources doctor fix \
+	format-dockerfiles security health resources doctor fix init fix-permissions fix-configs startup \
 	firewall firewall-status firewall-install firewall-apply firewall-list firewall-reset firewall-allow firewall-deny \
 	tailscale-https tailscale-https-setup tailscale-https-monitor
 
@@ -26,13 +26,25 @@ help: ## Show this help message
 	@echo ""
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-up: ## Start all services
+up: ## Start all services (init containers always re-run)
+	@echo "Running init containers..."
+	@$(DOCKER_COMPOSE) rm -f storage-init tailscale-https-setup 2>/dev/null || true
 	$(DOCKER_COMPOSE) up -d
+
+init: ## Run init containers only (storage-init, tailscale-https-setup)
+	@echo "Running init containers..."
+	@$(DOCKER_COMPOSE) rm -f storage-init tailscale-https-setup 2>/dev/null || true
+	$(DOCKER_COMPOSE) up -d storage-init tailscale-https-setup
+	@echo "Waiting for init containers to complete..."
+	@$(DOCKER_COMPOSE) logs -f storage-init 2>/dev/null || true
 
 down: ## Stop all services
 	$(DOCKER_COMPOSE) down
 
-restart: ## Restart all services
+restart: ## Restart all services (init containers always re-run)
+	@echo "Restarting stack with init containers..."
+	@$(DOCKER_COMPOSE) rm -f storage-init tailscale-https-setup 2>/dev/null || true
+	$(DOCKER_COMPOSE) up -d --force-recreate storage-init
 	$(DOCKER_COMPOSE) restart
 
 logs: ## View logs (use SERVICE=name for specific service)
@@ -119,6 +131,21 @@ clean: ## Remove all containers, volumes, and networks (DANGEROUS)
 
 pull: ## Pull latest images
 	$(DOCKER_COMPOSE) pull
+
+fix-permissions: ## Fix named volume permissions (run if services fail with permission errors)
+	@echo "Fixing named volume permissions..."
+	@chmod +x ./scripts/init/fix-volume-permissions.sh
+	@./scripts/init/fix-volume-permissions.sh
+
+fix-configs: ## Fix service configs (Loki, Homarr, Grafana, Thanos)
+	@echo "Running service configuration fixes..."
+	@chmod +x ./scripts/init/fix-service-configs.sh
+	@./scripts/init/fix-service-configs.sh
+
+startup: ## Full startup sequence (use after reboot/crash)
+	@echo "Running full startup sequence..."
+	@chmod +x ./scripts/init/startup.sh
+	@./scripts/init/startup.sh
 
 verify: validate lint ## Run validate + lint
 

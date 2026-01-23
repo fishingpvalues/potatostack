@@ -1,10 +1,16 @@
 #!/bin/bash
 # Remote Stack Runner - Executes run-and-monitor.sh on target server via SSH
 
-SERVER="192.168.178.158"
-USER="daniel"
-PASSWORD="schneck0"
-REMOTE_DIR="~/light"
+SERVER="${REMOTE_SERVER:-192.168.178.158}"
+USER="${REMOTE_USER:-daniel}"
+PASSWORD="${REMOTE_PASSWORD:-}"
+REMOTE_DIR="\$HOME/light"
+
+if [ -z "$PASSWORD" ]; then
+	echo "ERROR: REMOTE_PASSWORD environment variable is not set"
+	echo "Usage: REMOTE_PASSWORD=your_password $0 [monitor_time]"
+	exit 1
+fi
 MONITOR_TIME=${1:-60}
 
 echo "╔══════════════════════════════════════════════════════════════════════════════╗"

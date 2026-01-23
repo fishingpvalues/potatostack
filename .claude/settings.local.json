@@ -158,7 +158,10 @@
       "Bash(nc:*)",
       "Bash(git reset:*)",
       "Bash(sudo touch:*)",
-      "Bash(sudo -S touch:*)"
+      "Bash(sudo -S touch:*)",
+      "Bash(docker-compose:*)",
+      "Bash(comm:*)",
+      "Bash(shellcheck:*)"
     ],
     "deny": [],
     "ask": []

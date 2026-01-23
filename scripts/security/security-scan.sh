@@ -147,7 +147,7 @@ check_image_versions() {
 		outdated=$latest_count
 	fi
 
-	if [ $outdated -eq 0 ]; then
+	if [ "$outdated" -eq 0 ]; then
 		echo -e "  ${GREEN}✓${NC} All images use pinned versions"
 		echo "Status: PASSED" >>"$REPORT_FILE"
 	else

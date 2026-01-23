@@ -57,7 +57,7 @@ services:
       <<: *common-env
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-nextcloud,authentik,gitea,woodpecker,immich,calibre,linkding,n8n,healthchecks,stirlingpdf,atuin,homarr,paperless,openwebui,miniflux,grafana,infisical}
+      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-nextcloud,authentik,gitea,woodpecker,immich,calibre,linkding,n8n,healthchecks,atuin,homarr,miniflux,grafana,infisical,mealie}
     command:
       - "postgres"
       - "-c"
@@ -3960,9 +3960,9 @@ volumes:
   # Finance
   actual-data:
 
-  # Utilities
-  paperless-data:
-  paperless-media:
+  # Utilities (DISABLED - paperless commented out)
+  # paperless-data:
+  # paperless-media:
 
   # System
   diun-data:
