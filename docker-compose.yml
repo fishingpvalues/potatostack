@@ -746,8 +746,10 @@ services:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
       # All service ports to expose via HTTPS
-      # aria2 ports (6880,6800) removed, pyload (8076) added, nextcloud (11000) added
-      TAILSCALE_SERVE_PORTS: "7575,8088,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,8945,9900,8282,8076,2234,8097,8000,2283,8090,11000,8080,8384,51515,3004,3006,5678,9000,9443,8888,8288,9091,8093,5006,9090,3100,9093,10903,10902,8087,6060,8091,8001,8788,8060,8889,8081,3010,8085,9925,5984"
+      # aria2 ports removed, pyload (8076) added. NOTE: 11000 excluded - managed by Nextcloud AIO directly
+      TAILSCALE_SERVE_PORTS: "7575,8088,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,8945,9900,8282,8076,2234,8097,8000,2283,8090,8080,8384,51515,3004,3006,5678,9000,9443,8888,8288,9091,8093,5006,9090,3100,9093,10903,10902,8087,6060,8091,8001,8788,8060,8889,8081,3010,8085,9925,5984"
+      # Special port mappings (external:internal) - Nextcloud on 443->11000
+      TAILSCALE_SERVE_SPECIAL: "443:11000"
       TAILSCALE_MARKER_FILE: /https-marker/setup-complete
     volumes:
       - ./scripts/init/tailscale-serve-https.sh:/init.sh:ro
@@ -773,8 +775,10 @@ services:
     environment:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
-      # aria2 ports (6880,6800) removed, pyload (8076) added, nextcloud (11000) added
-      TAILSCALE_SERVE_PORTS: "7575,8088,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,8945,9900,8282,8076,2234,8097,8000,2283,8090,11000,8080,8384,51515,3004,3006,5678,9000,9443,8888,8288,9091,8093,5006,9090,3100,9093,10903,10902,8087,6060,8091,8001,8788,8060,8889,8081,3010,8085,9925,5984"
+      # aria2 ports removed, pyload (8076) added. NOTE: 11000 excluded - managed by Nextcloud AIO directly
+      TAILSCALE_SERVE_PORTS: "7575,8088,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,8945,9900,8282,8076,2234,8097,8000,2283,8090,8080,8384,51515,3004,3006,5678,9000,9443,8888,8288,9091,8093,5006,9090,3100,9093,10903,10902,8087,6060,8091,8001,8788,8060,8889,8081,3010,8085,9925,5984"
+      # Special port mappings (external:internal) - Nextcloud on 443->11000
+      TAILSCALE_SERVE_SPECIAL: "443:11000"
       TAILSCALE_SERVE_LOOP: "true"
       TAILSCALE_SERVE_INTERVAL: "300"
       TAILSCALE_MARKER_FILE: /https-marker/monitor-alive
@@ -787,8 +791,6 @@ services:
       tailscale:
         condition: service_healthy
     restart: unless-stopped
-    profiles:
-      - monitor
     deploy:
       resources:
         limits:
@@ -800,7 +802,8 @@ services:
   ################################################################################
 
   # Nextcloud AIO - All-in-One with Collabora, Talk, Whiteboard, etc. (SOTA 2025)
-  # NOTE: Access via Tailscale Serve on port 11000 - use `tailscale serve --bg http://127.0.0.1:11000`
+  # NOTE: AIO spawns its own Apache container on port 11000 - don't bind it here
+  # Access via Tailscale Serve: tailscale serve --bg --https=11000 http://127.0.0.1:11000
   # AIO interface (8080) serves HTTPS internally - tailscale must use https+insecure://
   nextcloud-aio:
     image: nextcloud/all-in-one:${NEXTCLOUD_AIO_TAG:-latest}
@@ -809,13 +812,13 @@ services:
     init: true
     ports:
       - "${HOST_BIND:-192.168.178.158}:8080:8080" # AIO interface (HTTPS)
-      - "127.0.0.1:11000:11000" # Apache internal for Tailscale Serve
+      # Port 11000 is managed by AIO's spawned Apache container, not here
     environment:
       # Don't use common-env - Nextcloud AIO doesn't support TZ
       PUID: 1000
       PGID: 1000
       APACHE_PORT: 11000
-      APACHE_IP_BINDING: 127.0.0.1
+      APACHE_IP_BINDING: 0.0.0.0
       NEXTCLOUD_DATADIR: /mnt/storage/nextcloud/data
       NEXTCLOUD_MOUNT: /mnt/storage/nextcloud
       NEXTCLOUD_UPLOAD_LIMIT: 10G
