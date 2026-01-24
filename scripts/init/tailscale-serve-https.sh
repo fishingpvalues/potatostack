@@ -47,7 +47,7 @@ wait_for_tailscale() {
 apply_rules() {
 	echo "Configuring Tailscale HTTPS for ports: $PORTS"
 	# Ports that serve HTTPS on the backend (need https+insecure://)
-	HTTPS_BACKEND_PORTS="9443 8443"
+	HTTPS_BACKEND_PORTS="9443 8443 8080"
 	for port in $(echo "$PORTS" | tr ',' ' '); do
 		if [ -z "$port" ]; then
 			continue
