@@ -444,7 +444,7 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 128M
+          memory: 512M
 
   # Vaultwarden - Password manager and 2FA aggregator
   vaultwarden:

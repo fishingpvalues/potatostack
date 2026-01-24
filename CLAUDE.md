@@ -86,6 +86,36 @@ curl -I http://localhost:PORT             # Test HTTP endpoint
 - `scripts/test/stack-test.sh` - Comprehensive test suite
 - `Makefile` - All automation commands
 
+## PostgreSQL Maintenance
+
+**Password is only set on first init.** If you change `POSTGRES_SUPER_PASSWORD` in `.env`, PostgreSQL ignores it because the data directory already exists.
+
+**To reset PostgreSQL password:**
+```bash
+# 1. Stop postgres and dependents
+docker compose stop postgres pgbouncer
+
+# 2. Remove data directory (DESTROYS ALL DATA)
+sudo rm -rf /mnt/ssd/docker-data/postgres
+sudo mkdir -p /mnt/ssd/docker-data/postgres
+sudo chmod 700 /mnt/ssd/docker-data/postgres
+
+# 3. Recreate postgres (will reinitialize with password from .env)
+docker compose up -d postgres
+
+# 4. Force recreate ALL postgres-dependent services (they cache the password)
+docker compose up -d --force-recreate \
+  pgbouncer authentik-server authentik-worker n8n \
+  miniflux mealie immich-server grafana postgres-exporter \
+  healthchecks linkding atuin gitea woodpecker-server homarr infisical
+```
+
+**PostgreSQL-dependent services:** postgres, pgbouncer, authentik-server, authentik-worker, n8n, miniflux, mealie, immich-server, grafana, postgres-exporter, healthchecks, linkding, atuin, gitea, woodpecker-server, homarr, infisical
+
+**Data locations:**
+- PostgreSQL data: `/mnt/ssd/docker-data/postgres`
+- Password env var: `POSTGRES_SUPER_PASSWORD` in `.env`
+
 ## Preferences
 
 - Prioritize code over documentation
