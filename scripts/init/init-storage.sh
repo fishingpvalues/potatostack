@@ -132,7 +132,7 @@ mkdir -p \
 	"${STORAGE_BASE}/obsidian-couchdb" \
 	"${STORAGE_BASE}/mealie-data" \
 	"${STORAGE_BASE}/downloads/torrent" \
-	"${STORAGE_BASE}/downloads/aria2" \
+	"${STORAGE_BASE}/downloads/pyload" \
 	"${STORAGE_BASE}/projects" \
 	"${STORAGE_BASE}/kopia/repository" \
 	"${STORAGE_BASE}/velld/backups" \
@@ -209,7 +209,7 @@ printf '%s\n' "Creating cache directories with normalized namespace..."
 # Downloads - incomplete/in-progress
 mkdir -p \
 	"${CACHE_BASE}/downloads/torrent" \
-	"${CACHE_BASE}/downloads/aria2" \
+	"${CACHE_BASE}/downloads/pyload" \
 	"${CACHE_BASE}/downloads/slskd" \
 	"${CACHE_BASE}/downloads/pinchflat"
 
