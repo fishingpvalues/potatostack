@@ -60,7 +60,7 @@ Ensure Tailscale is running on your device, then access: `https://potatostack.ta
 | Service | URL | Description |
 |---------|-----|-------------|
 | Gitea | https://potatostack.tale-iwato.ts.net:3004 | Git Server |
-| Gitea SSH | ssh://potatostack.tale-iwato.ts.net:2223 | Git SSH |
+| Gitea SSH | ssh://potatostack.tale-iwato.ts.net:2224 | Git SSH |
 | OpenSSH | ssh://potatostack.tale-iwato.ts.net:2222 | SSH/SFTP |
 | Woodpecker | https://potatostack.tale-iwato.ts.net:3006 | CI/CD |
 | n8n | https://potatostack.tale-iwato.ts.net:5678 | Workflow Automation |

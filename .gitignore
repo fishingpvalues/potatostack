@@ -82,3 +82,15 @@ repository/
 *.retry
 
 error.log
+
+# TLS Certificates and Private Keys (NEVER commit to public repo)
+*.key
+*.pem
+*.crt
+*.cert
+*.p12
+*.pfx
+*.srl
+config/traefik/certs/
+certs/
+ssl/

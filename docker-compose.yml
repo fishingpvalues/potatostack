@@ -69,7 +69,7 @@ services:
       - "-c"
       - "maintenance_work_mem=256MB"
       - "-c"
-      - "max_connections=100"
+      - "max_connections=200"
       - "-c"
       - "checkpoint_completion_target=0.9"
       - "-c"
@@ -283,8 +283,6 @@ services:
       - "${HOST_BIND:-192.168.178.158}:8088:8080" # Dashboard (alt port to avoid conflicts)
     environment:
       <<: *common-env
-      CF_API_EMAIL: ${CF_API_EMAIL}
-      CF_DNS_API_TOKEN: ${CF_DNS_API_TOKEN}
     command:
       # Global
       - "--global.checknewversion=false"
@@ -296,7 +294,6 @@ services:
       - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
       - "--entrypoints.websecure.address=:443"
       - "--entrypoints.websecure.http.tls=true"
-      - "--entrypoints.websecure.http.tls.certresolver=letsencrypt"
       - "--entrypoints.websecure.http.tls.options=default"
       - "--entrypoints.traefik.address=:8080"
       # Providers
@@ -310,12 +307,6 @@ services:
       - "--api.insecure=false"
       - "--ping=true"
       - "--ping.entrypoint=traefik"
-      # SSL/TLS - DNS-01 Challenge (works behind firewall/VPN)
-      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
-      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
-      - "--certificatesresolvers.letsencrypt.acme.dnschallenge=true"
-      - "--certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare"
-      - "--certificatesresolvers.letsencrypt.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53"
       # Observability
       - "--log.level=INFO"
       - "--accesslog=true"
@@ -853,7 +844,7 @@ services:
       - "traefik.http.routers.nextcloud-aio.rule=Host(`nextcloud.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.nextcloud-aio.entrypoints=websecure"
       - "traefik.http.routers.nextcloud-aio.tls=true"
-      - "traefik.http.routers.nextcloud-aio.tls.certresolver=letsencrypt"
+      # - "traefik.http.routers.nextcloud-aio.tls.certresolver=letsencrypt"  # Disabled - using local self-signed certs
       - "traefik.http.services.nextcloud-aio.loadbalancer.server.port=11000"
       - "traefik.http.routers.nextcloud-aio.middlewares=security-headers@docker"
 
@@ -2890,9 +2881,14 @@ services:
       - /etc/localtime:/etc/localtime:ro
     networks:
       - potatostack
+    dns:
+      - 127.0.0.11
+      - 1.1.1.1
     depends_on:
-      - postgres
-      - redis-cache
+      postgres:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
     restart: unless-stopped
     deploy:
       resources:

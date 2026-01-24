@@ -139,7 +139,7 @@ main() {
 	print_header "Network Configuration"
 	read_input "Host IP address (bind address)" HOST_BIND "192.168.178.158"
 	read_input "Local network subnet (CIDR)" LAN_NETWORK "192.168.178.0/24"
-	read_input "Domain for services" HOST_DOMAIN "local.domain"
+	read_input "Domain for services" HOST_DOMAIN "potatostack.tale-iwato.ts.net"
 	read_input "Email for SSL certificates" ACME_EMAIL "admin@example.com"
 
 	print_header "Master Credentials"
@@ -273,8 +273,6 @@ HOST_BIND=${HOST_BIND}
 LAN_NETWORK=${LAN_NETWORK}
 HOST_DOMAIN=${HOST_DOMAIN}
 ACME_EMAIL=${ACME_EMAIL}
-CF_API_EMAIL=${ACME_EMAIL}
-CF_DNS_API_TOKEN=
 
 ################################################################################
 # FILE SHARING (Samba)
@@ -573,7 +571,7 @@ NETDATA_CLAIM_ROOMS=
 ################################################################################
 # Core
 ALPINE_TAG=latest
-POSTGRES_TAG=16-alpine
+POSTGRES_TAG=pg16
 PGBOUNCER_TAG=latest
 MONGO_TAG=8
 REDIS_TAG=alpine
@@ -706,7 +704,7 @@ HOMARR_TAG=latest
 DIUN_TAG=latest
 AUTOHEAL_TAG=latest
 PORTAINER_TAG=latest
-DOCKER_CLI_TAG=latest
+DOCKER_CLI_TAG=27.2.1
 DOCKER_TAG=cli
 
 # Secrets

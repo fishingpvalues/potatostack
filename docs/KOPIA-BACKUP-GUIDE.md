@@ -4,6 +4,10 @@ This guide covers how to use Kopia as your central backup solution in PotatoStac
 
 ## Overview
 
+**Web UI**: `https://potatostack.tale-iwato.ts.net:51515`
+
+> **Requirement**: Tailscale must be running on your device to access the backup server.
+
 Kopia is a fast, secure, open-source backup/restore tool with:
 - **Deduplication** - Only stores unique data blocks
 - **Encryption** - AES-256-GCM encryption at rest
@@ -39,12 +43,12 @@ docker compose up -d kopia
 
 ### 3. Access Web UI
 
-Open: `https://YOUR_HOST_IP:51515`
+Open: `https://potatostack.tale-iwato.ts.net:51515`
 
-- **Username**: Value of `KOPIA_SERVER_USER` (default: admin)
+- **Username**: Value of `KOPIA_SERVER_USER` (default: daniel)
 - **Password**: Value of `KOPIA_SERVER_PASSWORD`
 
-> **Note**: The certificate is self-signed. Accept the browser warning to proceed.
+> **Note**: Uses self-signed TLS certificate. Tailscale provides the secure transport.
 
 ---
 
@@ -172,44 +176,111 @@ kopia mount <snapshot-id> /mnt/restore
 
 ## Connecting Remote Clients
 
-Kopia can serve as a central repository server for other machines.
+Kopia serves as a central backup repository for all your devices (Windows, Mac, Linux, Android).
 
-### On the Server (PotatoStack)
+### Server Details
 
-The server is already running. Get the certificate fingerprint:
+| Setting | Value |
+|---------|-------|
+| **URL** | `https://potatostack.tale-iwato.ts.net:51515` |
+| **Alt URL** | `https://100.108.216.90:51515` (Tailscale IP) |
+| **Username** | `daniel` (from KOPIA_SERVER_USER) |
+| **Password** | From `.env` KOPIA_SERVER_PASSWORD |
 
-```bash
-docker exec kopia openssl x509 -in /app/config/tls.crt -noout -fingerprint -sha256 | sed 's/://g' | cut -f2 -d=
+### TLS Certificate Fingerprint
+
+```
+CE:31:6F:AA:F6:DA:85:7F:11:61:9F:61:CB:5A:FE:17:E0:EE:A7:F2:C1:6E:CC:56:36:DA:35:8B:48:C4:4F:C9
 ```
 
-### Add Users for Remote Clients
-
+To regenerate (if certificate changes):
 ```bash
-docker exec -it kopia kopia server user add myuser@mylaptop
-# Enter password twice when prompted
+docker exec kopia openssl x509 -in /app/config/tls.crt -noout -fingerprint -sha256 | cut -d= -f2
 ```
 
-List users:
+### Step 1: Add User for Each Device
+
+On the server, create a user for each device you want to backup:
+
+```bash
+# Format: username@hostname
+docker exec kopia kopia server user add daniel@windows-pc --user-password=YOURPASSWORD
+docker exec kopia kopia server user add daniel@macbook --user-password=YOURPASSWORD
+docker exec kopia kopia server user add daniel@android --user-password=YOURPASSWORD
+docker exec kopia kopia server user add daniel@laptop --user-password=YOURPASSWORD
+```
+
+List existing users:
 ```bash
 docker exec kopia kopia server user list
 ```
 
-### On the Remote Client
+### Step 2: Connect from Remote Client
 
-Install Kopia on the client machine, then connect:
+#### Windows/Mac/Linux GUI (KopiaUI)
+
+1. Download Kopia from https://kopia.io/docs/installation/
+2. Open KopiaUI
+3. Select **Connect to Repository** → **Kopia Repository Server**
+4. Fill in:
+   - **Server Address**: `https://potatostack.tale-iwato.ts.net:51515`
+   - **Server Certificate Fingerprint**: (paste fingerprint above)
+   - **Username**: `daniel` (or your username)
+   - **Password**: Your KOPIA_SERVER_PASSWORD
+5. Click **Connect**
+
+#### Command Line (All Platforms)
 
 ```bash
 kopia repository connect server \
-  --url https://YOUR_SERVER_IP:51515 \
-  --server-cert-fingerprint YOUR_FINGERPRINT \
-  --override-username myuser \
-  --override-hostname mylaptop
+  --url=https://potatostack.tale-iwato.ts.net:51515 \
+  --server-cert-fingerprint="CE:31:6F:AA:F6:DA:85:7F:11:61:9F:61:CB:5A:FE:17:E0:EE:A7:F2:C1:6E:CC:56:36:DA:35:8B:48:C4:4F:C9"
 ```
 
-Now create snapshots from the client:
+When prompted, enter username and password.
+
+#### Android (via Termux)
+
 ```bash
-kopia snapshot create /home/user/documents
+pkg install kopia
+kopia repository connect server \
+  --url=https://potatostack.tale-iwato.ts.net:51515 \
+  --server-cert-fingerprint="CE:31:6F:AA:F6:DA:85:7F:11:61:9F:61:CB:5A:FE:17:E0:EE:A7:F2:C1:6E:CC:56:36:DA:35:8B:48:C4:4F:C9"
 ```
+
+### Step 3: Create Backups from Client
+
+Once connected, create snapshots:
+
+```bash
+# Windows
+kopia snapshot create C:\Users\daniel\Documents
+kopia snapshot create C:\Users\daniel\Pictures
+
+# Mac/Linux
+kopia snapshot create /home/daniel/Documents
+kopia snapshot create /home/daniel/Pictures
+
+# Android (Termux)
+kopia snapshot create /storage/emulated/0/DCIM
+kopia snapshot create /storage/emulated/0/Download
+```
+
+### Step 4: Set Up Scheduled Backups (Optional)
+
+```bash
+# Daily backup at 2am
+kopia policy set /home/daniel/Documents \
+  --add-scheduling-interval-hours 24 \
+  --scheduling-time-of-day 02:00
+
+# Verify policy
+kopia policy show /home/daniel/Documents
+```
+
+### User Isolation
+
+Each user only sees their own snapshots. User `daniel@windows-pc` cannot see snapshots from `daniel@macbook`. This provides security isolation between devices.
 
 ---
 
