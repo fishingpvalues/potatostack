@@ -43,6 +43,12 @@ make format        # Format all files (shfmt, prettier)
 
 **Network:** All services on `potatostack` network, socket-proxy for privileged ops.
 
+**Remote Access (Tailscale):**
+- `HOST_BIND=127.0.0.1` - Services bind to localhost only
+- Tailscale serve proxies localhost ports via HTTPS to `potatostack.tale-iwato.ts.net:<port>`
+- Access pattern: `https://potatostack.tale-iwato.ts.net:8093` (miniflux example)
+- DO NOT set `HOST_BIND=0.0.0.0` - conflicts with Tailscale serve bindings
+
 ## Code Style
 
 **Shell Scripts:**

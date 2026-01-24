@@ -46,15 +46,24 @@ wait_for_tailscale() {
 
 apply_rules() {
 	echo "Configuring Tailscale HTTPS for ports: $PORTS"
+	# Ports that serve HTTPS on the backend (need https+insecure://)
+	HTTPS_BACKEND_PORTS="9443 8443"
 	for port in $(echo "$PORTS" | tr ',' ' '); do
 		if [ -z "$port" ]; then
 			continue
 		fi
 		echo "→ Enabling HTTPS on port $port"
-		# tailscale serve --https=PORT http://127.0.0.1:PORT
+		# Check if this port serves HTTPS on backend
+		BACKEND_URL="http://127.0.0.1:$port"
+		for https_port in $HTTPS_BACKEND_PORTS; do
+			if [ "$port" = "$https_port" ]; then
+				BACKEND_URL="https+insecure://127.0.0.1:$port"
+				break
+			fi
+		done
 		if docker exec "$TAILSCALE_CONTAINER" \
-			tailscale serve --bg --https="$port" "http://127.0.0.1:$port" 2>&1; then
-			echo "  ✓ Port $port mapped"
+			tailscale serve --bg --https="$port" "$BACKEND_URL" 2>&1; then
+			echo "  ✓ Port $port mapped -> $BACKEND_URL"
 		else
 			echo "  ⚠ Failed to map port $port (service may be down or already mapped)"
 		fi

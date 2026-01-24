@@ -4,19 +4,9 @@ Complete step-by-step guide to register and use Vaultwarden across all devices.
 
 ## Initial Access
 
-Vaultwarden is exposed via Traefik HTTPS:
+**Tailscale HTTPS (recommended)**: `https://potatostack.tale-iwato.ts.net:8888`
 
-**Web Vault URL**: `https://vault.<HOST_DOMAIN>`
-
-If you're accessing via Tailscale HTTPS, use:
-```
-https://HOST_BIND:8888
-```
-
-If you haven't enabled Tailscale HTTPS yet, run:
-```
-docker compose up -d tailscale-https-setup
-```
+**Traefik HTTPS (LAN)**: `https://vault.<HOST_DOMAIN>`
 
 ## Step 1: Enable Signups (First Time Only)
 
@@ -26,7 +16,7 @@ By default, signups are disabled. You have two options:
 
 1. On the PotatoStack host (or via SSH):
 ```bash
-cd ~/light
+cd ~/potatostack
 nano .env
 ```
 
@@ -37,18 +27,18 @@ VAULTWARDEN_SIGNUPS_ALLOWED=true
 
 3. Restart Vaultwarden:
 ```bash
-docker compose restart vaultwarden
+docker compose up -d --force-recreate vaultwarden
 ```
 
 4. After creating your account, **disable signups again** and restart:
 ```bash
-VAULTWARDEN_SIGNUPS_ALLOWED=false
-docker compose restart vaultwarden
+# Edit .env: VAULTWARDEN_SIGNUPS_ALLOWED=false
+docker compose up -d --force-recreate vaultwarden
 ```
 
 ### Option B: Use Admin Panel to Invite
 
-1. Access admin panel: `https://vault.<HOST_DOMAIN>/admin`
+1. Access admin panel: `https://potatostack.tale-iwato.ts.net:8888/admin`
 
 2. Enter admin token (get from `.env` file):
 ```bash
@@ -88,7 +78,7 @@ grep VAULTWARDEN_ADMIN_TOKEN .env
 
 3. Tap **"Self-hosted environment"**
 
-4. Enter **Server URL**: `https://vault.<HOST_DOMAIN>`
+4. Enter **Server URL**: `https://potatostack.tale-iwato.ts.net:8888`
 
 5. Leave all other fields EMPTY:
    - Web Vault Server URL: (empty)
@@ -141,7 +131,7 @@ If connection fails with certificate error:
 
 3. Click **"Self-hosted environment"**
 
-4. Server URL: `https://vault.<HOST_DOMAIN>`
+4. Server URL: `https://potatostack.tale-iwato.ts.net:8888`
 
 5. Click **"Save"**
 
@@ -157,7 +147,7 @@ If connection fails with certificate error:
 
 3. Click Settings (gear icon) → **"Self-hosted environment"**
 
-4. Server URL: `https://vault.<HOST_DOMAIN>`
+4. Server URL: `https://potatostack.tale-iwato.ts.net:8888`
 
 5. Click **"Save"** → **"Log In"**
 
@@ -248,7 +238,7 @@ docker exec vaultwarden curl -f http://127.0.0.1:80/alive
 ### Forgot admin token
 
 ```bash
-cd ~/light
+cd ~/potatostack
 grep VAULTWARDEN_ADMIN_TOKEN .env
 ```
 
@@ -288,20 +278,18 @@ docker run --rm -v vaultwarden-data:/data -v /mnt/storage/backups:/backup alpine
 
 ## Service Details
 
-**Web Vault**: HTTPS via Traefik (preferred) or Tailscale HTTPS on port 8888
+**Web Vault**: Tailscale HTTPS `potatostack.tale-iwato.ts.net:8888` (preferred) or Traefik LAN
 **WebSocket**: Port 3012 (live sync)
 **Database**: SQLite at `/data/db.sqlite3` (in volume)
-**Certs**: Auto-generated self-signed in `/ssl/` volume
 **Memory**: 128MB limit (adequate for low-RAM devices)
+**Signups**: Currently **enabled** (`VAULTWARDEN_SIGNUPS_ALLOWED=true`)
 
 ## URLs Summary
 
 | Access Point | URL |
 |--------------|-----|
-| Web Vault | `https://vault.<HOST_DOMAIN>` |
-| Admin Panel | `https://vault.<HOST_DOMAIN>/admin` |
-| Health Check | `https://vault.<HOST_DOMAIN>/alive` |
-| Tailscale HTTPS | `https://HOST_BIND:8888` |
+| Web Vault (Tailscale) | `https://potatostack.tale-iwato.ts.net:8888` |
+| Admin Panel | `https://potatostack.tale-iwato.ts.net:8888/admin` |
+| Health Check | `https://potatostack.tale-iwato.ts.net:8888/alive` |
+| Web Vault (LAN) | `https://vault.<HOST_DOMAIN>` |
 | Homarr Link | Click "Vaultwarden" card on dashboard |
-
-**Note**: Replace `HOST_BIND` with your actual host IP from `.env`
