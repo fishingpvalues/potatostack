@@ -121,11 +121,15 @@ echo "╚═══════════════════════�
 echo ""
 
 # Start Kopia server with all features enabled
+# Add default user for remote clients
+echo "  Adding default remote client user..."
+kopia server user add "${KOPIA_SERVER_USER}@potatostack" --user-password="$KOPIA_SERVER_PASSWORD" 2>/dev/null || true
+
 exec kopia server start \
 	--address "0.0.0.0:51515" \
 	--server-username "$KOPIA_SERVER_USER" \
 	--server-password "$KOPIA_SERVER_PASSWORD" \
+	--server-control-username "$KOPIA_SERVER_USER" \
+	--server-control-password "$KOPIA_SERVER_PASSWORD" \
 	--tls-cert-file "/app/config/tls.crt" \
-	--tls-key-file "/app/config/tls.key" \
-	--without-password \
-	--insecure-disable-password-change
+	--tls-key-file "/app/config/tls.key"

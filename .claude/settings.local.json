@@ -162,7 +162,10 @@
       "Bash(docker-compose:*)",
       "Bash(comm:*)",
       "Bash(shellcheck:*)",
-      "WebFetch(domain:www.fuzzygrim.com)"
+      "WebFetch(domain:www.fuzzygrim.com)",
+      "Bash(PGPASSWORD='Schneck0!!!!' docker exec -i postgres psql -h localhost -U postgres -c \"SELECT 1;\")",
+      "Bash(PGPASSWORD='SChneck0!!!!' docker exec -e PGPASSWORD='SChneck0!!!!' postgres psql -h postgres -U postgres -c \"SELECT 1;\")",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []
