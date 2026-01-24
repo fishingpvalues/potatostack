@@ -170,7 +170,8 @@
       "Bash(sudo ls:*)",
       "Bash(sudo -S rm:*)",
       "Bash(sudo -S rm -rf /mnt/ssd/docker-data/postgres/.[!.]*)",
-      "Bash(sudo -S ls:*)"
+      "Bash(sudo -S ls:*)",
+      "Bash(tailscale ip:*)"
     ],
     "deny": [],
     "ask": []
