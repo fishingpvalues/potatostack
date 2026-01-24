@@ -27,7 +27,7 @@ Ensure Tailscale is running on your device, then access: `https://potatostack.ta
 | Lidarr | https://potatostack.tale-iwato.ts.net:8686 | Music Manager |
 | Prowlarr | https://potatostack.tale-iwato.ts.net:9696 | Indexer Manager |
 | Bazarr | https://potatostack.tale-iwato.ts.net:6767 | Subtitle Manager |
-| Readarr | https://potatostack.tale-iwato.ts.net:8787 | Ebook Manager |
+| Bookshelf | https://potatostack.tale-iwato.ts.net:8787 | Ebook Manager |
 | Audiobookshelf | https://potatostack.tale-iwato.ts.net:13378 | Audiobook Server |
 | Navidrome | https://potatostack.tale-iwato.ts.net:4533 | Music Streaming |
 | Pinchflat | https://potatostack.tale-iwato.ts.net:8945 | YouTube Downloader |
@@ -38,11 +38,11 @@ Ensure Tailscale is running on your device, then access: `https://potatostack.ta
 | Service | URL | Description |
 |---------|-----|-------------|
 | qBittorrent | https://potatostack.tale-iwato.ts.net:8282 | Torrent Client |
-| Aria2 WebUI | https://potatostack.tale-iwato.ts.net:6880 | Download Manager |
-| Aria2 RPC | https://potatostack.tale-iwato.ts.net:6800/jsonrpc | Aria2 JSON-RPC |
+| pyLoad-ng | https://potatostack.tale-iwato.ts.net:8076 | Download Manager (HTTP/FTP) |
+| pyLoad Click'n'Load | potatostack.tale-iwato.ts.net:9666 | Browser Extension Port |
 | slskd | https://potatostack.tale-iwato.ts.net:2234 | Soulseek Client |
 | SpotiFLAC | https://potatostack.tale-iwato.ts.net:8097 | Spotify Downloader |
-| Gluetun | https://potatostack.tale-iwato.ts.net:8000 | VPN Control |
+| Gluetun Control | https://potatostack.tale-iwato.ts.net:8000 | VPN Status & Control |
 
 ## Photos & Files
 
@@ -50,10 +50,8 @@ Ensure Tailscale is running on your device, then access: `https://potatostack.ta
 |---------|-----|-------------|
 | Immich | https://potatostack.tale-iwato.ts.net:2283 | Photo Management |
 | Filebrowser | https://potatostack.tale-iwato.ts.net:8090 | Web File Manager |
-| Nextcloud | https://potatostack.tale-iwato.ts.net:8443 | Cloud Storage |
-| Nextcloud AIO | https://potatostack.tale-iwato.ts.net:8080 | AIO Admin Interface |
+| Nextcloud AIO | https://potatostack.tale-iwato.ts.net:8080 | Cloud Storage Admin |
 | Syncthing | https://potatostack.tale-iwato.ts.net:8384 | File Sync |
-| Kopia | https://potatostack.tale-iwato.ts.net:51515 | Backup Manager |
 
 ## Development & Productivity
 
@@ -98,9 +96,8 @@ Ensure Tailscale is running on your device, then access: `https://potatostack.ta
 | Alertmanager | https://potatostack.tale-iwato.ts.net:9093 | Alert Management |
 | Thanos Query | https://potatostack.tale-iwato.ts.net:10903 | Long-term Metrics |
 | Thanos Sidecar | https://potatostack.tale-iwato.ts.net:10902 | Thanos Sidecar |
-| Parseable | https://potatostack.tale-iwato.ts.net:8094 | Log Analytics |
 | Scrutiny | https://potatostack.tale-iwato.ts.net:8087 | Disk Health |
-| CrowdSec | https://potatostack.tale-iwato.ts.net:6060 | Security Metrics |
+| CrowdSec Metrics | https://potatostack.tale-iwato.ts.net:6060 | Security Metrics |
 
 ## Utilities
 
@@ -108,10 +105,26 @@ Ensure Tailscale is running on your device, then access: `https://potatostack.ta
 |---------|-----|-------------|
 | IT Tools | https://potatostack.tale-iwato.ts.net:8091 | Developer Utilities |
 | Healthchecks | https://potatostack.tale-iwato.ts.net:8001 | Cron Monitoring |
-| Rustypaste | https://potatostack.tale-iwato.ts.net:8788 | Paste Service |
+| Rustypaste | https://potatostack.tale-iwato.ts.net:8788 | Paste/File Sharing |
 | ntfy | https://potatostack.tale-iwato.ts.net:8060 | Notification Hub |
 | Atuin | https://potatostack.tale-iwato.ts.net:8889 | Shell History Sync |
 | Trivy | https://potatostack.tale-iwato.ts.net:8081 | Vulnerability Scanner |
+
+## Backup & Recovery
+
+| Service | URL | Description |
+|---------|-----|-------------|
+| Kopia | https://potatostack.tale-iwato.ts.net:51515 | Backup Manager |
+| Velld API | https://potatostack.tale-iwato.ts.net:8085 | Database Backup API |
+| Velld Web | https://potatostack.tale-iwato.ts.net:3010 | Database Backup UI |
+
+## Network Services
+
+| Service | Port | Description |
+|---------|------|-------------|
+| Samba | 445 | SMB File Sharing (LAN only) |
+| Syncthing Discovery | 21027/udp | Syncthing local discovery |
+| Syncthing Transfer | 22000 | Syncthing file transfer |
 
 ## Quick Access
 
@@ -123,20 +136,48 @@ open https://potatostack.tale-iwato.ts.net:7575
 open https://potatostack.tale-iwato.ts.net:8096   # Jellyfin
 open https://potatostack.tale-iwato.ts.net:5055   # Jellyseerr
 
-# Files
+# Files & Photos
 open https://potatostack.tale-iwato.ts.net:2283   # Immich
 open https://potatostack.tale-iwato.ts.net:8090   # Filebrowser
+open https://potatostack.tale-iwato.ts.net:8384   # Syncthing
 
 # Development
 open https://potatostack.tale-iwato.ts.net:3004   # Gitea
+open https://potatostack.tale-iwato.ts.net:5678   # n8n
 
 # Monitoring
 open https://potatostack.tale-iwato.ts.net:3002   # Grafana
 open https://potatostack.tale-iwato.ts.net:3001   # Uptime Kuma
 
-# Downloads
+# Downloads (behind VPN)
 open https://potatostack.tale-iwato.ts.net:8282   # qBittorrent
+open https://potatostack.tale-iwato.ts.net:8076   # pyLoad-ng
+open https://potatostack.tale-iwato.ts.net:2234   # slskd
+
+# Backups
+open https://potatostack.tale-iwato.ts.net:3010   # Velld
+open https://potatostack.tale-iwato.ts.net:51515  # Kopia
 ```
+
+## pyLoad-ng Setup
+
+pyLoad-ng runs behind the Gluetun VPN killswitch for privacy.
+
+**Ports:**
+- WebUI: 8076 (external) → 8000 (internal)
+- Click'n'Load: 9666 (for browser extensions)
+
+**Storage paths:**
+- Downloads: `/mnt/storage/downloads/pyload`
+- Incomplete: `/mnt/cachehdd/downloads/pyload`
+
+**First-time setup:**
+1. Access https://potatostack.tale-iwato.ts.net:8076
+2. Default credentials: `pyload` / `pyload`
+3. Change password in Settings → General
+4. Configure download paths in Settings → General
+
+**Browser extension:** Install pyLoad Click'n'Load extension and point it to `potatostack.tale-iwato.ts.net:9666`
 
 ## Kopia Host Backup
 
@@ -148,10 +189,26 @@ Kopia backs up:
 - Docker data from `/mnt/ssd/docker-data`
 - All storage volumes
 
-## AriaNg Connection Setup
+## Rustypaste Usage
 
-1. Open https://potatostack.tale-iwato.ts.net:6880
-2. Settings → RPC
-3. RPC Address: `potatostack.tale-iwato.ts.net`
-4. RPC Port: `6800`
-5. RPC Secret: (from .env `ARIA2_RPC_SECRET`)
+Upload files via curl:
+```bash
+# Upload a file
+curl -F "file=@myfile.txt" https://potatostack.tale-iwato.ts.net:8788
+
+# Upload with expiry (1 hour)
+curl -F "file=@myfile.txt" -F "expire=1h" https://potatostack.tale-iwato.ts.net:8788
+
+# Upload with custom name
+curl -F "file=@myfile.txt" -F "url=custom-name" https://potatostack.tale-iwato.ts.net:8788
+
+# Delete a file (requires delete token from config)
+curl -X DELETE -H "Authorization: <delete_token>" https://potatostack.tale-iwato.ts.net:8788/filename
+```
+
+## Access Methods
+
+See `docs/TRAEFIK_AUTHENTIK_TAILSCALE_GUIDE.md` for detailed explanation of:
+- **Tailscale Serve** - Direct port access via `ts.net:PORT`
+- **Traefik** - Domain-based routing via `service.local.domain`
+- **Authentik** - SSO integration for protected services
