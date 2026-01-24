@@ -562,7 +562,8 @@ services:
       - "${HOST_BIND:-192.168.178.158}:50000:50000" # slskd peer
       - "${HOST_BIND:-192.168.178.158}:8097:8080" # SpotiFLAC
       - "${HOST_BIND:-192.168.178.158}:8945:8945" # Pinchflat
-      - "${HOST_BIND:-192.168.178.158}:8076:8076" # pyLoad
+      - "${HOST_BIND:-192.168.178.158}:8076:8000" # pyLoad WebUI (internal 8000)
+      - "${HOST_BIND:-192.168.178.158}:9666:9666" # pyLoad Click'n'Load
       - "${HOST_BIND:-192.168.178.158}:9900:9900" # Stash
     environment:
       <<: *common-env
@@ -668,7 +669,7 @@ services:
       - "traefik.http.routers.pyload.rule=Host(`pyload.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.pyload.entrypoints=websecure"
       - "traefik.http.routers.pyload.tls=true"
-      - "traefik.http.services.pyload.loadbalancer.server.port=8076"
+      - "traefik.http.services.pyload.loadbalancer.server.port=8000"
       - "traefik.http.routers.pyload.middlewares=sso-chain@docker"
 
   # WireGuard - REMOVED (using Gluetun + Tailscale instead)
@@ -801,57 +802,51 @@ services:
   # CLOUD STORAGE & FILE SYNC
   ################################################################################
 
-  # Nextcloud AIO - All-in-One with Collabora, Talk, Whiteboard, etc. (SOTA 2025)
-  # NOTE: AIO spawns its own Apache container on port 11000 - don't bind it here
-  # Access via Tailscale Serve: tailscale serve --bg --https=11000 http://127.0.0.1:11000
-  # AIO interface (8080) serves HTTPS internally - tailscale must use https+insecure://
-  nextcloud-aio:
-    image: nextcloud/all-in-one:${NEXTCLOUD_AIO_TAG:-latest}
-    container_name: nextcloud-aio-mastercontainer
-    logging: *default-logging
-    init: true
-    ports:
-      - "${HOST_BIND:-192.168.178.158}:8080:8080" # AIO interface (HTTPS)
-      # Port 11000 is managed by AIO's spawned Apache container, not here
-    environment:
-      # Don't use common-env - Nextcloud AIO doesn't support TZ
-      PUID: 1000
-      PGID: 1000
-      APACHE_PORT: 11000
-      APACHE_IP_BINDING: 0.0.0.0
-      NEXTCLOUD_DATADIR: /mnt/storage/nextcloud/data
-      NEXTCLOUD_MOUNT: /mnt/storage/nextcloud
-      NEXTCLOUD_UPLOAD_LIMIT: 10G
-      NEXTCLOUD_MAX_TIME: 3600
-      NEXTCLOUD_MEMORY_LIMIT: 512M
-      SKIP_DOMAIN_VALIDATION: "true"
-    dns:
-      - 100.100.100.100  # Tailscale Magic DNS
-      - 1.1.1.1
-      - 8.8.8.8
-    volumes:
-      - nextcloud_aio_mastercontainer:/mnt/docker-aio-config
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /mnt/storage/nextcloud:/mnt/storage/nextcloud:rw
-    networks:
-      - potatostack
-    depends_on:
-      storage-init:
-        condition: service_completed_successfully
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 128M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.nextcloud-aio.rule=Host(`nextcloud.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.nextcloud-aio.entrypoints=websecure"
-      - "traefik.http.routers.nextcloud-aio.tls=true"
-      # - "traefik.http.routers.nextcloud-aio.tls.certresolver=letsencrypt"  # Disabled - using local self-signed certs
-      - "traefik.http.services.nextcloud-aio.loadbalancer.server.port=11000"
-      - "traefik.http.routers.nextcloud-aio.middlewares=security-headers@docker"
+  # # Nextcloud AIO - DISABLED
+  # nextcloud-aio:
+  #   image: nextcloud/all-in-one:${NEXTCLOUD_AIO_TAG:-latest}
+  #   container_name: nextcloud-aio-mastercontainer
+  #   logging: *default-logging
+  #   init: true
+  #   ports:
+  #     - "${HOST_BIND:-192.168.178.158}:8080:8080"
+  #   environment:
+  #     PUID: 1000
+  #     PGID: 1000
+  #     APACHE_PORT: 11000
+  #     APACHE_IP_BINDING: 0.0.0.0
+  #     NEXTCLOUD_DATADIR: /mnt/storage/nextcloud/data
+  #     NEXTCLOUD_MOUNT: /mnt/storage/nextcloud
+  #     NEXTCLOUD_UPLOAD_LIMIT: 10G
+  #     NEXTCLOUD_MAX_TIME: 3600
+  #     NEXTCLOUD_MEMORY_LIMIT: 512M
+  #     SKIP_DOMAIN_VALIDATION: "true"
+  #   dns:
+  #     - 100.100.100.100
+  #     - 1.1.1.1
+  #     - 8.8.8.8
+  #   volumes:
+  #     - nextcloud_aio_mastercontainer:/mnt/docker-aio-config
+  #     - /var/run/docker.sock:/var/run/docker.sock:ro
+  #     - /mnt/storage/nextcloud:/mnt/storage/nextcloud:rw
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     storage-init:
+  #       condition: service_completed_successfully
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "1.0"
+  #         memory: 128M
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.nextcloud-aio.rule=Host(`nextcloud.${HOST_DOMAIN:-local.domain}`)"
+  #     - "traefik.http.routers.nextcloud-aio.entrypoints=websecure"
+  #     - "traefik.http.routers.nextcloud-aio.tls=true"
+  #     - "traefik.http.services.nextcloud-aio.loadbalancer.server.port=11000"
+  #     - "traefik.http.routers.nextcloud-aio.middlewares=security-headers@docker"
 
   # Syncthing - P2P file sync
   syncthing:
@@ -1756,7 +1751,8 @@ services:
     labels:
       - "autoheal=true"
 
-  # pyLoad - Web-based download manager (replaces aria2/persepolis)
+  # pyLoad-ng - Web-based download manager (HTTP/FTP/etc)
+  # WebUI: 8076 (external) -> 8000 (internal), Click'n'Load: 9666
   pyload:
     image: lscr.io/linuxserver/pyload-ng:latest
     container_name: pyload
@@ -1776,7 +1772,7 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8076/ || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8000/ || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -1888,6 +1884,8 @@ services:
       IMMICH_ML_CONTAINER: immich-ml
       CHECK_INTERVAL: ${IMMICH_LOG_CHECK_INTERVAL:-60}
       RESTART_COOLDOWN: ${IMMICH_RESTART_COOLDOWN:-300}
+      REACHABILITY_TIMEOUT: ${IMMICH_REACHABILITY_TIMEOUT:-120}
+      REACHABILITY_RETRIES: ${IMMICH_REACHABILITY_RETRIES:-6}
       IMMICH_LOG_PATTERNS: ${IMMICH_LOG_PATTERNS:-redis|Redis|ECONNREFUSED|Connection refused|connect ECONNREFUSED|socket hang up}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -3917,7 +3915,7 @@ volumes:
   tailscale-https-marker:
 
   # Cloud Storage
-  nextcloud_aio_mastercontainer:
+  # nextcloud_aio_mastercontainer:  # DISABLED
   syncthing-config:
 
   # Media Management
