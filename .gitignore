@@ -95,3 +95,6 @@ error.log
 config/traefik/certs/
 certs/
 ssl/
+
+# Service configs with secrets
+config/rustypaste/config.toml

@@ -557,13 +557,12 @@ services:
       - "${HOST_BIND:-192.168.178.158}:8282:8282" # qBittorrent WebUI
       - "${HOST_BIND:-192.168.178.158}:51413:51413" # qBittorrent peer
       - "${HOST_BIND:-192.168.178.158}:51413:51413/udp"
-      - "${HOST_BIND:-192.168.178.158}:6800:6800" # aria2 RPC
-      - "${HOST_BIND:-192.168.178.158}:6880:80" # aria2 WebUI
-      - "${HOST_BIND:-192.168.178.158}:6888:6888" # aria2 BT
+      # aria2 ports REMOVED
       - "${HOST_BIND:-192.168.178.158}:2234:2234" # slskd WebUI
       - "${HOST_BIND:-192.168.178.158}:50000:50000" # slskd peer
       - "${HOST_BIND:-192.168.178.158}:8097:8080" # SpotiFLAC
       - "${HOST_BIND:-192.168.178.158}:8945:8945" # Pinchflat
+      - "${HOST_BIND:-192.168.178.158}:8076:8076" # pyLoad
       - "${HOST_BIND:-192.168.178.158}:9900:9900" # Stash
     environment:
       <<: *common-env
@@ -650,16 +649,7 @@ services:
       - "traefik.http.routers.qbittorrent.tls=true"
       - "traefik.http.services.qbittorrent.loadbalancer.server.port=8282"
       - "traefik.http.routers.qbittorrent.middlewares=sso-chain@docker"
-      - "traefik.http.routers.aria2.rule=Host(`aria2.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.aria2.entrypoints=websecure"
-      - "traefik.http.routers.aria2.tls=true"
-      - "traefik.http.services.aria2.loadbalancer.server.port=6800"
-      - "traefik.http.routers.aria2.middlewares=sso-chain@docker"
-      - "traefik.http.routers.ariang.rule=Host(`ariang.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.ariang.entrypoints=websecure"
-      - "traefik.http.routers.ariang.tls=true"
-      - "traefik.http.services.ariang.loadbalancer.server.port=80"
-      - "traefik.http.routers.ariang.middlewares=sso-chain@docker"
+      # aria2/ariang traefik labels REMOVED
       - "traefik.http.routers.slskd.rule=Host(`slskd.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.slskd.entrypoints=websecure"
       - "traefik.http.routers.slskd.tls=true"
@@ -675,39 +665,44 @@ services:
       - "traefik.http.routers.spotiflac.tls=true"
       - "traefik.http.services.spotiflac.loadbalancer.server.port=8080"
       - "traefik.http.routers.spotiflac.middlewares=sso-chain@docker"
+      - "traefik.http.routers.pyload.rule=Host(`pyload.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.pyload.entrypoints=websecure"
+      - "traefik.http.routers.pyload.tls=true"
+      - "traefik.http.services.pyload.loadbalancer.server.port=8076"
+      - "traefik.http.routers.pyload.middlewares=sso-chain@docker"
 
-  # WireGuard - High-performance VPN server (SOTA 2025)
-  wireguard:
-    image: lscr.io/linuxserver/wireguard:${WIREGUARD_TAG:-latest}
-    container_name: wireguard
-    logging: *default-logging
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-    ports:
-      - "${HOST_BIND:-192.168.178.158}:${WIREGUARD_SERVERPORT:-51820}:51820/udp"
-    environment:
-      <<: *common-env
-      SERVERURL: ${WIREGUARD_SERVERURL:-auto}
-      SERVERPORT: ${WIREGUARD_SERVERPORT:-51820}
-      PEERS: ${WIREGUARD_PEERS:-vps,android,laptop,tablet,raspberry}
-      PEERDNS: ${WIREGUARD_PEERDNS:-auto}
-      INTERNAL_SUBNET: ${WIREGUARD_INTERNAL_SUBNET:-10.13.13.0/24}
-      ALLOWEDIPS: ${WIREGUARD_ALLOWEDIPS:-0.0.0.0/0}
-      LOG_CONFS: ${WIREGUARD_LOG_CONFS:-true}
-    volumes:
-      - /mnt/ssd/docker-data/wireguard:/config
-      - /lib/modules:/lib/modules:ro
-    sysctls:
-      - net.ipv4.conf.all.src_valid_mark=1
-    networks:
-      - potatostack
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 128M
+  # WireGuard - REMOVED (using Gluetun + Tailscale instead)
+  # wireguard:
+  #   image: lscr.io/linuxserver/wireguard:${WIREGUARD_TAG:-latest}
+  #   container_name: wireguard
+  #   logging: *default-logging
+  #   cap_add:
+  #     - NET_ADMIN
+  #     - SYS_MODULE
+  #   ports:
+  #     - "${HOST_BIND:-192.168.178.158}:${WIREGUARD_SERVERPORT:-51820}:51820/udp"
+  #   environment:
+  #     <<: *common-env
+  #     SERVERURL: ${WIREGUARD_SERVERURL:-auto}
+  #     SERVERPORT: ${WIREGUARD_SERVERPORT:-51820}
+  #     PEERS: ${WIREGUARD_PEERS:-vps,android,laptop,tablet,raspberry}
+  #     PEERDNS: ${WIREGUARD_PEERDNS:-auto}
+  #     INTERNAL_SUBNET: ${WIREGUARD_INTERNAL_SUBNET:-10.13.13.0/24}
+  #     ALLOWEDIPS: ${WIREGUARD_ALLOWEDIPS:-0.0.0.0/0}
+  #     LOG_CONFS: ${WIREGUARD_LOG_CONFS:-true}
+  #   volumes:
+  #     - /mnt/ssd/docker-data/wireguard:/config
+  #     - /lib/modules:/lib/modules:ro
+  #   sysctls:
+  #     - net.ipv4.conf.all.src_valid_mark=1
+  #   networks:
+  #     - potatostack
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.25"
+  #         memory: 128M
 
   # Tailscale - Mesh VPN for remote access (SOTA 2025 - easiest option)
   tailscale:
@@ -751,7 +746,8 @@ services:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
       # All service ports to expose via HTTPS
-      TAILSCALE_SERVE_PORTS: "7575,8088,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,8945,9900,8282,6880,6800,2234,8097,8000,2283,8090,8443,8080,8384,51515,3004,3006,5678,9000,9443,8888,8288,9091,8093,5006,9090,3100,9093,10903,10902,8094,8087,6060,8091,8001,8788,8060,8889,8081,3010,8085,9925,5984"
+      # aria2 ports (6880,6800) removed, pyload (8076) added, nextcloud (11000) added
+      TAILSCALE_SERVE_PORTS: "7575,8088,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,8945,9900,8282,8076,2234,8097,8000,2283,8090,11000,8080,8384,51515,3004,3006,5678,9000,9443,8888,8288,9091,8093,5006,9090,3100,9093,10903,10902,8087,6060,8091,8001,8788,8060,8889,8081,3010,8085,9925,5984"
       TAILSCALE_MARKER_FILE: /https-marker/setup-complete
     volumes:
       - ./scripts/init/tailscale-serve-https.sh:/init.sh:ro
@@ -777,7 +773,8 @@ services:
     environment:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
-      TAILSCALE_SERVE_PORTS: "7575,8088,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,8945,9900,8282,6880,6800,2234,8097,8000,2283,8090,8443,8080,8384,51515,3004,3006,5678,9000,9443,8888,8288,9091,8093,5006,9090,3100,9093,10903,10902,8094,8087,6060,8091,8001,8788,8060,8889,8081,3010,8085,9925,5984"
+      # aria2 ports (6880,6800) removed, pyload (8076) added, nextcloud (11000) added
+      TAILSCALE_SERVE_PORTS: "7575,8088,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,8945,9900,8282,8076,2234,8097,8000,2283,8090,11000,8080,8384,51515,3004,3006,5678,9000,9443,8888,8288,9091,8093,5006,9090,3100,9093,10903,10902,8087,6060,8091,8001,8788,8060,8889,8081,3010,8085,9925,5984"
       TAILSCALE_SERVE_LOOP: "true"
       TAILSCALE_SERVE_INTERVAL: "300"
       TAILSCALE_MARKER_FILE: /https-marker/monitor-alive
@@ -803,18 +800,22 @@ services:
   ################################################################################
 
   # Nextcloud AIO - All-in-One with Collabora, Talk, Whiteboard, etc. (SOTA 2025)
+  # NOTE: Access via Tailscale Serve on port 11000 - use `tailscale serve --bg http://127.0.0.1:11000`
+  # AIO interface (8080) serves HTTPS internally - tailscale must use https+insecure://
   nextcloud-aio:
     image: nextcloud/all-in-one:${NEXTCLOUD_AIO_TAG:-latest}
     container_name: nextcloud-aio-mastercontainer
     logging: *default-logging
     init: true
     ports:
-      - "${HOST_BIND:-192.168.178.158}:8080:8080" # AIO interface
-      - "${HOST_BIND:-192.168.178.158}:8443:8443" # Nextcloud
+      - "${HOST_BIND:-192.168.178.158}:8080:8080" # AIO interface (HTTPS)
+      - "127.0.0.1:11000:11000" # Apache internal for Tailscale Serve
     environment:
-      <<: *common-env
+      # Don't use common-env - Nextcloud AIO doesn't support TZ
+      PUID: 1000
+      PGID: 1000
       APACHE_PORT: 11000
-      APACHE_IP_BINDING: 0.0.0.0
+      APACHE_IP_BINDING: 127.0.0.1
       NEXTCLOUD_DATADIR: /mnt/storage/nextcloud/data
       NEXTCLOUD_MOUNT: /mnt/storage/nextcloud
       NEXTCLOUD_UPLOAD_LIMIT: 10G
@@ -822,6 +823,7 @@ services:
       NEXTCLOUD_MEMORY_LIMIT: 512M
       SKIP_DOMAIN_VALIDATION: "true"
     dns:
+      - 100.100.100.100  # Tailscale Magic DNS
       - 1.1.1.1
       - 8.8.8.8
     volumes:
@@ -1634,64 +1636,64 @@ services:
     labels:
       - "autoheal=true"
 
-  # Aria2 - Download manager
-  aria2:
-    image: p3terx/aria2-pro:${ARIA2_TAG:-latest}
-    container_name: aria2
-    logging: *default-logging
-    network_mode: "service:gluetun"
-    entrypoint: sh /aria2-init.sh
-    environment:
-      <<: *common-env
-      RPC_PORT: 6800
-      LISTEN_PORT: 6888
-      DISK_CACHE: 64M
-      IPV6_MODE: "false"
-    volumes:
-      - aria2-config:/config
-      - /mnt/storage/downloads/aria2:/downloads
-      - /mnt/cachehdd/downloads/aria2:/incomplete
-      - ./scripts/init/aria2-init.sh:/aria2-init.sh:ro
-      - shared-keys:/keys:ro
-    depends_on:
-      gluetun:
-        condition: service_healthy
-        restart: true
-      storage-init:
-        condition: service_completed_successfully
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pgrep -x aria2c || exit 1"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 128M
-        reservations:
-          cpus: "0.1"
-          memory: 128M
-    labels:
-      - "autoheal=true"
+  # Aria2 - REMOVED (using qBittorrent instead)
+  # aria2:
+  #   image: p3terx/aria2-pro:${ARIA2_TAG:-latest}
+  #   container_name: aria2
+  #   logging: *default-logging
+  #   network_mode: "service:gluetun"
+  #   entrypoint: sh /aria2-init.sh
+  #   environment:
+  #     <<: *common-env
+  #     RPC_PORT: 6800
+  #     LISTEN_PORT: 6888
+  #     DISK_CACHE: 64M
+  #     IPV6_MODE: "false"
+  #   volumes:
+  #     - aria2-config:/config
+  #     - /mnt/storage/downloads/aria2:/downloads
+  #     - /mnt/cachehdd/downloads/aria2:/incomplete
+  #     - ./scripts/init/aria2-init.sh:/aria2-init.sh:ro
+  #     - shared-keys:/keys:ro
+  #   depends_on:
+  #     gluetun:
+  #       condition: service_healthy
+  #       restart: true
+  #     storage-init:
+  #       condition: service_completed_successfully
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pgrep -x aria2c || exit 1"]
+  #     interval: 60s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 30s
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.25"
+  #         memory: 128M
+  #       reservations:
+  #         cpus: "0.1"
+  #         memory: 128M
+  #   labels:
+  #     - "autoheal=true"
 
-  # AriaNg - Aria2 web UI
-  ariang:
-    image: p3terx/ariang:${ARIANG_TAG:-latest}
-    container_name: ariang
-    logging: *default-logging
-    network_mode: "service:gluetun"
-    command: --port 80
-    depends_on:
-      - aria2
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.1"
-          memory: 64M
+  # AriaNg - REMOVED
+  # ariang:
+  #   image: p3terx/ariang:${ARIANG_TAG:-latest}
+  #   container_name: ariang
+  #   logging: *default-logging
+  #   network_mode: "service:gluetun"
+  #   command: --port 80
+  #   depends_on:
+  #     - aria2
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.1"
+  #         memory: 64M
 
   # slskd - Soulseek P2P client for music sharing (SOTA 2025)
   slskd:
@@ -1747,6 +1749,42 @@ services:
           memory: 256M
         reservations:
           cpus: "0.25"
+          memory: 128M
+    labels:
+      - "autoheal=true"
+
+  # pyLoad - Web-based download manager (replaces aria2/persepolis)
+  pyload:
+    image: lscr.io/linuxserver/pyload-ng:latest
+    container_name: pyload
+    logging: *default-logging
+    network_mode: "service:gluetun"
+    environment:
+      <<: *common-env
+    volumes:
+      - pyload-config:/config
+      - /mnt/storage/downloads/pyload:/downloads
+      - /mnt/cachehdd/downloads/pyload:/incomplete
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+      storage-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8076/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
           memory: 128M
     labels:
       - "autoheal=true"
@@ -2354,39 +2392,39 @@ services:
           cpus: "0.25"
           memory: 192M
 
-  # Parseable - Lightweight log analytics (Loki alternative)
-  parseable:
-    image: parseable/parseable:${PARSEABLE_TAG:-latest}
-    container_name: parseable
-    logging: *default-logging
-    command: ["parseable", "local-store"]
-    ports:
-      - "${HOST_BIND:-192.168.178.158}:8094:8000"
-    environment:
-      <<: *common-env
-      P_USERNAME: ${PARSEABLE_USERNAME:-admin}
-      P_PASSWORD: ${PARSEABLE_PASSWORD:-admin}
-      P_ADDR: ${PARSEABLE_ADDR:-0.0.0.0:8000}
-      P_FS_DIR: ${PARSEABLE_FS_DIR:-/data}
-    volumes:
-      - /mnt/ssd/docker-data/parseable:/data
-    networks:
-      - potatostack
-    depends_on:
-      - storage-init
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 256M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.parseable.rule=Host(`parseable.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.parseable.entrypoints=websecure"
-      - "traefik.http.routers.parseable.tls=true"
-      - "traefik.http.services.parseable.loadbalancer.server.port=8000"
-      - "traefik.http.routers.parseable.middlewares=sso-chain@docker"
+  # Parseable - REMOVED (using Loki instead)
+  # parseable:
+  #   image: parseable/parseable:${PARSEABLE_TAG:-latest}
+  #   container_name: parseable
+  #   logging: *default-logging
+  #   command: ["parseable", "local-store"]
+  #   ports:
+  #     - "${HOST_BIND:-192.168.178.158}:8094:8000"
+  #   environment:
+  #     <<: *common-env
+  #     P_USERNAME: ${PARSEABLE_USERNAME:-admin}
+  #     P_PASSWORD: ${PARSEABLE_PASSWORD:-admin}
+  #     P_ADDR: ${PARSEABLE_ADDR:-0.0.0.0:8000}
+  #     P_FS_DIR: ${PARSEABLE_FS_DIR:-/data}
+  #   volumes:
+  #     - /mnt/ssd/docker-data/parseable:/data
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - storage-init
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.5"
+  #         memory: 256M
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.parseable.rule=Host(`parseable.${HOST_DOMAIN:-local.domain}`)"
+  #     - "traefik.http.routers.parseable.entrypoints=websecure"
+  #     - "traefik.http.routers.parseable.tls=true"
+  #     - "traefik.http.services.parseable.loadbalancer.server.port=8000"
+  #     - "traefik.http.routers.parseable.middlewares=sso-chain@docker"
 
   # Scrutiny - HDD SMART monitoring
   scrutiny:
@@ -3243,33 +3281,33 @@ services:
       - "traefik.http.services.infisical.loadbalancer.server.port=8080"
       - "traefik.http.routers.infisical.middlewares=security-headers@docker"
 
-  # HashiCorp Vault - Enterprise secrets management
-  fail2ban:
-    image: crazymax/fail2ban:${FAIL2BAN_TAG:-latest}
-    container_name: fail2ban
-    logging: *default-logging
-    network_mode: host
-    cap_add:
-      - NET_ADMIN
-      - NET_RAW
-    environment:
-      <<: *common-env
-      F2B_DB_PURGE_AGE: 30d
-      F2B_LOG_LEVEL: INFO
-      F2B_IPTABLES_CHAIN: DOCKER-USER
-    volumes:
-      - fail2ban-data:/data
-      - /var/log:/var/log:ro
-      - traefik-logs:/logs:ro
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 128M
-        reservations:
-          cpus: "0.1"
-          memory: 64M
+  # fail2ban - REMOVED (using CrowdSec instead)
+  # fail2ban:
+  #   image: crazymax/fail2ban:${FAIL2BAN_TAG:-latest}
+  #   container_name: fail2ban
+  #   logging: *default-logging
+  #   network_mode: host
+  #   cap_add:
+  #     - NET_ADMIN
+  #     - NET_RAW
+  #   environment:
+  #     <<: *common-env
+  #     F2B_DB_PURGE_AGE: 30d
+  #     F2B_LOG_LEVEL: INFO
+  #     F2B_IPTABLES_CHAIN: DOCKER-USER
+  #   volumes:
+  #     - fail2ban-data:/data
+  #     - /var/log:/var/log:ro
+  #     - traefik-logs:/logs:ro
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.25"
+  #         memory: 128M
+  #       reservations:
+  #         cpus: "0.1"
+  #         memory: 64M
 
   # Trivy - Vulnerability scanner
   trivy:
@@ -3570,7 +3608,7 @@ services:
     environment:
       - GLUETUN_URL=http://gluetun:8000
       - CHECK_INTERVAL=${GLUETUN_CHECK_INTERVAL:-10}
-      - RESTART_CONTAINERS=prowlarr sonarr radarr lidarr bookshelf bazarr qbittorrent aria2 ariang slskd pinchflat spotiflac
+      - RESTART_CONTAINERS=prowlarr sonarr radarr lidarr bookshelf bazarr qbittorrent pyload slskd pinchflat spotiflac
       - RESTART_ON_STOP=${GLUETUN_RESTART_ON_STOP:-true}
       - RESTART_ON_FAILURE=${GLUETUN_RESTART_ON_FAILURE:-true}
       - RESTART_COOLDOWN=${GLUETUN_RESTART_COOLDOWN:-120}
@@ -3898,7 +3936,8 @@ volumes:
 
   # Downloads
   qbittorrent-config:
-  aria2-config:
+  # aria2-config:  # REMOVED
+  pyload-config:
   slskd-config:
 
   # Shared secrets
