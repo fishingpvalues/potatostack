@@ -53,6 +53,8 @@ Your services are accessible at `192.168.178.158` or via Traefik at `*.danielhom
 | Service | HTTPS URL | Direct IP:Port |
 |---------|-----------|----------------|
 | Immich (Photos) | https://immich.danielhomelab.local | 192.168.178.158:2283 |
+| Filebrowser | https://filebrowser.danielhomelab.local | 192.168.178.158:8090 |
+| Filestash (Advanced) | https://filestash.danielhomelab.local | 192.168.178.158:8095 |
 | Syncthing | https://syncthing.danielhomelab.local | 192.168.178.158:8384 |
 | Samba (File Shares) | - | smb://192.168.178.158 |
 

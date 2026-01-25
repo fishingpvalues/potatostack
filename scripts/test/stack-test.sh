@@ -427,6 +427,10 @@ test_service_endpoints() {
 	grep -q "adguardhome" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "AdGuard Home" "http://localhost:3000"
 	grep -q "oauth2-proxy" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "OAuth2-Proxy" "http://localhost:4180"
 
+	# File Management
+	grep -q "filebrowser" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Filebrowser" "http://localhost:8090"
+	grep -q "filestash" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Filestash" "http://localhost:8095"
+
 	# Other services
 	grep -q "syncthing" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Syncthing" "http://localhost:8384"
 	grep -q "open-webui" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Open WebUI" "http://localhost:8080"

@@ -266,6 +266,7 @@ mkdir -p \
 	"${SSD_BASE}/woodpecker" \
 	"${SSD_BASE}/code-server" \
 	"${SSD_BASE}/filebrowser" \
+	"${SSD_BASE}/filestash" \
 	"${SSD_BASE}/jellyseerr"
 
 # System directory on SSD (cron, etc)
