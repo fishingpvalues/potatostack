@@ -37,7 +37,7 @@ Files Created:
 **Dashboard**: homarr
 **Security**: vaultwarden
 **Sync & Backup**: syncthing, kopia
-**Downloads**: transmission, slskd
+**Downloads**: qbittorrent, slskd
 **Management**: portainer, filebrowser
 **Network**: gluetun, gluetun-monitor
 **Automation**: watchtower, autoheal

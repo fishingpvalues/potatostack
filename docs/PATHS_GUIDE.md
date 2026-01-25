@@ -26,7 +26,7 @@ When setting up folders in Syncthing UI, use `/data/` paths:
 - Backup: `/data/backup`
 
 **Downloads access**:
-- Transmission downloads: `/data/downloads`
+- qBittorrent downloads: `/data/downloads`
 - Soulseek shared: `/data/slskd-shared`
 
 ### Kopia Backup
@@ -66,16 +66,16 @@ Full tree:
 └── kopia/repository/
 
 /srv/cachehdd/
-├── transmission-incomplete/
+├── downloads/torrent/
 ├── slskd-incomplete/
 ├── kopia-cache/
 └── syncthing-versions/
 ```
 
-### Transmission
+### qBittorrent
 **Container sees**:
 - Downloads: `/downloads` → `/mnt/storage/downloads`
-- Incomplete: `/incomplete` → `/mnt/cachehdd/transmission-incomplete`
+- Incomplete: `/incomplete` → `/mnt/cachehdd/downloads/torrent`
 
 ### Slskd (Soulseek)
 **Container sees**:
@@ -87,7 +87,7 @@ Full tree:
 ### Main Storage HDD (`/mnt/storage`)
 ```
 /mnt/storage/
-├── downloads/              # Transmission completed downloads
+├── downloads/              # qBittorrent completed downloads
 ├── slskd-shared/          # Soulseek shared files
 ├── kopia/
 │   └── repository/        # Backup repository
@@ -116,7 +116,7 @@ Full tree:
 ### Cache HDD (`/mnt/cachehdd`)
 ```
 /mnt/cachehdd/
-├── transmission-incomplete/   # Active torrent downloads
+├── downloads/torrent/         # Active torrent downloads (qBittorrent)
 ├── slskd-incomplete/          # Active Soulseek downloads
 ├── kopia-cache/               # Backup cache & metadata
 └── syncthing-versions/        # File version history

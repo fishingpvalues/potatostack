@@ -12,7 +12,7 @@ The stack includes the following services:
 - **Traefik** - Reverse proxy with HTTPS support using mkcert certificates
 - **Homarr** - Unified dashboard for all services
 - **Gluetun** - VPN client with killswitch functionality
-- **Transmission** - Torrent client (via VPN)
+- **qBittorrent** - Torrent client (via VPN)
 - **slskd** - Soulseek client (via VPN)
 - **Aria2/AriaNg** - Advanced download manager with web UI
 - **Syncthing** - P2P file synchronization
@@ -167,7 +167,7 @@ All services accessible via **https://192.168.178.158** (or your HOST_BIND IP) w
 | Homarr | `https://HOST_BIND/` | `http://HOST_BIND:7575` |
 | Traefik Dashboard | `https://HOST_BIND/dashboard/` | - |
 | Gluetun | `https://HOST_BIND/gluetun` | `http://HOST_BIND:8000` |
-| Transmission | `https://HOST_BIND/transmission` | `http://HOST_BIND:9091` |
+| qBittorrent | `https://HOST_BIND/qbittorrent` | `http://HOST_BIND:8282` |
 | slskd | `https://HOST_BIND/slskd` | `http://HOST_BIND:2234` |
 | AriaNg | `https://HOST_BIND/ariang` | `http://HOST_BIND:6880` |
 | Syncthing | `https://HOST_BIND/syncthing` | `http://HOST_BIND:8384` |
@@ -208,4 +208,4 @@ docker compose restart
 - **Monitor RAM usage** - 2GB is tight, OOM kills are common if limits exceeded
 - **Backup strategy** - Kopia backs up all Syncthing folders + Vaultwarden + downloads
 - **Network binding** - Services bind to `HOST_BIND` IP, not 0.0.0.0 (security)
-- **VPN killswitch** - Transmission and slskd run inside Gluetun container's network namespace for security
+- **VPN killswitch** - qBittorrent and slskd run inside Gluetun container's network namespace for security
