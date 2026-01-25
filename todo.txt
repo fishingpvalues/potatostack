@@ -1,22 +1,20 @@
+- TODO: Can you read my whole alerting stack and make more alerts for ntfy? and format them better
+- Pylaod login with daniel and Schneck0!!!! still doesnt WORK
+- [2026-01-25 15:06:35]  DEBUG         pyload.webui  Error 404 - Requested URL: http://gluetun:8000/v1/vpn/status
+[2026-01-25 15:06:45]  DEBUG         pyload.webui  Error 404 - Requested URL: http://gluetun:8000/v1/vpn/status
+[2026-01-25 15:06:55]  DEBUG         pyload.webui  Error 404 - Requested URL: http://gluetun:8000/v1/vpn/status
+[2026-01-25 15:07:05]  ERROR               pyload  Login failed for user 'daniel' using Web Client [CLIENT: 100.109.19.109]
+[2026-01-25 15:07:06]  DEBUG         pyload.webui  Error 404 - Requested URL: http://gluetun:8000/v1/vpn/status
+[2026-01-25 15:07:16]  DEBUG         pyload.webui  Error 404 - Requested URL: http://gluetun:8000/v1/vpn/status
 
-Anscheinend gibt es ein Problem mit dieser Website
-
-https://potatostack.tale-iwato.ts.net:8443/ hat möglicherweise ein temporäres Problem oder ist umgezogen.
-
-Fehlercode: 502 Bad Gateway
-
-    Die Website könnte vorübergehend nicht erreichbar sein, versuchen Sie es bitte später nochmals.
-
-Bad Request
-
-Your browser sent a request that this server could not understand.
-Reason: You're speaking plain HTTP to an SSL-enabled server port.
-Instead use the HTTPS scheme to access this URL, please.
-Apache/2.4.66 (Unix) Server at localhost Port 8080
-
-These SERVICES ARE NEXTCLOUD aio AND cloud THEY BOTH DONT WORK WITH THIS HTTPS BUT I READ SOPMEWHERE IT IS TRICKY WITH AILSCALE AND HTTPS AND STUFF BEAUSE OF NEXTCLOUDS OWN WEBSERVER WEBFETCH HOW TO FIX AND INTEGRATE IT AND FIX
-
-- RETURN to me the auth token of rusty paste
-- REMOVE WIREGUARD I HAVE GLUETUN AND TAILSCALE 
-- REMOVE aria2+ariang, Remove fail2ban, parseable (use Loki) and uncommented netdata (redundant)
-- add persepolis and integrate fully BEHJIND GLUETUN for all create new folders with init-storage and make sure the other services can see and use the folders as well
+# Create new tmux session
+tmux new -s onedrive-download
+# Run the script in the session
+./download-onedrive.sh
+# Detach from session (press Ctrl+B, then d)
+# Reattach later
+tmux attach -t onedrive-download
+# List all sessions
+tmux ls
+# Kill session when done
+tmux kill-session -t onedrive-download
