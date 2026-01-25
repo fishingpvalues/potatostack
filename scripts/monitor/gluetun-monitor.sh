@@ -5,10 +5,10 @@
 # when VPN connection is lost or restored
 ################################################################################
 
-# Install Docker CLI if not present
-if ! command -v docker >/dev/null 2>&1; then
-	echo "Installing Docker CLI..."
-	apk add --no-cache docker-cli wget >/dev/null 2>&1
+# Install wget if not present (docker:cli image has docker already)
+if ! command -v wget >/dev/null 2>&1; then
+	echo "Installing wget..."
+	apk add --no-cache wget >/dev/null 2>&1
 fi
 
 GLUETUN_URL="${GLUETUN_URL:-http://gluetun:8000}"
@@ -30,6 +30,74 @@ LAST_STATUS=""
 CONSECUTIVE_FAILURES=0
 MAX_FAILURES=3
 LAST_RESTART_AT=0
+LAST_GLUETUN_ID=""
+
+# Get gluetun container ID
+get_gluetun_id() {
+	docker inspect gluetun --format '{{.Id}}' 2>/dev/null | head -c 12
+}
+
+# Check if container has stale network attachment
+check_network_stale() {
+	local container="$1"
+	local gluetun_id="$2"
+	local network_mode
+	network_mode=$(docker inspect "$container" --format '{{.HostConfig.NetworkMode}}' 2>/dev/null)
+
+	# Extract container ID from network mode (format: container:CONTAINER_ID)
+	if echo "$network_mode" | grep -q "^container:"; then
+		local attached_id
+		attached_id=$(echo "$network_mode" | cut -d: -f2 | head -c 12)
+		if [ "$attached_id" != "$gluetun_id" ]; then
+			return 0  # Stale - IDs don't match
+		fi
+	fi
+	return 1  # Not stale
+}
+
+# Force recreate containers (restart won't fix stale network)
+recreate_containers() {
+	local reason="$1"
+	local now
+	now=$(date +%s)
+
+	if [ $((now - LAST_RESTART_AT)) -lt "$RESTART_COOLDOWN" ]; then
+		echo "[$(date +'%Y-%m-%d %H:%M:%S')] ⏳ Recreate cooldown active (${RESTART_COOLDOWN}s)"
+		return
+	fi
+
+	echo "[$(date +'%Y-%m-%d %H:%M:%S')] → Force recreating containers ($reason)..."
+	for container in $RESTART_CONTAINERS; do
+		echo "[$(date +'%Y-%m-%d %H:%M:%S')]   • Stopping $container..."
+		docker stop "$container" 2>&1 | sed "s/^/    /" || true
+		docker rm "$container" 2>&1 | sed "s/^/    /" || true
+	done
+
+	# Wait for gluetun to be healthy before starting
+	echo "[$(date +'%Y-%m-%d %H:%M:%S')] → Waiting for gluetun to be healthy..."
+	local attempts=0
+	while [ $attempts -lt 30 ]; do
+		if docker inspect gluetun --format '{{.State.Health.Status}}' 2>/dev/null | grep -q "healthy"; then
+			break
+		fi
+		sleep 2
+		attempts=$((attempts + 1))
+	done
+
+	# Wait for gluetun container to exist and be healthy
+	echo "[$(date +'%Y-%m-%d %H:%M:%S')] → Waiting for gluetun..."
+	sleep 5
+
+	# Recreate containers via docker compose
+	echo "[$(date +'%Y-%m-%d %H:%M:%S')] → Recreating containers via docker compose..."
+	cd /compose 2>/dev/null || cd /home/daniel/potatostack 2>/dev/null || true
+
+	# shellcheck disable=SC2086
+	docker compose up -d --force-recreate $RESTART_CONTAINERS 2>&1 | sed "s/^/    /"
+
+	echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ Containers recreated"
+	LAST_RESTART_AT="$now"
+}
 
 restart_containers() {
 	local reason="$1"
@@ -111,5 +179,34 @@ while true; do
 	fi
 
 	LAST_STATUS="$CURRENT_STATUS"
+
+	# Check for gluetun container ID change (indicates restart/recreate)
+	CURRENT_GLUETUN_ID=$(get_gluetun_id)
+	if [ -n "$LAST_GLUETUN_ID" ] && [ "$CURRENT_GLUETUN_ID" != "$LAST_GLUETUN_ID" ]; then
+		echo ""
+		echo "=========================================="
+		echo "[$(date +'%Y-%m-%d %H:%M:%S')] 🔄 GLUETUN CONTAINER ID CHANGED"
+		echo "Previous: $LAST_GLUETUN_ID → Current: $CURRENT_GLUETUN_ID"
+		echo "=========================================="
+		recreate_containers "gluetun-recreated"
+		echo "=========================================="
+		echo ""
+	elif [ -z "$LAST_GLUETUN_ID" ]; then
+		LAST_GLUETUN_ID="$CURRENT_GLUETUN_ID"
+		echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ Initial Gluetun container ID: $CURRENT_GLUETUN_ID"
+
+		# Check for stale network attachments on startup
+		for container in $RESTART_CONTAINERS; do
+			if docker inspect "$container" >/dev/null 2>&1; then
+				if check_network_stale "$container" "$CURRENT_GLUETUN_ID"; then
+					echo "[$(date +'%Y-%m-%d %H:%M:%S')] ⚠ $container has stale network attachment"
+					recreate_containers "stale-network-on-startup"
+					break
+				fi
+			fi
+		done
+	fi
+	LAST_GLUETUN_ID="$CURRENT_GLUETUN_ID"
+
 	sleep "$CHECK_INTERVAL"
 done

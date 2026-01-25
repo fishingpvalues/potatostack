@@ -6,8 +6,8 @@ Complete self-hosted stack with 100 services optimized for low-power hardware.
 
 ## Quick Stats
 
-- **Services**: 100 total
-- **RAM Usage**: 12.5-14GB peak (out of 16GB)
+- **Services**: 99 total (n8n disabled)
+- **RAM Usage**: 12-13GB peak (out of 16GB)
 - **Storage**: SSD (Docker data) + HDD (media/cache)
 - **Monitoring**: Prometheus + Thanos (1yr retention) + Grafana
 
@@ -61,7 +61,6 @@ Complete self-hosted stack with 100 services optimized for low-power hardware.
 - Immich - Photo management with AI tagging
 - Paperless-ngx - Document management with OCR
 - Miniflux - RSS reader
-- n8n - Workflow automation
 - Gitea - Git hosting with CI/CD
 - Woodpecker CI - Gitea-native pipelines
 - Open WebUI - LLM interface
