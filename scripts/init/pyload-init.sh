@@ -29,21 +29,26 @@ fi
 if [ -n "$PYLOAD_PASSWORD" ]; then
     echo "Configuring pyLoad user credentials..."
 
-    # Generate SHA256 hash
-    HASH=$(python3 -c "import hashlib; print(hashlib.sha256(b'${PYLOAD_PASSWORD}'.encode() if isinstance(b'${PYLOAD_PASSWORD}', str) else b'${PYLOAD_PASSWORD}').hexdigest())" 2>/dev/null || \
-           python3 -c "import hashlib; print(hashlib.sha256('${PYLOAD_PASSWORD}'.encode()).hexdigest())" 2>/dev/null)
+    # Generate PBKDF2-HMAC-SHA256 hash (pyload-ng format: 32-char salt hex + 64-char derived key hex)
+    HASH=$(printf '%s' "$PYLOAD_PASSWORD" | python3 -c "
+import hashlib, os, sys
+password = sys.stdin.read()
+salt = os.urandom(16)
+dk = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100000)
+print(salt.hex() + dk.hex())
+" 2>/dev/null)
 
     if [ -n "$HASH" ]; then
         # Check if user exists
         USER_EXISTS=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM users WHERE name='$PYLOAD_USER';" 2>/dev/null)
 
         if [ "$USER_EXISTS" = "0" ]; then
-            # Create new user with admin role
-            sqlite3 "$DB_FILE" "INSERT INTO users (name, password, role, permission, template) VALUES ('$PYLOAD_USER', '$HASH', 1, 1, 'default');"
-            echo "✓ Created user: $PYLOAD_USER"
+            # Create new user with admin role (role=0 is ADMIN in pyload-ng)
+            sqlite3 "$DB_FILE" "INSERT INTO users (name, password, role, permission, template) VALUES ('$PYLOAD_USER', '$HASH', 0, 0, 'default');"
+            echo "✓ Created user: $PYLOAD_USER (admin)"
         else
-            # Update existing user password
-            sqlite3 "$DB_FILE" "UPDATE users SET password='$HASH' WHERE name='$PYLOAD_USER';"
+            # Update existing user password and ensure admin role
+            sqlite3 "$DB_FILE" "UPDATE users SET password='$HASH', role=0, permission=0 WHERE name='$PYLOAD_USER';"
             echo "✓ Updated password for user: $PYLOAD_USER"
         fi
 

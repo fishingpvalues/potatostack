@@ -1,11 +1,37 @@
-- TODO: Can you read my whole alerting stack and make more alerts for ntfy? and format them better
-- [2026-01-25 15:06:35]  DEBUG         pyload.webui  Error 404 - Requested URL: http://gluetun:8000/v1/vpn/status
-[2026-01-25 15:06:45]  DEBUG         pyload.webui  Error 404 - Requested URL: http://gluetun:8000/v1/vpn/status
-[2026-01-25 15:06:55]  DEBUG         pyload.webui  Error 404 - Requested URL: http://gluetun:8000/v1/vpn/status
-[2026-01-25 15:07:05]  ERROR               pyload  Login failed for user 'daniel' using Web Client [CLIENT: 100.109.19.109]
-[2026-01-25 15:07:06]  DEBUG         pyload.webui  Error 404 - Requested URL: http://gluetun:8000/v1/vpn/status
-[2026-01-25 15:07:16]  DEBUG         pyload.webui  Error 404 - Requested URL: http://gluetun:8000/v1/vpn/status
+- TODO: Can you read my whole alerting stack and make more alerts for ntfy? and format them better but only for events which areimportant and some dont work i think 
+- Uptime Kuma: connect EACCES /var/run/docker.sock when adding the sock as stack (chose Docker Container tho, cant choose stack)
+- Grafana dasboards: Docker monitoring, FRITZ!Box Status, Homelab Overview the docker container, loki dashboard, media services all dont work no data
+https://potatostack.tale-iwato.ts.net:8989/ hat möglicherweise ein temporäres Problem oder ist umgezogen.
 
+Fehlercode: 502 Bad Gateway, https://potatostack.tale-iwato.ts.net:7878/ hat möglicherweise ein temporäres Problem oder ist umgezogen.
+
+Fehlercode: 502 Bad Gatewayhttps://potatostack.tale-iwato.ts.net:8686/ hat möglicherweise ein temporäres Problem oder ist umgezogen.
+
+Fehlercode: 502 Bad Gatewayhttps://potatostack.tale-iwato.ts.net:9696/ hat möglicherweise ein temporäres Problem oder ist umgezogen.
+
+Fehlercode: 502 Bad Gatewayhttps://potatostack.tale-iwato.ts.net:6767/ hat möglicherweise ein temporäres Problem oder ist umgezogen.
+
+Fehlercode: 502 Bad Gatewayhttps://potatostack.tale-iwato.ts.net:8787/ hat möglicherweise ein temporäres Problem oder ist umgezogen.
+
+Fehlercode: 502 Bad Gatewayhttps://potatostack.tale-iwato.ts.net:8945/ hat möglicherweise ein temporäres Problem oder ist umgezogen.
+
+Fehlercode: 502 Bad Gatewayhttps://potatostack.tale-iwato.ts.net:9900/ hat möglicherweise ein temporäres Problem oder ist umgezogen.
+
+Fehlercode: 502 Bad Gatewayhttps://potatostack.tale-iwato.ts.net:8282/ hat möglicherweise ein temporäres Problem oder ist umgezogen.
+
+Fehlercode: 502 Bad Gatewayhttps://potatostack.tale-iwato.ts.net:2234/ hat möglicherweise ein temporäres Problem oder ist umgezogen.
+
+Fehlercode: 502 Bad Gatewayhttps://potatostack.tale-iwato.ts.net:8000/ hat möglicherweise ein temporäres Problem oder ist umgezogen.
+
+Fehlercode: 502 Bad Gateway
+
+- delete n8n
+- authentik Daniel and pw says invalid password
+https://potatostack.tale-iwato.ts.net:8288/ hat möglicherweise ein temporäres Problem oder ist umgezogen.
+
+Fehlercode: 502 Bad Gateway
+
+- obsidian livesync connection refused by DB
 # Create new tmux session
 tmux new -s onedrive-download
 # Run the script in the session

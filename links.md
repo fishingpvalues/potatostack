@@ -50,7 +50,6 @@ Ensure Tailscale is running on your device, then access: `https://potatostack.ta
 |---------|-----|-------------|
 | Immich | https://potatostack.tale-iwato.ts.net:2283 | Photo Management |
 | Filebrowser | https://potatostack.tale-iwato.ts.net:8090 | Web File Manager |
-| Nextcloud AIO | https://potatostack.tale-iwato.ts.net:8080 | Cloud Storage Admin |
 | Syncthing | https://potatostack.tale-iwato.ts.net:8384 | File Sync |
 
 ## Development & Productivity

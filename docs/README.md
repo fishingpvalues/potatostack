@@ -65,6 +65,7 @@ Complete self-hosted stack with 100 services optimized for low-power hardware.
 - Gitea - Git hosting with CI/CD
 - Woodpecker CI - Gitea-native pipelines
 - Open WebUI - LLM interface
+- Obsidian LiveSync - CouchDB-backed note synchronization
 
 ### Utilities
 - Homarr - Dashboard
@@ -152,6 +153,7 @@ See [QUICK_START.md](QUICK_START.md) for detailed setup instructions.
 - **[RUSTYPASTE_USAGE.md](RUSTYPASTE_USAGE.md)** - RustyPaste usage and examples
 - **[DROIDYPASTE_SETUP.md](DROIDYPASTE_SETUP.md)** - Android client setup for RustyPaste
 - **[VAULTWARDEN_SETUP.md](VAULTWARDEN_SETUP.md)** - Vaultwarden setup and hardening
+- **[OBSIDIAN_LIVESYNC_SETUP.md](OBSIDIAN_LIVESYNC_SETUP.md)** - Obsidian LiveSync with CouchDB setup guide
 - **[HTTPS_CERTIFICATE_SOLUTION.md](HTTPS_CERTIFICATE_SOLUTION.md)** - Local HTTPS with mkcert
 - **[OOM_FIX.md](OOM_FIX.md)** - OOM mitigation notes (low-RAM hosts)
 
