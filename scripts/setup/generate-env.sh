@@ -227,8 +227,8 @@ main() {
 	VELLD_JWT_SECRET="$(gen_base64 32)"
 	PAPERLESS_SECRET_KEY="$(gen_base64 32)"
 	MEALIE_SECRET_KEY="$(gen_base64 32)"
-	INFISICAL_AUTH_SECRET="$(gen_base64 32)"
-	INFISICAL_ENCRYPTION_KEY="$(gen_base64 32)"
+	# INFISICAL_AUTH_SECRET="$(gen_base64 32)"
+	# INFISICAL_ENCRYPTION_KEY="$(gen_base64 32)"
 
 	print_step "Hex secrets..."
 	HOMARR_SECRET_KEY="$(gen_hex 32)"
@@ -284,7 +284,7 @@ SAMBA_PASSWORD=${SAMBA_PASSWORD}
 # CORE DATABASES
 ################################################################################
 POSTGRES_SUPER_PASSWORD=${POSTGRES_SUPER_PASSWORD}
-POSTGRES_DATABASES=nextcloud,authentik,gitea,woodpecker,immich,calibre,linkding,n8n,healthchecks,atuin,homarr,miniflux,grafana,infisical,mealie
+POSTGRES_DATABASES=authentik,gitea,woodpecker,immich,calibre,linkding,n8n,healthchecks,atuin,homarr,miniflux,grafana,infisical,mealie
 MONGO_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
 
 ################################################################################
@@ -596,7 +596,7 @@ TAILSCALE_TAG=latest
 WIREGUARD_TAG=latest
 
 # Cloud Storage
-NEXTCLOUD_AIO_TAG=latest
+# NEXTCLOUD_AIO_TAG=latest
 SYNCTHING_TAG=latest
 FILEBROWSER_TAG=latest
 

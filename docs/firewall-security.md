@@ -209,7 +209,6 @@ Internet → UFW (443) → Traefik → CrowdSec → Service
 
 **Examples:**
 
-- `https://nextcloud.yourdomain.com` → Nextcloud
 - `https://jellyfin.yourdomain.com` → Jellyfin
 - `https://vault.yourdomain.com` → Vaultwarden
 

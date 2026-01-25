@@ -3,6 +3,8 @@
 - Grafana dasboards: Docker monitoring, FRITZ!Box Status, Homelab Overview the docker container, loki dashboard, media services all dont work no data
   5. Infisical - Still has issues (stuck in startup loop). Needs separate investigation - possibly missing database/migrations.                                                                     
 - obsidian livesync connection refused by DB
+
+- add and fully integrate Filestash https://github.com/mickael-kerjean/filestash webseearch best configurations and let it read write accesss everything in my stack and choose trhe most stable base like ftp or samba etc. idk i want to use it like filebrowser and let it use my master credentials make sure to add it to every script and file etc. and write docs how to use it and add plugins i want to use and add the most SOTA plugins complementing my whole stack like authentik and media and image stuff etc 
 # Create new tmux session
 tmux new -s onedrive-download
 # Run the script in the session

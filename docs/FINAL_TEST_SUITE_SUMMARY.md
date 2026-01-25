@@ -30,7 +30,7 @@ Files Created:
 **Development (3)**: gitea, gitea-runner, code-server
 **Security (6)**: crowdsec, fail2ban, vaultwarden, authentik-server, authentik-worker, adguardhome
 **Automation (4)**: n8n, diun, autoheal, healthchecks
-**Network (5)**: gluetun, gluetun-monitor, tailscale, traefik, nextcloud-aio
+**Network (4)**: gluetun, gluetun-monitor, tailscale, traefik
 **Other (9)**: syncthing, open-webui, immich-server, immich-machine-learning, kopia, maintainerr, atuin, trivy, storage-init
 
 ### Light Stack (13 services)
