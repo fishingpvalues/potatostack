@@ -33,7 +33,7 @@ All issues from `fixes_needed.txt` have been addressed with code fixes and docum
 - Syncthing: `/data/*` → `/mnt/storage/syncthing/*`
 - Kopia: `/data/*` → various folders (read-only)
 - FileBrowser: `/srv/storage/*` and `/srv/cachehdd/*`
-- Transmission: `/downloads` and `/incomplete`
+- qBittorrent: `/downloads` and `/incomplete`
 - Slskd: `/var/slskd/shared` and `/var/slskd/incomplete`
 
 **Files Created**:

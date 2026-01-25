@@ -160,7 +160,7 @@ watchtower:      48M max
 autoheal:        24M max
 gluetun-monitor: 16M max
 gluetun:         96M max
-transmission:    (inherited from gluetun network)
+qbittorrent:     (inherited from gluetun network)
 slskd:           (inherited from gluetun network)
 vaultwarden:     128M max (increased)
 portainer:       96M max

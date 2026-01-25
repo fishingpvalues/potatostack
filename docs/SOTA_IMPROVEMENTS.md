@@ -48,7 +48,7 @@ wait_for_health() {
 
 **Example Dependencies**:
 - Main stack: postgres → pgbouncer → apps
-- Light stack: storage-init → gluetun → transmission
+- Light stack: storage-init → gluetun → qbittorrent
 
 ### 4. Service-Specific Endpoint Testing ✓
 **Source**: [Write Maintainable Integration Tests](https://www.docker.com/blog/maintainable-integration-tests-with-docker/)
