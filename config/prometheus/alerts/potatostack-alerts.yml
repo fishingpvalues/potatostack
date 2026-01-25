@@ -1,55 +1,62 @@
 groups:
-  - name: PotatoStack Infrastructure
+  - name: PotatoStack Critical Infrastructure
     interval: 30s
     rules:
-      # Labeled critical services missing (cadvisor)
-      - alert: CriticalServiceMissing
+      - alert: CriticalServiceDown
         expr: time() - container_last_seen{container_label_potatostack_alerts="critical"} > 120
+        for: 2m
+        labels:
+          severity: critical
+          component: infrastructure
+        annotations:
+          summary: "🚨 Critical service DOWN: {{ $labels.container_label_com_docker_compose_service }}"
+          description: "Service {{ $labels.container_label_com_docker_compose_service }} has not been seen by cAdvisor for > 2 minutes. This may indicate the container has crashed or stopped."
+          runbook: "Check container logs: docker logs {{ $labels.container_label_com_docker_compose_service }}"
+
+      - alert: ContainerCrashLooping
+        expr: increase(container_last_seen{name=~".+"}[5m]) > 10
         for: 2m
         labels:
           severity: critical
           component: docker
         annotations:
-          summary: "Critical service {{ $labels.container_label_com_docker_compose_service }} is down"
-          description: "Service has not been seen by cAdvisor for more than 2 minutes"
+          summary: "🔄 Container crash loop: {{ $labels.name }}"
+          description: "Container {{ $labels.name }} has restarted > 10 times in 5 minutes. Check logs for errors."
+          runbook: "View logs: docker logs -f {{ $labels.name }}"
 
-      # Disk space low
-      - alert: DiskSpaceLow
-        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
+      - alert: HighMemoryUsage
+        expr: (container_memory_usage_bytes{name=~".+"} / container_spec_memory_limit_bytes{name=~".+"}) * 100 > 90
         for: 5m
         labels:
           severity: warning
-          component: storage
+          component: resources
         annotations:
-          summary: "Low disk space on root partition"
-          description: "Disk space is below 15% (current: {{ $value }}%)"
+          summary: "⚠️ High memory: {{ $labels.name }} ({{ $value | humanizePercentage }})"
+          description: "Container {{ $labels.name }} is using > 90% of its memory limit. Consider increasing limits or investigating memory leaks."
 
-      # SMART disk health failing
-      - alert: DiskSmartFailing
-        expr: smartctl_device_smart_healthy == 0
+      - alert: HighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total{name=~".+"}[5m]) > 0.8
         for: 10m
         labels:
-          severity: critical
-          component: storage
+          severity: warning
+          component: resources
         annotations:
-          summary: "Disk SMART health check failing"
-          description: "One or more disks report SMART unhealthy status"
+          summary: "⚡ High CPU: {{ $labels.name }} ({{ $value | humanizePercentage }})"
+          description: "Container {{ $labels.name }} has sustained CPU usage > 80% for 10 minutes. Check for infinite loops or heavy computations."
 
-  - name: Application Health
-    interval: 60s
-    rules:
-      # Gluetun container missing
-      - alert: GluetunContainerMissing
-        expr: time() - container_last_seen{container_label_com_docker_compose_service="gluetun"} > 120
+      - alert: ContainerNotRunning
+        expr: container_state_running{name=~".+"} == 0
         for: 2m
         labels:
           severity: critical
-          component: vpn
+          component: docker
         annotations:
-          summary: "Gluetun container is missing"
-          description: "cAdvisor has not seen gluetun for over 2 minutes"
+          summary: "🛑 Container not running: {{ $labels.name }}"
+          description: "Container {{ $labels.name }} is not in running state. Status may be exited, paused, or dead."
 
-      # Database connection issues
+  - name: Database Health
+    interval: 60s
+    rules:
       - alert: PostgresDown
         expr: pg_up == 0
         for: 2m
@@ -57,8 +64,29 @@ groups:
           severity: critical
           component: database
         annotations:
-          summary: "PostgreSQL is down"
-          description: "PostgreSQL database has been down for more than 2 minutes"
+          summary: "🗄️ PostgreSQL DOWN"
+          description: "PostgreSQL database is unreachable or down. Check container status: docker ps | grep postgres"
+          runbook: "Restart if needed: docker restart postgres"
+
+      - alert: PostgresSlowQueries
+        expr: rate(pg_stat_statements_calls_total[5m]) > 100
+        for: 10m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "🐌 PostgreSQL slow queries detected"
+          description: "PostgreSQL is experiencing slow query rates ({{ $value }} calls/sec). Consider indexing or query optimization."
+
+      - alert: PostgresConnectionsHigh
+        expr: pg_stat_database_numbackends{datname="postgres"} > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "📊 PostgreSQL connections high: {{ $value }}"
+          description: "PostgreSQL connection pool is at {{ $value }}% capacity. Check for connection leaks."
 
       - alert: RedisDown
         expr: redis_up == 0
@@ -67,8 +95,19 @@ groups:
           severity: critical
           component: database
         annotations:
-          summary: "Redis is down"
-          description: "Redis has been down for more than 2 minutes"
+          summary: "🔴 Redis DOWN"
+          description: "Redis cache is unreachable or down. Check container: docker ps | grep redis"
+          runbook: "Restart if needed: docker restart redis-cache"
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "💾 Redis memory high: {{ $value | humanizePercentage }}"
+          description: "Redis is using > 90% of max memory. May trigger eviction soon."
 
       - alert: MongoDown
         expr: mongodb_up == 0
@@ -77,5 +116,149 @@ groups:
           severity: critical
           component: database
         annotations:
-          summary: "MongoDB is down"
-          description: "MongoDB has been down for more than 2 minutes"
+          summary: "🟢 MongoDB DOWN"
+          description: "MongoDB is unreachable or down. Check container: docker ps | grep mongo"
+          runbook: "Restart if needed: docker restart mongo"
+
+      - alert: MongoConnectionsHigh
+        expr: mongodb_connections{state="current"} > 800
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "📈 MongoDB connections high: {{ $value }}"
+          description: "MongoDB has {{ $value }} active connections. Check for connection leaks."
+
+  - name: System Health
+    interval: 60s
+    rules:
+      - alert: DiskSpaceCritical
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+          component: storage
+        annotations:
+          summary: "💥 CRITICAL disk space: {{ $value | humanizePercentage }}"
+          description: "Root partition has < 10% space remaining. Immediate action required to prevent system failure."
+          runbook: "Run: df -h && docker system prune -a --volumes"
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 20
+        for: 10m
+        labels:
+          severity: warning
+          component: storage
+        annotations:
+          summary: "⚠️ Low disk space: {{ $value | humanizePercentage }}"
+          description: "Root partition has < 20% space remaining. Clean up old logs, images, or data."
+
+      - alert: DiskIOHigh
+        expr: rate(node_disk_io_time_seconds_total[5m]) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          component: storage
+        annotations:
+          summary: "💿 High disk I/O: {{ $value | humanizePercentage }}"
+          description: "Disk I/O utilization is > 80% for 10 minutes. May indicate heavy read/write operations."
+
+      - alert: HighLoadAverage
+        expr: node_load15 / node_num_cpu > 2
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "📊 High system load: {{ $value }}x CPU"
+          description: "15-minute load average is 2x CPU cores. System is under heavy load."
+
+      - alert: OutOfMemoryRisk
+        expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 < 5
+        for: 5m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "⛔ Out of memory risk: {{ $value | humanizePercentage }} available"
+          description: "System has < 5% memory available. OOM killer may trigger. Close unnecessary processes or increase swap."
+
+      - alert: NetworkHighLatency
+        expr: rate(node_netstat_Tcp_CurrEstab[5m]) > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: network
+        annotations:
+          summary: "🌐 High network connections: {{ $value }}"
+          description: "System has {{ $value }} established TCP connections. Check for unusual network activity."
+
+  - name: Security & Ingress
+    interval: 60s
+    rules:
+      - alert: TraefikDown
+        expr: up{job="traefik"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: ingress
+        annotations:
+          summary: "🌍 Traefik DOWN - All services inaccessible!"
+          description: "Traefik reverse proxy is down. All HTTPS routes are inaccessible. Check: docker logs traefik"
+          runbook: "Restart: docker restart traefik"
+
+      - alert: TraefikHighErrorRate
+        expr: rate(traefik_service_requests_total{status_code=~"5.."}[5m]) / rate(traefik_service_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          component: ingress
+        annotations:
+          summary: "❌ Traefik 5xx errors: {{ $value | humanizePercentage }}"
+          description: "Traefik is experiencing > 5% server errors. Check upstream service health and logs."
+
+      - alert: CrowdSecDown
+        expr: up{job="crowdsec"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: security
+        annotations:
+          summary: "🛡️ CrowdSec DOWN - No intrusion protection!"
+          description: "CrowdSec IPS is down. System is unprotected against attacks. Restart immediately."
+          runbook: "Restart: docker restart crowdsec"
+
+      - alert: HighAttackRate
+        expr: rate(crowdsec_decisions_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: security
+        annotations:
+          summary: "⚔️ Attack rate high: {{ $value }}/sec"
+          description: "CrowdSec is blocking {{ $value }} attacks per second. Verify legitimate traffic isn't blocked."
+
+  - name: VPN & Networking
+    interval: 60s
+    rules:
+      - alert: GluetunDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="gluetun"} > 120
+        for: 2m
+        labels:
+          severity: critical
+          component: vpn
+        annotations:
+          summary: "🔌 VPN DOWN: Gluetun container missing"
+          description: "Gluetun VPN container is not running. All VPN-dependent services may be exposed."
+          runbook: "Restart: docker restart gluetun"
+
+      - alert: VPNTunnelDown
+        expr: container_label_com_docker_compose_service="gluetun" and up{job="cadvisor"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: vpn
+        annotations:
+          summary: "🚫 VPN tunnel disconnected"
+          description: "VPN tunnel appears to be down. Check Gluetun logs: docker logs gluetun"

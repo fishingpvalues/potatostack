@@ -57,7 +57,7 @@ services:
       <<: *common-env
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-nextcloud,authentik,gitea,woodpecker,immich,calibre,linkding,n8n,healthchecks,atuin,homarr,miniflux,grafana,infisical,mealie}
+      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-nextcloud,authentik,gitea,woodpecker,immich,calibre,linkding,healthchecks,atuin,homarr,miniflux,grafana,infisical,mealie}
     command:
       - "postgres"
       - "-c"
@@ -750,7 +750,7 @@ services:
       TAILSCALE_CONTAINER: tailscale
       # All service ports to expose via HTTPS
       # aria2 ports removed, pyload (8076) added. NOTE: 11000 excluded - managed by Nextcloud AIO directly
-      TAILSCALE_SERVE_PORTS: "7575,8088,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,8945,9900,8282,8076,2234,8097,8008,2283,8090,8080,8384,51515,3004,3006,5678,9000,9443,8888,8288,9091,8093,5006,9090,3100,9093,10903,10902,8087,6060,8091,8001,8788,8060,8889,8081,3010,8085,9925,5984"
+      TAILSCALE_SERVE_PORTS: "7575,8088,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,8945,9900,8282,8076,2234,8097,8008,2283,8090,8080,8384,51515,3004,3006,9000,9443,8888,8288,9091,8093,5006,9090,3100,9093,10903,10902,8087,6060,8091,8001,8788,8060,8889,8081,3010,8085,9925,5984"
       # Special port mappings (external:internal) - Nextcloud on 443->11000
       TAILSCALE_SERVE_SPECIAL: "443:11000"
       TAILSCALE_MARKER_FILE: /https-marker/setup-complete
@@ -779,7 +779,7 @@ services:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
       # aria2 ports removed, pyload (8076) added. NOTE: 11000 excluded - managed by Nextcloud AIO directly
-      TAILSCALE_SERVE_PORTS: "7575,8088,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,8945,9900,8282,8076,2234,8097,8008,2283,8090,8080,8384,51515,3004,3006,5678,9000,9443,8888,8288,9091,8093,5006,9090,3100,9093,10903,10902,8087,6060,8091,8001,8788,8060,8889,8081,3010,8085,9925,5984"
+      TAILSCALE_SERVE_PORTS: "7575,8088,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,8945,9900,8282,8076,2234,8097,8008,2283,8090,8080,8384,51515,3004,3006,9000,9443,8888,8288,9091,8093,5006,9090,3100,9093,10903,10902,8087,6060,8091,8001,8788,8060,8889,8081,3010,8085,9925,5984"
       # Special port mappings (external:internal) - Nextcloud on 443->11000
       TAILSCALE_SERVE_SPECIAL: "443:11000"
       TAILSCALE_SERVE_LOOP: "true"
@@ -2512,53 +2512,53 @@ services:
   ################################################################################
 
   # n8n - Workflow automation
-  n8n:
-    image: n8nio/n8n:${N8N_TAG:-latest}
-    container_name: n8n
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.158}:5678:5678"
-    environment:
-      <<: *common-env
-      N8N_BASIC_AUTH_ACTIVE: "true"
-      N8N_BASIC_AUTH_USER: ${N8N_USER:-admin}
-      N8N_BASIC_AUTH_PASSWORD: ${N8N_PASSWORD}
-      N8N_HOST: n8n.${HOST_DOMAIN:-local.domain}
-      N8N_PORT: 5678
-      N8N_PROTOCOL: https
-      WEBHOOK_URL: https://n8n.${HOST_DOMAIN:-local.domain}/
-      GENERIC_TIMEZONE: Europe/Berlin
-      # Allow access without HTTPS (for direct port access via Tailscale)
-      N8N_SECURE_COOKIE: false
-      DB_TYPE: postgresdb
-      DB_POSTGRESDB_HOST: postgres
-      DB_POSTGRESDB_PORT: 5432
-      DB_POSTGRESDB_DATABASE: n8n
-      DB_POSTGRESDB_USER: postgres
-      DB_POSTGRESDB_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      EXECUTIONS_MODE: queue
-      QUEUE_BULL_REDIS_HOST: redis-cache
-      QUEUE_BULL_REDIS_PORT: 6379
-    volumes:
-      - /mnt/ssd/docker-data/n8n:/home/node/.n8n
-    networks:
-      - potatostack
-    depends_on:
-      - postgres
-      - redis-cache
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 384M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.n8n.rule=Host(`n8n.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.n8n.entrypoints=websecure"
-      - "traefik.http.routers.n8n.tls=true"
-      - "traefik.http.services.n8n.loadbalancer.server.port=5678"
-      - "traefik.http.routers.n8n.middlewares=sso-chain@docker"
+  # n8n:
+  #   image: n8nio/n8n:${N8N_TAG:-latest}
+  #   container_name: n8n
+  #   logging: *default-logging
+  #   ports:
+  #     - "${HOST_BIND:-192.168.178.158}:5678:5678"
+  #   environment:
+  #     <<: *common-env
+  #     N8N_BASIC_AUTH_ACTIVE: "true"
+  #     N8N_BASIC_AUTH_USER: ${N8N_USER:-admin}
+  #     N8N_BASIC_AUTH_PASSWORD: ${N8N_PASSWORD}
+  #     N8N_HOST: n8n.${HOST_DOMAIN:-local.domain}
+  #     N8N_PORT: 5678
+  #     N8N_PROTOCOL: https
+  #     WEBHOOK_URL: https://n8n.${HOST_DOMAIN:-local.domain}/
+  #     GENERIC_TIMEZONE: Europe/Berlin
+  #     # Allow access without HTTPS (for direct port access via Tailscale)
+  #     N8N_SECURE_COOKIE: false
+  #     DB_TYPE: postgresdb
+  #     DB_POSTGRESDB_HOST: postgres
+  #     DB_POSTGRESDB_PORT: 5432
+  #     DB_POSTGRESDB_DATABASE: n8n
+  #     DB_POSTGRESDB_USER: postgres
+  #     DB_POSTGRESDB_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+  #     EXECUTIONS_MODE: queue
+  #     QUEUE_BULL_REDIS_HOST: redis-cache
+  #     QUEUE_BULL_REDIS_PORT: 6379
+  #   volumes:
+  #     - /mnt/ssd/docker-data/n8n:/home/node/.n8n
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - postgres
+  #     - redis-cache
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "1.0"
+  #         memory: 384M
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.n8n.rule=Host(`n8n.${HOST_DOMAIN:-local.domain}`)"
+  #     - "traefik.http.routers.n8n.entrypoints=websecure"
+  #     - "traefik.http.routers.n8n.tls=true"
+  #     - "traefik.http.services.n8n.loadbalancer.server.port=5678"
+  #     - "traefik.http.routers.n8n.middlewares=sso-chain@docker"
 
   # Healthchecks - Cron monitoring
   healthchecks:
@@ -3114,6 +3114,7 @@ services:
     network_mode: "service:gluetun"
     environment:
       <<: *common-env
+      STASH_PORT: "9900"
       STASH_STASH: /data
       STASH_GENERATED: /generated
       STASH_METADATA: /metadata
@@ -3256,6 +3257,7 @@ services:
     image: infisical/infisical:${INFISICAL_TAG:-latest}
     container_name: infisical
     logging: *default-logging
+    user: "0:0"
     ports:
       - "${HOST_BIND:-192.168.178.158}:8288:8080"
     environment:
@@ -3607,7 +3609,7 @@ services:
   # Gluetun Monitor - VPN Connection Monitor & Auto-Restart
   ################################################################################
   gluetun-monitor:
-    image: alpine:${ALPINE_TAG:-3.21}
+    image: docker:${DOCKER_TAG:-cli}
     container_name: gluetun-monitor
     logging: *default-logging
     user: "0:0"
@@ -3615,13 +3617,15 @@ services:
     environment:
       - GLUETUN_URL=http://gluetun:8008
       - CHECK_INTERVAL=${GLUETUN_CHECK_INTERVAL:-10}
-      - RESTART_CONTAINERS=prowlarr sonarr radarr lidarr bookshelf bazarr qbittorrent pyload slskd pinchflat spotiflac
+      - RESTART_CONTAINERS=prowlarr sonarr radarr lidarr bookshelf bazarr qbittorrent pyload slskd pinchflat spotiflac stash
       - RESTART_ON_STOP=${GLUETUN_RESTART_ON_STOP:-true}
       - RESTART_ON_FAILURE=${GLUETUN_RESTART_ON_FAILURE:-true}
       - RESTART_COOLDOWN=${GLUETUN_RESTART_COOLDOWN:-120}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./scripts/monitor/gluetun-monitor.sh:/monitor.sh:ro
+      - .:/compose:ro
+    working_dir: /compose
     networks:
       - potatostack
     depends_on:
@@ -3632,10 +3636,10 @@ services:
       resources:
         limits:
           cpus: "0.05"
-          memory: 16M
+          memory: 32M
         reservations:
           cpus: "0.025"
-          memory: 8M
+          memory: 16M
 
   # Disk Space Monitor
   disk-space-monitor:
@@ -3963,7 +3967,7 @@ volumes:
   thanos-compact-data:
 
   # Automation
-  n8n-data:
+  # n8n-data:
   healthchecks-data:
 
   # Utilities

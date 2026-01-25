@@ -1,6 +1,6 @@
 ################################################################################
 # Alertmanager Configuration
-# Routes alerts to Discord, Telegram, or Email
+# Routes alerts to ntfy for push notifications
 ################################################################################
 
 global:
@@ -8,62 +8,105 @@ global:
 
 # Route configuration
 route:
-  group_by: ["alertname", "cluster", "service"]
-  group_wait: 10s
+  group_by: ["alertname", "cluster", "severity", "component"]
+  group_wait: 30s
   group_interval: 10s
   repeat_interval: 12h
   receiver: "ntfy"
 
   routes:
-    # Critical alerts go immediately
+    # Critical alerts go immediately with higher frequency
     - match:
         severity: critical
-      receiver: "ntfy"
-      repeat_interval: 5m
+      receiver: "ntfy-critical"
+      group_wait: 10s
+      repeat_interval: 15m
 
     # Warning alerts
     - match:
         severity: warning
-      receiver: "ntfy"
-      repeat_interval: 1h
+      receiver: "ntfy-warning"
+      group_wait: 1m
+      repeat_interval: 6h
 
 # Receivers configuration
 receivers:
+  # Critical alerts - urgent formatting
+  - name: "ntfy-critical"
+    webhook_configs:
+      - url: "http://ntfy:80/potatostack-critical"
+        send_resolved: true
+        http_config:
+          headers:
+            Title: "🚨 CRITICAL: {{ .GroupLabels.alertname }}"
+            Priority: "high"
+            Tags: "critical,{{ .GroupLabels.component }},alert"
+        # Custom ntfy formatting in message body
+        # ntfy webhooks use JSON with message field
+
+  # Warning alerts - standard formatting
+  - name: "ntfy-warning"
+    webhook_configs:
+      - url: "http://ntfy:80/potatostack-warning"
+        send_resolved: true
+        http_config:
+          headers:
+            Title: "⚠️ WARNING: {{ .GroupLabels.alertname }}"
+            Priority: "normal"
+            Tags: "warning,{{ .GroupLabels.component }},alert"
+
+  # Default receiver - for general alerts
   - name: "ntfy"
     webhook_configs:
       - url: "http://ntfy:80/potatostack"
         send_resolved: true
+        http_config:
+          headers:
+            Title: "{{ .GroupLabels.severity | upper }}: {{ .GroupLabels.alertname }}"
+            Priority: "{{ if eq .GroupLabels.severity \"critical\" }}high{{ else }}normal{{ end }}"
+            Tags: "{{ .GroupLabels.severity }},{{ .GroupLabels.component }},alert"
 
-  - name: "default"
-    # Uncomment and configure webhook URLs in .env file for notifications
+  # Legacy receivers - uncomment if using Discord/Telegram/Email
+  - name: "discord"
     # discord_configs:
     #   - webhook_url: "${DISCORD_WEBHOOK}"
     #     title: "🔔 {{ .GroupLabels.alertname }}"
-    #     message: "{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}"
+    #     message: "{{ range .Alerts }}**{{ .Labels.severity | upper }}**: {{ .Annotations.summary }}\n{{ .Annotations.description }}{{ end }}"
 
-  - name: "critical"
-    # Uncomment and configure webhook URLs in .env file for notifications
-    # discord_configs:
-    #   - webhook_url: "${DISCORD_WEBHOOK}"
-    #     title: "🚨 CRITICAL: {{ .GroupLabels.alertname }}"
-    #     message: '{{ range .Alerts }}{{ .Annotations.summary }}\n{{ .Annotations.description }}{{ end }}'
+  - name: "telegram"
     # telegram_configs:
     #   - bot_token: "${TELEGRAM_BOT_TOKEN}"
     #     chat_id: ${TELEGRAM_CHAT_ID}
     #     parse_mode: "HTML"
-    #     message: '🚨 <b>CRITICAL</b>: {{ .GroupLabels.alertname }}\n{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+    #     message: '<b>{{ .GroupLabels.severity | upper }}</b>: {{ .GroupLabels.alertname }}\n{{ range .Alerts }}{{ .Annotations.summary }}\n{{ .Annotations.description }}{{ end }}'
 
-  - name: "warning"
-    # Uncomment and configure webhook URLs in .env file for notifications
-    # discord_configs:
-    #   - webhook_url: "${DISCORD_WEBHOOK}"
-    #     title: "⚠️ WARNING: {{ .GroupLabels.alertname }}"
-    #     message: "{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}"
+  - name: "email"
+    # email_configs:
+    #   - to: "${ALERT_EMAIL}"
+    #     from: "alertmanager@potatostack.local"
+    #     smarthost: "${SMTP_HOST}:587"
+    #     auth_username: "${SMTP_USER}"
+    #     auth_password: "${SMTP_PASSWORD}"
+    #     headers:
+    #       Subject: "{{ .GroupLabels.severity | upper }}: {{ .GroupLabels.alertname }}"
 
 # Inhibit rules - don't send warning if critical is firing
 inhibit_rules:
+  # Critical supersedes warning for same alert
   - source_match:
       severity: "critical"
     target_match:
       severity: "warning"
     equal: ["alertname", "cluster", "service"]
+
+  # If Traefik is down, don't alert on individual service errors
+  - source_match:
+      alertname: "TraefikDown"
+    target_match_re:
+      alertname: ".*Error.*|.*High.*"
+    equal: ["cluster"]
+
+# Silence templates for common maintenance scenarios
+# Use: amtool silence add --alertmanager.url=http://localhost:9093 --duration=1h alertname=DiskSpaceLow
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
