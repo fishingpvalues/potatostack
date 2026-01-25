@@ -1,5 +1,4 @@
 - TODO: Can you read my whole alerting stack and make more alerts for ntfy? and format them better
-- Pylaod login with daniel and Schneck0!!!! still doesnt WORK
 - [2026-01-25 15:06:35]  DEBUG         pyload.webui  Error 404 - Requested URL: http://gluetun:8000/v1/vpn/status
 [2026-01-25 15:06:45]  DEBUG         pyload.webui  Error 404 - Requested URL: http://gluetun:8000/v1/vpn/status
 [2026-01-25 15:06:55]  DEBUG         pyload.webui  Error 404 - Requested URL: http://gluetun:8000/v1/vpn/status
