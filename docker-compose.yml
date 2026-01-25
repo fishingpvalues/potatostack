@@ -160,6 +160,8 @@ services:
     volumes:
       - /mnt/ssd/docker-data/mongo:/data/db
       - /mnt/ssd/docker-data/mongo-config:/data/configdb
+    tmpfs:
+      - /tmp:size=64M  # Prevents stale socket file on restart
     networks:
       - potatostack
     restart: unless-stopped
@@ -547,7 +549,7 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     ports:
-      - "${HOST_BIND:-192.168.178.158}:8000:8000" # Gluetun control
+      - "${HOST_BIND:-192.168.178.158}:8008:8008" # Gluetun control (moved from 8000)
       - "${HOST_BIND:-192.168.178.158}:8989:8989" # Sonarr
       - "${HOST_BIND:-192.168.178.158}:7878:7878" # Radarr
       - "${HOST_BIND:-192.168.178.158}:9696:9696" # Prowlarr
@@ -580,7 +582,7 @@ services:
       DOT: "off"
       HTTPPROXY: "off"
       SHADOWSOCKS: "off"
-      HTTP_CONTROL_SERVER_ADDRESS: :8000
+      HTTP_CONTROL_SERVER_ADDRESS: :8008  # Changed from 8000 to avoid pyload conflict
       HTTP_CONTROL_SERVER_LOG: "off"
       HTTP_CONTROL_SERVER_AUTH: "off"
       IPV6: "off"
@@ -613,7 +615,7 @@ services:
       - "traefik.http.routers.gluetun.rule=Host(`gluetun.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.gluetun.entrypoints=websecure"
       - "traefik.http.routers.gluetun.tls=true"
-      - "traefik.http.services.gluetun.loadbalancer.server.port=8000"
+      - "traefik.http.services.gluetun.loadbalancer.server.port=8008"
       - "traefik.http.routers.gluetun.middlewares=sso-chain@docker"
       - "traefik.http.routers.prowlarr.rule=Host(`prowlarr.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.prowlarr.entrypoints=websecure"
@@ -748,7 +750,7 @@ services:
       TAILSCALE_CONTAINER: tailscale
       # All service ports to expose via HTTPS
       # aria2 ports removed, pyload (8076) added. NOTE: 11000 excluded - managed by Nextcloud AIO directly
-      TAILSCALE_SERVE_PORTS: "7575,8088,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,8945,9900,8282,8076,2234,8097,8000,2283,8090,8080,8384,51515,3004,3006,5678,9000,9443,8888,8288,9091,8093,5006,9090,3100,9093,10903,10902,8087,6060,8091,8001,8788,8060,8889,8081,3010,8085,9925,5984"
+      TAILSCALE_SERVE_PORTS: "7575,8088,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,8945,9900,8282,8076,2234,8097,8008,2283,8090,8080,8384,51515,3004,3006,5678,9000,9443,8888,8288,9091,8093,5006,9090,3100,9093,10903,10902,8087,6060,8091,8001,8788,8060,8889,8081,3010,8085,9925,5984"
       # Special port mappings (external:internal) - Nextcloud on 443->11000
       TAILSCALE_SERVE_SPECIAL: "443:11000"
       TAILSCALE_MARKER_FILE: /https-marker/setup-complete
@@ -777,7 +779,7 @@ services:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
       # aria2 ports removed, pyload (8076) added. NOTE: 11000 excluded - managed by Nextcloud AIO directly
-      TAILSCALE_SERVE_PORTS: "7575,8088,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,8945,9900,8282,8076,2234,8097,8000,2283,8090,8080,8384,51515,3004,3006,5678,9000,9443,8888,8288,9091,8093,5006,9090,3100,9093,10903,10902,8087,6060,8091,8001,8788,8060,8889,8081,3010,8085,9925,5984"
+      TAILSCALE_SERVE_PORTS: "7575,8088,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,8945,9900,8282,8076,2234,8097,8008,2283,8090,8080,8384,51515,3004,3006,5678,9000,9443,8888,8288,9091,8093,5006,9090,3100,9093,10903,10902,8087,6060,8091,8001,8788,8060,8889,8081,3010,8085,9925,5984"
       # Special port mappings (external:internal) - Nextcloud on 443->11000
       TAILSCALE_SERVE_SPECIAL: "443:11000"
       TAILSCALE_SERVE_LOOP: "true"
@@ -1758,12 +1760,16 @@ services:
     container_name: pyload
     logging: *default-logging
     network_mode: "service:gluetun"
+    entrypoint: /pyload-init.sh
     environment:
       <<: *common-env
+      PYLOAD_USER: ${PYLOAD_USER:-pyload}
+      PYLOAD_PASSWORD: ${PYLOAD_PASSWORD:-}
     volumes:
       - pyload-config:/config
       - /mnt/storage/downloads/pyload:/downloads
       - /mnt/cachehdd/downloads/pyload:/incomplete
+      - ./scripts/init/pyload-init.sh:/pyload-init.sh:ro
     depends_on:
       gluetun:
         condition: service_healthy
@@ -2774,35 +2780,35 @@ services:
       - "traefik.http.services.atuin.loadbalancer.server.port=8888"
       - "traefik.http.routers.atuin.middlewares=sso-chain@docker"
 
-  # IT-Tools - Collection of handy online tools (SOTA 2025)
-  it-tools:
-    image: corentinth/it-tools:${IT_TOOLS_TAG:-latest}
-    container_name: it-tools
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-192.168.178.158}:8091:80"
-    environment:
-      <<: *common-env
-    networks:
-      - potatostack
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:80/ || exit 1"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 128M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.ittools.rule=Host(`tools.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.ittools.entrypoints=websecure"
-      - "traefik.http.routers.ittools.tls=true"
-      - "traefik.http.routers.ittools.middlewares=sso-chain@docker"
-      - "traefik.http.services.ittools.loadbalancer.server.port=80"
+  # IT-Tools - REMOVED: User requested removal
+  # it-tools:
+  #   image: corentinth/it-tools:${IT_TOOLS_TAG:-latest}
+  #   container_name: it-tools
+  #   logging: *default-logging
+  #   ports:
+  #     - "${HOST_BIND:-192.168.178.158}:8091:80"
+  #   environment:
+  #     <<: *common-env
+  #   networks:
+  #     - potatostack
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:80/ || exit 1"]
+  #     interval: 60s
+  #     timeout: 10s
+  #     retries: 3
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.25"
+  #         memory: 128M
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.ittools.rule=Host(`tools.${HOST_DOMAIN:-local.domain}`)"
+  #     - "traefik.http.routers.ittools.entrypoints=websecure"
+  #     - "traefik.http.routers.ittools.tls=true"
+  #     - "traefik.http.routers.ittools.middlewares=sso-chain@docker"
+  #     - "traefik.http.services.ittools.loadbalancer.server.port=80"
 
   # DuckDB - Ad-hoc analytics container
   duckdb:
@@ -3607,7 +3613,7 @@ services:
     user: "0:0"
     entrypoint: sh /monitor.sh
     environment:
-      - GLUETUN_URL=http://gluetun:8000
+      - GLUETUN_URL=http://gluetun:8008
       - CHECK_INTERVAL=${GLUETUN_CHECK_INTERVAL:-10}
       - RESTART_CONTAINERS=prowlarr sonarr radarr lidarr bookshelf bazarr qbittorrent pyload slskd pinchflat spotiflac
       - RESTART_ON_STOP=${GLUETUN_RESTART_ON_STOP:-true}
@@ -3835,6 +3841,7 @@ services:
       KOPIA_SERVER_USER: ${KOPIA_SERVER_USER:-admin}
       KOPIA_SERVER_PASSWORD: ${KOPIA_SERVER_PASSWORD}
       KOPIA_HOSTNAME: ${KOPIA_HOSTNAME:-potatostack}
+      KOPIA_INSECURE_HTTP: "true"  # HTTP mode for Tailscale proxy
       KOPIA_CONFIG_PATH: /app/config/repository.config
       KOPIA_CACHE_DIRECTORY: /app/cache
       KOPIA_LOG_DIR: /app/logs

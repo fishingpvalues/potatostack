@@ -360,15 +360,16 @@ swapon --show 2>/dev/null || free -h | grep -i swap
 # Permissions
 ################################################################################
 printf '%s\n' "Setting ownership to ${PUID}:${PGID}..."
-chown -R "${PUID}:${PGID}" "${STORAGE_BASE}"
-chown -R "${PUID}:${PGID}" "${SSD_BASE}"
-chown -R "${PUID}:${PGID}" "/mnt/ssd/system"
+# Exclude docker directory (overlay2 data) from recursive operations
+find "${STORAGE_BASE}" -maxdepth 1 -mindepth 1 -not -name "docker" -exec chown -R "${PUID}:${PGID}" {} + 2>/dev/null || true
+chown -R "${PUID}:${PGID}" "${SSD_BASE}" 2>/dev/null || true
+chown -R "${PUID}:${PGID}" "/mnt/ssd/system" 2>/dev/null || true
 find "${CACHE_BASE}" -not -path "*swapfile*" -exec chown "${PUID}:${PGID}" {} + 2>/dev/null || true
 
 printf '%s\n' "Setting permissions..."
-chmod -R 755 "${STORAGE_BASE}"
-chmod -R 755 "${SSD_BASE}"
-chmod -R 755 "/mnt/ssd/system"
+find "${STORAGE_BASE}" -maxdepth 1 -mindepth 1 -not -name "docker" -exec chmod -R 755 {} + 2>/dev/null || true
+chmod -R 755 "${SSD_BASE}" 2>/dev/null || true
+chmod -R 755 "/mnt/ssd/system" 2>/dev/null || true
 find "${CACHE_BASE}" -not -path "*swapfile*" -exec chmod 755 {} + 2>/dev/null || true
 
 if [ -f "$SWAP_FILE" ]; then
