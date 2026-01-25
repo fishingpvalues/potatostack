@@ -1893,7 +1893,7 @@ services:
       - "traefik.http.routers.immich.entrypoints=websecure"
       - "traefik.http.routers.immich.tls=true"
       - "traefik.http.services.immich.loadbalancer.server.port=2283"
-      - "traefik.http.routers.immich.middlewares=sso-chain@docker"
+      # - "traefik.http.routers.immich.middlewares=sso-chain@docker"  # Disabled for native app auth
 
   immich-machine-learning:
     image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_TAG:-release}
