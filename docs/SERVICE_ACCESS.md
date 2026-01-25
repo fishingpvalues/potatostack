@@ -53,7 +53,6 @@ Your services are accessible at `192.168.178.158` or via Traefik at `*.danielhom
 | Service | HTTPS URL | Direct IP:Port |
 |---------|-----------|----------------|
 | Immich (Photos) | https://immich.danielhomelab.local | 192.168.178.158:2283 |
-| Nextcloud AIO | https://nextcloud.danielhomelab.local | 192.168.178.158:8443 |
 | Syncthing | https://syncthing.danielhomelab.local | 192.168.178.158:8384 |
 | Samba (File Shares) | - | smb://192.168.178.158 |
 

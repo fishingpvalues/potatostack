@@ -57,7 +57,6 @@ Complete self-hosted stack with 100 services optimized for low-power hardware.
 - **Alertmanager** - Alert routing
 
 ### Applications
-- Nextcloud AIO - Cloud storage with Collabora, Talk
 - Immich - Photo management with AI tagging
 - Paperless-ngx - Document management with OCR
 - Miniflux - RSS reader

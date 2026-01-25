@@ -565,7 +565,7 @@ step_storage_setup() {
 		PUID="$docker_uid" PGID="$docker_gid" bash "${SCRIPT_DIR}/../init/init-storage.sh"
 	else
 		print_info "init-storage.sh not found, creating minimal structure..."
-		mkdir -p /mnt/storage/nextcloud /mnt/storage/syncthing /mnt/storage/downloads
+		mkdir -p /mnt/storage/syncthing /mnt/storage/downloads
 		mkdir -p /mnt/cachehdd /mnt/ssd/docker-data
 	fi
 	print_success "Storage directories created and validated"

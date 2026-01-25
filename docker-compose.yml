@@ -57,7 +57,7 @@ services:
       <<: *common-env
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-nextcloud,authentik,gitea,woodpecker,immich,calibre,linkding,healthchecks,atuin,homarr,miniflux,grafana,infisical,mealie}
+      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-authentik,gitea,woodpecker,immich,calibre,linkding,healthchecks,atuin,homarr,miniflux,grafana,mealie}
     command:
       - "postgres"
       - "-c"
@@ -749,10 +749,10 @@ services:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
       # All service ports to expose via HTTPS
-      # aria2 ports removed, pyload (8076) added. NOTE: 11000 excluded - managed by Nextcloud AIO directly
+      # aria2 ports removed, pyload (8076) added
       TAILSCALE_SERVE_PORTS: "7575,8088,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,8945,9900,8282,8076,2234,8097,8008,2283,8090,8080,8384,51515,3004,3006,9000,9443,8888,8288,9091,8093,5006,9090,3100,9093,10903,10902,8087,6060,8091,8001,8788,8060,8889,8081,3010,8085,9925,5984"
-      # Special port mappings (external:internal) - Nextcloud on 443->11000
-      TAILSCALE_SERVE_SPECIAL: "443:11000"
+      # Special port mappings (external:internal)
+      TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_MARKER_FILE: /https-marker/setup-complete
     volumes:
       - ./scripts/init/tailscale-serve-https.sh:/init.sh:ro
@@ -778,10 +778,10 @@ services:
     environment:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
-      # aria2 ports removed, pyload (8076) added. NOTE: 11000 excluded - managed by Nextcloud AIO directly
+      # aria2 ports removed, pyload (8076) added
       TAILSCALE_SERVE_PORTS: "7575,8088,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,8945,9900,8282,8076,2234,8097,8008,2283,8090,8080,8384,51515,3004,3006,9000,9443,8888,8288,9091,8093,5006,9090,3100,9093,10903,10902,8087,6060,8091,8001,8788,8060,8889,8081,3010,8085,9925,5984"
-      # Special port mappings (external:internal) - Nextcloud on 443->11000
-      TAILSCALE_SERVE_SPECIAL: "443:11000"
+      # Special port mappings (external:internal)
+      TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_SERVE_LOOP: "true"
       TAILSCALE_SERVE_INTERVAL: "300"
       TAILSCALE_MARKER_FILE: /https-marker/monitor-alive
@@ -3253,42 +3253,42 @@ services:
   ################################################################################
 
   # Infisical - Secrets management
-  infisical:
-    image: infisical/infisical:${INFISICAL_TAG:-latest}
-    container_name: infisical
-    logging: *default-logging
-    user: "0:0"
-    ports:
-      - "${HOST_BIND:-192.168.178.158}:8288:8080"
-    environment:
-      <<: *common-env
-      NODE_ENV: production
-      SITE_URL: https://secrets.${HOST_DOMAIN:-local.domain}
-      ENCRYPTION_KEY: ${INFISICAL_ENCRYPTION_KEY}
-      AUTH_SECRET: ${INFISICAL_AUTH_SECRET}
-      DB_CONNECTION_URI: postgres://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/infisical?sslmode=disable
-      REDIS_URL: redis://redis-cache:6379
-    networks:
-      - potatostack
-    depends_on:
-      - postgres
-      - redis-cache
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 256M
-        reservations:
-          cpus: "0.25"
-          memory: 128M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.infisical.rule=Host(`secrets.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.infisical.entrypoints=websecure"
-      - "traefik.http.routers.infisical.tls=true"
-      - "traefik.http.services.infisical.loadbalancer.server.port=8080"
-      - "traefik.http.routers.infisical.middlewares=security-headers@docker"
+  # infisical:
+  #   image: infisical/infisical:${INFISICAL_TAG:-latest}
+  #   container_name: infisical
+  #   logging: *default-logging
+  #   user: "0:0"
+  #   ports:
+  #     - "${HOST_BIND:-192.168.178.158}:8288:8080"
+  #   environment:
+  #     <<: *common-env
+  #     NODE_ENV: production
+  #     SITE_URL: https://secrets.${HOST_DOMAIN:-local.domain}
+  #     ENCRYPTION_KEY: ${INFISICAL_ENCRYPTION_KEY}
+  #     AUTH_SECRET: ${INFISICAL_AUTH_SECRET}
+  #     DB_CONNECTION_URI: postgres://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/infisical?sslmode=disable
+  #     REDIS_URL: redis://redis-cache:6379
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - postgres
+  #     - redis-cache
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.5"
+  #         memory: 256M
+  #       reservations:
+  #         cpus: "0.25"
+  #         memory: 128M
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.infisical.rule=Host(`secrets.${HOST_DOMAIN:-local.domain}`)"
+  #     - "traefik.http.routers.infisical.entrypoints=websecure"
+  #     - "traefik.http.routers.infisical.tls=true"
+  #     - "traefik.http.services.infisical.loadbalancer.server.port=8080"
+  #     - "traefik.http.routers.infisical.middlewares=security-headers@docker"
 
   # fail2ban - REMOVED (using CrowdSec instead)
   # fail2ban:

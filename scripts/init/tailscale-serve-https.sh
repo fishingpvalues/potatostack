@@ -27,12 +27,12 @@ TAILSCALE_MARKER_FILE="${TAILSCALE_MARKER_FILE:-/https-marker/setup-complete}"
 SPECIAL_MAPPINGS="${TAILSCALE_SERVE_SPECIAL:-}"
 
 # Ports that serve HTTPS on the backend (need https+insecure://)
-HTTPS_BACKEND_PORTS="9443 8443 8080"
+HTTPS_BACKEND_PORTS="9443 8080"
 
 create_marker() {
 	if [ -n "$TAILSCALE_MARKER_FILE" ]; then
 		mkdir -p "$(dirname "$TAILSCALE_MARKER_FILE")" 2>/dev/null || true
-		date > "$TAILSCALE_MARKER_FILE" 2>/dev/null || true
+		date >"$TAILSCALE_MARKER_FILE" 2>/dev/null || true
 	fi
 }
 
@@ -59,7 +59,7 @@ port_is_listening() {
 		netstat -tlnp 2>/dev/null | grep -q ":$port "
 	else
 		# Fallback: try to connect
-		(echo > /dev/tcp/127.0.0.1/$port) 2>/dev/null
+		(echo >/dev/tcp/127.0.0.1/$port) 2>/dev/null
 	fi
 }
 

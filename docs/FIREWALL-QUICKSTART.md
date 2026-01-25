@@ -112,7 +112,6 @@ sudo ufw enable
 
 **Examples:**
 
-- `https://nextcloud.yourdomain.com`
 - `https://jellyfin.yourdomain.com`
 - `https://vault.yourdomain.com`
 

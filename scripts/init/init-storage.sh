@@ -127,7 +127,6 @@ printf '%s\n' "✓ Cleanup complete"
 ################################################################################
 printf '%s\n' "Creating main storage directories..."
 mkdir -p \
-	"${STORAGE_BASE}/nextcloud" \
 	"${STORAGE_BASE}/syncthing" \
 	"${STORAGE_BASE}/obsidian-couchdb" \
 	"${STORAGE_BASE}/mealie-data" \
