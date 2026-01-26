@@ -37,12 +37,6 @@ receivers:
       - url: "http://ntfy:80/potatostack-critical"
         send_resolved: true
         http_config:
-          headers:
-            Title: "🚨 CRITICAL: {{ .GroupLabels.alertname }}"
-            Priority: "high"
-            Tags: "critical,{{ .GroupLabels.component }},alert"
-        # Custom ntfy formatting in message body
-        # ntfy webhooks use JSON with message field
 
   # Warning alerts - standard formatting
   - name: "ntfy-warning"
@@ -50,10 +44,6 @@ receivers:
       - url: "http://ntfy:80/potatostack-warning"
         send_resolved: true
         http_config:
-          headers:
-            Title: "⚠️ WARNING: {{ .GroupLabels.alertname }}"
-            Priority: "normal"
-            Tags: "warning,{{ .GroupLabels.component }},alert"
 
   # Default receiver - for general alerts
   - name: "ntfy"
@@ -61,10 +51,6 @@ receivers:
       - url: "http://ntfy:80/potatostack"
         send_resolved: true
         http_config:
-          headers:
-            Title: "{{ .GroupLabels.severity | upper }}: {{ .GroupLabels.alertname }}"
-            Priority: "{{ if eq .GroupLabels.severity \"critical\" }}high{{ else }}normal{{ end }}"
-            Tags: "{{ .GroupLabels.severity }},{{ .GroupLabels.component }},alert"
 
   # Legacy receivers - uncomment if using Discord/Telegram/Email
   - name: "discord"

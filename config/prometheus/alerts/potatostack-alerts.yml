@@ -254,7 +254,7 @@ groups:
           runbook: "Restart: docker restart gluetun"
 
       - alert: VPNTunnelDown
-        expr: container_label_com_docker_compose_service="gluetun" and up{job="cadvisor"} == 0
+        expr: up{job="cadvisor", container_label_com_docker_compose_service="gluetun"} == 0
         for: 2m
         labels:
           severity: critical

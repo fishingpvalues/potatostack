@@ -25,12 +25,6 @@ printf '%s\n' "Initializing storage directories..."
 ################################################################################
 printf '%s\n' "Cleaning up deprecated directories..."
 
-# DELETE: /mnt/storage/photos - use syncthing/photos instead
-if [ -d "${STORAGE_BASE}/photos" ]; then
-	printf '%s\n' "Removing deprecated ${STORAGE_BASE}/photos (use syncthing/photos)..."
-	rm -rf "${STORAGE_BASE}/photos"
-fi
-
 # DELETE: /mnt/storage/duckdb - moved to SSD
 if [ -d "${STORAGE_BASE}/duckdb" ]; then
 	printf '%s\n' "Moving ${STORAGE_BASE}/duckdb to ${SSD_BASE}/duckdb..."
@@ -149,12 +143,12 @@ mkdir -p "${STORAGE_BASE}/photos/upload"
 mkdir -p "${STORAGE_BASE}/photos/profile"
 mkdir -p "${STORAGE_BASE}/photos/thumbs"
 mkdir -p "${STORAGE_BASE}/photos/backups"
-touch "${STORAGE_BASE}/photos/encoded-video/.immich" 2>/dev/null || true
-touch "${STORAGE_BASE}/photos/library/.immich" 2>/dev/null || true
-touch "${STORAGE_BASE}/photos/upload/.immich" 2>/dev/null || true
-touch "${STORAGE_BASE}/photos/profile/.immich" 2>/dev/null || true
-touch "${STORAGE_BASE}/photos/thumbs/.immich" 2>/dev/null || true
-touch "${STORAGE_BASE}/photos/backups/.immich" 2>/dev/null || true
+echo "1769366147925" >"${STORAGE_BASE}/photos/encoded-video/.immich" 2>/dev/null || true
+echo "1769366147925" >"${STORAGE_BASE}/photos/library/.immich" 2>/dev/null || true
+echo "1769366147925" >"${STORAGE_BASE}/photos/upload/.immich" 2>/dev/null || true
+echo "1769366147925" >"${STORAGE_BASE}/photos/profile/.immich" 2>/dev/null || true
+echo "1769366147925" >"${STORAGE_BASE}/photos/thumbs/.immich" 2>/dev/null || true
+echo "1769366147925" >"${STORAGE_BASE}/photos/backups/.immich" 2>/dev/null || true
 
 ################################################################################
 # Media Directories - AUTHORITATIVE source for *arr stack and Jellyfin
