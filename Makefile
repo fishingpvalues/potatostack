@@ -2,6 +2,7 @@
 	containers-check containers-unhealthy containers-exited pull verify validate validate-compose validate-files \
 	lint lint-compose lint-yaml lint-shell lint-dockerfiles lint-full format format-shell format-yaml \
 	format-dockerfiles security health resources doctor fix init fix-permissions fix-configs startup \
+	fix-docker harden recovery \
 	firewall firewall-status firewall-install firewall-apply firewall-list firewall-reset firewall-allow firewall-deny \
 	tailscale-https tailscale-https-setup tailscale-https-monitor
 
@@ -141,6 +142,19 @@ fix-configs: ## Fix service configs (Loki, Homarr, Grafana, Thanos)
 	@echo "Running service configuration fixes..."
 	@chmod +x ./scripts/init/fix-service-configs.sh
 	@./scripts/init/fix-service-configs.sh
+
+fix-docker: ## Fix corrupted Docker storage after crash (WARNING: removes all images)
+	@echo "Running Docker storage recovery..."
+	@chmod +x ./scripts/setup/fix-docker-storage.sh
+	@sudo ./scripts/setup/fix-docker-storage.sh
+
+harden: ## Run enterprise hardening script (watchdog, auto-recovery, etc.)
+	@echo "Running enterprise hardening..."
+	@chmod +x ./scripts/setup/enterprise-hardening.sh
+	@sudo ./scripts/setup/enterprise-hardening.sh
+
+recovery: fix-docker ## Full recovery after crash (fix Docker + start stack)
+	@echo "Recovery complete. Run 'make health' to verify."
 
 startup: ## Full startup sequence (use after reboot/crash)
 	@echo "Running full startup sequence..."

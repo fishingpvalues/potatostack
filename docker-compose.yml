@@ -1886,7 +1886,10 @@ services:
       resources:
         limits:
           cpus: "2.0"
-          memory: 768M
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.immich.rule=Host(`immich.${HOST_DOMAIN:-local.domain}`)"
