@@ -1002,6 +1002,8 @@ services:
       - /mnt/storage/obsidian-couchdb:/opt/couchdb/data
     networks:
       - potatostack
+    depends_on:
+      - storage-init
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -f -u $$COUCHDB_USER:$$COUCHDB_PASSWORD http://127.0.0.1:5984/_up || exit 1"]
@@ -1023,6 +1025,31 @@ services:
       - "traefik.http.routers.obsidian.tls=true"
       - "traefik.http.services.obsidian.loadbalancer.server.port=5984"
       - "traefik.http.routers.obsidian.middlewares=sso-chain@docker"
+
+
+  # Obsidian LiveSync Init - Single-node CouchDB bootstrap
+  obsidian-livesync-init:
+    image: alpine:${ALPINE_TAG:-latest}
+    container_name: obsidian-livesync-init
+    logging: *default-logging
+    entrypoint:
+      - "/bin/sh"
+      - "-c"
+      - "apk add --no-cache bash curl >/dev/null 2>&1 && /bin/bash /init-obsidian-livesync.sh"
+    environment:
+      <<: *common-env
+      COUCHDB_HOST: "obsidian-livesync"
+      COUCHDB_PORT: "5984"
+      COUCHDB_USER: ${COUCHDB_USER:-obsidian}
+      COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
+      COUCHDB_DATABASE: ${COUCHDB_DATABASE:-obsidian-vault}
+    volumes:
+      - ./scripts/init/obsidian-livesync-init.sh:/init-obsidian-livesync.sh:ro
+    networks:
+      - potatostack
+    depends_on:
+      - obsidian-livesync
+    restart: "no"
 
    ################################################################################
    # RSS & NEWS AGGREGATION
