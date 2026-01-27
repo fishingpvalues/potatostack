@@ -3,13 +3,13 @@ set -euo pipefail
 
 # PotatoStack Startup Script
 # Ensures clean startup after reboot/crash by recreating containers
-# This fixes the "Created" state issue where containers don't auto-start
+# This fixes the Created state issue where containers do not auto-start
 
 COMPOSE_DIR="/home/daniel/potatostack"
 LOG_FILE="/var/log/potatostack-startup.log"
 
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"
+    echo "[$(date +%Y-%m-%d\ %H:%M:%S)] $*" | tee -a "$LOG_FILE"
 }
 
 cd "$COMPOSE_DIR" || exit 1
@@ -22,6 +22,21 @@ force_init() {
     docker compose rm -f storage-init 2>/dev/null || true
     docker compose up storage-init 2>&1 | tee -a "$LOG_FILE"
     log "Storage-init completed"
+}
+
+ensure_filestash_ports() {
+    if ! docker inspect filestash >/dev/null 2>&1; then
+        log "Filestash container not found, skipping port check"
+        return 0
+    fi
+
+    ports=$(docker inspect filestash --format "{{json .NetworkSettings.Ports}}" 2>/dev/null || echo "")
+    if [ -z "$ports" ] || [ "$ports" = "{}" ]; then
+        log "Filestash missing published ports - recreating container"
+        docker compose up -d --force-recreate filestash 2>&1 | tee -a "$LOG_FILE"
+    else
+        log "Filestash port bindings present"
+    fi
 }
 
 # Wait for Docker to be fully ready
@@ -37,10 +52,10 @@ while ! docker info >/dev/null 2>&1; do
 done
 log "Docker is ready (waited ${waited}s)"
 
-# Check for containers stuck in "Created" state (symptom of crash)
+# Check for containers stuck in Created state (symptom of crash)
 created_count=$(docker ps -a --filter "status=created" --format "{{.Names}}" | wc -l)
 if [ "$created_count" -gt 0 ]; then
-    log "Found $created_count containers in 'Created' state - performing clean restart"
+    log "Found $created_count containers in Created state - performing clean restart"
     docker compose down --remove-orphans 2>&1 | tee -a "$LOG_FILE"
 fi
 
@@ -50,6 +65,9 @@ force_init
 # Start all services
 log "Starting all services..."
 docker compose up -d 2>&1 | tee -a "$LOG_FILE"
+
+# Ensure Filestash port bindings exist
+ensure_filestash_ports
 
 # Wait a bit and check health
 sleep 30

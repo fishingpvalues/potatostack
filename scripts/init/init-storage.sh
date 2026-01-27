@@ -381,6 +381,10 @@ printf '%s\n' "Setting service-specific permissions..."
 # PostgreSQL (UID 999)
 [ -d "${SSD_BASE}/postgres" ] && chown -R 999:999 "${SSD_BASE}/postgres" && chmod -R 700 "${SSD_BASE}/postgres"
 
+
+# Obsidian LiveSync CouchDB (UID 5984)
+[ -d "${STORAGE_BASE}/obsidian-couchdb" ] && chown -R 5984:5984 "${STORAGE_BASE}/obsidian-couchdb"
+
 # Redis (UID 999, GID 1000)
 [ -d "${SSD_BASE}/redis-cache" ] && chown -R 999:1000 "${SSD_BASE}/redis-cache"
 
