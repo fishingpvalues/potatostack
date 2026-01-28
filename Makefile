@@ -1,4 +1,4 @@
-.PHONY: help up down restart logs test test-quick clean ps services images config containers \
+.PHONY: help up down restart logs test test-quick test-killswitch clean ps services images config containers \
 	containers-check containers-unhealthy containers-exited pull verify validate validate-compose validate-files \
 	lint lint-compose lint-yaml lint-shell lint-dockerfiles lint-full format format-shell format-yaml \
 	format-dockerfiles security health resources doctor fix init fix-permissions fix-configs startup \
@@ -119,6 +119,11 @@ test-quick: ## Run quick health check (no log analysis)
 	@echo ""
 	@echo "Checking for unhealthy containers..."
 	@$(DOCKER_CMD) ps --filter "health=unhealthy" --format "table {{.Names}}\t{{.Status}}"
+
+test-killswitch: ## Test VPN killswitch (brings down wg0 interface, verifies firewall blocking, restores VPN)
+	@echo "Running VPN killswitch test..."
+	@chmod +x ./scripts/test/test-killswitch.sh
+	@./scripts/test/test-killswitch.sh
 
 clean: ## Remove all containers, volumes, and networks (DANGEROUS)
 	@echo "WARNING: This will remove all data!"

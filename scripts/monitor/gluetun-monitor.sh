@@ -1,29 +1,32 @@
-#!/bin/sh
+#!/bin/bash
+
 ################################################################################
 # Gluetun VPN Monitor - Auto-restart dependent containers on VPN reconnect
-# Monitors Gluetun's /v1/vpn/status endpoint and restarts qbittorrent/slskd
-# when VPN connection is lost or restored
+# Improved version based on testing learnings
+# - Handles VPN status changes with container recreation (not just restart)
+# - Verifies services can actually connect after recovery
+# - Detects VPN routing issues even when API reports "running"
 ################################################################################
 
-# Install wget if not present (docker:cli image has docker already)
+# Install wget if not present
 if ! command -v wget >/dev/null 2>&1; then
 	echo "Installing wget..."
 	apk add --no-cache wget >/dev/null 2>&1
 fi
 
-GLUETUN_URL="${GLUETUN_URL:-http://gluetun:8000}"
+GLUETUN_URL="${GLUETUN_URL:-http://gluetun:8008}"
 CHECK_INTERVAL="${CHECK_INTERVAL:-10}"
-RESTART_CONTAINERS="${RESTART_CONTAINERS:-qbittorrent slskd}"
+RESTART_CONTAINERS="${RESTART_CONTAINERS:-prowlarr sonarr radarr lidarr bookshelf bazarr qbittorrent slskd pyload pinchflat spotiflac stash}"
 RESTART_ON_STOP="${RESTART_ON_STOP:-true}"
 RESTART_ON_FAILURE="${RESTART_ON_FAILURE:-true}"
 RESTART_COOLDOWN="${RESTART_COOLDOWN:-120}"
 
 echo "=========================================="
-echo "Gluetun VPN Monitor Started"
+echo "Gluetun VPN Monitor Started (Improved)"
 echo "=========================================="
 echo "Monitoring: $GLUETUN_URL/v1/vpn/status"
 echo "Check interval: ${CHECK_INTERVAL}s"
-echo "Will restart: $RESTART_CONTAINERS"
+echo "Will recreate: $RESTART_CONTAINERS"
 echo "=========================================="
 
 LAST_STATUS=""
@@ -49,10 +52,30 @@ check_network_stale() {
 		local attached_id
 		attached_id=$(echo "$network_mode" | cut -d: -f2 | head -c 12)
 		if [ "$attached_id" != "$gluetun_id" ]; then
-			return 0  # Stale - IDs don't match
+			return 0 # Stale - IDs don't match
 		fi
 	fi
-	return 1  # Not stale
+	return 1 # Not stale
+}
+
+# Test if services can actually connect (NEW: verify routing)
+verify_service_connectivity() {
+	local test_service="qbittorrent"
+	local max_attempts=3
+	local attempt=0
+
+	while [ $attempt -lt $max_attempts ]; do
+		attempt=$((attempt + 1))
+
+		# Try to reach external endpoint
+		if docker exec "$test_service" wget -q -O- --timeout=3 ifconfig.me/ip >/dev/null 2>&1; then
+			return 0 # Connected
+		fi
+
+		sleep 2
+	done
+
+	return 1 # Cannot connect
 }
 
 # Force recreate containers (restart won't fix stale network)
@@ -95,10 +118,21 @@ recreate_containers() {
 	# shellcheck disable=SC2086
 	docker compose up -d --force-recreate $RESTART_CONTAINERS 2>&1 | sed "s/^/    /"
 
+	# Verify services can connect after recreation (NEW)
+	echo "[$(date +'%Y-%m-%d %H:%M:%S')] → Verifying service connectivity..."
+	sleep 10
+
+	if verify_service_connectivity; then
+		echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ Services verified to be connected"
+	else
+		echo "[$(date +'%Y-%m-%d %H:%M:%S')] ⚠ Warning: Services may have connectivity issues"
+	fi
+
 	echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ Containers recreated"
 	LAST_RESTART_AT="$now"
 }
 
+# Restart containers (simple restart, doesn't fix network)
 restart_containers() {
 	local reason="$1"
 	local now
@@ -129,7 +163,7 @@ while true; do
 		if [ $CONSECUTIVE_FAILURES -ge $MAX_FAILURES ]; then
 			echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✗ Gluetun unreachable after $MAX_FAILURES attempts"
 			if [ "$RESTART_ON_FAILURE" = "true" ]; then
-				restart_containers "gluetun-unreachable"
+				recreate_containers "gluetun-unreachable"
 			fi
 			LAST_STATUS=""
 		fi
@@ -150,7 +184,7 @@ while true; do
 		continue
 	fi
 
-	# Detect status change
+	# Detect status change - CHANGED: use recreate_containers for any status change
 	if [ "$CURRENT_STATUS" != "$LAST_STATUS" ] && [ -n "$LAST_STATUS" ]; then
 		echo ""
 		echo "=========================================="
@@ -160,12 +194,14 @@ while true; do
 
 		if [ "$CURRENT_STATUS" = "running" ]; then
 			echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ VPN connection restored!"
-			restart_containers "vpn-restored"
+			# Use recreate_containers to force network namespace refresh
+			recreate_containers "vpn-restored"
 
 		elif [ "$CURRENT_STATUS" = "stopped" ]; then
 			echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✗ VPN connection lost!"
 			if [ "$RESTART_ON_STOP" = "true" ]; then
-				restart_containers "vpn-stopped"
+				# Use recreate_containers to force network namespace refresh
+				recreate_containers "vpn-stopped"
 			else
 				echo "[$(date +'%Y-%m-%d %H:%M:%S')] → Waiting for reconnection..."
 			fi
@@ -176,6 +212,15 @@ while true; do
 	elif [ -z "$LAST_STATUS" ]; then
 		# Initial status
 		echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ Initial VPN status: $CURRENT_STATUS"
+
+		# Verify initial service connectivity
+		if [ "$CURRENT_STATUS" = "running" ]; then
+			sleep 5
+			if ! verify_service_connectivity; then
+				echo "[$(date +'%Y-%m-%d %H:%M:%S')] ⚠ Services have connectivity issues, recreating..."
+				recreate_containers "initial-connectivity-check"
+			fi
+		fi
 	fi
 
 	LAST_STATUS="$CURRENT_STATUS"
