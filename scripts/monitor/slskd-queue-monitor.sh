@@ -51,8 +51,8 @@ echo "=========================================="
 
 STATE_FILE="/tmp/slskd-queue-state"
 if [ ! -f "$STATE_FILE" ]; then
-	echo "state=ok" > "$STATE_FILE"
-	echo "last_seen=0" >> "$STATE_FILE"
+	echo "state=ok" >"$STATE_FILE"
+	echo "last_seen=0" >>"$STATE_FILE"
 fi
 
 get_state() {
@@ -66,8 +66,8 @@ get_last_seen() {
 set_state() {
 	state="$1"
 	last_seen="$2"
-	echo "state=${state}" > "$STATE_FILE"
-	echo "last_seen=${last_seen}" >> "$STATE_FILE"
+	echo "state=${state}" >"$STATE_FILE"
+	echo "last_seen=${last_seen}" >>"$STATE_FILE"
 }
 
 while true; do
@@ -88,18 +88,18 @@ while true; do
 	prev_state=$(get_state)
 	if [ "$new_state" != "$prev_state" ]; then
 		case "$new_state" in
-			full)
-				notify_slskd "PotatoStack - slskd queue full" "Queued downloads: ${queued}/${QUEUE_LIMIT} (limit reached)." "urgent"
-				;;
-			warn)
-				notify_slskd "PotatoStack - slskd queue warning" "Queued downloads: ${queued}/${QUEUE_LIMIT} (>${WARN_PERCENT}%)." "high"
-				;;
-			ok)
-				if [ "$prev_state" != "ok" ]; then
-					notify_slskd "PotatoStack - slskd queue recovered" "Queue back to normal: ${queued}/${QUEUE_LIMIT}." "low"
-				fi
-				;;
-			esac
+		full)
+			notify_slskd "PotatoStack - slskd queue full" "Queued downloads: ${queued}/${QUEUE_LIMIT} (limit reached)." "urgent"
+			;;
+		warn)
+			notify_slskd "PotatoStack - slskd queue warning" "Queued downloads: ${queued}/${QUEUE_LIMIT} (>${WARN_PERCENT}%)." "high"
+			;;
+		ok)
+			if [ "$prev_state" != "ok" ]; then
+				notify_slskd "PotatoStack - slskd queue recovered" "Queue back to normal: ${queued}/${QUEUE_LIMIT}." "low"
+			fi
+			;;
+		esac
 	fi
 
 	last_seen=$(get_last_seen)

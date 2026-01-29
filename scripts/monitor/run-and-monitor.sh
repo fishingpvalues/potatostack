@@ -174,14 +174,14 @@ docker compose ps --format '{{.Service}}' | while IFS= read -r service; do
 		echo ""
 		echo "⚠ $service has errors in logs:"
 		echo "$LOGS" | grep -i -E "error|fatal|panic|exception|failed" | tail -5 | sed 's/^/  /'
-		echo "$service" >> "$SERVICES_WITH_ERRORS"
+		echo "$service" >>"$SERVICES_WITH_ERRORS"
 	fi
 done
 
 # Read services with errors into array
 if [ -f "$SERVICES_WITH_ERRORS" ]; then
-mapfile -t ERROR_SERVICES < "$SERVICES_WITH_ERRORS"
-rm -f "$SERVICES_WITH_ERRORS"
+	mapfile -t ERROR_SERVICES <"$SERVICES_WITH_ERRORS"
+	rm -f "$SERVICES_WITH_ERRORS"
 fi
 
 # Phase 8: Generate report

@@ -45,8 +45,8 @@ echo ""
 
 # Check root
 if [ "$EUID" -ne 0 ]; then
-    error "Please run with sudo: sudo bash $0"
-    exit 1
+	error "Please run with sudo: sudo bash $0"
+	exit 1
 fi
 
 ################################################################################
@@ -57,10 +57,10 @@ echo "[1/10] Configuring Hardware Watchdog..."
 
 # Check if watchdog hardware exists
 if [ -e /dev/watchdog ]; then
-    apt-get update -qq
-    apt-get install -y -qq watchdog 2>/dev/null || true
+	apt-get update -qq
+	apt-get install -y -qq watchdog 2>/dev/null || true
 
-    cat >/etc/watchdog.conf <<'EOF'
+	cat >/etc/watchdog.conf <<'EOF'
 # PotatoStack Watchdog Configuration
 # Reboots system if:
 #   - Kernel hangs (no ping to watchdog device)
@@ -96,9 +96,9 @@ test-timeout = 30
 log-dir = /var/log/watchdog
 EOF
 
-    # Create watchdog test script
-    mkdir -p /var/log/watchdog
-    cat >/usr/local/bin/watchdog-test.sh <<'EOF'
+	# Create watchdog test script
+	mkdir -p /var/log/watchdog
+	cat >/usr/local/bin/watchdog-test.sh <<'EOF'
 #!/bin/bash
 # Watchdog health check - exit 0 if healthy, non-zero triggers reboot
 
@@ -123,18 +123,18 @@ fi
 
 exit 0
 EOF
-    chmod +x /usr/local/bin/watchdog-test.sh
+	chmod +x /usr/local/bin/watchdog-test.sh
 
-    systemctl enable watchdog
-    systemctl restart watchdog
-    log "Hardware watchdog enabled (auto-reboot on kernel hang)"
+	systemctl enable watchdog
+	systemctl restart watchdog
+	log "Hardware watchdog enabled (auto-reboot on kernel hang)"
 else
-    warn "No hardware watchdog device found (/dev/watchdog)"
-    info "Software watchdog will be configured instead"
+	warn "No hardware watchdog device found (/dev/watchdog)"
+	info "Software watchdog will be configured instead"
 
-    # Load softdog module
-    modprobe softdog 2>/dev/null || true
-    echo "softdog" >> /etc/modules-load.d/softdog.conf 2>/dev/null || true
+	# Load softdog module
+	modprobe softdog 2>/dev/null || true
+	echo "softdog" >>/etc/modules-load.d/softdog.conf 2>/dev/null || true
 fi
 
 ################################################################################
@@ -146,18 +146,18 @@ echo "[2/10] Configuring Auto-Login..."
 # Ask user
 read -rp "Enable auto-login on console TTY1? [y/N]: " ENABLE_AUTOLOGIN
 if [[ "$ENABLE_AUTOLOGIN" =~ ^[Yy]$ ]]; then
-    mkdir -p /etc/systemd/system/getty@tty1.service.d
-    cat >/etc/systemd/system/getty@tty1.service.d/autologin.conf <<EOF
+	mkdir -p /etc/systemd/system/getty@tty1.service.d
+	cat >/etc/systemd/system/getty@tty1.service.d/autologin.conf <<EOF
 [Service]
 ExecStart=
 ExecStart=-/sbin/agetty --autologin $ACTUAL_USER --noclear %I \$TERM
 Type=idle
 EOF
-    systemctl daemon-reload
-    log "Auto-login enabled for user: $ACTUAL_USER on TTY1"
-    warn "Security note: Physical access grants full access"
+	systemctl daemon-reload
+	log "Auto-login enabled for user: $ACTUAL_USER on TTY1"
+	warn "Security note: Physical access grants full access"
 else
-    log "Auto-login skipped"
+	log "Auto-login skipped"
 fi
 
 ################################################################################
@@ -596,7 +596,7 @@ echo "[8/10] Configuring Scheduled Maintenance..."
 
 read -rp "Enable weekly auto-reboot for maintenance? (Sunday 4am) [y/N]: " ENABLE_AUTOREBOOT
 if [[ "$ENABLE_AUTOREBOOT" =~ ^[Yy]$ ]]; then
-    cat >/etc/systemd/system/weekly-reboot.service <<'EOF'
+	cat >/etc/systemd/system/weekly-reboot.service <<'EOF'
 [Unit]
 Description=Weekly Maintenance Reboot
 
@@ -605,7 +605,7 @@ Type=oneshot
 ExecStart=/bin/systemctl reboot
 EOF
 
-    cat >/etc/systemd/system/weekly-reboot.timer <<'EOF'
+	cat >/etc/systemd/system/weekly-reboot.timer <<'EOF'
 [Unit]
 Description=Weekly Reboot Timer
 
@@ -618,11 +618,11 @@ RandomizedDelaySec=300
 WantedBy=timers.target
 EOF
 
-    systemctl daemon-reload
-    systemctl enable weekly-reboot.timer
-    log "Weekly auto-reboot enabled (Sunday 4am)"
+	systemctl daemon-reload
+	systemctl enable weekly-reboot.timer
+	log "Weekly auto-reboot enabled (Sunday 4am)"
 else
-    log "Weekly auto-reboot skipped"
+	log "Weekly auto-reboot skipped"
 fi
 
 ################################################################################
@@ -633,7 +633,7 @@ echo "[9/10] Hardening Docker Daemon..."
 
 # Backup existing config
 if [ -f /etc/docker/daemon.json ]; then
-    cp /etc/docker/daemon.json /etc/docker/daemon.json.bak
+	cp /etc/docker/daemon.json /etc/docker/daemon.json.bak
 fi
 
 cat >/etc/docker/daemon.json <<'EOF'
@@ -676,27 +676,27 @@ SERVICES="docker potatostack.service network-watchdog.service memory-pressure-ha
 ALL_OK=true
 
 for service in $SERVICES; do
-    if systemctl is-enabled "$service" &>/dev/null; then
-        log "$service is enabled"
-    else
-        warn "$service is NOT enabled"
-        ALL_OK=false
-    fi
+	if systemctl is-enabled "$service" &>/dev/null; then
+		log "$service is enabled"
+	else
+		warn "$service is NOT enabled"
+		ALL_OK=false
+	fi
 done
 
 # Verify watchdog
 if systemctl is-enabled watchdog &>/dev/null 2>&1; then
-    log "Hardware watchdog is enabled"
+	log "Hardware watchdog is enabled"
 else
-    warn "Hardware watchdog is NOT enabled"
+	warn "Hardware watchdog is NOT enabled"
 fi
 
 echo ""
 echo "=================================================================="
 if [ "$ALL_OK" = true ]; then
-    echo -e "${GREEN}Enterprise-Grade Hardening Complete!${NC}"
+	echo -e "${GREEN}Enterprise-Grade Hardening Complete!${NC}"
 else
-    echo -e "${YELLOW}Hardening Complete with Warnings${NC}"
+	echo -e "${YELLOW}Hardening Complete with Warnings${NC}"
 fi
 echo "=================================================================="
 echo ""

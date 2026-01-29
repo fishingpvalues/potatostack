@@ -29,7 +29,7 @@ chmod +x run-and-monitor.sh
 2. **Phased Startup**: Starts services in order:
    - Phase 1: Databases (Postgres, Redis, Mongo, PgBouncer)
    - Phase 2: Networking (Traefik, Gluetun, AdGuard, CrowdSec)
-   - Phase 3: Monitoring (Prometheus, Grafana, Loki, Netdata)
+   - Phase 3: Monitoring (Prometheus, Grafana, Loki)
    - Phase 4: All remaining services
 3. **Health Monitoring**: Tracks running/failed/unhealthy containers
 4. **Log Analysis**: Scans logs for error patterns
@@ -166,11 +166,10 @@ Access these from your browser:
 ### Monitoring
 - **Prometheus**: http://192.168.178.158:9090
 - **Thanos Query**: http://192.168.178.158:10903
-- **Netdata**: http://192.168.178.158:19999 (real-time system stats)
 - **Uptime Kuma**: http://192.168.178.158:3001
 
 ### Applications
-- **Nextcloud**: http://192.168.178.158:8443
+- **Syncthing**: http://192.168.178.158:8384
 - **Jellyfin**: http://192.168.178.158:8096
 - **Immich**: http://192.168.178.158:2283
 - **Paperless**: http://192.168.178.158:8000
@@ -272,4 +271,4 @@ For issues:
 1. Check logs: `docker compose logs <service-name>`
 2. Check GitHub issues for the specific service
 3. Review service documentation
-4. Check Grafana/Netdata for resource issues
+4. Check Grafana for resource issues

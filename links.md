@@ -187,7 +187,7 @@ open https://kopia.potatostack.tale-iwato.ts.net
 Some services run behind Gluetun VPN for privacy:
 - Sonarr, Radarr, Lidarr, Bazarr, Bookshelf
 - qBittorrent, pyLoad, slskd
-- Pinchflat, SpotiFLAC, Stash
+- SpotiFLAC, Stash
 
 Access these via:
 1. Traefik URL (recommended) - `https://sonarr.potatostack.tale-iwato.ts.net`
@@ -250,14 +250,11 @@ The following services are commented out in docker-compose.yml:
 - AdGuard Home - DNS-level ad blocking
 - Authentik - SSO provider
 - WireGuard - VPN (replaced by Tailscale + Gluetun)
-- Nextcloud AIO - Cloud storage
 - Open WebUI - LLM interface
 - n8n - Workflow automation
 - Paperless-ngx - Document management
 - Code-server - VS Code in browser
 - IT-Tools - Developer tools
-- Netdata - System monitoring (use Prometheus/Grafana)
-- Stirling-PDF - PDF tools
 - Infisical - Secrets management
 - fail2ban - Intrusion prevention (use CrowdSec)
 

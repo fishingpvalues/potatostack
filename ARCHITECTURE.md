@@ -79,7 +79,6 @@ flowchart TB
     %% ============ FILE SYNC & CLOUD INTEGRATION ============
     subgraph FILES["Cloud Storage & Sync"]
         direction TB
-        nextcloudAIO[Nextcloud AIO<br/>Self-hosted Drive]:::files
         syncthing[Syncthing<br/>P2P File Sync]:::files
         filebrowser[Filebrowser<br/>Web File Manager]:::files
     end
@@ -363,7 +362,6 @@ flowchart TB
     %% ============ FILE & CLOUD INTEGRATION ============
     syncthing --> storageInit
     filebrowser --> storageInit
-    nextcloudAIO --> storageInit
 
     %% ============ PHOTO MANAGEMENT ============
     immichML --> immich
@@ -504,7 +502,6 @@ flowchart TB
         mongo[(Mongo 7)]:::data
 
         %% Applications
-        nextcloud[Nextcloud AIO]:::files
         syncthing[Syncthing]:::files
         filebrowser[Filebrowser]:::files
         miniflux[Miniflux]:::apps
@@ -998,7 +995,6 @@ flowchart TB
         Audiobookshelf["Audiobookshelf<br/>Audiobooks"]:::app
 
         %% Productivity
-        Nextcloud["Nextcloud<br/>File Sync"]:::app
         Syncthing["Syncthing<br/>P2P Sync"]:::app
         Filebrowser["Filebrowser<br/>File Manager"]:::app
 
@@ -1071,7 +1067,6 @@ flowchart TB
     n8n --> Redis
     Healthchecks --> PostgreSQL
     Jellyfin --> LocalStorage
-    Nextcloud --> LocalStorage
     Syncthing --> LocalStorage
     Filebrowser --> LocalStorage
 
@@ -1145,7 +1140,6 @@ flowchart TB
         mongo[(Mongo 7)]:::data
 
         %% Applications
-        nextcloud[Nextcloud AIO]:::files
         syncthing[Syncthing]:::files
         filebrowser[Filebrowser]:::files
         miniflux[Miniflux]:::apps
@@ -1788,7 +1782,7 @@ classDiagram
 
 | Service | Purpose | Criticality | SLO |
 |---------|---------|------------|-----|
-| Nextcloud | File Sync & Share | Medium | 99.9% |
+| Syncthing | File Sync & Share | Medium | 99.9% |
 | Miniflux | RSS Reader | Low | 99.5% |
 | Gitea | Git Server | Medium | 99.9% |
 | Homarr | Dashboard | Low | 99.5% |

@@ -57,7 +57,7 @@ PotatoStack uses a **defense-in-depth** security architecture with UFW firewall,
                             ↓
 ┌─────────────────────────────────────────────────────────────────┐
 │ Application Layer                                                │
-│ └─ Your services (Nextcloud, Jellyfin, etc.)                    │
+│ └─ Your services (Jellyfin, Syncthing, etc.)                    │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -371,7 +371,6 @@ docker exec crowdsec cscli hub update
 
 - **Grafana Dashboard:** UFW metrics, CrowdSec stats
 - **Uptime Kuma:** Service availability monitoring
-- **Netdata:** Real-time firewall connection tracking
 - **Loki/Parseable:** Centralized log analysis
 
 ### 4. Backup Critical Configs
@@ -483,7 +482,6 @@ See `docker-compose.yml` for full list. Key services:
 | 8088  | Traefik Dashboard |
 | 9090  | Prometheus        |
 | 3002  | Grafana           |
-| 19999 | Netdata           |
 | 3100  | Loki              |
 | 8089  | cAdvisor          |
 

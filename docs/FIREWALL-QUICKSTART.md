@@ -127,7 +127,6 @@ sudo ufw enable
 
 - `http://192.168.178.158:9090` (Prometheus)
 - `http://192.168.178.158:3002` (Grafana)
-- `http://192.168.178.158:19999` (Netdata)
 
 **Firewall:** No UFW rules needed (LAN-only, not exposed to internet)
 
@@ -246,7 +245,6 @@ sudo ufw reload
 | 8088  | Traefik Dashboard | `http://192.168.178.158:8088`      |
 | 9090  | Prometheus        | `http://192.168.178.158:9090`      |
 | 3002  | Grafana           | `http://192.168.178.158:3002`      |
-| 19999 | Netdata           | `http://192.168.178.158:19999`     |
 | 3100  | Loki              | `http://192.168.178.158:3100`      |
 | 8089  | cAdvisor          | `http://192.168.178.158:8089`      |
 

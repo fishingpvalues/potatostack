@@ -39,7 +39,7 @@ make format        # Format all files (shfmt, prettier)
 - MongoDB 7, Redis 7 (shared cache, 16 databases)
 - Traefik (reverse proxy), Gluetun (VPN), CrowdSec (IPS)
 - Prometheus → Thanos (1yr retention) → Grafana
-- Loki (logs), Netdata/cAdvisor (monitoring)
+- Loki (logs), cAdvisor (monitoring)
 
 **Network:** All services on `potatostack` network, socket-proxy for privileged ops.
 

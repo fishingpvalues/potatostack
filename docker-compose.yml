@@ -161,7 +161,7 @@ services:
       - /mnt/ssd/docker-data/mongo:/data/db
       - /mnt/ssd/docker-data/mongo-config:/data/configdb
     tmpfs:
-      - /tmp:size=64M  # Prevents stale socket file on restart
+      - /tmp:size=64M # Prevents stale socket file on restart
     networks:
       - potatostack
     restart: unless-stopped
@@ -582,7 +582,7 @@ services:
       DOT: "off"
       HTTPPROXY: "off"
       SHADOWSOCKS: "off"
-      HTTP_CONTROL_SERVER_ADDRESS: :8008  # Changed from 8000 to avoid pyload conflict
+      HTTP_CONTROL_SERVER_ADDRESS: :8008 # Changed from 8000 to avoid pyload conflict
       HTTP_CONTROL_SERVER_LOG: "off"
       HTTP_CONTROL_SERVER_AUTH: "off"
       IPV6: "off"
@@ -740,7 +740,7 @@ services:
     network_mode: host
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "tailscale status --json 2>/dev/null | grep -q '\"Self\"' || exit 1"]
+      test: ["CMD-SHELL", 'tailscale status --json 2>/dev/null | grep -q ''"Self"'' || exit 1']
       interval: 30s
       timeout: 10s
       retries: 5
@@ -995,9 +995,9 @@ services:
       - "traefik.http.services.filestash.loadbalancer.server.port=8334"
       - "traefik.http.routers.filestash.middlewares=sso-chain@docker"
 
-   ################################################################################
-   # KNOWLEDGE MANAGEMENT
-   ################################################################################
+    ################################################################################
+    # KNOWLEDGE MANAGEMENT
+    ################################################################################
 
   # Obsidian LiveSync - CouchDB backend for Obsidian note synchronization
   obsidian-livesync:
@@ -1039,7 +1039,6 @@ services:
       - "traefik.http.routers.obsidian.tls=true"
       - "traefik.http.services.obsidian.loadbalancer.server.port=5984"
 
-
   # Obsidian LiveSync Init - Single-node CouchDB bootstrap
   obsidian-livesync-init:
     image: alpine:${ALPINE_TAG:-latest}
@@ -1064,9 +1063,9 @@ services:
       - obsidian-livesync
     restart: "no"
 
-   ################################################################################
-   # RSS & NEWS AGGREGATION
-   ################################################################################
+    ################################################################################
+    # RSS & NEWS AGGREGATION
+    ################################################################################
 
   # Miniflux - Minimalist RSS reader with Postgres backend (SOTA 2025)
   miniflux:
@@ -1167,7 +1166,7 @@ services:
       BASE_URL: https://mealie.${HOST_DOMAIN:-local.domain}
       API_PORT: 9000
       SECRET_KEY: ${MEALIE_SECRET_KEY}
-      ALLOW_SIGNUP: "false"                    # Use Authentik SSO instead
+      ALLOW_SIGNUP: "false" # Use Authentik SSO instead
       LOG_LEVEL: info
       # PostgreSQL (your primary DB)
       POSTGRES_SERVER: postgres
@@ -1176,10 +1175,10 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
       # Redis (your shared redis-cache)
-      REDIS_URL: redis://redis-cache:6379/10   # DB 10 - avoid conflicts
+      REDIS_URL: redis://redis-cache:6379/10 # DB 10 - avoid conflicts
       # Optional nice-to-haves
       MEALIE_LOG_LEVEL: info
-      MEALIE_THEME: light                      # or system, dark
+      MEALIE_THEME: light # or system, dark
       MEALIE_DEFAULT_GROUP: Home
       MEALIE_DEFAULT_HOUSEHOLD: Main
       # Disable built-in auth (Traefik + Authentik will handle it)
@@ -1195,7 +1194,11 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mealie/bin/python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/api/app/about', timeout=5)\""]
+      test:
+        [
+          "CMD-SHELL",
+          '/opt/mealie/bin/python -c "import urllib.request; urllib.request.urlopen(''http://127.0.0.1:9000/api/app/about'', timeout=5)"',
+        ]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -1237,11 +1240,7 @@ services:
       - potatostack
     restart: unless-stopped
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "timeout 5 bash -c 'cat < /dev/null > /dev/tcp/127.0.0.1/5006' || exit 1",
-        ]
+      test: ["CMD-SHELL", "timeout 5 bash -c 'cat < /dev/null > /dev/tcp/127.0.0.1/5006' || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -1945,11 +1944,7 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget --no-verbose --tries=1 --spider http://127.0.0.1:2234/ || exit 1",
-        ]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:2234/ || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -2042,8 +2037,7 @@ services:
       - storage-init
     restart: unless-stopped
     healthcheck:
-      test:
-        ["CMD-SHELL", "curl -f http://127.0.0.1:2283/api/server/ping || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:2283/api/server/ping || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -2081,11 +2075,7 @@ services:
       - /tmp:exec,mode=1777,size=500m
     restart: unless-stopped
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          'python3 -c ''import requests; requests.get("http://127.0.0.1:3003/ping")''',
-        ]
+      test: ["CMD-SHELL", 'python3 -c ''import requests; requests.get("http://127.0.0.1:3003/ping")''']
       interval: 60s
       timeout: 10s
       retries: 3
@@ -2262,8 +2252,7 @@ services:
       - thanos-store
     restart: unless-stopped
     healthcheck:
-      test:
-        ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:10902/-/healthy"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:10902/-/healthy"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -2346,11 +2335,7 @@ services:
       - loki
     restart: unless-stopped
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget --spider -q http://127.0.0.1:3000/api/health || exit 1",
-        ]
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:3000/api/health || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -3311,32 +3296,32 @@ services:
   #     - "traefik.http.services.open-webui.loadbalancer.server.port=8080"
   #     - "traefik.http.routers.open-webui.middlewares=sso-chain@docker"
 
-   # Pinchflat - YouTube downloader (disabled)
-   # pinchflat:
-   #   image: ghcr.io/kieraneglin/pinchflat:${PINCHFLAT_TAG:-latest}
-   #   container_name: pinchflat
-   #   logging: *default-logging
-   #   network_mode: "service:gluetun"
-   #   environment:
-   #     <<: *common-env
-   #   volumes:
-   #     - pinchflat-config:/config
-   #     - /mnt/storage/media/youtube:/downloads
-   #     - /mnt/cachehdd/downloads/pinchflat:/incomplete
-   #   depends_on:
-   #     gluetun:
-   #       condition: service_healthy
-   #       restart: true
-   #     storage-init:
-   #       condition: service_completed_successfully
-   #   restart: unless-stopped
-   #   deploy:
-   #     resources:
-   #       limits:
-   #         cpus: "1.0"
-   #         memory: 384M
-   #   labels:
-   #     - "autoheal=true"
+  # Pinchflat - YouTube downloader (disabled)
+  # pinchflat:
+  #   image: ghcr.io/kieraneglin/pinchflat:${PINCHFLAT_TAG:-latest}
+  #   container_name: pinchflat
+  #   logging: *default-logging
+  #   network_mode: "service:gluetun"
+  #   environment:
+  #     <<: *common-env
+  #   volumes:
+  #     - pinchflat-config:/config
+  #     - /mnt/storage/media/youtube:/downloads
+  #     - /mnt/cachehdd/downloads/pinchflat:/incomplete
+  #   depends_on:
+  #     gluetun:
+  #       condition: service_healthy
+  #       restart: true
+  #     storage-init:
+  #       condition: service_completed_successfully
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "1.0"
+  #         memory: 384M
+  #   labels:
+  #     - "autoheal=true"
 
   # Stash - Adult media organizer (behind VPN)
   stash:
@@ -3409,8 +3394,7 @@ services:
     tmpfs:
       - /run
     healthcheck:
-      test:
-        ["CMD-SHELL", "wget --spider -q http://127.0.0.1:2375/_ping || exit 1"]
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:2375/_ping || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -4191,7 +4175,7 @@ services:
       KOPIA_SERVER_USER: ${KOPIA_SERVER_USER:-admin}
       KOPIA_SERVER_PASSWORD: ${KOPIA_SERVER_PASSWORD}
       KOPIA_HOSTNAME: ${KOPIA_HOSTNAME:-potatostack}
-      KOPIA_INSECURE_HTTP: "true"  # HTTP mode for Tailscale proxy
+      KOPIA_INSECURE_HTTP: "true" # HTTP mode for Tailscale proxy
       KOPIA_CONFIG_PATH: /app/config/repository.config
       KOPIA_CACHE_DIRECTORY: /app/cache
       KOPIA_LOG_DIR: /app/logs
@@ -4336,9 +4320,9 @@ volumes:
   # pinchflat-config:
 
   # Dashboard & Container Management
-  homarr-data:        # Legacy v0.x - keep for migration backup
-  homarr-icons:       # Legacy v0.x - keep for migration backup
-  homarr-appdata:     # New v1.x volume
+  homarr-data: # Legacy v0.x - keep for migration backup
+  homarr-icons: # Legacy v0.x - keep for migration backup
+  homarr-appdata: # New v1.x volume
 
   # Security
   crowdsec-db:
@@ -4396,4 +4380,3 @@ volumes:
       - gluetun
     profiles:
       - init
-

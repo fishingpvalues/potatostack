@@ -9,8 +9,8 @@ GREEN='\033[0;32m'
 NC='\033[0m'
 
 if [ "$EUID" -ne 0 ]; then
-    echo -e "${RED}Please run with sudo: sudo bash $0${NC}"
-    exit 1
+	echo -e "${RED}Please run with sudo: sudo bash $0${NC}"
+	exit 1
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

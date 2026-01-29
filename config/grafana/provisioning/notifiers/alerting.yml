@@ -11,7 +11,7 @@ contactPoints:
           httpMethod: POST
           username: ""
           password: ""
-          title: 'Grafana Alert: {{ .Status | toUpper }} - {{ .GroupLabels.alertname }}'
+          title: "Grafana Alert: {{ .Status | toUpper }} - {{ .GroupLabels.alertname }}"
           message: |
             {{ range .Alerts }}
             **Alert**: {{ .Labels.alertname }}
@@ -39,7 +39,7 @@ contactPoints:
           httpMethod: POST
           username: ""
           password: ""
-          title: '🚨 CRITICAL Grafana Alert: {{ .Status | toUpper }} - {{ .GroupLabels.alertname }}'
+          title: "🚨 CRITICAL Grafana Alert: {{ .Status | toUpper }} - {{ .GroupLabels.alertname }}"
           message: |
             {{ range .Alerts }}
             🚨 **CRITICAL ALERT**
@@ -70,7 +70,7 @@ contactPoints:
           httpMethod: POST
           username: ""
           password: ""
-          title: '⚠️ Warning Grafana Alert: {{ .Status | toUpper }} - {{ .GroupLabels.alertname }}'
+          title: "⚠️ Warning Grafana Alert: {{ .Status | toUpper }} - {{ .GroupLabels.alertname }}"
           message: |
             {{ range .Alerts }}
             ⚠️ **WARNING ALERT**

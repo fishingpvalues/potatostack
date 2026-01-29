@@ -42,8 +42,8 @@ echo ""
 
 # Check root
 if [ "$EUID" -ne 0 ]; then
-    error "Please run with sudo: sudo bash $0"
-    exit 1
+	error "Please run with sudo: sudo bash $0"
+	exit 1
 fi
 
 # Confirm with user
@@ -59,8 +59,8 @@ warn "  - $DOCKER_ROOT/network/files (network state)"
 echo ""
 read -rp "Continue? [y/N]: " CONFIRM
 if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
-    echo "Aborted."
-    exit 0
+	echo "Aborted."
+	exit 0
 fi
 
 echo ""
@@ -74,16 +74,16 @@ sleep 3
 
 # Verify Docker is stopped
 if pgrep -x dockerd >/dev/null; then
-    warn "Docker still running, force killing..."
-    pkill -9 dockerd 2>/dev/null || true
-    pkill -9 containerd-shim 2>/dev/null || true
-    sleep 3
+	warn "Docker still running, force killing..."
+	pkill -9 dockerd 2>/dev/null || true
+	pkill -9 containerd-shim 2>/dev/null || true
+	sleep 3
 fi
 
 # Double-check
 if pgrep -x dockerd >/dev/null; then
-    error "Cannot stop Docker. Try: sudo reboot"
-    exit 1
+	error "Cannot stop Docker. Try: sudo reboot"
+	exit 1
 fi
 
 log "Docker stopped successfully"
@@ -133,11 +133,11 @@ sleep 5
 
 # Step 5: Verify Docker is working
 if docker info >/dev/null 2>&1; then
-    log "Docker is running!"
-    docker info 2>&1 | grep -E "(Server Version|Storage Driver|Docker Root Dir)" | sed 's/^/  /'
+	log "Docker is running!"
+	docker info 2>&1 | grep -E "(Server Version|Storage Driver|Docker Root Dir)" | sed 's/^/  /'
 else
-    error "Docker failed to start. Check: journalctl -u docker.service -n 50"
-    exit 1
+	error "Docker failed to start. Check: journalctl -u docker.service -n 50"
+	exit 1
 fi
 
 # Step 6: Pull images and start stack
@@ -150,12 +150,12 @@ cd "$REPO_ROOT"
 
 log "Pulling images..."
 if ! docker compose pull 2>&1 | tee /tmp/docker-pull.log | tail -30; then
-    warn "Some images failed to pull. Check /tmp/docker-pull.log"
+	warn "Some images failed to pull. Check /tmp/docker-pull.log"
 fi
 
 log "Starting containers..."
 if ! docker compose up -d --remove-orphans 2>&1 | tee /tmp/docker-up.log | tail -30; then
-    warn "Some containers failed to start. Check /tmp/docker-up.log"
+	warn "Some containers failed to start. Check /tmp/docker-up.log"
 fi
 
 # Step 7: Wait and show status
@@ -174,7 +174,7 @@ echo "=================================================================="
 echo ""
 echo "Status: $RUNNING/$TOTAL containers running"
 if [ "$UNHEALTHY" -gt 0 ]; then
-    warn "$UNHEALTHY containers are unhealthy (may still be starting)"
+	warn "$UNHEALTHY containers are unhealthy (may still be starting)"
 fi
 echo ""
 echo "Check status with:"

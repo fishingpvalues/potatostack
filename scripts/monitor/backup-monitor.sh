@@ -67,9 +67,9 @@ while true; do
 			elif [ "$state" = "ok" ] && [ -n "$prev" ]; then
 				notify_backup "PotatoStack - Backup recovered" "Backup updated for ${path}" "low"
 			fi
-			grep -v -F "${path}=" "$STATE_FILE" > "${STATE_FILE}.tmp" || true
+			grep -v -F "${path}=" "$STATE_FILE" >"${STATE_FILE}.tmp" || true
 			mv "${STATE_FILE}.tmp" "$STATE_FILE"
-			echo "${path}=${state}" >> "$STATE_FILE"
+			echo "${path}=${state}" >>"$STATE_FILE"
 		fi
 	done
 

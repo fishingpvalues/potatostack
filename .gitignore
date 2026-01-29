@@ -97,4 +97,6 @@ certs/
 ssl/
 
 # Service configs with secrets
-config/rustypaste/config.toml
+config/rustypaste/config.toml__pycache__/
+*.pyc
+killswitch-test-report-*.txt

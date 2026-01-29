@@ -51,7 +51,6 @@ Complete self-hosted stack with 100 services optimized for low-power hardware.
 - **Parseable** - Lightweight log analytics
 - **cAdvisor** - Container metrics
 - **Scrutiny** - HDD SMART monitoring
-- **Netdata** - Real-time system monitoring
 - **Beszel** - Lightweight Docker monitoring
 - **Uptime Kuma** - Uptime checks
 - **Alertmanager** - Alert routing
@@ -82,13 +81,11 @@ Complete self-hosted stack with 100 services optimized for low-power hardware.
 ### Primary Interfaces
 - **Grafana**: http://192.168.178.158:3002 ⭐ Main monitoring
 - **Homarr**: http://192.168.178.158:7575 - Dashboard
-- **Nextcloud**: http://192.168.178.158:8443 - Cloud storage
 - **Jellyfin**: http://192.168.178.158:8096 - Media server
 
 ### Monitoring
 - **Prometheus**: http://192.168.178.158:9090
 - **Thanos Query**: http://192.168.178.158:10903
-- **Netdata**: http://192.168.178.158:19999
 - **Beszel**: http://192.168.178.158:8090
 
 ### Management
@@ -174,7 +171,7 @@ See [QUICK_START.md](QUICK_START.md) for detailed setup instructions.
 - Tmpfs for temporary files (reduces disk I/O)
 
 ### Monitoring Strategy
-- **Real-time**: Netdata (live system metrics)
+- **Real-time**: Grafana (live dashboard)
 - **Short-term**: Prometheus (7 days, 30s resolution)
 - **Long-term**: Thanos (1 year, downsampled to 5m/1h)
 - **Logs**: Loki (30 days, TSDB v12)
@@ -237,9 +234,6 @@ docker logs -f <container_name>
 ```bash
 # Docker stats
 docker stats
-
-# Netdata (real-time)
-open http://192.168.178.158:19999
 
 # Grafana (historical)
 open http://192.168.178.158:3002

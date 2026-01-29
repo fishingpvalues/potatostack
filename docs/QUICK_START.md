@@ -30,13 +30,13 @@ CADVISOR_TAG=latest
 docker compose pull prometheus grafana thanos-sidecar thanos-store thanos-query thanos-compactor cadvisor loki alloy
 
 # Start all monitoring services
-docker compose up -d prometheus grafana thanos-sidecar thanos-store thanos-query thanos-compactor cadvisor loki alloy netdata
+docker compose up -d prometheus grafana thanos-sidecar thanos-store thanos-query thanos-compactor cadvisor loki alloy
 ```
 
 ## 4. Verify Services Started
 ```bash
 # Check all monitoring containers are running
-docker ps | grep -E "prometheus|thanos|grafana|cadvisor|netdata|loki|alloy"
+docker ps | grep -E "prometheus|thanos|grafana|cadvisor|loki|alloy"
 
 # Should see 10+ containers
 ```
@@ -117,9 +117,7 @@ curl -s http://192.168.178.158:9090/api/v1/rules | jq '.data.groups[].name'
    - Error logs
    - Container logs
    - Log volume
-
 ### Real-time Monitoring
-- **Netdata**: http://192.168.178.158:19999
   - Live system metrics
   - CPU per core
   - RAM breakdown

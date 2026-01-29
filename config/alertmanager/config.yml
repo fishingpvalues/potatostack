@@ -92,4 +92,4 @@ inhibit_rules:
 # Silence templates for common maintenance scenarios
 # Use: amtool silence add --alertmanager.url=http://localhost:9093 --duration=1h alertname=DiskSpaceLow
 templates:
-  - '/etc/alertmanager/templates/*.tmpl'
+  - "/etc/alertmanager/templates/*.tmpl"

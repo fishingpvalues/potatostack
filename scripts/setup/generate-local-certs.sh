@@ -16,7 +16,7 @@ NC='\033[0m'
 
 # Load domain from .env or use default
 if [[ -f "$PROJECT_ROOT/.env" ]]; then
-    HOST_DOMAIN=$(grep -E "^HOST_DOMAIN=" "$PROJECT_ROOT/.env" | cut -d'=' -f2 | tr -d '"' | tr -d "'")
+	HOST_DOMAIN=$(grep -E "^HOST_DOMAIN=" "$PROJECT_ROOT/.env" | cut -d'=' -f2 | tr -d '"' | tr -d "'")
 fi
 DOMAIN="${1:-${HOST_DOMAIN:-danielhomelab.local}}"
 
@@ -27,20 +27,20 @@ cd "$CERT_DIR"
 
 # Generate CA key and certificate
 if [[ ! -f "ca.key" ]]; then
-    echo -e "${YELLOW}Creating local CA...${NC}"
-    openssl genrsa -out ca.key 4096
-    openssl req -new -x509 -days 3650 -key ca.key -out ca.crt \
-        -subj "/C=DE/ST=Local/L=Homelab/O=PotatoStack CA/CN=PotatoStack Local CA"
-    echo -e "${GREEN}CA created: ca.crt${NC}"
+	echo -e "${YELLOW}Creating local CA...${NC}"
+	openssl genrsa -out ca.key 4096
+	openssl req -new -x509 -days 3650 -key ca.key -out ca.crt \
+		-subj "/C=DE/ST=Local/L=Homelab/O=PotatoStack CA/CN=PotatoStack Local CA"
+	echo -e "${GREEN}CA created: ca.crt${NC}"
 else
-    echo -e "${YELLOW}Using existing CA${NC}"
+	echo -e "${YELLOW}Using existing CA${NC}"
 fi
 
 # Generate wildcard certificate
 echo -e "${YELLOW}Generating wildcard certificate for *.${DOMAIN}${NC}"
 
 # Create certificate config
-cat > cert.conf << EOF
+cat >cert.conf <<EOF
 [req]
 default_bits = 2048
 prompt = no
@@ -70,7 +70,7 @@ openssl genrsa -out local.key 2048
 openssl req -new -key local.key -out local.csr -config cert.conf
 
 # Create extension config for SAN
-cat > ext.conf << EOF
+cat >ext.conf <<EOF
 authorityKeyIdentifier=keyid,issuer
 basicConstraints=CA:FALSE
 keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
@@ -83,7 +83,7 @@ EOF
 
 # Sign the certificate with CA
 openssl x509 -req -in local.csr -CA ca.crt -CAkey ca.key -CAcreateserial \
-    -out local.crt -days 825 -sha256 -extfile ext.conf
+	-out local.crt -days 825 -sha256 -extfile ext.conf
 
 # Cleanup temp files
 rm -f cert.conf ext.conf local.csr

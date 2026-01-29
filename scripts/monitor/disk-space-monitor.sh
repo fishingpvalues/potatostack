@@ -58,21 +58,21 @@ while true; do
 		if [ "$level" != "$prev" ]; then
 			echo "[$(date +'%Y-%m-%d %H:%M:%S')] $path usage ${usage}% ($level)"
 			case "$level" in
-				crit)
-					notify_disk "PotatoStack - Disk critical" "${path} usage ${usage}% (>${CRIT_THRESHOLD}%)" "urgent"
-					;;
-				warn)
-					notify_disk "PotatoStack - Disk warning" "${path} usage ${usage}% (>${WARN_THRESHOLD}%)" "high"
-					;;
-				ok)
-					if [ -n "$prev" ] && [ "$prev" != "ok" ]; then
-						notify_disk "PotatoStack - Disk recovered" "${path} usage ${usage}% back to normal" "low"
-					fi
-					;;
+			crit)
+				notify_disk "PotatoStack - Disk critical" "${path} usage ${usage}% (>${CRIT_THRESHOLD}%)" "urgent"
+				;;
+			warn)
+				notify_disk "PotatoStack - Disk warning" "${path} usage ${usage}% (>${WARN_THRESHOLD}%)" "high"
+				;;
+			ok)
+				if [ -n "$prev" ] && [ "$prev" != "ok" ]; then
+					notify_disk "PotatoStack - Disk recovered" "${path} usage ${usage}% back to normal" "low"
+				fi
+				;;
 			esac
-			grep -v -F "${path}=" "$STATE_FILE" > "${STATE_FILE}.tmp" || true
+			grep -v -F "${path}=" "$STATE_FILE" >"${STATE_FILE}.tmp" || true
 			mv "${STATE_FILE}.tmp" "$STATE_FILE"
-			echo "${path}=${level}" >> "$STATE_FILE"
+			echo "${path}=${level}" >>"$STATE_FILE"
 		fi
 	done
 

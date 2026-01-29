@@ -38,16 +38,12 @@ Your services are accessible at `192.168.178.158` or via Traefik at `*.danielhom
 | Prowlarr (Indexers) | https://prowlarr.danielhomelab.local | Via Gluetun :9696 |
 | Bazarr (Subtitles) | https://bazarr.danielhomelab.local | Via Gluetun :6767 |
 | Bookshelf (Ebooks) | https://bookshelf.danielhomelab.local | Via Gluetun :8787 |
-| Maintainerr | https://maintainerr.danielhomelab.local | 192.168.178.158:6246 |
 
 ### Downloads (VPN Protected)
 | Service | HTTPS URL | VPN Port |
 |---------|-----------|----------|
 | qBittorrent | https://qbittorrent.danielhomelab.local | Via Gluetun :8090 |
-| Aria2 | - | Via Gluetun :6880 |
-| AriaNg (Web UI) | - | Via Gluetun :6888 |
 | Slskd (Soulseek) | https://slskd.danielhomelab.local | Via Gluetun :2234 |
-# | Pinchflat (YouTube) | https://pinchflat.danielhomelab.local | Via Gluetun :8945 |
 
 ### Photos & Files
 | Service | HTTPS URL | Direct IP:Port |
@@ -63,7 +59,6 @@ Your services are accessible at `192.168.178.158` or via Traefik at `*.danielhom
 |---------|-----------|----------------|
 | **Grafana** | https://grafana.danielhomelab.local | 192.168.178.158:3002 |
 | Prometheus | https://prometheus.danielhomelab.local | 192.168.178.158:9090 |
-| Netdata | https://netdata.danielhomelab.local | 192.168.178.158:19999 |
 | Uptime Kuma | https://uptime.danielhomelab.local | 192.168.178.158:3001 |
 | Loki (Logs) | https://loki.danielhomelab.local | 192.168.178.158:3100 |
 | Scrutiny (Disks) | https://scrutiny.danielhomelab.local | 192.168.178.158:8085 |
