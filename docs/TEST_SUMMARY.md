@@ -15,7 +15,7 @@ Production-ready testing suite for PotatoStack with **65+ services** across all 
 ✓ **Automation (4)**: n8n, diun, autoheal, healthchecks
 ✓ **Development (3)**: gitea, gitea-runner, code-server
 ✓ **Network (4)**: gluetun, gluetun-monitor, tailscale, adguardhome
-✓ **Other (8)**: syncthing, open-webui, immich-server, immich-machine-learning, kopia, atuin, trivy, storage-init
+✓ **Other (7)**: syncthing, open-webui, immich-server, immich-machine-learning, atuin, trivy, storage-init
 
 ## Test Types
 

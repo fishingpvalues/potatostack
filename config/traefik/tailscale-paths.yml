@@ -262,14 +262,6 @@ http:
       tls:
         options: default
 
-    tailnet-kopia:
-      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/kopia`)"
-      entryPoints: ["websecure"]
-      service: kopia
-      middlewares: ["sso-chain@docker", "strip-first-segment"]
-      tls:
-        options: default
-
     # VPN-backed services (via gluetun namespace)
     tailnet-gluetun:
       rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/gluetun`)"
@@ -518,12 +510,6 @@ http:
         servers:
           - url: "http://velld-web:3000"
 
-    kopia:
-      loadBalancer:
-        serversTransport: kopia-transport
-        servers:
-          - url: "https://kopia:51515"
-
     gluetun:
       loadBalancer:
         servers:
@@ -583,7 +569,3 @@ http:
       loadBalancer:
         servers:
           - url: "http://gluetun:8080"
-
-  serversTransports:
-    kopia-transport:
-      insecureSkipVerify: true

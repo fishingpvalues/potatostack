@@ -58,7 +58,7 @@ chmod +x run-and-monitor.sh
 - authentik-server
 
 **Standard Tier (384MB each)**:
-- code-server, stirling-pdf, kopia, gitea, open-webui
+- code-server, stirling-pdf, gitea, open-webui
 
 **Light Tier (128MB each)**:
 - 48 services including *arr stack, monitoring, utilities

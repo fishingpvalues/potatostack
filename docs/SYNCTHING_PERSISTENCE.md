@@ -118,15 +118,7 @@ docker run --rm \
   alpine tar czf /backup/syncthing-config-$(date +%Y%m%d).tar.gz -C /source .
 ```
 
-### Automated Backup (Kopia)
-Kopia does NOT currently back up Syncthing config volume (only data folders).
-
-To add Syncthing config to Kopia backups, add to docker-compose.yml:
-```yaml
-kopia:
-  volumes:
-    - syncthing-config:/data/syncthing-config:ro
-```
+### Automated Backup
 
 ## Testing Persistence
 

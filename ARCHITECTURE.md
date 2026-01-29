@@ -206,7 +206,6 @@ flowchart TB
         direction TB
         velldApi[Velld API<br/>Backup Management]:::backup
         velldWeb[Velld Web<br/>UI]:::backup
-        kopia[Kopia Server<br/>Encrypted Backups]:::backup
         snapshotSched[Snapshot Scheduler<br/>Incremental]:::backup
     end
 
@@ -276,7 +275,6 @@ flowchart TB
     traefik --> homarr
     traefik --> velldApi
     traefik --> velldWeb
-    traefik --> kopia
     traefik --> jellyfin
     traefik --> jellyseerr
     traefik --> audiobookshelf
@@ -411,8 +409,7 @@ flowchart TB
     homarr --> socketProxy
 
     %% ============ BACKUP & RECOVERY ============
-    snapshotSched --> kopia
-    kopia --> storageInit
+    snapshotSched --> storageInit
     velldWeb --> velldApi
 
     %% ============ SYSTEM UTILITIES ============
@@ -425,7 +422,7 @@ flowchart TB
     dbHealthMon --> postgres
     dbHealthMon --> redis
     dbHealthMon --> mongo
-    backupMon --> kopia
+    backupMon --> HostFS
     diskMon --> storageInit
     tsConnMon --> tailscale
     immichLogMon --> immich
@@ -535,7 +532,6 @@ flowchart TB
         smartExp[Smartctl Exporter]:::obs
 
         %% Backup
-        kopia[Kopia]:::backup
         snapshotSched[Snapshot Scheduler]:::backup
         velldApi[Velld API]:::backup
         velldWeb[Velld Web]:::backup
@@ -674,7 +670,6 @@ flowchart TB
     tsHttpsMon --> DockerSock
 
     %% Backup plane
-    kopia --> HostFS
     snapshotSched --> DockerSock
     velldApi --> HostFS
     velldWeb --> velldApi
@@ -1173,7 +1168,6 @@ flowchart TB
         smartExp[Smartctl Exporter]:::obs
 
         %% Backup
-        kopia[Kopia]:::backup
         snapshotSched[Snapshot Scheduler]:::backup
         velldApi[Velld API]:::backup
         velldWeb[Velld Web]:::backup
@@ -1312,7 +1306,6 @@ flowchart TB
     tsHttpsMon --> DockerSock
 
     %% Backup plane
-    kopia --> HostFS
     snapshotSched --> DockerSock
     velldApi --> HostFS
     velldWeb --> velldApi

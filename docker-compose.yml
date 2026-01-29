@@ -32,7 +32,7 @@ services:
       ARIA2_RPC_SECRET: ${ARIA2_RPC_SECRET:-}
       SNAPSHOT_CRON_SCHEDULE: ${SNAPSHOT_CRON_SCHEDULE:-0 3 * * *}
       SNAPSHOT_PATHS: ${SNAPSHOT_PATHS:-/data}
-      SNAPSHOT_LOG_FILE: ${SNAPSHOT_LOG_FILE:-/mnt/storage/kopia/stack-snapshot.log}
+      SNAPSHOT_LOG_FILE: ${SNAPSHOT_LOG_FILE:-/mnt/storage/stack-snapshot.log}
     volumes:
       - /mnt/storage:/mnt/storage
       - /mnt/cachehdd:/mnt/cachehdd
@@ -3947,7 +3947,7 @@ services:
     logging: *default-logging
     entrypoint: sh /backup-monitor.sh
     environment:
-      BACKUP_MONITOR_PATHS: ${BACKUP_MONITOR_PATHS:-/mnt/storage/kopia/stack-snapshot.log /mnt/storage/velld/backups}
+      BACKUP_MONITOR_PATHS: ${BACKUP_MONITOR_PATHS:-/mnt/storage/stack-snapshot.log /mnt/storage/velld/backups}
       BACKUP_MAX_AGE_HOURS: ${BACKUP_MAX_AGE_HOURS:-48}
       BACKUP_MONITOR_INTERVAL: ${BACKUP_MONITOR_INTERVAL:-3600}
       NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
@@ -4147,12 +4147,10 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /mnt/ssd/docker-data/cron:/etc/crontabs
-      - /mnt/storage/kopia:/mnt/storage/kopia
       - ./scripts/backup/stack-snapshot.sh:/stack-snapshot.sh:ro
     networks:
       - potatostack
     depends_on:
-      - kopia
       - storage-init
     restart: unless-stopped
     deploy:
@@ -4160,69 +4158,6 @@ services:
         limits:
           cpus: "0.1"
           memory: 64M
-  # Kopia - Fast and secure backup server
-  kopia:
-    image: kopia/kopia:${KOPIA_TAG:-latest}
-    container_name: kopia
-    logging: *default-logging
-    hostname: kopia-server
-    entrypoint: sh /kopia-init.sh
-    ports:
-      - "${HOST_BIND:-192.168.178.158}:51515:51515"
-    environment:
-      <<: *common-env
-      KOPIA_PASSWORD: ${KOPIA_PASSWORD}
-      KOPIA_SERVER_USER: ${KOPIA_SERVER_USER:-admin}
-      KOPIA_SERVER_PASSWORD: ${KOPIA_SERVER_PASSWORD}
-      KOPIA_HOSTNAME: ${KOPIA_HOSTNAME:-potatostack}
-      KOPIA_INSECURE_HTTP: "true" # HTTP mode for Tailscale proxy
-      KOPIA_CONFIG_PATH: /app/config/repository.config
-      KOPIA_CACHE_DIRECTORY: /app/cache
-      KOPIA_LOG_DIR: /app/logs
-    volumes:
-      - /mnt/storage/kopia/repository:/repository
-      - kopia-config:/app/config
-      - /mnt/cachehdd/sync/kopia-cache:/app/cache
-      - kopia-logs:/app/logs
-      - ./scripts/init/kopia-init.sh:/kopia-init.sh:ro
-      # Backup targets
-      - vaultwarden-data:/data/vaultwarden:ro
-      - /mnt/storage/syncthing:/data/syncthing:ro
-      - /mnt/storage/downloads:/data/downloads:ro
-      - /mnt/storage/slskd-shared:/data/slskd-shared:ro
-      - /mnt/storage/photos:/data/photos:ro
-      - /mnt/storage/media:/data/media:ro
-      # Host system backup (Debian 13) - includes /etc, /home, /root, /var
-      - /etc:/data/host-etc:ro
-      - /home:/data/host-home:ro
-      - /root:/data/host-root:ro
-      - /var/log:/data/host-var-log:ro
-      - /mnt/ssd/docker-data:/data/docker-data:ro
-    networks:
-      - potatostack
-    depends_on:
-      - storage-init
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "2.0"
-          memory: 384M
-    healthcheck:
-      test: ["CMD", "kopia", "repository", "status"]
-      interval: 120s
-      timeout: 20s
-      retries: 3
-      start_period: 60s
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.kopia.rule=Host(`kopia.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.kopia.entrypoints=websecure"
-      - "traefik.http.routers.kopia.tls=true"
-      - "traefik.http.services.kopia.loadbalancer.server.port=51515"
-      - "traefik.http.services.kopia.loadbalancer.server.scheme=https"
-      - "traefik.http.routers.kopia.middlewares=sso-chain@docker"
-
 ################################################################################
 # NETWORKS
 ################################################################################
@@ -4350,10 +4285,6 @@ volumes:
   samba-lib:
   samba-cache:
   samba-run:
-
-  # Backups
-  kopia-config:
-  kopia-logs:
 
   # Enterprise Security & Secrets
   fail2ban-data:

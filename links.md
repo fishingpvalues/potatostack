@@ -108,7 +108,6 @@ All services accessible via HTTPS using Tailscale certificates or Traefik revers
 
 | Service | Port Link | Traefik Link | Description |
 |---------|-----------|-------------|-------------|
-| Kopia | https://potatostack.tale-iwato.ts.net:51515 | https://kopia.potatostack.tale-iwato.ts.net | Backup Manager |
 | Velld API | https://potatostack.tale-iwato.ts.net:8085 | https://velld-api.potatostack.tale-iwato.ts.net | Database Backup API |
 | Velld Web | https://potatostack.tale-iwato.ts.net:3010 | https://velld.potatostack.tale-iwato.ts.net | Database Backup UI |
 
@@ -165,8 +164,6 @@ open https://slskd.potatostack.tale-iwato.ts.net
 # Backups
 open https://potatostack.tale-iwato.ts.net:3010
 open https://velld.potatostack.tale-iwato.ts.net
-open https://potatostack.tale-iwato.ts.net:51515
-open https://kopia.potatostack.tale-iwato.ts.net
 ```
 
 ## Access Methods
@@ -215,15 +212,6 @@ pyLoad-ng runs behind the Gluetun VPN killswitch for privacy.
 3. Change password in Settings → General
 4. Configure download paths in Settings → General
 
-## Kopia Host Backup
-
-Kopia backs up:
-- `/etc` - System configuration
-- `/home` - User home directories
-- `/root` - Root user directory
-- `/var/log` - System logs
-- Docker data from `/mnt/ssd/docker-data`
-- All storage volumes
 
 ## Rustypaste Usage
 

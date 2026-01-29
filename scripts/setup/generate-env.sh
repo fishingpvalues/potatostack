@@ -367,7 +367,7 @@ TRAEFIK_RESTART_ON_ERROR=false
 TRAEFIK_RESTART_COOLDOWN=300
 TRAEFIK_NOTIFY_COOLDOWN=300
 
-BACKUP_MONITOR_PATHS=/mnt/storage/kopia/stack-snapshot.log /mnt/storage/velld/backups
+BACKUP_MONITOR_PATHS=/mnt/storage/stack-snapshot.log /mnt/storage/velld/backups
 BACKUP_MAX_AGE_HOURS=48
 BACKUP_MONITOR_INTERVAL=3600
 
@@ -558,14 +558,10 @@ ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
 # Repository encryption password (CRITICAL - store this safely!)
 KOPIA_PASSWORD=${KOPIA_PASSWORD}
 # Web UI credentials
-KOPIA_SERVER_USER=${ADMIN_USER}
-KOPIA_SERVER_PASSWORD=${KOPIA_SERVER_PASSWORD}
-# Hostname identifier for snapshots
-KOPIA_HOSTNAME=potatostack
 # Automated snapshot schedule
 SNAPSHOT_CRON_SCHEDULE=0 3 * * *
 SNAPSHOT_PATHS=/data
-SNAPSHOT_LOG_FILE=/mnt/storage/kopia/stack-snapshot.log
+SNAPSHOT_LOG_FILE=/mnt/storage/stack-snapshot.log
 VELLD_API_URL=http://${HOST_BIND}:8085
 VELLD_JWT_SECRET=${VELLD_JWT_SECRET}
 VELLD_ENCRYPTION_KEY=${VELLD_ENCRYPTION_KEY}

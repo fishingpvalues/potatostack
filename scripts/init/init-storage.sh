@@ -5,7 +5,7 @@
 # Runs once at startup via storage-init container
 #
 # Structure (2025 consolidated):
-# - /mnt/storage: Main HDD - media, downloads, syncthing, kopia, obsidian, mealie
+# - /mnt/storage: Main HDD - media, downloads, syncthing, obsidian, mealie
 # - /mnt/cachehdd: Cache HDD - organized by function (downloads, media, observability, sync, system)
 # - /mnt/ssd/docker-data: SSD - databases and app configs
 ################################################################################
@@ -127,7 +127,6 @@ mkdir -p \
 	"${STORAGE_BASE}/downloads/torrent" \
 	"${STORAGE_BASE}/downloads/pyload" \
 	"${STORAGE_BASE}/projects" \
-	"${STORAGE_BASE}/kopia/repository" \
 	"${STORAGE_BASE}/velld/backups" \
 	"${STORAGE_BASE}/rustypaste/uploads" \
 	"${STORAGE_BASE}/slskd-shared" \
@@ -223,8 +222,7 @@ mkdir -p \
 
 # Sync caches
 mkdir -p \
-	"${CACHE_BASE}/sync/syncthing-versions" \
-	"${CACHE_BASE}/sync/kopia-cache"
+	"${CACHE_BASE}/sync/syncthing-versions"
 
 # System
 mkdir -p \
@@ -273,7 +271,7 @@ CRON_DIR="/mnt/ssd/system/cron"
 CRON_FILE="${CRON_DIR}/root"
 SNAPSHOT_CRON_SCHEDULE="${SNAPSHOT_CRON_SCHEDULE:-0 3 * * *}"
 SNAPSHOT_PATHS="${SNAPSHOT_PATHS:-/data}"
-SNAPSHOT_LOG_FILE="${SNAPSHOT_LOG_FILE:-/mnt/storage/kopia/stack-snapshot.log}"
+SNAPSHOT_LOG_FILE="${SNAPSHOT_LOG_FILE:-/mnt/storage/stack-snapshot.log}"
 
 printf '%s\n' "Configuring snapshot cron schedule..."
 if [ ! -f "${CRON_FILE}" ]; then
@@ -472,6 +470,6 @@ printf '%s\n' ""
 printf '%s\n' "✓ Storage initialization complete"
 printf '%s\n' ""
 printf '%s\n' "Directory structure:"
-printf '%s\n' "  /mnt/storage     - Main HDD (media, downloads, syncthing, kopia, obsidian, mealie)"
+printf '%s\n' "  /mnt/storage     - Main HDD (media, downloads, syncthing, obsidian, mealie)"
 printf '%s\n' "  /mnt/cachehdd    - Cache HDD (downloads/media/observability/sync/system)"
 printf '%s\n' "  /mnt/ssd         - SSD (docker-data, system)"

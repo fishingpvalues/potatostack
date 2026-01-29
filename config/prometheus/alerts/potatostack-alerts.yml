@@ -423,17 +423,6 @@ groups:
   - name: Backup & Storage Services
     interval: 60s
     rules:
-      - alert: KopiaDown
-        expr: time() - container_last_seen{container_label_com_docker_compose_service="kopia"} > 120
-        for: 2m
-        labels:
-          severity: critical
-          component: backup
-        annotations:
-          summary: "💾 Kopia DOWN - Backup service unavailable"
-          description: "Kopia backup service container has not been seen for > 2 minutes. Automated backups may be affected."
-          runbook: "Check: docker logs kopia"
-
       - alert: ScrutinyDown
         expr: time() - container_last_seen{container_label_com_docker_compose_service="scrutiny"} > 120
         for: 2m

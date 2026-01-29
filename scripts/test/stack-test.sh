@@ -435,7 +435,7 @@ test_service_endpoints() {
 	grep -q "syncthing" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Syncthing" "http://localhost:8384"
 	grep -q "open-webui" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Open WebUI" "http://localhost:8080"
 	grep -q "immich-server" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Immich" "http://localhost:3001"
-	grep -q "kopia" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Kopia" "http://localhost:51515"
+
 	grep -q "velld-web" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Velld" "http://localhost:3010"
 	grep -q "maintainerr" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Maintainerr" "http://localhost:6246"
 	grep -q "atuin" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Atuin" "http://localhost:8888"

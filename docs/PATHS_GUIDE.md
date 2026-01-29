@@ -29,19 +29,6 @@ When setting up folders in Syncthing UI, use `/data/` paths:
 - qBittorrent downloads: `/data/downloads`
 - Soulseek shared: `/data/slskd-shared`
 
-### Kopia Backup
-**Container sees**: `/data/*` (read-only)
-**Host location**: Various `/mnt/storage/*`
-
-Backed up folders:
-- Vaultwarden DB: `/data/vaultwarden`
-- All Syncthing folders: `/data/syncthing-*`
-- Downloads: `/data/downloads`
-- Soulseek: `/data/slskd-shared`
-
-**Repository**: `/repository` → `/mnt/storage/kopia/repository`
-**Cache**: `/app/cache` → `/mnt/cachehdd/kopia-cache`
-
 ### FileBrowser
 **Container sees**: `/srv/*`
 **Host location**: Dual mount
@@ -63,12 +50,10 @@ Full tree:
 │   ├── photos/
 │   ├── music/
 │   └── ...
-└── kopia/repository/
 
 /srv/cachehdd/
 ├── downloads/torrent/
 ├── slskd-incomplete/
-├── kopia-cache/
 └── syncthing-versions/
 ```
 
@@ -89,8 +74,6 @@ Full tree:
 /mnt/storage/
 ├── downloads/              # qBittorrent completed downloads
 ├── slskd-shared/          # Soulseek shared files
-├── kopia/
-│   └── repository/        # Backup repository
 └── syncthing/             # P2P sync folders
     ├── Desktop/
     ├── Obsidian-Vault/
@@ -118,7 +101,6 @@ Full tree:
 /mnt/cachehdd/
 ├── downloads/torrent/         # Active torrent downloads (qBittorrent)
 ├── slskd-incomplete/          # Active Soulseek downloads
-├── kopia-cache/               # Backup cache & metadata
 └── syncthing-versions/        # File version history
 ```
 

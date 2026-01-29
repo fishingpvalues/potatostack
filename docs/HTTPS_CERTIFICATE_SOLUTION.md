@@ -104,16 +104,6 @@ vault.{$DOMAIN} {
     }
 }
 
-# Kopia (optional)
-backup.{$DOMAIN} {
-    reverse_proxy kopia:51515 {
-        transport http {
-            tls
-            tls_insecure_skip_verify
-        }
-    }
-}
-
 # RustyPaste (if you want HTTPS)
 paste.{$DOMAIN} {
     reverse_proxy rustypaste:8000

@@ -164,7 +164,7 @@ qbittorrent:     (inherited from gluetun network)
 slskd:           (inherited from gluetun network)
 vaultwarden:     128M max (increased)
 portainer:       96M max
-kopia:           192M max
+
 syncthing:       384M max
 filebrowser:     96M max
 storage-init:    64M max (NEW)
