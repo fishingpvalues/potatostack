@@ -30,86 +30,99 @@ STATE_FILE="/var/lib/${SERVICE_NAME}/state"
 
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then
-	echo -e "${RED}ERROR${NC}: This script must be run as root"
-	echo "Use: sudo $0"
-	exit 1
-fi
-
-echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}Gluetun Monitor Host Service Setup${NC}"
-echo -e "${BLUE}========================================${NC}"
-echo ""
-
-# Step 1: Verify prerequisites
-echo -e "${BLUE}[1/5]${NC} Verifying prerequisites..."
-echo ""
-
-# Check if user exists
-if ! id "$SERVICE_USER" &>/dev/null; then
-	echo -e "${RED}ERROR${NC}: User '$SERVICE_USER' does not exist"
-	exit 1
-fi
-echo -e "${GREEN}✓${NC} User '$SERVICE_USER' exists"
-
-# Check if PotatoStack directory exists
-if [ ! -d "$POTATOSTACK_DIR" ]; then
-	echo -e "${RED}ERROR${NC}: PotatoStack directory not found: $POTATOSTACK_DIR"
-	exit 1
-fi
-echo -e "${GREEN}✓${NC} PotatoStack directory found"
-
-# Check if monitor script exists
-if [ ! -f "$SCRIPT_DIR/gluetun-monitor.sh" ]; then
-	echo -e "${RED}ERROR${NC}: Monitor script not found: $SCRIPT_DIR/gluetun-monitor.sh"
-	exit 1
-fi
-echo -e "${GREEN}✓${NC} Monitor script found"
-
-# Check if gluetun is configured in compose
-if ! docker compose -f "$POTATOSTACK_DIR/docker-compose.yml" config --services | grep -q gluetun; then
-	echo -e "${YELLOW}WARNING${NC}: Gluetun service not found in docker-compose.yml"
-fi
-echo -e "${GREEN}✓${NC} Gluetun configured"
-
-echo ""
-
-# Step 2: Stop and remove existing containerized monitor
-echo -e "${BLUE}[2/5]${NC} Removing existing containerized monitor..."
-echo ""
-
-CONTAINER_EXISTS=$(docker ps -a --filter "name=$SERVICE_NAME" --format '{{.Names}}' | wc -l)
-
-if [ "$CONTAINER_EXISTS" -gt 0 ]; then
-	echo -e "  Stopping existing $SERVICE_NAME container..."
-	docker stop "$SERVICE_NAME" 2>/dev/null || true
-	docker rm "$SERVICE_NAME" 2>/dev/null || true
-	echo -e "${GREEN}✓${NC} Existing container removed"
-else
-	echo -e "${YELLOW}⊙${NC} No existing container found"
-fi
-
-# Check if systemd service exists
-if systemctl is-active --quiet 2>/dev/null; then
-	if systemctl is-enabled --quiet "${SERVICE_NAME}.service" 2>/dev/null; then
-		echo -e "  Disabling systemd service..."
-		systemctl disable "${SERVICE_NAME}.service" 2>/dev/null || true
-		rm -f "$TIMER_FILE" 2>/dev/null || true
+	# Check if password-less sudo available
+	if command -v sudo >/dev/null 2>&1 || command -v command sudo -n >/dev/null; then
+		# Password-less sudo not available
+		USING_SUDO="sudo"
+	else
+		USING_SUDO=""
+		echo -e "${YELLOW}⚠${NC} Running without sudo, will prompt for password when needed"
 	fi
-	echo -e "${GREEN}✓${NC} Systemd service check complete"
-else
-	echo -e "${YELLOW}⊙${NC} Systemd not available (not running as service)"
-fi
 
-echo ""
+	# If running as root, we're good
+	if [ "$EUID" -eq 0 ]; then
+		true
+	else
+		echo -e "${RED}ERROR${NC}: This script must be run as root"
+		echo "Use: sudo $0"
+		exit 1
+	fi
 
-# Step 3: Create systemd service file
-echo -e "${BLUE}[3/5]${NC} Creating systemd service..."
-echo ""
+	echo -e "${BLUE}========================================${NC}"
+	echo -e "${BLUE}Gluetun Monitor Host Service Setup${NC}"
+	echo -e "${BLUE}========================================${NC}"
+	echo ""
 
-mkdir -p "$(dirname "$STATE_FILE")" 2>/dev/null
-mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null
+	# Step 1: Verify prerequisites
+	echo -e "${BLUE}[1/5]${NC} Verifying prerequisites..."
+	echo ""
 
-cat >"$SERVICE_FILE" <<EOF
+	# Check if user exists
+	if ! id "$SERVICE_USER" &>/dev/null; then
+		echo -e "${RED}ERROR${NC}: User '$SERVICE_USER' does not exist"
+		exit 1
+	fi
+	echo -e "${GREEN}✓${NC} User '$SERVICE_USER' exists"
+
+	# Check if PotatoStack directory exists
+	if [ ! -d "$POTATOSTACK_DIR" ]; then
+		echo -e "${RED}ERROR${NC}: PotatoStack directory not found: $POTATOSTACK_DIR"
+		exit 1
+	fi
+	echo -e "${GREEN}✓${NC} PotatoStack directory found"
+
+	# Check if monitor script exists
+	if [ ! -f "$SCRIPT_DIR/gluetun-monitor.sh" ]; then
+		echo -e "${RED}ERROR${NC}: Monitor script not found: $SCRIPT_DIR/gluetun-monitor.sh"
+		exit 1
+	fi
+	echo -e "${GREEN}✓${NC} Monitor script found"
+
+	# Check if gluetun is configured in compose
+	if ! docker compose -f "$POTATOSTACK_DIR/docker-compose.yml" config --services | grep -q gluetun; then
+		echo -e "${YELLOW}WARNING${NC}: Gluetun service not found in docker-compose.yml"
+	fi
+	echo -e "${GREEN}✓${NC} Gluetun configured"
+
+	echo ""
+
+	# Step 2: Stop and remove existing containerized monitor
+	echo -e "${BLUE}[2/5]${NC} Removing existing containerized monitor..."
+	echo ""
+
+	CONTAINER_EXISTS=$(docker ps -a --filter "name=$SERVICE_NAME" --format '{{.Names}}' | wc -l)
+
+	if [ "$CONTAINER_EXISTS" -gt 0 ]; then
+		echo -e "  Stopping existing $SERVICE_NAME container..."
+		docker stop "$SERVICE_NAME" 2>/dev/null || true
+		docker rm "$SERVICE_NAME" 2>/dev/null || true
+		echo -e "${GREEN}✓${NC} Existing container removed"
+	else
+		echo -e "${YELLOW}⊙${NC} No existing container found"
+	fi
+
+	# Check if systemd service exists
+	if systemctl is-active --quiet 2>/dev/null; then
+		if systemctl is-enabled --quiet "${SERVICE_NAME}.service" 2>/dev/null; then
+			echo -e "  Disabling systemd service..."
+			systemctl disable "${SERVICE_NAME}.service" 2>/dev/null || true
+			rm -f "$TIMER_FILE" 2>/dev/null || true
+		fi
+		echo -e "${GREEN}✓${NC} Systemd service check complete"
+	else
+		echo -e "${YELLOW}⊙${NC} Systemd not available (not running as service)"
+	fi
+
+	echo ""
+
+	# Step 3: Create systemd service file
+	echo -e "${BLUE}[3/5]${NC} Creating systemd service..."
+	echo ""
+
+	mkdir -p "$(dirname "$STATE_FILE")" 2>/dev/null
+	mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null
+
+	cat >"$SERVICE_FILE" <<EOF
 [Unit]
 Description=Gluetun VPN Monitor - Host Service
 Documentation=https://github.com/anomalyco/potatostack
@@ -127,7 +140,19 @@ EnvironmentFile=-/etc/default/${SERVICE_NAME}
 
 ExecStart=/bin/bash $SCRIPT_DIR/gluetun-monitor.sh
 ExecStop=/bin/kill -TERM \${MAINPID}
-ExecStopPost=/bin/bash -c 'docker compose -f $POTATOSTACK_DIR/docker-compose.yml stop prowlarr sonarr radarr lidarr bookshelf bazarr spotiflac qbittorrent slskd pyload pinchflat stash 2>/dev/null || true'
+ExecStopPost=/bin/bash -c 'if docker ps --filter "name=gluetun" --format '{{.Names}}' | grep -q gluetun; then
+	# Wait for gluetun to be healthy
+	sleep 5
+	# Check gluetun health
+	if ! docker inspect gluetun --format '{{.State.Health.Status}}' | grep -q "healthy"; then
+		exit 1
+	fi
+	# Stop all VPN services gracefully
+	docker compose -f "$POTASTACK_DIR/docker-compose.yml" stop prowlarr sonarr radarr lidarr bookshelf bazarr spotiflac qbittorrent slskd pyload pinchflat stash 2>/dev/null || true
+else
+	# Gluetun is not running, skip stopping
+fi
+'
 
 Restart=on-failure
 RestartSec=30s
@@ -143,14 +168,14 @@ StandardError=journal
 WantedBy=multi-user.target
 EOF
 
-echo -e "${GREEN}✓${NC} Systemd service file created: $SERVICE_FILE"
+	echo -e "${GREEN}✓${NC} Systemd service file created: $SERVICE_FILE"
 
-# Step 4: Create startup timer (for delayed start after boot)
-echo ""
-echo -e "${BLUE}[4/5]${NC} Creating startup timer..."
-echo ""
+	# Step 4: Create startup timer (for delayed start after boot)
+	echo ""
+	echo -e "${BLUE}[4/5]${NC} Creating startup timer..."
+	echo ""
 
-cat >"$TIMER_FILE" <<'EOF'
+	cat >"$TIMER_FILE" <<'EOF'
 [Unit]
 Description=Gluetun Monitor Startup Timer
 Documentation=https://github.com/anomalyco/potatostack
@@ -163,34 +188,77 @@ Unit=${SERVICE_NAME}.service
 WantedBy=timers.target
 EOF
 
-echo -e "${GREEN}✓${NC} Startup timer created: $TIMER_FILE"
+	echo -e "${GREEN}✓${NC} Startup timer created: $TIMER_FILE"
 
-# Step 5: Reload systemd
-echo ""
-echo -e "${BLUE}[5/5]${NC} Reloading systemd daemon..."
-echo ""
+	# Step 5: Reload systemd
+	echo ""
+	echo -e "${BLUE}[5/5]${NC} Reloading systemd daemon..."
+	echo ""
 
-systemctl daemon-reload
-echo -e "${GREEN}✓${NC} Systemd daemon reloaded"
+	systemctl daemon-reload
+	echo -e "${GREEN}✓${NC} Systemd daemon reloaded"
 
-echo ""
+	echo ""
 
-# Step 6: Enable and start services
-echo -e "${BLUE}[6/5]${NC} Enabling services..."
-echo ""
+	# Step 6: Enable and start servicesecho ""
+	echo "========================================"
+	echo "6. Enabling services..."
+	echo ""
 
-systemctl enable "${SERVICE_NAME}.service" 2>/dev/null
-echo -e "${GREEN}✓${NC} Service enabled"
+	systemctl enable "${SERVICE_NAME}.service" 2>/dev/null
+	echo -e "${GREEN}✓ Service enabled"
+	echo -e "${GREEN}✓ Startup timer enabled"
 
-systemctl enable "${SERVICE_NAME}-startup.timer" 2>/dev/null
-echo -e "${GREEN}✓${NC} Startup timer enabled"
+	echo ""
+	echo "7. Starting service (with gluetun check)..."
+	echo ""
 
-echo ""
-echo -e "${BLUE}[7/5]${NC} Starting service..."
-echo ""
+	# Check if gluetun is running and healthy before starting
+	echo -e "${BLUE}[INFO]${NC} Checking if Gluetun is available and healthy..."
+	echo ""
 
-# Don't start if gluetun isn't running
-if docker ps --filter "name=gluetun" --format '{{.Names}}' | grep -q gluetun; then
+	if ! docker ps --filter "name=gluetun" --format '{{.Names}}' | grep -q gluetun; then
+		echo -e "${YELLOW}⚠ Gluetun is not running yet"
+		echo -e "${BLUE}[INFO]${NC} Waiting 60 seconds for Gluetun to start..."
+		sleep 60
+	else
+		# Check if gluetun is healthy before starting monitor
+		if docker inspect gluetun --format '{{.State.Health.Status}}' 2>/dev/null | grep -q "healthy"; then
+			echo -e "${GREEN}✓ Gluetun is running and healthy"
+		else
+			echo -e "${YELLOW}⚠ Gluetun is running but not healthy (monitor may not work correctly)"
+			echo -e "${BLUE}[INFO]${NC} Starting monitor anyway..."
+		fi
+	fi
+
+	echo ""
+	echo "Starting service..."
+	echo ""
+
+	systemctl start "${SERVICE_NAME}.service"
+	echo -e "${GREEN}✓ Service started"
+
+	echo ""
+	echo "Waiting a moment for service to initialize..."
+	sleep 3
+
+	echo ""
+	echo "Checking service status..."
+	if systemctl is-active --quiet "${SERVICE_NAME}.service"; then
+		echo -e "${GREEN}✓ Service is running"
+		systemctl status "${SERVICE_NAME}.service" --no-pager -l | head -10
+	else
+		echo -e "${YELLOW}⊙ Service started but may not be fully initialized"
+	fi
+	echo ""
+
+	systemctl enable "${SERVICE_NAME}.service" 2>/dev/null
+	echo -e "${GREEN}✓${NC} Service enabled"
+
+	systemctl enable "${SERVICE_NAME}-startup.timer" 2>/dev/null
+	echo -e "${GREEN}✓${NC} Startup timer enabled"
+
+	echo ""
 	systemctl start "${SERVICE_NAME}.service"
 	echo -e "${GREEN}✓${NC} Service started"
 
@@ -205,6 +273,30 @@ if docker ps --filter "name=gluetun" --format '{{.Names}}' | grep -q gluetun; th
 		echo -e "${YELLOW}⚠${NC} Service started but may not be fully initialized"
 	fi
 else
+	echo -e "${GREEN}✓${NC} Gluetun is running"
+
+	# Verify gluetun is healthy
+	if docker inspect gluetun --format '{{.State.Health.Status}}' 2>/dev/null | grep -q "healthy"; then
+		echo -e "${GREEN}✓${NC} Gluetun is healthy"
+	else
+		echo -e "${YELLOW}⚠${NC} Gluetun is running but not healthy (may not be monitoring)"
+	fi
+
+	# Start the service
+	systemctl start "${SERVICE_NAME}.service"
+	echo -e "${GREEN}✓${NC} Service started"
+
+	# Wait a moment for service to initialize
+	sleep 3
+
+	# Check service status
+	if systemctl is-active --quiet "${SERVICE_NAME}.service"; then
+		echo -e "${GREEN}✓${NC} Service is running"
+		systemctl "${SERVICE_NAME}.service" --no-pager -l | head -10
+	else
+		echo -e "${YELLOW}⚠${NC} Service started but may not be fully initialized"
+	fi
+	else
 	echo -e "${YELLOW}⊙${NC} Gluetun is not running, service enabled but not started"
 	echo -e "  Service will start automatically when gluetun starts"
 fi

@@ -4274,3 +4274,23 @@ volumes:
 
   # Enterprise Observability
   alertmanager-data:
+
+  gluetun-monitor-init:
+    image: alpine:${ALPINE_TAG:-latest}
+    container_name: gluetun-monitor-init
+    command: sh /scripts/init/init-gluetun-monitor.sh
+    privileged: true
+    network_mode: host
+    environment:
+      <<: *common-env
+    volumes:
+      - /home/daniel/potatostack/scripts/init:/scripts/init:ro
+      - /run/systemd:/run/systemd:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/systemd:/etc/systemd:ro
+    restart: "no"
+    depends_on:
+      - gluetun
+    profiles:
+      - init
+

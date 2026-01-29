@@ -1,0 +1,39 @@
+#!/bin/bash
+# Gluetun Monitor Control Script
+
+case "${1:-}" in
+  status)
+    systemctl status gluetun-monitor --no-pager
+    ;;
+  logs)
+    journalctl -u gluetun-monitor -f
+    ;;
+  restart)
+    sudo systemctl restart gluetun-monitor
+    ;;
+  stop)
+    sudo systemctl stop gluetun-monitor
+    ;;
+  start)
+    sudo systemctl start gluetun-monitor
+    ;;
+  enable)
+    sudo systemctl enable gluetun-monitor gluetun-monitor-startup.timer
+    ;;
+  disable)
+    sudo systemctl disable gluetun-monitor gluetun-monitor-startup.timer
+    sudo systemctl stop gluetun-monitor
+    ;;
+  *)
+    echo "Usage: glmon {status|logs|restart|stop|start|enable|disable}"
+    echo ""
+    echo "Commands:"
+    echo "  status   - Show service status"
+    echo "  logs     - Show live logs"
+    echo "  restart  - Restart service"
+    echo "  stop     - Stop service"
+    echo "  start    - Start service"
+    echo "  enable   - Enable auto-start on boot"
+    echo "  disable  - Disable service"
+    ;;
+esac
