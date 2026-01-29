@@ -10,7 +10,7 @@ Production-ready testing suite for PotatoStack with **65+ services** across all 
 ✓ **Reverse Proxy (1)**: traefik  
 ✓ **Security (6)**: crowdsec, crowdsec-traefik-bouncer, fail2ban, vaultwarden, authentik-server, authentik-worker
 ✓ **Monitoring (12)**: prometheus, grafana, alertmanager, loki, alloy, netdata, cadvisor, uptime-kuma, thanos-query, thanos-sidecar, thanos-store, thanos-compactor
-✓ **Media (14)**: sonarr, radarr, lidarr, readarr, bazarr, prowlarr, jellyfin, jellyseerr, qbittorrent, aria2, ariang, audiobookshelf, pinchflat, slskd
+✓ **Media (13)**: sonarr, radarr, lidarr, readarr, bazarr, prowlarr, jellyfin, jellyseerr, qbittorrent, aria2, ariang, audiobookshelf, slskd
 ✓ **Productivity (7)**: homarr, paperless-ngx, linkding, miniflux, actual-budget, stirling-pdf, it-tools
 ✓ **Automation (4)**: n8n, diun, autoheal, healthchecks
 ✓ **Development (3)**: gitea, gitea-runner, code-server

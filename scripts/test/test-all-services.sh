@@ -56,7 +56,7 @@ declare -A SERVICE_PORTS=(
 	["aria2"]="6800"
 	["ariang"]="6880"
 	["audiobookshelf"]="13378"
-	["pinchflat"]="8945"
+	# ["pinchflat"]="8945"
 	["slskd"]="2234"
 	["rustypaste"]="8788"
 
@@ -142,7 +142,7 @@ declare -A SERVICE_TYPES=(
 	["stirling-pdf"]="http"
 	["audiobookshelf"]="http"
 	["ariang"]="http"
-	["pinchflat"]="http"
+	# ["pinchflat"]="http"
 	["slskd"]="http"
 	["rustypaste"]="http"
 	["maintainerr"]="http"

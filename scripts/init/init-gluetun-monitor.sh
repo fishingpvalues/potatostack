@@ -178,7 +178,7 @@ echo ""
 echo -e "${BLUE}[INFO]${NC} Checking VPN-dependent services..."
 echo ""
 
-VPN_SERVICES="prowlarr sonarr radarr lidarr bookshelf bazarr spotiflac qbittorrent slskd pyload pinchflat stash"
+VPN_SERVICES="prowlarr sonarr radarr lidarr bookshelf bazarr spotiflac qbittorrent slskd pyload stash"
 RUNNING_COUNT=0
 
 for service in $VPN_SERVICES; do

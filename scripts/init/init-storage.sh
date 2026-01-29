@@ -63,14 +63,14 @@ if [ -d "${CACHE_BASE}/slskd-incomplete" ] && [ ! -d "${CACHE_BASE}/downloads/sl
 	rm -rf "${CACHE_BASE}/slskd-incomplete"
 fi
 
-if [ -d "${CACHE_BASE}/pinchflat-incomplete" ] && [ ! -d "${CACHE_BASE}/downloads/pinchflat" ]; then
-	printf '%s\n' "Migrating pinchflat-incomplete to new cache structure..."
-	mkdir -p "${CACHE_BASE}/downloads/pinchflat"
-	if [ "$(ls -A "${CACHE_BASE}/pinchflat-incomplete" 2>/dev/null)" ]; then
-		mv "${CACHE_BASE}/pinchflat-incomplete"/* "${CACHE_BASE}/downloads/pinchflat/" 2>/dev/null || true
-	fi
-	rm -rf "${CACHE_BASE}/pinchflat-incomplete"
-fi
+# if [ -d "${CACHE_BASE}/pinchflat-incomplete" ] && [ ! -d "${CACHE_BASE}/downloads/pinchflat" ]; then
+# 	printf '%s\n' "Migrating pinchflat-incomplete to new cache structure..."
+# 	mkdir -p "${CACHE_BASE}/downloads/pinchflat"
+# 	if [ "$(ls -A "${CACHE_BASE}/pinchflat-incomplete" 2>/dev/null)" ]; then
+# 		mv "${CACHE_BASE}/pinchflat-incomplete"/* "${CACHE_BASE}/downloads/pinchflat/" 2>/dev/null || true
+# 	fi
+# 	rm -rf "${CACHE_BASE}/pinchflat-incomplete"
+# fi
 
 # Migrate jellyfin-cache to new structure
 if [ -d "${CACHE_BASE}/jellyfin-cache" ] && [ ! -d "${CACHE_BASE}/media/jellyfin" ]; then
@@ -203,8 +203,8 @@ printf '%s\n' "Creating cache directories with normalized namespace..."
 mkdir -p \
 	"${CACHE_BASE}/downloads/torrent" \
 	"${CACHE_BASE}/downloads/pyload" \
-	"${CACHE_BASE}/downloads/slskd" \
-	"${CACHE_BASE}/downloads/pinchflat"
+	"${CACHE_BASE}/downloads/slskd"
+# "${CACHE_BASE}/downloads/pinchflat"
 
 # Media caches
 mkdir -p \
@@ -380,7 +380,6 @@ printf '%s\n' "Setting service-specific permissions..."
 
 # PostgreSQL (UID 999)
 [ -d "${SSD_BASE}/postgres" ] && chown -R 999:999 "${SSD_BASE}/postgres" && chmod -R 700 "${SSD_BASE}/postgres"
-
 
 # Obsidian LiveSync CouchDB (UID 5984)
 [ -d "${STORAGE_BASE}/obsidian-couchdb" ] && chown -R 5984:5984 "${STORAGE_BASE}/obsidian-couchdb"

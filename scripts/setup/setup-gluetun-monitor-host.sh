@@ -148,7 +148,7 @@ ExecStopPost=/bin/bash -c 'if docker ps --filter "name=gluetun" --format '{{.Nam
 		exit 1
 	fi
 	# Stop all VPN services gracefully
-	docker compose -f "$POTASTACK_DIR/docker-compose.yml" stop prowlarr sonarr radarr lidarr bookshelf bazarr spotiflac qbittorrent slskd pyload pinchflat stash 2>/dev/null || true
+	docker compose -f "$POTASTACK_DIR/docker-compose.yml" stop prowlarr sonarr radarr lidarr bookshelf bazarr spotiflac qbittorrent slskd pyload stash 2>/dev/null || true
 else
 	# Gluetun is not running, skip stopping
 fi

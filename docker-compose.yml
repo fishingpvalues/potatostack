@@ -563,7 +563,7 @@ services:
       - "${HOST_BIND:-192.168.178.158}:2234:2234" # slskd WebUI
       - "${HOST_BIND:-192.168.178.158}:50000:50000" # slskd peer
       - "${HOST_BIND:-192.168.178.158}:8097:8080" # SpotiFLAC
-      - "${HOST_BIND:-192.168.178.158}:8945:8945" # Pinchflat
+      # - "${HOST_BIND:-192.168.178.158}:8945:8945" # Pinchflat
       - "${HOST_BIND:-192.168.178.158}:8076:8000" # pyLoad WebUI (internal 8000)
       - "${HOST_BIND:-192.168.178.158}:9666:9666" # pyLoad Click'n'Load
       - "${HOST_BIND:-192.168.178.158}:9900:9900" # Stash
@@ -667,12 +667,12 @@ services:
       - "traefik.http.routers.slskd.service=slskd"
       - "traefik.http.services.slskd.loadbalancer.server.port=2234"
       - "traefik.http.routers.slskd.middlewares=sso-chain@docker"
-      - "traefik.http.routers.pinchflat.rule=Host(`pinchflat.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.pinchflat.entrypoints=websecure"
-      - "traefik.http.routers.pinchflat.tls=true"
-      - "traefik.http.routers.pinchflat.service=pinchflat"
-      - "traefik.http.services.pinchflat.loadbalancer.server.port=8945"
-      - "traefik.http.routers.pinchflat.middlewares=sso-chain@docker"
+      # - "traefik.http.routers.pinchflat.rule=Host(`pinchflat.${HOST_DOMAIN:-local.domain}`)"
+      # - "traefik.http.routers.pinchflat.entrypoints=websecure"
+      # - "traefik.http.routers.pinchflat.tls=true"
+      # - "traefik.http.routers.pinchflat.service=pinchflat"
+      # - "traefik.http.services.pinchflat.loadbalancer.server.port=8945"
+      # - "traefik.http.routers.pinchflat.middlewares=sso-chain@docker"
       - "traefik.http.routers.spotiflac.rule=Host(`spotiflac.${HOST_DOMAIN:-local.domain}`)"
       - "traefik.http.routers.spotiflac.entrypoints=websecure"
       - "traefik.http.routers.spotiflac.tls=true"
@@ -3208,32 +3208,32 @@ services:
   #     - "traefik.http.services.open-webui.loadbalancer.server.port=8080"
   #     - "traefik.http.routers.open-webui.middlewares=sso-chain@docker"
 
-  # Pinchflat - YouTube downloader
-  pinchflat:
-    image: ghcr.io/kieraneglin/pinchflat:${PINCHFLAT_TAG:-latest}
-    container_name: pinchflat
-    logging: *default-logging
-    network_mode: "service:gluetun"
-    environment:
-      <<: *common-env
-    volumes:
-      - pinchflat-config:/config
-      - /mnt/storage/media/youtube:/downloads
-      - /mnt/cachehdd/downloads/pinchflat:/incomplete
-    depends_on:
-      gluetun:
-        condition: service_healthy
-        restart: true
-      storage-init:
-        condition: service_completed_successfully
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 384M
-    labels:
-      - "autoheal=true"
+   # Pinchflat - YouTube downloader (disabled)
+   # pinchflat:
+   #   image: ghcr.io/kieraneglin/pinchflat:${PINCHFLAT_TAG:-latest}
+   #   container_name: pinchflat
+   #   logging: *default-logging
+   #   network_mode: "service:gluetun"
+   #   environment:
+   #     <<: *common-env
+   #   volumes:
+   #     - pinchflat-config:/config
+   #     - /mnt/storage/media/youtube:/downloads
+   #     - /mnt/cachehdd/downloads/pinchflat:/incomplete
+   #   depends_on:
+   #     gluetun:
+   #       condition: service_healthy
+   #       restart: true
+   #     storage-init:
+   #       condition: service_completed_successfully
+   #   restart: unless-stopped
+   #   deploy:
+   #     resources:
+   #       limits:
+   #         cpus: "1.0"
+   #         memory: 384M
+   #   labels:
+   #     - "autoheal=true"
 
   # Stash - Adult media organizer (behind VPN)
   stash:
@@ -3768,7 +3768,7 @@ services:
     environment:
       - GLUETUN_URL=http://gluetun:8008
       - CHECK_INTERVAL=${GLUETUN_CHECK_INTERVAL:-10}
-      - RESTART_CONTAINERS=prowlarr sonarr radarr lidarr bookshelf bazarr qbittorrent pyload slskd pinchflat spotiflac stash
+      - RESTART_CONTAINERS=prowlarr sonarr radarr lidarr bookshelf bazarr qbittorrent pyload slskd spotiflac stash
       - RESTART_ON_STOP=${GLUETUN_RESTART_ON_STOP:-true}
       - RESTART_ON_FAILURE=${GLUETUN_RESTART_ON_FAILURE:-true}
       - RESTART_COOLDOWN=${GLUETUN_RESTART_COOLDOWN:-120}
@@ -4230,7 +4230,7 @@ volumes:
   octobot-data:
   octobot-tentacles:
   octobot-logs:
-  pinchflat-config:
+  # pinchflat-config:
 
   # Dashboard & Container Management
   homarr-data:        # Legacy v0.x - keep for migration backup

@@ -41,7 +41,7 @@ All services accessible via HTTPS using Tailscale certificates or Traefik revers
 | pyLoad Click'n'Load | https://potatostack.tale-iwato.ts.net:9666 | - | Browser Extension |
 | slskd | https://potatostack.tale-iwato.ts.net:2234 | https://slskd.potatostack.tale-iwato.ts.net | Soulseek |
 | SpotiFLAC | https://potatostack.tale-iwato.ts.net:8097 | https://spotiflac.potatostack.tale-iwato.ts.net | Spotify Downloader |
-| Pinchflat | https://potatostack.tale-iwato.ts.net:8945 | https://pinchflat.potatostack.tale-iwato.ts.net | YouTube Downloader |
+# | Pinchflat | https://potatostack.tale-iwato.ts.net:8945 | https://pinchflat.potatostack.tale-iwato.ts.net | YouTube Downloader |
 | Prowlarr | https://potatostack.tale-iwato.ts.net:9696 | https://prowlarr.potatostack.tale-iwato.ts.net | Indexers |
 | Gluetun Control | https://potatostack.tale-iwato.ts.net:8008 | https://gluetun.potatostack.tale-iwato.ts.net | VPN Status |
 

@@ -47,7 +47,7 @@ Your services are accessible at `192.168.178.158` or via Traefik at `*.danielhom
 | Aria2 | - | Via Gluetun :6880 |
 | AriaNg (Web UI) | - | Via Gluetun :6888 |
 | Slskd (Soulseek) | https://slskd.danielhomelab.local | Via Gluetun :2234 |
-| Pinchflat (YouTube) | https://pinchflat.danielhomelab.local | Via Gluetun :8945 |
+# | Pinchflat (YouTube) | https://pinchflat.danielhomelab.local | Via Gluetun :8945 |
 
 ### Photos & Files
 | Service | HTTPS URL | Direct IP:Port |

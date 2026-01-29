@@ -114,7 +114,7 @@ journalctl -u gluetun-monitor -n 50
 journalctl -u gluetun-monitor -f
 
 # Manually trigger recovery
-docker compose up -d --force-recreate prowlarr sonarr radarr lidarr bookshelf bazarr spotiflac qbittorrent slskd pyload pinchflat stash
+docker compose up -d --force-recreate prowlarr sonarr radarr lidarr bookshelf bazarr spotiflac qbittorrent slskd pyload stash
 \`\`\`
 
 ### Logs Not Showing

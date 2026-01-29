@@ -32,7 +32,6 @@ VPN_DEPENDENT_SERVICES=(
 	"qbittorrent"
 	"slskd"
 	"pyload"
-	"pinchflat"
 	"stash"
 )
 
@@ -88,7 +87,7 @@ check_gluetun_status() {
 	local health=$(docker inspect --format='{{.State.Health.Status}}' gluetun 2>/dev/null || echo "none")
 	VPN_INTERFACE=$(docker exec gluetun env 2>/dev/null | grep '^VPN_INTERFACE=' | cut -d'=' -f2 || echo "tun0")
 
-	local vpn_state=$(docker exec gluetun ip link show "$VPN_INTERFACE" 2>/dev/null | grep -o ',UP,' > /dev/null && echo "UP" || echo "DOWN")
+	local vpn_state=$(docker exec gluetun ip link show "$VPN_INTERFACE" 2>/dev/null | grep -o ',UP,' >/dev/null && echo "UP" || echo "DOWN")
 
 	{
 		echo "Gluetun Status: $status"
@@ -118,7 +117,7 @@ check_firewall_rules() {
 
 	# Check for iptables rules
 	local output_rules=$(docker exec gluetun iptables -L OUTPUT -v 2>/dev/null || echo "")
-	
+
 	if echo "$output_rules" | grep -qi "drop"; then
 		output_drop=1
 		echo -e "  ${GREEN}✓${NC} Found OUTPUT DROP rules"
@@ -127,7 +126,7 @@ check_firewall_rules() {
 
 	# Check default policies
 	local policies=$(docker exec gluetun iptables -L -n 2>/dev/null | grep "policy" || echo "")
-	
+
 	if echo "$policies" | grep -qi "policy DROP"; then
 		default_policy=1
 		echo -e "  ${GREEN}✓${NC} Found DROP policies"
@@ -136,7 +135,7 @@ check_firewall_rules() {
 
 	# Check for VPN interface rules
 	local vpn_rules=$(docker exec gluetun iptables -L -n -v 2>/dev/null | grep "$VPN_INTERFACE" || echo "")
-	
+
 	if [ -n "$vpn_rules" ]; then
 		firewall_active=1
 		echo -e "  ${GREEN}✓${NC} Found $VPN_INTERFACE firewall rules"

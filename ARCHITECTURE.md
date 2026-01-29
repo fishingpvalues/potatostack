@@ -102,7 +102,7 @@ flowchart TB
         aria2[Aria2<br/>Multi-protocol]:::vpn
         ariang[AriaNg<br/>Web UI]:::vpn
         slskd[slskd<br/>Soulseek]:::vpn
-        pinchflat[Pinchflat<br/>Bandcamp]:::vpn
+        # pinchflat[Pinchflat<br/>Bandcamp]:::vpn
         spotiflac[SpotiFLAC<br/>Spotify]:::vpn
     end
 
@@ -342,7 +342,7 @@ flowchart TB
     aria2 --> gluetun
     ariang --> gluetun
     slskd --> gluetun
-    pinchflat --> gluetun
+    # pinchflat --> gluetun
     spotiflac --> gluetun
 
     %% Media Automation Workflows
@@ -572,7 +572,7 @@ flowchart TB
         aria2[Aria2]:::vpn
         ariang[AriaNg]:::vpn
         slskd[slskd]:::vpn
-        pinchflat[Pinchflat]:::vpn
+        # pinchflat[Pinchflat]:::vpn
         spotiflac[SpotiFLAC]:::vpn
     end
 
@@ -659,7 +659,7 @@ flowchart TB
     aria2 --> gluetun
     ariang --> gluetun
     slskd --> gluetun
-    pinchflat --> gluetun
+    # pinchflat --> gluetun
     spotiflac --> gluetun
 
     gluetun -->|VPN egress only| Internet
@@ -1213,7 +1213,7 @@ flowchart TB
         aria2[Aria2]:::vpn
         ariang[AriaNg]:::vpn
         slskd[slskd]:::vpn
-        pinchflat[Pinchflat]:::vpn
+        # pinchflat[Pinchflat]:::vpn
         spotiflac[SpotiFLAC]:::vpn
     end
 
@@ -1300,7 +1300,7 @@ flowchart TB
     aria2 --> gluetun
     ariang --> gluetun
     slskd --> gluetun
-    pinchflat --> gluetun
+    # pinchflat --> gluetun
     spotiflac --> gluetun
 
     gluetun -->|VPN egress only| Internet

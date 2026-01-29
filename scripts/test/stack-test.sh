@@ -399,7 +399,7 @@ test_service_endpoints() {
 	grep -q "qbittorrent" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "qBittorrent" "http://localhost:8282"
 	grep -q "ariang" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "AriaNg" "http://localhost:6880"
 	grep -q "audiobookshelf" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Audiobookshelf" "http://localhost:13378"
-	grep -q "pinchflat" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Pinchflat" "http://localhost:8945"
+	# grep -q "pinchflat" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Pinchflat" "http://localhost:8945"
 	grep -q "slskd" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Slskd" "http://localhost:2234"
 
 	# Productivity

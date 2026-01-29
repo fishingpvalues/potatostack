@@ -351,13 +351,13 @@ http:
       tls:
         options: default
 
-    tailnet-pinchflat:
-      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/pinchflat`)"
-      entryPoints: ["websecure"]
-      service: pinchflat
-      middlewares: ["sso-chain@docker", "strip-first-segment"]
-      tls:
-        options: default
+    # tailnet-pinchflat:
+    #   rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/pinchflat`)"
+    #   entryPoints: ["websecure"]
+    #   service: pinchflat
+    #   middlewares: ["sso-chain@docker", "strip-first-segment"]
+    #   tls:
+    #     options: default
 
     tailnet-spotiflac:
       rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/spotiflac`)"
@@ -574,10 +574,10 @@ http:
         servers:
           - url: "http://gluetun:8000"
 
-    pinchflat:
-      loadBalancer:
-        servers:
-          - url: "http://gluetun:8945"
+    # pinchflat:
+    #   loadBalancer:
+    #     servers:
+    #       - url: "http://gluetun:8945"
 
     spotiflac:
       loadBalancer:
