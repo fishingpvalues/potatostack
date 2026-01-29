@@ -14,6 +14,23 @@ RESTART_COOLDOWN="${RESTART_COOLDOWN:-300}"
 REACHABILITY_TIMEOUT="${REACHABILITY_TIMEOUT:-120}"
 REACHABILITY_RETRIES="${REACHABILITY_RETRIES:-6}"
 LOG_PATTERNS="${IMMICH_LOG_PATTERNS:-redis|Redis|ECONNREFUSED|Connection refused|connect ECONNREFUSED|socket hang up}"
+NOTIFY_COOLDOWN="${IMMICH_NOTIFY_COOLDOWN:-300}"
+NTFY_TAGS="${IMMICH_LOG_NTFY_TAGS:-immich,media}"
+
+if [ -f /notify.sh ]; then
+	# shellcheck disable=SC1091
+	. /notify.sh
+fi
+
+notify_immich() {
+	local title="$1"
+	local message="$2"
+	local priority="$3"
+	if ! command -v ntfy_send >/dev/null 2>&1; then
+		return
+	fi
+	ntfy_send "$title" "$message" "$priority" "$NTFY_TAGS"
+}
 
 echo "=========================================="
 echo "Immich Log Monitor Started"
@@ -26,6 +43,7 @@ echo "Reachability: ${REACHABILITY_RETRIES} retries, ${REACHABILITY_TIMEOUT}s ti
 echo "=========================================="
 
 LAST_RESTART=0
+LAST_NOTIFY=0
 
 # Check if immich-server is reachable via its health endpoint
 check_immich_reachable() {
@@ -68,6 +86,10 @@ while true; do
 	if echo "$logs" | grep -Eqi "$LOG_PATTERNS"; then
 		if [ $((now - LAST_RESTART)) -ge "$RESTART_COOLDOWN" ]; then
 			echo "[$(date +'%Y-%m-%d %H:%M:%S')] ⚠ Error pattern detected"
+			if [ $((now - LAST_NOTIFY)) -ge "$NOTIFY_COOLDOWN" ]; then
+				notify_immich "PotatoStack - Immich error" "Matched log patterns: ${LOG_PATTERNS}. Restarting Immich services." "high"
+				LAST_NOTIFY=$now
+			fi
 			echo "[$(date +'%Y-%m-%d %H:%M:%S')] → Restarting $IMMICH_CONTAINER"
 			docker restart "$IMMICH_CONTAINER" >/dev/null 2>&1 || true
 
@@ -83,6 +105,7 @@ while true; do
 				wait_for_reachable "$IMMICH_ML_CONTAINER" check_ml_reachable || true
 			fi
 
+			notify_immich "PotatoStack - Immich restarted" "Immich restart completed and reachability checks executed." "warning"
 			LAST_RESTART=$now
 		else
 			echo "[$(date +'%Y-%m-%d %H:%M:%S')] ⚠ Pattern matched but in cooldown"

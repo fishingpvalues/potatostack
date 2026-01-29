@@ -6,10 +6,62 @@
 PYLOAD_USER="${PYLOAD_USER:-pyload}"
 PYLOAD_PASSWORD="${PYLOAD_PASSWORD:-}"
 DB_FILE="/config/data/pyload.db"
+NTFY_INTERNAL_URL="${NTFY_INTERNAL_URL:-http://ntfy:80}"
+NTFY_TOPIC="${NTFY_TOPIC:-potatostack}"
+NTFY_TOKEN="${NTFY_TOKEN:-}"
+PYLOAD_ENABLE_NTFY_HOOKS="${PYLOAD_ENABLE_NTFY_HOOKS:-true}"
 
 echo "╔══════════════════════════════════════════════════════════════════╗"
 echo "║                      pyLoad Init Script                          ║"
 echo "╚══════════════════════════════════════════════════════════════════╝"
+
+setup_ntfy_hooks() {
+    if [ "$PYLOAD_ENABLE_NTFY_HOOKS" != "true" ] || [ -z "$NTFY_TOPIC" ]; then
+        return
+    fi
+
+    hook_dir="/config/scripts/download_finished"
+    hook_script="${hook_dir}/ntfy.sh"
+    mkdir -p "$hook_dir"
+
+    cat > "$hook_script" <<EOF
+#!/bin/sh
+NTFY_INTERNAL_URL="${NTFY_INTERNAL_URL}"
+NTFY_TOPIC="${NTFY_TOPIC}"
+NTFY_TOKEN="${NTFY_TOKEN}"
+
+title="PotatoStack - pyLoad download finished"
+file_name="\${2:-unknown}"
+file_path="\${3:-unknown}"
+plugin="\${4:-unknown}"
+url="\${5:-unknown}"
+package="\${6:-unknown}"
+message="File: \${file_name}\\nPackage: \${package}\\nPlugin: \${plugin}\\nPath: \${file_path}\\nURL: \${url}"
+
+url_target="\${NTFY_INTERNAL_URL%/}/\${NTFY_TOPIC}"
+
+if command -v curl >/dev/null 2>&1; then
+    if [ -n "\$NTFY_TOKEN" ]; then
+        curl -fsS -X POST "\$url_target" -H "Title: \$title" -H "Tags: pyload,download" -H "Priority: default" -H "Authorization: Bearer \$NTFY_TOKEN" -d "\$message" >/dev/null 2>&1 || true
+    else
+        curl -fsS -X POST "\$url_target" -H "Title: \$title" -H "Tags: pyload,download" -H "Priority: default" -d "\$message" >/dev/null 2>&1 || true
+    fi
+elif command -v wget >/dev/null 2>&1; then
+    headers="--header=Title: \$title --header=Tags: pyload,download --header=Priority: default"
+    if [ -n "\$NTFY_TOKEN" ]; then
+        headers="\$headers --header=Authorization: Bearer \$NTFY_TOKEN"
+    fi
+    # shellcheck disable=SC2086
+    wget -q --post-data "\$message" \$headers "\$url_target" >/dev/null 2>&1 || true
+fi
+EOF
+
+    chmod +x "$hook_script"
+    echo "✓ pyLoad ntfy hook installed: $hook_script"
+}
+
+# Install ntfy hook for download finished events
+setup_ntfy_hooks
 
 # Wait for initial setup to create database
 MAX_WAIT=30

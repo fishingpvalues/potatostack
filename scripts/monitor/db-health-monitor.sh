@@ -11,6 +11,23 @@ CHECK_INTERVAL="${DB_MONITOR_INTERVAL:-30}"
 FAIL_THRESHOLD="${DB_FAIL_THRESHOLD:-3}"
 RESTART_COOLDOWN="${DB_RESTART_COOLDOWN:-180}"
 RESTART_ON_FAILURE="${DB_RESTART_ON_FAILURE:-true}"
+NTFY_TAGS="${DB_MONITOR_NTFY_TAGS:-database}"
+
+if [ -f /notify.sh ]; then
+	# shellcheck disable=SC1091
+	. /notify.sh
+fi
+
+notify_db() {
+	local title="$1"
+	local message="$2"
+	local priority="$3"
+	local tags="$4"
+	if ! command -v ntfy_send >/dev/null 2>&1; then
+		return
+	fi
+	ntfy_send "$title" "$message" "$priority" "$tags"
+}
 
 POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-postgres}"
 REDIS_CONTAINER="${REDIS_CONTAINER:-redis-cache}"
@@ -46,11 +63,15 @@ restart_container() {
 while true; do
 	if [ "$CHECK_POSTGRES" = "true" ]; then
 		if docker exec "$POSTGRES_CONTAINER" pg_isready -U postgres >/dev/null 2>&1; then
+			if [ "$pg_fail" -gt 0 ]; then
+				notify_db "PotatoStack - Postgres recovered" "Postgres health check succeeded." "low" "${NTFY_TAGS},postgres"
+			fi
 			pg_fail=0
 		else
 			pg_fail=$((pg_fail + 1))
 			echo "[$(date +'%Y-%m-%d %H:%M:%S')] ⚠ Postgres health failed ($pg_fail/$FAIL_THRESHOLD)"
 			if [ "$RESTART_ON_FAILURE" = "true" ] && [ "$pg_fail" -ge "$FAIL_THRESHOLD" ]; then
+				notify_db "PotatoStack - Postgres down" "Postgres failed ${pg_fail}/${FAIL_THRESHOLD} checks. Restarting ${POSTGRES_CONTAINER}." "urgent" "${NTFY_TAGS},postgres,critical"
 				restart_container "$POSTGRES_CONTAINER"
 				pg_fail=0
 			fi
@@ -59,11 +80,15 @@ while true; do
 
 	if [ "$CHECK_REDIS" = "true" ]; then
 		if docker exec "$REDIS_CONTAINER" redis-cli ping >/dev/null 2>&1; then
+			if [ "$redis_fail" -gt 0 ]; then
+				notify_db "PotatoStack - Redis recovered" "Redis health check succeeded." "low" "${NTFY_TAGS},redis"
+			fi
 			redis_fail=0
 		else
 			redis_fail=$((redis_fail + 1))
 			echo "[$(date +'%Y-%m-%d %H:%M:%S')] ⚠ Redis health failed ($redis_fail/$FAIL_THRESHOLD)"
 			if [ "$RESTART_ON_FAILURE" = "true" ] && [ "$redis_fail" -ge "$FAIL_THRESHOLD" ]; then
+				notify_db "PotatoStack - Redis down" "Redis failed ${redis_fail}/${FAIL_THRESHOLD} checks. Restarting ${REDIS_CONTAINER}." "urgent" "${NTFY_TAGS},redis,critical"
 				restart_container "$REDIS_CONTAINER"
 				redis_fail=0
 			fi
@@ -72,11 +97,15 @@ while true; do
 
 	if [ "$CHECK_MONGO" = "true" ]; then
 		if docker exec "$MONGO_CONTAINER" mongosh --quiet --eval "db.adminCommand('ping')" >/dev/null 2>&1; then
+			if [ "$mongo_fail" -gt 0 ]; then
+				notify_db "PotatoStack - MongoDB recovered" "MongoDB health check succeeded." "low" "${NTFY_TAGS},mongodb"
+			fi
 			mongo_fail=0
 		else
 			mongo_fail=$((mongo_fail + 1))
 			echo "[$(date +'%Y-%m-%d %H:%M:%S')] ⚠ Mongo health failed ($mongo_fail/$FAIL_THRESHOLD)"
 			if [ "$RESTART_ON_FAILURE" = "true" ] && [ "$mongo_fail" -ge "$FAIL_THRESHOLD" ]; then
+				notify_db "PotatoStack - MongoDB down" "MongoDB failed ${mongo_fail}/${FAIL_THRESHOLD} checks. Restarting ${MONGO_CONTAINER}." "urgent" "${NTFY_TAGS},mongodb,critical"
 				restart_container "$MONGO_CONTAINER"
 				mongo_fail=0
 			fi

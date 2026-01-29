@@ -1874,6 +1874,10 @@ services:
       <<: *common-env
       PYLOAD_USER: ${PYLOAD_USER:-pyload}
       PYLOAD_PASSWORD: ${PYLOAD_PASSWORD:-}
+      PYLOAD_ENABLE_NTFY_HOOKS: ${PYLOAD_ENABLE_NTFY_HOOKS:-true}
+      NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
+      NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
     volumes:
       - pyload-config:/config
       - /mnt/storage/downloads/pyload:/downloads
@@ -2005,12 +2009,20 @@ services:
       REACHABILITY_TIMEOUT: ${IMMICH_REACHABILITY_TIMEOUT:-120}
       REACHABILITY_RETRIES: ${IMMICH_REACHABILITY_RETRIES:-6}
       IMMICH_LOG_PATTERNS: ${IMMICH_LOG_PATTERNS:-redis|Redis|ECONNREFUSED|Connection refused|connect ECONNREFUSED|socket hang up}
+      IMMICH_NOTIFY_COOLDOWN: ${IMMICH_NOTIFY_COOLDOWN:-300}
+      NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
+      NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+      NTFY_DEFAULT_TAGS: ${NTFY_DEFAULT_TAGS:-potatostack,monitor}
+      NTFY_DEFAULT_PRIORITY: ${NTFY_DEFAULT_PRIORITY:-default}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./scripts/monitor/immich-log-monitor.sh:/immich-log-monitor.sh:ro
+      - ./scripts/monitor/notify.sh:/notify.sh:ro
     depends_on:
       - immich-server
-    network_mode: none
+    networks:
+      - potatostack
     restart: unless-stopped
 
   ################################################################################
@@ -3500,6 +3512,27 @@ services:
       - "traefik.http.routers.alertmanager.middlewares=sso-chain@docker"
       - "traefik.http.services.alertmanager.loadbalancer.server.port=9093"
 
+  # Alertmanager ntfy Formatter - Enterprise alert formatting -> ntfy
+  alertmanager-ntfy:
+    image: python:3.12-alpine
+    container_name: alertmanager-ntfy
+    logging: *default-logging
+    command: ["python", "/app/alertmanager-ntfy.py"]
+    environment:
+      NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
+      NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
+      NTFY_TOPIC_CRITICAL: ${NTFY_TOPIC_CRITICAL:-potatostack-critical}
+      NTFY_TOPIC_WARNING: ${NTFY_TOPIC_WARNING:-potatostack-warning}
+      NTFY_TOPIC_INFO: ${NTFY_TOPIC_INFO:-potatostack-info}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+    volumes:
+      - ./scripts/alertmanager/alertmanager-ntfy.py:/app/alertmanager-ntfy.py:ro
+    networks:
+      - potatostack
+    depends_on:
+      - ntfy
+    restart: unless-stopped
+
   ################################################################################
   # SYSTEM UTILITIES
   ################################################################################
@@ -3518,6 +3551,7 @@ services:
       NTFY_BEHIND_PROXY: "true"
       NTFY_AUTH_DEFAULT_ACCESS: ${NTFY_AUTH_DEFAULT_ACCESS:-read-write}
       NTFY_ENABLE_LOGIN: ${NTFY_ENABLE_LOGIN:-false}
+      NTFY_ENABLE_METRICS: ${NTFY_ENABLE_METRICS:-true}
       NTFY_CACHE_FILE: /var/cache/ntfy/cache.db
       NTFY_AUTH_FILE: /var/lib/ntfy/user.db
     volumes:
@@ -3734,9 +3768,15 @@ services:
       - RESTART_ON_STOP=${GLUETUN_RESTART_ON_STOP:-true}
       - RESTART_ON_FAILURE=${GLUETUN_RESTART_ON_FAILURE:-true}
       - RESTART_COOLDOWN=${GLUETUN_RESTART_COOLDOWN:-120}
+      - NTFY_INTERNAL_URL=${NTFY_INTERNAL_URL:-http://ntfy:80}
+      - NTFY_TOPIC=${NTFY_TOPIC:-potatostack}
+      - NTFY_TOKEN=${NTFY_TOKEN:-}
+      - NTFY_DEFAULT_TAGS=${NTFY_DEFAULT_TAGS:-potatostack,monitor}
+      - NTFY_DEFAULT_PRIORITY=${NTFY_DEFAULT_PRIORITY:-default}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./scripts/monitor/gluetun-monitor.sh:/monitor.sh:ro
+      - ./scripts/monitor/notify.sh:/notify.sh:ro
       - .:/compose:ro
     working_dir: /compose
     networks:
@@ -3765,12 +3805,19 @@ services:
       DISK_MONITOR_INTERVAL: ${DISK_MONITOR_INTERVAL:-300}
       DISK_MONITOR_WARN: ${DISK_MONITOR_WARN:-80}
       DISK_MONITOR_CRIT: ${DISK_MONITOR_CRIT:-90}
+      NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
+      NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+      NTFY_DEFAULT_TAGS: ${NTFY_DEFAULT_TAGS:-potatostack,monitor}
+      NTFY_DEFAULT_PRIORITY: ${NTFY_DEFAULT_PRIORITY:-default}
     volumes:
       - /mnt/storage:/mnt/storage:ro
       - /mnt/cachehdd:/mnt/cachehdd:ro
       - /mnt/ssd:/mnt/ssd:ro
       - ./scripts/monitor/disk-space-monitor.sh:/disk-space-monitor.sh:ro
-    network_mode: none
+      - ./scripts/monitor/notify.sh:/notify.sh:ro
+    networks:
+      - potatostack
     restart: unless-stopped
 
   # Traefik Log Monitor
@@ -3786,12 +3833,20 @@ services:
       TRAEFIK_LOG_LEVEL_PATTERN: ${TRAEFIK_LOG_LEVEL_PATTERN:-level=error}
       TRAEFIK_RESTART_ON_ERROR: ${TRAEFIK_RESTART_ON_ERROR:-false}
       TRAEFIK_RESTART_COOLDOWN: ${TRAEFIK_RESTART_COOLDOWN:-300}
+      TRAEFIK_NOTIFY_COOLDOWN: ${TRAEFIK_NOTIFY_COOLDOWN:-300}
+      NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
+      NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+      NTFY_DEFAULT_TAGS: ${NTFY_DEFAULT_TAGS:-potatostack,monitor}
+      NTFY_DEFAULT_PRIORITY: ${NTFY_DEFAULT_PRIORITY:-default}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./scripts/monitor/traefik-log-monitor.sh:/traefik-log-monitor.sh:ro
+      - ./scripts/monitor/notify.sh:/notify.sh:ro
     depends_on:
       - traefik
-    network_mode: none
+    networks:
+      - potatostack
     restart: unless-stopped
 
   # Backup Monitor
@@ -3804,10 +3859,17 @@ services:
       BACKUP_MONITOR_PATHS: ${BACKUP_MONITOR_PATHS:-/mnt/storage/kopia/stack-snapshot.log /mnt/storage/velld/backups}
       BACKUP_MAX_AGE_HOURS: ${BACKUP_MAX_AGE_HOURS:-48}
       BACKUP_MONITOR_INTERVAL: ${BACKUP_MONITOR_INTERVAL:-3600}
+      NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
+      NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+      NTFY_DEFAULT_TAGS: ${NTFY_DEFAULT_TAGS:-potatostack,monitor}
+      NTFY_DEFAULT_PRIORITY: ${NTFY_DEFAULT_PRIORITY:-default}
     volumes:
       - /mnt/storage:/mnt/storage:ro
       - ./scripts/monitor/backup-monitor.sh:/backup-monitor.sh:ro
-    network_mode: none
+      - ./scripts/monitor/notify.sh:/notify.sh:ro
+    networks:
+      - potatostack
     restart: unless-stopped
 
   # DB Health Monitor
@@ -3827,13 +3889,20 @@ services:
       POSTGRES_CONTAINER: postgres
       REDIS_CONTAINER: redis-cache
       MONGO_CONTAINER: mongo
+      NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
+      NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+      NTFY_DEFAULT_TAGS: ${NTFY_DEFAULT_TAGS:-potatostack,monitor}
+      NTFY_DEFAULT_PRIORITY: ${NTFY_DEFAULT_PRIORITY:-default}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./scripts/monitor/db-health-monitor.sh:/db-health-monitor.sh:ro
+      - ./scripts/monitor/notify.sh:/notify.sh:ro
     depends_on:
       - postgres
       - redis-cache
-    network_mode: none
+    networks:
+      - potatostack
     restart: unless-stopped
 
   # Tailscale Connectivity Monitor
@@ -3848,12 +3917,69 @@ services:
       TAILSCALE_PING_INTERVAL: ${TAILSCALE_PING_INTERVAL:-60}
       TAILSCALE_PING_FAIL_THRESHOLD: ${TAILSCALE_PING_FAIL_THRESHOLD:-3}
       TAILSCALE_RESTART_COOLDOWN: ${TAILSCALE_RESTART_COOLDOWN:-300}
+      NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
+      NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+      NTFY_DEFAULT_TAGS: ${NTFY_DEFAULT_TAGS:-potatostack,monitor}
+      NTFY_DEFAULT_PRIORITY: ${NTFY_DEFAULT_PRIORITY:-default}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./scripts/monitor/tailscale-connectivity-monitor.sh:/tailscale-connectivity-monitor.sh:ro
+      - ./scripts/monitor/notify.sh:/notify.sh:ro
     depends_on:
       - tailscale
-    network_mode: none
+    networks:
+      - potatostack
+    restart: unless-stopped
+
+  # Internet Connectivity Monitor
+  internet-connectivity-monitor:
+    image: alpine:${ALPINE_TAG:-3.21}
+    container_name: internet-connectivity-monitor
+    logging: *default-logging
+    entrypoint: sh /internet-connectivity-monitor.sh
+    environment:
+      INTERNET_CHECK_INTERVAL: ${INTERNET_CHECK_INTERVAL:-30}
+      INTERNET_FAIL_THRESHOLD: ${INTERNET_FAIL_THRESHOLD:-3}
+      INTERNET_CHECK_TIMEOUT: ${INTERNET_CHECK_TIMEOUT:-5}
+      INTERNET_CHECK_URLS: ${INTERNET_CHECK_URLS:-https://1.1.1.1 https://www.google.com/generate_204 https://cloudflare.com/cdn-cgi/trace}
+      NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
+      NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+      NTFY_DEFAULT_TAGS: ${NTFY_DEFAULT_TAGS:-potatostack,monitor}
+      NTFY_DEFAULT_PRIORITY: ${NTFY_DEFAULT_PRIORITY:-default}
+    volumes:
+      - ./scripts/monitor/internet-connectivity-monitor.sh:/internet-connectivity-monitor.sh:ro
+      - ./scripts/monitor/notify.sh:/notify.sh:ro
+    networks:
+      - potatostack
+    restart: unless-stopped
+
+  # slskd Queue & Download Monitor
+  slskd-queue-monitor:
+    image: alpine:${ALPINE_TAG:-3.21}
+    container_name: slskd-queue-monitor
+    logging: *default-logging
+    entrypoint: sh /slskd-queue-monitor.sh
+    environment:
+      SLSKD_DB_PATH: /slskd/data/transfers.db
+      SLSKD_QUEUE_CHECK_INTERVAL: ${SLSKD_QUEUE_CHECK_INTERVAL:-60}
+      SLSKD_QUEUE_WARN_PERCENT: ${SLSKD_QUEUE_WARN_PERCENT:-80}
+      SLSKD_QUEUE_FILES: ${SLSKD_QUEUE_FILES:-500}
+      SLSKD_NOTIFY_LIMIT: ${SLSKD_NOTIFY_LIMIT:-5}
+      NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
+      NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+      NTFY_DEFAULT_TAGS: ${NTFY_DEFAULT_TAGS:-potatostack,monitor}
+      NTFY_DEFAULT_PRIORITY: ${NTFY_DEFAULT_PRIORITY:-default}
+    volumes:
+      - slskd-config:/slskd:ro
+      - ./scripts/monitor/slskd-queue-monitor.sh:/slskd-queue-monitor.sh:ro
+      - ./scripts/monitor/notify.sh:/notify.sh:ro
+    networks:
+      - potatostack
+    depends_on:
+      - slskd
     restart: unless-stopped
 
   ################################################################################

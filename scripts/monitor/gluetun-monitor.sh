@@ -18,6 +18,22 @@ RESTART_ON_STOP="${RESTART_ON_STOP:-true}"
 RESTART_ON_FAILURE="${RESTART_ON_FAILURE:-true}"
 RESTART_COOLDOWN="${RESTART_COOLDOWN:-120}"
 
+if [ -f /notify.sh ]; then
+	# shellcheck disable=SC1091
+	. /notify.sh
+fi
+
+notify_event() {
+	local title="$1"
+	local message="$2"
+	local priority="${3:-default}"
+	local tags="${4:-vpn,gluetun}"
+	if ! command -v ntfy_send >/dev/null 2>&1; then
+		return
+	fi
+	ntfy_send "$title" "$message" "$priority" "$tags"
+}
+
 echo "=========================================="
 echo "Gluetun VPN Monitor Started"
 echo "=========================================="
@@ -67,6 +83,7 @@ recreate_containers() {
 	fi
 
 	echo "[$(date +'%Y-%m-%d %H:%M:%S')] → Force recreating containers ($reason)..."
+	notify_event "PotatoStack - VPN container recreation" "Reason: ${reason}. Containers: ${RESTART_CONTAINERS}" "high" "vpn,gluetun,critical"
 	for container in $RESTART_CONTAINERS; do
 		echo "[$(date +'%Y-%m-%d %H:%M:%S')]   • Stopping $container..."
 		docker stop "$container" 2>&1 | sed "s/^/    /" || true
@@ -96,6 +113,7 @@ recreate_containers() {
 	docker compose up -d --force-recreate $RESTART_CONTAINERS 2>&1 | sed "s/^/    /"
 
 	echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ Containers recreated"
+	notify_event "PotatoStack - VPN containers recreated" "Recreated: ${RESTART_CONTAINERS}" "default" "vpn,gluetun,maintenance"
 	LAST_RESTART_AT="$now"
 }
 
@@ -110,11 +128,13 @@ restart_containers() {
 	fi
 
 	echo "[$(date +'%Y-%m-%d %H:%M:%S')] → Restarting dependent containers ($reason)..."
+	notify_event "PotatoStack - VPN dependent restart" "Reason: ${reason}. Containers: ${RESTART_CONTAINERS}" "high" "vpn,gluetun,warning"
 	for container in $RESTART_CONTAINERS; do
 		echo "[$(date +'%Y-%m-%d %H:%M:%S')]   • Restarting $container..."
 		docker restart "$container" 2>&1 | sed "s/^/    /"
 	done
 	echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ All containers restarted"
+	notify_event "PotatoStack - VPN restart complete" "Containers restarted: ${RESTART_CONTAINERS}" "default" "vpn,gluetun"
 	LAST_RESTART_AT="$now"
 }
 
@@ -128,6 +148,7 @@ while true; do
 
 		if [ $CONSECUTIVE_FAILURES -ge $MAX_FAILURES ]; then
 			echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✗ Gluetun unreachable after $MAX_FAILURES attempts"
+			notify_event "PotatoStack - VPN API unreachable" "Gluetun API unreachable after ${MAX_FAILURES} attempts." "urgent" "vpn,gluetun,critical"
 			if [ "$RESTART_ON_FAILURE" = "true" ]; then
 				restart_containers "gluetun-unreachable"
 			fi
@@ -160,10 +181,12 @@ while true; do
 
 		if [ "$CURRENT_STATUS" = "running" ]; then
 			echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ VPN connection restored!"
+			notify_event "PotatoStack - VPN restored" "VPN status: running. Containers: ${RESTART_CONTAINERS}" "default" "vpn,gluetun,recovered"
 			restart_containers "vpn-restored"
 
 		elif [ "$CURRENT_STATUS" = "stopped" ]; then
 			echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✗ VPN connection lost!"
+			notify_event "PotatoStack - VPN down" "VPN status: stopped. Containers: ${RESTART_CONTAINERS}" "urgent" "vpn,gluetun,critical"
 			if [ "$RESTART_ON_STOP" = "true" ]; then
 				restart_containers "vpn-stopped"
 			else
@@ -188,6 +211,7 @@ while true; do
 		echo "[$(date +'%Y-%m-%d %H:%M:%S')] 🔄 GLUETUN CONTAINER ID CHANGED"
 		echo "Previous: $LAST_GLUETUN_ID → Current: $CURRENT_GLUETUN_ID"
 		echo "=========================================="
+		notify_event "PotatoStack - Gluetun restarted" "Container ID changed: ${LAST_GLUETUN_ID} -> ${CURRENT_GLUETUN_ID}" "warning" "vpn,gluetun"
 		recreate_containers "gluetun-recreated"
 		echo "=========================================="
 		echo ""

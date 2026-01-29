@@ -8,6 +8,22 @@ set -eu
 BACKUP_PATHS="${BACKUP_MONITOR_PATHS:-/mnt/storage/kopia/stack-snapshot.log /mnt/storage/velld/backups}"
 MAX_AGE_HOURS="${BACKUP_MAX_AGE_HOURS:-48}"
 CHECK_INTERVAL="${BACKUP_MONITOR_INTERVAL:-3600}"
+NTFY_TAGS="${BACKUP_MONITOR_NTFY_TAGS:-backup,storage}"
+
+if [ -f /notify.sh ]; then
+	# shellcheck disable=SC1091
+	. /notify.sh
+fi
+
+notify_backup() {
+	local title="$1"
+	local message="$2"
+	local priority="$3"
+	if ! command -v ntfy_send >/dev/null 2>&1; then
+		return
+	fi
+	ntfy_send "$title" "$message" "$priority" "$NTFY_TAGS"
+}
 
 echo "=========================================="
 echo "Backup Monitor Started"
@@ -17,6 +33,8 @@ echo "Interval: ${CHECK_INTERVAL}s"
 echo "=========================================="
 
 MAX_AGE_SECONDS=$((MAX_AGE_HOURS * 3600))
+STATE_FILE="/tmp/backup-monitor-state"
+touch "$STATE_FILE"
 
 while true; do
 	now=$(date +%s)
@@ -36,8 +54,22 @@ while true; do
 			continue
 		fi
 
+		state="ok"
 		if [ "$age" -gt "$MAX_AGE_SECONDS" ]; then
+			state="stale"
 			echo "[$(date +'%Y-%m-%d %H:%M:%S')] ⚠ Backup stale: $path (age ${age}s)"
+		fi
+
+		prev=$(grep -F "${path}=" "$STATE_FILE" | tail -n1 | cut -d= -f2 || true)
+		if [ "$state" != "$prev" ]; then
+			if [ "$state" = "stale" ]; then
+				notify_backup "PotatoStack - Backup stale" "Backup stale for ${path} (age ${age}s, limit ${MAX_AGE_SECONDS}s)" "high"
+			elif [ "$state" = "ok" ] && [ -n "$prev" ]; then
+				notify_backup "PotatoStack - Backup recovered" "Backup updated for ${path}" "low"
+			fi
+			grep -v -F "${path}=" "$STATE_FILE" > "${STATE_FILE}.tmp" || true
+			mv "${STATE_FILE}.tmp" "$STATE_FILE"
+			echo "${path}=${state}" >> "$STATE_FILE"
 		fi
 	done
 
