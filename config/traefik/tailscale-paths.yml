@@ -202,7 +202,7 @@ http:
       rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/obsidian`)"
       entryPoints: ["websecure"]
       service: obsidian
-      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      middlewares: ["strip-first-segment"]
       tls:
         options: default
 

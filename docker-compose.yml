@@ -1004,6 +1004,8 @@ services:
     image: oleduc/docker-obsidian-livesync-couchdb:${OBSIDIAN_LIVESYNC_TAG:-latest}
     container_name: obsidian-livesync
     logging: *default-logging
+    ports:
+      - "127.0.0.1:5984:5984"
     environment:
       <<: *common-env
       COUCHDB_USER: ${COUCHDB_USER:-obsidian}
@@ -1036,7 +1038,6 @@ services:
       - "traefik.http.routers.obsidian.entrypoints=websecure"
       - "traefik.http.routers.obsidian.tls=true"
       - "traefik.http.services.obsidian.loadbalancer.server.port=5984"
-      - "traefik.http.routers.obsidian.middlewares=sso-chain@docker"
 
 
   # Obsidian LiveSync Init - Single-node CouchDB bootstrap
