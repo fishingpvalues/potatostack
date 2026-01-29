@@ -1113,8 +1113,43 @@ services:
       - "traefik.http.routers.miniflux.entrypoints=websecure"
       - "traefik.http.routers.miniflux.tls=true"
       - "traefik.http.routers.miniflux.middlewares=sso-chain@docker"
-      - "traefik.http.services.miniflux.loadbalancer.server.port=8080"
 
+  # Miniflux webhook to ntfy bridge
+  miniflux-webhook:
+    image: python:3.12-alpine
+    container_name: miniflux-webhook
+    logging: *default-logging
+    command: ["python", "/app/miniflux-webhook.py"]
+    environment:
+      <<: *common-env
+      MINIFLUX_NTFY_PORT: 8083
+      NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
+      NTFY_TOPIC_INFO: ${NTFY_TOPIC_INFO:-potatostack-info}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+    volumes:
+      - ./scripts/webhooks/miniflux-webhook.py:/app/miniflux-webhook.py:ro
+    networks:
+      - potatostack
+    depends_on:
+      - ntfy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.miniflux-webhook.rule=Host(`miniflux-webhook.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.miniflux-webhook.entrypoints=websecure"
+      - "traefik.http.routers.miniflux-webhook.tls=true"
+      - "traefik.http.services.miniflux-webhook.loadbalancer.server.port=8083"
+
+  ################################################################################
+  # RECIPE MANAGEMENT
   ################################################################################
   # RECIPE MANAGEMENT
   ################################################################################
@@ -1544,6 +1579,40 @@ services:
       - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
       - "traefik.http.routers.jellyfin.middlewares=sso-chain@docker"
 
+  # Jellyfin webhook to ntfy bridge
+  jellyfin-webhook:
+    image: python:3.12-alpine
+    container_name: jellyfin-webhook
+    logging: *default-logging
+    command: ["python", "/app/jellyfin-webhook.py"]
+    environment:
+      <<: *common-env
+      JELLYFIN_NTFY_PORT: 8081
+      NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
+      NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+    volumes:
+      - ./scripts/webhooks/jellyfin-webhook.py:/app/jellyfin-webhook.py:ro
+    networks:
+      - potatostack
+    depends_on:
+      - ntfy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jellyfin-webhook.rule=Host(`jellyfin-webhook.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.jellyfin-webhook.entrypoints=websecure"
+      - "traefik.http.routers.jellyfin-webhook.tls=true"
+      - "traefik.http.services.jellyfin-webhook.loadbalancer.server.port=8081"
+
   # Jellyseerr - Media request management for Jellyfin
   jellyseerr:
     image: fallenbagel/jellyseerr:${JELLYSEERR_TAG:-latest}
@@ -1572,6 +1641,40 @@ services:
       - "traefik.http.routers.jellyseerr.tls=true"
       - "traefik.http.services.jellyseerr.loadbalancer.server.port=5055"
       - "traefik.http.routers.jellyseerr.middlewares=sso-chain@docker"
+
+  # Jellyseerr webhook to ntfy bridge
+  jellyseerr-webhook:
+    image: python:3.12-alpine
+    container_name: jellyseerr-webhook
+    logging: *default-logging
+    command: ["python", "/app/jellyseerr-webhook.py"]
+    environment:
+      <<: *common-env
+      JELLYSEERR_NTFY_PORT: 8082
+      NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
+      NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+    volumes:
+      - ./scripts/webhooks/jellyseerr-webhook.py:/app/jellyseerr-webhook.py:ro
+    networks:
+      - potatostack
+    depends_on:
+      - ntfy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jellyseerr-webhook.rule=Host(`jellyseerr-webhook.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.jellyseerr-webhook.entrypoints=websecure"
+      - "traefik.http.routers.jellyseerr-webhook.tls=true"
+      - "traefik.http.services.jellyseerr-webhook.loadbalancer.server.port:8082"
 
   # Audiobookshelf - Audiobook and podcast server
   audiobookshelf:

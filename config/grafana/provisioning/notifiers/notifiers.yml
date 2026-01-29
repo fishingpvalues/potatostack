@@ -1,0 +1,17 @@
+apiVersion: 1
+
+notifiers:
+  - name: ntfy-webhook
+    type: webhook
+    uid: ntfy-webhook-uid
+    orgId: 1
+    isDefault: true
+    settings:
+      url: http://ntfy:80/${NTFY_TOPIC:-potatostack}
+      httpMethod: POST
+      username: ""
+      password: ""
+      publishMessage: true
+    secureSettings:
+      # Authorization token for ntfy (optional)
+      # password: "${NTFY_TOKEN}"

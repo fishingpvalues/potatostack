@@ -45,20 +45,28 @@ def _format_alert(alert: dict) -> str:
     description = annotations.get("description", "")
     runbook = annotations.get("runbook", "")
     starts_at = alert.get("startsAt", "")
-    line = f"- {name}"
+    ends_at = alert.get("endsAt", "")
+
+    lines = [f"**{name}**"]
+
     if service:
-        line += f" (service: {service})"
+        lines.append(f"  Service: {service}")
     if instance:
-        line += f" (instance: {instance})"
+        lines.append(f"  Instance: {instance}")
+
     if summary:
-        line += f"\n  Summary: {summary}"
+        lines.append(f"\n  *{summary}*")
     if description:
-        line += f"\n  Details: {description}"
+        lines.append(f"\n  {description}")
     if runbook:
-        line += f"\n  Runbook: {runbook}"
+        lines.append(f"\n  📖 Runbook: {runbook}")
+
     if starts_at:
-        line += f"\n  Starts: {starts_at}"
-    return line
+        lines.append(f"\n  Started: {starts_at}")
+    if ends_at:
+        lines.append(f"  Resolved: {ends_at}")
+
+    return "\n".join(lines)
 
 
 def _send_ntfy(title: str, message: str, priority: str, tags: str, topic: str) -> None:
@@ -76,7 +84,7 @@ def _send_ntfy(title: str, message: str, priority: str, tags: str, topic: str) -
 
 
 class Handler(BaseHTTPRequestHandler):
-    def log_message(self, fmt: str, *args) -> None:  # pragma: no cover - quiet logs
+    def log_message(self, format: str, *args) -> None:
         return
 
     def do_POST(self):  # noqa: N802
@@ -107,19 +115,31 @@ class Handler(BaseHTTPRequestHandler):
         topic = _pick_topic(severity)
         tags = ",".join(filter(None, ["prometheus", severity, component, status]))
 
-        title = f"PotatoStack - {status.upper()} - {alertname}"
+        severity_emoji = {"critical": "🚨", "warning": "⚠️", "info": "ℹ️"}.get(severity, "🔔")
+        status_emoji = {"firing": "🔥", "resolved": "✅"}.get(status, "🔔")
+
+        title = f"{severity_emoji} PotatoStack - {status.upper()} - {alertname}"
         summary = common_annotations.get("summary", "")
         description = common_annotations.get("description", "")
 
         lines = []
+
         if summary:
-            lines.append(f"Summary: {summary}")
+            lines.append(f"*{summary}*")
+
         if description:
-            lines.append(f"Details: {description}")
-        lines.append(f"Severity: {severity}")
-        lines.append(f"Status: {status}")
-        lines.append(f"Alerts: {len(alerts)}")
-        lines.append("")
+            lines.append(f"\n{description}")
+
+        if severity != "none":
+            lines.append(f"\n**Severity:** {severity.upper()}")
+        lines.append(f"**Status:** {status.upper()}")
+        lines.append(f"**Alerts:** {len(alerts)}")
+
+        if component:
+            lines.append(f"**Component:** {component}")
+
+        lines.append("\n---\n")
+
         for alert in alerts:
             lines.append(_format_alert(alert))
             lines.append("")

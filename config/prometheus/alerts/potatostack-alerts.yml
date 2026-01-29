@@ -287,3 +287,196 @@ groups:
           summary: "🎧 slskd container not seen"
           description: "cAdvisor has not seen slskd for > 2 minutes. Container may be stopped or unhealthy."
           runbook: "Check: docker ps | grep slskd"
+
+  - name: Media Managers Health
+    interval: 60s
+    rules:
+      - alert: SonarrDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="sonarr"} > 120
+        for: 2m
+        labels:
+          severity: warning
+          component: media
+        annotations:
+          summary: "📺 Sonarr DOWN"
+          description: "Sonarr TV manager container has not been seen for > 2 minutes."
+          runbook: "Check: docker logs sonarr"
+
+      - alert: RadarrDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="radarr"} > 120
+        for: 2m
+        labels:
+          severity: warning
+          component: media
+        annotations:
+          summary: "🎬 Radarr DOWN"
+          description: "Radarr movie manager container has not been seen for > 2 minutes."
+          runbook: "Check: docker logs radarr"
+
+      - alert: ProwlarrDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="prowlarr"} > 120
+        for: 2m
+        labels:
+          severity: warning
+          component: media
+        annotations:
+          summary: "🔍 Prowlarr DOWN"
+          description: "Prowlarr indexer manager container has not been seen for > 2 minutes."
+          runbook: "Check: docker logs prowlarr"
+
+      - alert: LidarrDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="lidarr"} > 120
+        for: 2m
+        labels:
+          severity: warning
+          component: media
+        annotations:
+          summary: "🎵 Lidarr DOWN"
+          description: "Lidarr music manager container has not been seen for > 2 minutes."
+          runbook: "Check: docker logs lidarr"
+
+      - alert: BazarrDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="bazarr"} > 120
+        for: 2m
+        labels:
+          severity: warning
+          component: media
+        annotations:
+          summary: "💬 Bazarr DOWN"
+          description: "Bazarr subtitle manager container has not been seen for > 2 minutes."
+          runbook: "Check: docker logs bazarr"
+
+  - name: Media Server Health
+    interval: 60s
+    rules:
+      - alert: JellyfinDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="jellyfin"} > 120
+        for: 2m
+        labels:
+          severity: critical
+          component: media
+        annotations:
+          summary: "🎬 Jellyfin DOWN - Media server inaccessible!"
+          description: "Jellyfin media server container has not been seen for > 2 minutes. Media playback will be affected."
+          runbook: "Check: docker logs jellyfin"
+
+      - alert: JellyfinHighCPU
+        expr: rate(container_cpu_usage_seconds_total{container_label_com_docker_compose_service="jellyfin"}[5m]) > 0.8
+        for: 15m
+        labels:
+          severity: warning
+          component: media
+        annotations:
+          summary: "⚡ Jellyfin high CPU usage"
+          description: "Jellyfin has sustained CPU usage > 80% for 15 minutes. Consider hardware acceleration or reduce transcoding."
+
+      - alert: JellyseerrDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="jellyseerr"} > 120
+        for: 2m
+        labels:
+          severity: warning
+          component: media
+        annotations:
+          summary: "📋 Jellyseerr DOWN"
+          description: "Jellyseerr media request service container has not been seen for > 2 minutes."
+          runbook: "Check: docker logs jellyseerr"
+
+  - name: RSS Reader Health
+    interval: 60s
+    rules:
+      - alert: MinifluxDown
+        expr: up{job="miniflux"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          component: tools
+        annotations:
+          summary: "📰 Miniflux DOWN"
+          description: "Miniflux RSS reader metrics endpoint is unreachable. Container may be down."
+          runbook: "Check: docker logs miniflux"
+
+  - name: Uptime Monitoring
+    interval: 60s
+    rules:
+      - alert: UptimeKumaDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="uptime-kuma"} > 120
+        for: 2m
+        labels:
+          severity: critical
+          component: monitoring
+        annotations:
+          summary: "📊 Uptime Kuma DOWN"
+          description: "Uptime Kuma monitoring service container has not been seen for > 2 minutes."
+          runbook: "Check: docker logs uptime-kuma"
+
+      - alert: HealthchecksDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="healthchecks"} > 120
+        for: 2m
+        labels:
+          severity: warning
+          component: monitoring
+        annotations:
+          summary: "✅ Healthchecks DOWN"
+          description: "Healthchecks cron monitoring service container has not been seen for > 2 minutes."
+          runbook: "Check: docker logs healthchecks"
+
+  - name: Backup & Storage Services
+    interval: 60s
+    rules:
+      - alert: KopiaDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="kopia"} > 120
+        for: 2m
+        labels:
+          severity: critical
+          component: backup
+        annotations:
+          summary: "💾 Kopia DOWN - Backup service unavailable"
+          description: "Kopia backup service container has not been seen for > 2 minutes. Automated backups may be affected."
+          runbook: "Check: docker logs kopia"
+
+      - alert: ScrutinyDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="scrutiny"} > 120
+        for: 2m
+        labels:
+          severity: warning
+          component: storage
+        annotations:
+          summary: "🔍 Scrutiny DOWN"
+          description: "Scrutiny disk health monitoring container has not been seen for > 2 minutes."
+          runbook: "Check: docker logs scrutiny"
+
+  - name: CI/CD Health
+    interval: 60s
+    rules:
+      - alert: WoodpeckerServerDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="woodpecker-server"} > 120
+        for: 2m
+        labels:
+          severity: warning
+          component: ci
+        annotations:
+          summary: "🪵 Woodpecker Server DOWN"
+          description: "Woodpecker CI server container has not been seen for > 2 minutes."
+          runbook: "Check: docker logs woodpecker-server"
+
+      - alert: WoodpeckerAgentDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="woodpecker-agent"} > 120
+        for: 2m
+        labels:
+          severity: warning
+          component: ci
+        annotations:
+          summary: "🔨 Woodpecker Agent DOWN"
+          description: "Woodpecker CI agent container has not been seen for > 2 minutes. CI builds may queue."
+          runbook: "Check: docker logs woodpecker-agent"
+
+      - alert: GiteaDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="gitea"} > 120
+        for: 2m
+        labels:
+          severity: critical
+          component: git
+        annotations:
+          summary: "🐙 Gitea DOWN - Git repository service unavailable"
+          description: "Gitea git server container has not been seen for > 2 minutes. Push/pull operations will fail."
+          runbook: "Check: docker logs gitea"
