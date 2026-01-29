@@ -2116,6 +2116,7 @@ services:
     image: quay.io/thanos/thanos:${THANOS_TAG:-v0.37.2}
     container_name: thanos-store
     logging: *default-logging
+    user: "${PUID:-1000}:${PGID:-1000}"
     command:
       - "store"
       - "--data-dir=/var/thanos/store"
@@ -2184,6 +2185,7 @@ services:
     image: quay.io/thanos/thanos:${THANOS_TAG:-v0.37.2}
     container_name: thanos-compactor
     logging: *default-logging
+    user: "${PUID:-1000}:${PGID:-1000}"
     command:
       - "compact"
       - "--data-dir=/var/thanos/compact"
@@ -2213,6 +2215,7 @@ services:
     image: grafana/grafana:${GRAFANA_TAG:-latest}
     container_name: grafana
     logging: *default-logging
+    user: "${PUID:-1000}:${PGID:-1000}"
     ports:
       - "${HOST_BIND:-192.168.178.158}:3002:3000"
     environment:
