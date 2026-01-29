@@ -79,6 +79,12 @@ scrape_configs:
       - targets: ["loki:3100"]
     metrics_path: "/metrics"
 
+  # slskd metrics
+  - job_name: "slskd"
+    static_configs:
+      - targets: ["gluetun:2234"]
+    metrics_path: "/metrics"
+
   # Grafana
   - job_name: "grafana"
     static_configs:

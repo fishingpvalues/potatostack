@@ -1788,9 +1788,27 @@ services:
       SLSKD_PASSWORD: ${SLSKD_PASSWORD}
       SLSKD_SOULSEEK_USERNAME: ${SLSKD_SOULSEEK_USERNAME}
       SLSKD_SOULSEEK_PASSWORD: ${SLSKD_SOULSEEK_PASSWORD}
-      SLSKD_METRICS: "false"
+      SLSKD_METRICS: ${SLSKD_METRICS_ENABLED:-true}
       SLSKD_API_KEY: ${SLSKD_API_KEY}
       SLSKD_SHARED_DIR: /var/slskd/shared
+      SLSKD_UPLOAD_SLOTS: ${SLSKD_UPLOAD_SLOTS:-4}
+      SLSKD_UPLOAD_SPEED_LIMIT: ${SLSKD_UPLOAD_SPEED_LIMIT:-25}
+      SLSKD_DOWNLOAD_SLOTS: ${SLSKD_DOWNLOAD_SLOTS:-500}
+      SLSKD_DOWNLOAD_SPEED_LIMIT: ${SLSKD_DOWNLOAD_SPEED_LIMIT:-1000}
+      SLSKD_QUEUE_FILES: ${SLSKD_QUEUE_FILES:-500}
+      SLSKD_QUEUE_MEGABYTES: ${SLSKD_QUEUE_MEGABYTES:-5000}
+      SLSKD_GROUP_UPLOAD_SLOTS: ${SLSKD_GROUP_UPLOAD_SLOTS:-4}
+      SLSKD_GROUP_UPLOAD_SPEED_LIMIT: ${SLSKD_GROUP_UPLOAD_SPEED_LIMIT:-25}
+      SLSKD_GROUP_QUEUE_FILES: ${SLSKD_GROUP_QUEUE_FILES:-150}
+      SLSKD_GROUP_QUEUE_MEGABYTES: ${SLSKD_GROUP_QUEUE_MEGABYTES:-1500}
+      SLSKD_LOGGER_DISK: ${SLSKD_LOGGER_DISK:-true}
+      SLSKD_LOGGER_NO_COLOR: ${SLSKD_LOGGER_NO_COLOR:-true}
+      SLSKD_LOGGER_LOKI: ${SLSKD_LOGGER_LOKI:-null}
+      SLSKD_METRICS_ENABLED: ${SLSKD_METRICS_ENABLED:-true}
+      SLSKD_METRICS_URL: ${SLSKD_METRICS_URL:-/metrics}
+      SLSKD_METRICS_AUTH_DISABLED: ${SLSKD_METRICS_AUTH_DISABLED:-true}
+      SLSKD_METRICS_USERNAME: ${SLSKD_METRICS_USERNAME:-slskd}
+      SLSKD_METRICS_PASSWORD: ${SLSKD_METRICS_PASSWORD:-slskd}
     volumes:
       - slskd-config:/app
       - /mnt/cachehdd/slskd/logs:/app/logs
@@ -1830,6 +1848,7 @@ services:
           memory: 128M
     labels:
       - "autoheal=true"
+      - "potatostack.alerts=critical"
 
   # pyLoad-ng - Web-based download manager (HTTP/FTP/etc)
   # WebUI: 8076 (external) -> 8000 (internal), Click'n'Load: 9666
@@ -2467,6 +2486,7 @@ services:
       - ./config/alloy:/etc/alloy
       - /var/log:/var/log:ro
       - traefik-logs:/logs:ro
+      - /mnt/cachehdd/slskd/logs:/slskd-logs:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - alloy-data:/var/lib/alloy
     networks:

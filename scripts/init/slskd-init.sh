@@ -10,6 +10,24 @@ CONFIG_FILE="$CONFIG_DIR/slskd.yml"
 SLSKD_SOULSEEK_USERNAME="${SLSKD_SOULSEEK_USERNAME:-}"
 SLSKD_SOULSEEK_PASSWORD="${SLSKD_SOULSEEK_PASSWORD:-}"
 SLSKD_SHARED_DIR="${SLSKD_SHARED_DIR:-/var/slskd/shared}"
+SLSKD_UPLOAD_SLOTS="${SLSKD_UPLOAD_SLOTS:-4}"
+SLSKD_UPLOAD_SPEED_LIMIT="${SLSKD_UPLOAD_SPEED_LIMIT:-25}"
+SLSKD_DOWNLOAD_SLOTS="${SLSKD_DOWNLOAD_SLOTS:-500}"
+SLSKD_DOWNLOAD_SPEED_LIMIT="${SLSKD_DOWNLOAD_SPEED_LIMIT:-1000}"
+SLSKD_QUEUE_FILES="${SLSKD_QUEUE_FILES:-500}"
+SLSKD_QUEUE_MEGABYTES="${SLSKD_QUEUE_MEGABYTES:-5000}"
+SLSKD_GROUP_UPLOAD_SLOTS="${SLSKD_GROUP_UPLOAD_SLOTS:-4}"
+SLSKD_GROUP_UPLOAD_SPEED_LIMIT="${SLSKD_GROUP_UPLOAD_SPEED_LIMIT:-${SLSKD_UPLOAD_SPEED_LIMIT}}"
+SLSKD_GROUP_QUEUE_FILES="${SLSKD_GROUP_QUEUE_FILES:-150}"
+SLSKD_GROUP_QUEUE_MEGABYTES="${SLSKD_GROUP_QUEUE_MEGABYTES:-1500}"
+SLSKD_LOGGER_DISK="${SLSKD_LOGGER_DISK:-true}"
+SLSKD_LOGGER_NO_COLOR="${SLSKD_LOGGER_NO_COLOR:-true}"
+SLSKD_LOGGER_LOKI="${SLSKD_LOGGER_LOKI:-null}"
+SLSKD_METRICS_ENABLED="${SLSKD_METRICS_ENABLED:-${SLSKD_METRICS:-false}}"
+SLSKD_METRICS_URL="${SLSKD_METRICS_URL:-/metrics}"
+SLSKD_METRICS_AUTH_DISABLED="${SLSKD_METRICS_AUTH_DISABLED:-true}"
+SLSKD_METRICS_USERNAME="${SLSKD_METRICS_USERNAME:-slskd}"
+SLSKD_METRICS_PASSWORD="${SLSKD_METRICS_PASSWORD:-slskd}"
 
 echo "Initializing slskd configuration..."
 
@@ -89,6 +107,41 @@ shares:
     - '\.txt$'
     - '\.log$'
 
+global:
+  upload:
+    slots: ${SLSKD_UPLOAD_SLOTS}
+    speed_limit: ${SLSKD_UPLOAD_SPEED_LIMIT}
+  limits:
+    queued:
+      files: ${SLSKD_QUEUE_FILES}
+      megabytes: ${SLSKD_QUEUE_MEGABYTES}
+  download:
+    slots: ${SLSKD_DOWNLOAD_SLOTS}
+    speed_limit: ${SLSKD_DOWNLOAD_SPEED_LIMIT}
+
+groups:
+  default:
+    upload:
+      slots: ${SLSKD_GROUP_UPLOAD_SLOTS}
+      speed_limit: ${SLSKD_GROUP_UPLOAD_SPEED_LIMIT}
+    limits:
+      queued:
+        files: ${SLSKD_GROUP_QUEUE_FILES}
+        megabytes: ${SLSKD_GROUP_QUEUE_MEGABYTES}
+
+logger:
+  disk: ${SLSKD_LOGGER_DISK}
+  no_color: ${SLSKD_LOGGER_NO_COLOR}
+  loki: ${SLSKD_LOGGER_LOKI}
+
+metrics:
+  enabled: ${SLSKD_METRICS_ENABLED}
+  url: ${SLSKD_METRICS_URL}
+  authentication:
+    disabled: ${SLSKD_METRICS_AUTH_DISABLED}
+    username: ${SLSKD_METRICS_USERNAME}
+    password: ${SLSKD_METRICS_PASSWORD}
+
 web:
   authentication:
     api_keys:
@@ -115,6 +168,72 @@ web:
         cidr: 0.0.0.0/0,::/0
 EOF
 	echo "✓ API key added to existing configuration"
+fi
+
+# Ensure transfer limits and queue settings exist
+if [ -f "$CONFIG_FILE" ] && ! grep -q "^global:" "$CONFIG_FILE"; then
+	echo "Adding global transfer limits and queue settings..."
+	cat >>"$CONFIG_FILE" <<EOF
+
+global:
+  upload:
+    slots: ${SLSKD_UPLOAD_SLOTS}
+    speed_limit: ${SLSKD_UPLOAD_SPEED_LIMIT}
+  limits:
+    queued:
+      files: ${SLSKD_QUEUE_FILES}
+      megabytes: ${SLSKD_QUEUE_MEGABYTES}
+  download:
+    slots: ${SLSKD_DOWNLOAD_SLOTS}
+    speed_limit: ${SLSKD_DOWNLOAD_SPEED_LIMIT}
+EOF
+	echo "✓ Global limits and queues added"
+fi
+
+if [ -f "$CONFIG_FILE" ] && ! grep -q "^groups:" "$CONFIG_FILE"; then
+	echo "Adding default group transfer limits..."
+	cat >>"$CONFIG_FILE" <<EOF
+
+groups:
+  default:
+    upload:
+      slots: ${SLSKD_GROUP_UPLOAD_SLOTS}
+      speed_limit: ${SLSKD_GROUP_UPLOAD_SPEED_LIMIT}
+    limits:
+      queued:
+        files: ${SLSKD_GROUP_QUEUE_FILES}
+        megabytes: ${SLSKD_GROUP_QUEUE_MEGABYTES}
+EOF
+	echo "✓ Group limits added"
+fi
+
+# Ensure logger settings exist
+if [ -f "$CONFIG_FILE" ] && ! grep -q "^logger:" "$CONFIG_FILE"; then
+	echo "Adding logger configuration..."
+	cat >>"$CONFIG_FILE" <<EOF
+
+logger:
+  disk: ${SLSKD_LOGGER_DISK}
+  no_color: ${SLSKD_LOGGER_NO_COLOR}
+  loki: ${SLSKD_LOGGER_LOKI}
+EOF
+	echo "✓ Logger configuration added"
+fi
+
+# Ensure metrics settings exist
+if [ -f "$CONFIG_FILE" ] && ! grep -q "^metrics:" "$CONFIG_FILE"; then
+	echo "Adding metrics configuration..."
+	cat >>"$CONFIG_FILE" <<EOF
+
+metrics:
+  enabled: ${SLSKD_METRICS_ENABLED}
+  url: ${SLSKD_METRICS_URL}
+  authentication:
+    disabled: ${SLSKD_METRICS_AUTH_DISABLED}
+    username: ${SLSKD_METRICS_USERNAME}
+    password: ${SLSKD_METRICS_PASSWORD}
+EOF
+	echo "✓ Metrics configuration added"
 fi
 
 # Ensure shares are configured (add if missing)
