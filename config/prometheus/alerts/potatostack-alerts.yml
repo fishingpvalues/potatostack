@@ -262,3 +262,28 @@ groups:
         annotations:
           summary: "🚫 VPN tunnel disconnected"
           description: "VPN tunnel appears to be down. Check Gluetun logs: docker logs gluetun"
+
+  - name: slskd Health
+    interval: 60s
+    rules:
+      - alert: SlskdMetricsDown
+        expr: up{job="slskd"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: media
+        annotations:
+          summary: "🎧 slskd metrics DOWN"
+          description: "Prometheus cannot scrape slskd metrics at gluetun:2234/metrics for > 2 minutes."
+          runbook: "Check: docker logs slskd && docker logs gluetun"
+
+      - alert: SlskdContainerNotSeen
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="slskd"} > 120
+        for: 2m
+        labels:
+          severity: critical
+          component: media
+        annotations:
+          summary: "🎧 slskd container not seen"
+          description: "cAdvisor has not seen slskd for > 2 minutes. Container may be stopped or unhealthy."
+          runbook: "Check: docker ps | grep slskd"

@@ -80,3 +80,28 @@ loki.process "traefik" {
 
   forward_to = [loki.write.loki.receiver]
 }
+
+//// ---------------- slskd logs ----------------
+
+local.file_match "slskd" {
+  path_targets = [
+    {
+      __path__ = "/slskd-logs/*.log",
+    },
+  ]
+}
+
+loki.source.file "slskd" {
+  targets    = local.file_match.slskd.targets
+  forward_to = [loki.process.slskd.receiver]
+}
+
+loki.process "slskd" {
+  stage.labels {
+    values = {
+      job = "slskd",
+    }
+  }
+
+  forward_to = [loki.write.loki.receiver]
+}

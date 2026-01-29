@@ -34,23 +34,20 @@ receivers:
   # Critical alerts - urgent formatting
   - name: "ntfy-critical"
     webhook_configs:
-      - url: "http://ntfy:80/potatostack-critical"
+      - url: "http://alertmanager-ntfy:8080/alert"
         send_resolved: true
-        http_config:
 
   # Warning alerts - standard formatting
   - name: "ntfy-warning"
     webhook_configs:
-      - url: "http://ntfy:80/potatostack-warning"
+      - url: "http://alertmanager-ntfy:8080/alert"
         send_resolved: true
-        http_config:
 
   # Default receiver - for general alerts
   - name: "ntfy"
     webhook_configs:
-      - url: "http://ntfy:80/potatostack"
+      - url: "http://alertmanager-ntfy:8080/alert"
         send_resolved: true
-        http_config:
 
   # Legacy receivers - uncomment if using Discord/Telegram/Email
   - name: "discord"

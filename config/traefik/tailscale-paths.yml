@@ -1,0 +1,589 @@
+http:
+  middlewares:
+    strip-first-segment:
+      replacePathRegex:
+        regex: "^/[^/]+/?(.*)$"
+        replacement: "/$1"
+
+  routers:
+    tailnet-home:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/home`)"
+      entryPoints: ["websecure"]
+      service: homarr
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-traefik:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/traefik`)"
+      entryPoints: ["websecure"]
+      service: api@internal
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-traefik-gui:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/traefik-gui`)"
+      entryPoints: ["websecure"]
+      service: api@internal
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-prometheus:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/prometheus`)"
+      entryPoints: ["websecure"]
+      service: prometheus
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-grafana:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/grafana`)"
+      entryPoints: ["websecure"]
+      service: grafana
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-alertmanager:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/alerts`)"
+      entryPoints: ["websecure"]
+      service: alertmanager
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-loki:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/loki`)"
+      entryPoints: ["websecure"]
+      service: loki
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-thanos:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/thanos`)"
+      entryPoints: ["websecure"]
+      service: thanos
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-cadvisor:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/cadvisor`)"
+      entryPoints: ["websecure"]
+      service: cadvisor
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-scrutiny:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/scrutiny`)"
+      entryPoints: ["websecure"]
+      service: scrutiny
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-uptime:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/uptime`)"
+      entryPoints: ["websecure"]
+      service: uptime
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-healthchecks:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/healthchecks`)"
+      entryPoints: ["websecure"]
+      service: healthchecks
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-ntfy:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/ntfy`)"
+      entryPoints: ["websecure"]
+      service: ntfy
+      middlewares: ["security-headers@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-vault:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/vault`)"
+      entryPoints: ["websecure"]
+      service: vaultwarden
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-gitea:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/git`)"
+      entryPoints: ["websecure"]
+      service: gitea
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-woodpecker:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/ci`)"
+      entryPoints: ["websecure"]
+      service: woodpecker
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-actual:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/budget`)"
+      entryPoints: ["websecure"]
+      service: actual
+      middlewares: ["shared-array-chain@file", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-mealie:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/mealie`)"
+      entryPoints: ["websecure"]
+      service: mealie
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-linkding:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/linkding`)"
+      entryPoints: ["websecure"]
+      service: linkding
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-atuin:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/atuin`)"
+      entryPoints: ["websecure"]
+      service: atuin
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-miniflux:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/rss`)"
+      entryPoints: ["websecure"]
+      service: miniflux
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-filebrowser:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/filebrowser`)"
+      entryPoints: ["websecure"]
+      service: filebrowser
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-filestash:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/filestash`)"
+      entryPoints: ["websecure"]
+      service: filestash
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-syncthing:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/syncthing`)"
+      entryPoints: ["websecure"]
+      service: syncthing
+      middlewares: ["strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-obsidian:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/obsidian`)"
+      entryPoints: ["websecure"]
+      service: obsidian
+      middlewares: ["strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-immich:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/immich`)"
+      entryPoints: ["websecure"]
+      service: immich
+      middlewares: ["strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-jellyfin:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/jellyfin`)"
+      entryPoints: ["websecure"]
+      service: jellyfin
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-jellyseerr:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/jellyseerr`)"
+      entryPoints: ["websecure"]
+      service: jellyseerr
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-audiobookshelf:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/audiobooks`)"
+      entryPoints: ["websecure"]
+      service: audiobookshelf
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-navidrome:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/music`)"
+      entryPoints: ["websecure"]
+      service: navidrome
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-velld-api:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/velld-api`)"
+      entryPoints: ["websecure"]
+      service: velld-api
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-velld:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/velld`)"
+      entryPoints: ["websecure"]
+      service: velld
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-kopia:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/kopia`)"
+      entryPoints: ["websecure"]
+      service: kopia
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    # VPN-backed services (via gluetun namespace)
+    tailnet-gluetun:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/gluetun`)"
+      entryPoints: ["websecure"]
+      service: gluetun
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-sonarr:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/sonarr`)"
+      entryPoints: ["websecure"]
+      service: sonarr
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-radarr:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/radarr`)"
+      entryPoints: ["websecure"]
+      service: radarr
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-lidarr:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/lidarr`)"
+      entryPoints: ["websecure"]
+      service: lidarr
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-bazarr:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/bazarr`)"
+      entryPoints: ["websecure"]
+      service: bazarr
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-prowlarr:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/prowlarr`)"
+      entryPoints: ["websecure"]
+      service: prowlarr
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-bookshelf:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/bookshelf`)"
+      entryPoints: ["websecure"]
+      service: bookshelf
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-qbittorrent:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/qbittorrent`)"
+      entryPoints: ["websecure"]
+      service: qbittorrent
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-slskd:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/slskd`)"
+      entryPoints: ["websecure"]
+      service: slskd
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-pyload:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/pyload`)"
+      entryPoints: ["websecure"]
+      service: pyload
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-pinchflat:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/pinchflat`)"
+      entryPoints: ["websecure"]
+      service: pinchflat
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+    tailnet-spotiflac:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/spotiflac`)"
+      entryPoints: ["websecure"]
+      service: spotiflac
+      middlewares: ["sso-chain@docker", "strip-first-segment"]
+      tls:
+        options: default
+
+  services:
+    homarr:
+      loadBalancer:
+        servers:
+          - url: "http://homarr:7575"
+
+    prometheus:
+      loadBalancer:
+        servers:
+          - url: "http://prometheus:9090"
+
+    grafana:
+      loadBalancer:
+        servers:
+          - url: "http://grafana:3000"
+
+    alertmanager:
+      loadBalancer:
+        servers:
+          - url: "http://alertmanager:9093"
+
+    loki:
+      loadBalancer:
+        servers:
+          - url: "http://loki:3100"
+
+    thanos:
+      loadBalancer:
+        servers:
+          - url: "http://thanos-query:10902"
+
+    cadvisor:
+      loadBalancer:
+        servers:
+          - url: "http://cadvisor:8080"
+
+    scrutiny:
+      loadBalancer:
+        servers:
+          - url: "http://scrutiny:8080"
+
+    uptime:
+      loadBalancer:
+        servers:
+          - url: "http://uptime-kuma:3001"
+
+    healthchecks:
+      loadBalancer:
+        servers:
+          - url: "http://healthchecks:8000"
+
+    ntfy:
+      loadBalancer:
+        servers:
+          - url: "http://ntfy:80"
+
+    vaultwarden:
+      loadBalancer:
+        servers:
+          - url: "http://vaultwarden:80"
+
+    gitea:
+      loadBalancer:
+        servers:
+          - url: "http://gitea:3000"
+
+    woodpecker:
+      loadBalancer:
+        servers:
+          - url: "http://woodpecker-server:8000"
+
+    actual:
+      loadBalancer:
+        servers:
+          - url: "http://actual-budget:5006"
+
+    mealie:
+      loadBalancer:
+        servers:
+          - url: "http://mealie:9000"
+
+    linkding:
+      loadBalancer:
+        servers:
+          - url: "http://linkding:9090"
+
+    atuin:
+      loadBalancer:
+        servers:
+          - url: "http://atuin:8888"
+
+    miniflux:
+      loadBalancer:
+        servers:
+          - url: "http://miniflux:8080"
+
+    filebrowser:
+      loadBalancer:
+        servers:
+          - url: "http://filebrowser:80"
+
+    filestash:
+      loadBalancer:
+        servers:
+          - url: "http://filestash:8334"
+
+    syncthing:
+      loadBalancer:
+        servers:
+          - url: "http://syncthing:8384"
+
+    obsidian:
+      loadBalancer:
+        servers:
+          - url: "http://obsidian-livesync:5984"
+
+    immich:
+      loadBalancer:
+        servers:
+          - url: "http://immich-server:2283"
+
+    jellyfin:
+      loadBalancer:
+        servers:
+          - url: "http://jellyfin:8096"
+
+    jellyseerr:
+      loadBalancer:
+        servers:
+          - url: "http://jellyseerr:5055"
+
+    audiobookshelf:
+      loadBalancer:
+        servers:
+          - url: "http://audiobookshelf:80"
+
+    navidrome:
+      loadBalancer:
+        servers:
+          - url: "http://navidrome:4533"
+
+    velld-api:
+      loadBalancer:
+        servers:
+          - url: "http://velld-api:8080"
+
+    velld:
+      loadBalancer:
+        servers:
+          - url: "http://velld-web:3000"
+
+    kopia:
+      loadBalancer:
+        serversTransport: kopia-transport
+        servers:
+          - url: "https://kopia:51515"
+
+    gluetun:
+      loadBalancer:
+        servers:
+          - url: "http://gluetun:8008"
+
+    sonarr:
+      loadBalancer:
+        servers:
+          - url: "http://gluetun:8989"
+
+    radarr:
+      loadBalancer:
+        servers:
+          - url: "http://gluetun:7878"
+
+    lidarr:
+      loadBalancer:
+        servers:
+          - url: "http://gluetun:8686"
+
+    bazarr:
+      loadBalancer:
+        servers:
+          - url: "http://gluetun:6767"
+
+    prowlarr:
+      loadBalancer:
+        servers:
+          - url: "http://gluetun:9696"
+
+    bookshelf:
+      loadBalancer:
+        servers:
+          - url: "http://gluetun:8787"
+
+    qbittorrent:
+      loadBalancer:
+        servers:
+          - url: "http://gluetun:8282"
+
+    slskd:
+      loadBalancer:
+        servers:
+          - url: "http://gluetun:2234"
+
+    pyload:
+      loadBalancer:
+        servers:
+          - url: "http://gluetun:8000"
+
+    pinchflat:
+      loadBalancer:
+        servers:
+          - url: "http://gluetun:8945"
+
+    spotiflac:
+      loadBalancer:
+        servers:
+          - url: "http://gluetun:8080"
+
+  serversTransports:
+    kopia-transport:
+      insecureSkipVerify: true

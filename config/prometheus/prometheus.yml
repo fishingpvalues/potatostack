@@ -73,10 +73,22 @@ scrape_configs:
     static_configs:
       - targets: ["alertmanager:9093"]
 
+  # ntfy metrics
+  - job_name: "ntfy"
+    static_configs:
+      - targets: ["ntfy:80"]
+    metrics_path: "/metrics"
+
   # Loki log aggregation
   - job_name: "loki"
     static_configs:
       - targets: ["loki:3100"]
+    metrics_path: "/metrics"
+
+  # slskd metrics
+  - job_name: "slskd"
+    static_configs:
+      - targets: ["gluetun:2234"]
     metrics_path: "/metrics"
 
   # Grafana
