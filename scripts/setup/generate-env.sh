@@ -136,7 +136,7 @@ main() {
 	# Collect User Input
 	############################################################################
 	print_header "Network Configuration"
-	read_input "Host IP address (bind address)" HOST_BIND "192.168.178.158"
+	read_input "Host IP address (bind address)" HOST_BIND "127.0.0.1"
 	read_input "Local network subnet (CIDR)" LAN_NETWORK "192.168.178.0/24"
 	read_input "Domain for services" HOST_DOMAIN "potatostack.tale-iwato.ts.net"
 	read_input "Email for SSL certificates" ACME_EMAIL "admin@example.com"

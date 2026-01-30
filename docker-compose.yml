@@ -222,7 +222,7 @@ services:
     container_name: crowdsec
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.158}:6060:6060" # Prometheus metrics
+      - "${HOST_BIND:-127.0.0.1}:6060:6060" # Prometheus metrics
     environment:
       <<: *common-env
       COLLECTIONS: "crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors crowdsecurity/nginx crowdsecurity/linux"
@@ -284,7 +284,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "${HOST_BIND:-192.168.178.158}:8088:8080" # Dashboard (alt port to avoid conflicts)
+      - "${HOST_BIND:-127.0.0.1}:8088:8080" # Dashboard (alt port to avoid conflicts)
     environment:
       <<: *common-env
     command:
@@ -377,8 +377,8 @@ services:
   #   logging: *default-logging
   #   command: server
   #   ports:
-  #     - "${HOST_BIND:-192.168.178.158}:9000:9000"
-  #     - "${HOST_BIND:-192.168.178.158}:9443:9443"
+  #     - "${HOST_BIND:-127.0.0.1}:9000:9000"
+  #     - "${HOST_BIND:-127.0.0.1}:9443:9443"
   #   environment:
   #     <<: *common-env
   #     AUTHENTIK_POSTGRESQL__HOST: postgres
@@ -456,8 +456,8 @@ services:
     container_name: vaultwarden
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.158}:8888:80"
-      - "${HOST_BIND:-192.168.178.158}:3012:3012"
+      - "${HOST_BIND:-127.0.0.1}:8888:80"
+      - "${HOST_BIND:-127.0.0.1}:3012:3012"
     environment:
       <<: *common-env
       DOMAIN: https://vault.${HOST_DOMAIN:-local.domain}
@@ -506,8 +506,8 @@ services:
   #   ports:
   #     - "53:53/tcp"
   #     - "53:53/udp"
-  #     - "${HOST_BIND:-192.168.178.158}:3053:3000"
-  #     - "${HOST_BIND:-192.168.178.158}:8053:80"
+  #     - "${HOST_BIND:-127.0.0.1}:3053:3000"
+  #     - "${HOST_BIND:-127.0.0.1}:8053:80"
   #   environment:
   #     <<: *common-env
   #   volumes:
@@ -551,24 +551,24 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     ports:
-      - "${HOST_BIND:-192.168.178.158}:8008:8008" # Gluetun control (moved from 8000)
-      - "${HOST_BIND:-192.168.178.158}:8989:8989" # Sonarr
-      - "${HOST_BIND:-192.168.178.158}:7878:7878" # Radarr
-      - "${HOST_BIND:-192.168.178.158}:9696:9696" # Prowlarr
-      - "${HOST_BIND:-192.168.178.158}:6767:6767" # Bazarr
-      - "${HOST_BIND:-192.168.178.158}:8787:8787" # Bookshelf (ebook manager)
-      - "${HOST_BIND:-192.168.178.158}:8686:8686" # Lidarr
-      - "${HOST_BIND:-192.168.178.158}:8282:8282" # qBittorrent WebUI
-      - "${HOST_BIND:-192.168.178.158}:51413:51413" # qBittorrent peer
-      - "${HOST_BIND:-192.168.178.158}:51413:51413/udp"
+      - "${HOST_BIND:-127.0.0.1}:8008:8008" # Gluetun control (moved from 8000)
+      - "${HOST_BIND:-127.0.0.1}:8989:8989" # Sonarr
+      - "${HOST_BIND:-127.0.0.1}:7878:7878" # Radarr
+      - "${HOST_BIND:-127.0.0.1}:9696:9696" # Prowlarr
+      - "${HOST_BIND:-127.0.0.1}:6767:6767" # Bazarr
+      - "${HOST_BIND:-127.0.0.1}:8787:8787" # Bookshelf (ebook manager)
+      - "${HOST_BIND:-127.0.0.1}:8686:8686" # Lidarr
+      - "${HOST_BIND:-127.0.0.1}:8282:8282" # qBittorrent WebUI
+      - "${HOST_BIND:-127.0.0.1}:51413:51413" # qBittorrent peer
+      - "${HOST_BIND:-127.0.0.1}:51413:51413/udp"
       # aria2 ports REMOVED
-      - "${HOST_BIND:-192.168.178.158}:2234:2234" # slskd WebUI
-      - "${HOST_BIND:-192.168.178.158}:50000:50000" # slskd peer
-      - "${HOST_BIND:-192.168.178.158}:8097:8080" # SpotiFLAC
-      # - "${HOST_BIND:-192.168.178.158}:8945:8945" # Pinchflat
-      - "${HOST_BIND:-192.168.178.158}:8076:8000" # pyLoad WebUI (internal 8000)
-      - "${HOST_BIND:-192.168.178.158}:9666:9666" # pyLoad Click'n'Load
-      - "${HOST_BIND:-192.168.178.158}:9900:9900" # Stash
+      - "${HOST_BIND:-127.0.0.1}:2234:2234" # slskd WebUI
+      - "${HOST_BIND:-127.0.0.1}:50000:50000" # slskd peer
+      - "${HOST_BIND:-127.0.0.1}:8097:8080" # SpotiFLAC
+      # - "${HOST_BIND:-127.0.0.1}:8945:8945" # Pinchflat
+      - "${HOST_BIND:-127.0.0.1}:8076:8000" # pyLoad WebUI (internal 8000)
+      - "${HOST_BIND:-127.0.0.1}:9666:9666" # pyLoad Click'n'Load
+      - "${HOST_BIND:-127.0.0.1}:9900:9900" # Stash
     environment:
       <<: *common-env
       VPN_SERVICE_PROVIDER: ${VPN_PROVIDER:-surfshark}
@@ -697,7 +697,7 @@ services:
   #     - NET_ADMIN
   #     - SYS_MODULE
   #   ports:
-  #     - "${HOST_BIND:-192.168.178.158}:${WIREGUARD_SERVERPORT:-51820}:51820/udp"
+  #     - "${HOST_BIND:-127.0.0.1}:${WIREGUARD_SERVERPORT:-51820}:51820/udp"
   #   environment:
   #     <<: *common-env
   #     SERVERURL: ${WIREGUARD_SERVERURL:-auto}
@@ -825,7 +825,7 @@ services:
   #   logging: *default-logging
   #   init: true
   #   ports:
-  #     - "${HOST_BIND:-192.168.178.158}:8080:8080"
+  #     - "${HOST_BIND:-127.0.0.1}:8080:8080"
   #   environment:
   #     PUID: 1000
   #     PGID: 1000
@@ -871,10 +871,10 @@ services:
     logging: *default-logging
     entrypoint: bash /syncthing-init.sh
     ports:
-      - "${HOST_BIND:-192.168.178.158}:8384:8384"
-      - "${HOST_BIND:-192.168.178.158}:22000:22000/tcp"
-      - "${HOST_BIND:-192.168.178.158}:22000:22000/udp"
-      - "${HOST_BIND:-192.168.178.158}:21027:21027/udp"
+      - "${HOST_BIND:-127.0.0.1}:8384:8384"
+      - "${HOST_BIND:-127.0.0.1}:22000:22000/tcp"
+      - "${HOST_BIND:-127.0.0.1}:22000:22000/udp"
+      - "${HOST_BIND:-127.0.0.1}:21027:21027/udp"
     environment:
       <<: *common-env
     volumes:
@@ -911,7 +911,7 @@ services:
     user: "${PUID:-1000}:${PGID:-1000}"
     entrypoint: sh /filebrowser-init.sh
     ports:
-      - "${HOST_BIND:-192.168.178.158}:8090:80"
+      - "${HOST_BIND:-127.0.0.1}:8090:80"
     environment:
       <<: *common-env
       FILEBROWSER_USER: ${FILEBROWSER_USER:-admin}
@@ -955,7 +955,7 @@ services:
     container_name: filestash
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.158}:8095:8334"
+      - "${HOST_BIND:-127.0.0.1}:8095:8334"
     environment:
       <<: *common-env
       # Disable cloud integrations
@@ -1075,7 +1075,7 @@ services:
     container_name: miniflux
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.158}:8093:8080"
+      - "${HOST_BIND:-127.0.0.1}:8093:8080"
     environment:
       <<: *common-env
       DATABASE_URL: postgres://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/miniflux?sslmode=disable
@@ -1161,7 +1161,7 @@ services:
     container_name: mealie
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.158}:9925:9000"
+      - "${HOST_BIND:-127.0.0.1}:9925:9000"
     environment:
       <<: *common-env
       # Core settings
@@ -1233,7 +1233,7 @@ services:
     # NOTE: Access via Traefik HTTPS (https://budget.danielhomelab.local) for SharedArrayBuffer support
     # Direct port access won't work as browsers require COOP/COEP headers only sent via secure context
     ports:
-      - "${HOST_BIND:-192.168.178.158}:5006:5006"
+      - "${HOST_BIND:-127.0.0.1}:5006:5006"
     environment:
       <<: *common-env
     volumes:
@@ -1495,7 +1495,7 @@ services:
   #   container_name: maintainerr
   #   logging: *default-logging
   #   ports:
-  #     - "${HOST_BIND:-192.168.178.158}:6246:6246"
+  #     - "${HOST_BIND:-127.0.0.1}:6246:6246"
   #   environment:
   #     <<: *common-env
   #   volumes:
@@ -1526,10 +1526,10 @@ services:
     container_name: jellyfin
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.158}:8096:8096"
-      - "${HOST_BIND:-192.168.178.158}:8920:8920"
-      - "${HOST_BIND:-192.168.178.158}:7359:7359/udp"
-      - "${HOST_BIND:-192.168.178.158}:1900:1900/udp"
+      - "${HOST_BIND:-127.0.0.1}:8096:8096"
+      - "${HOST_BIND:-127.0.0.1}:8920:8920"
+      - "${HOST_BIND:-127.0.0.1}:7359:7359/udp"
+      - "${HOST_BIND:-127.0.0.1}:1900:1900/udp"
     environment:
       <<: *common-env
     # Uncomment group_add and devices for Intel/AMD hardware acceleration
@@ -1620,7 +1620,7 @@ services:
     container_name: jellyseerr
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.158}:5055:5055"
+      - "${HOST_BIND:-127.0.0.1}:5055:5055"
     environment:
       <<: *common-env
     volumes:
@@ -1683,7 +1683,7 @@ services:
     container_name: audiobookshelf
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.158}:13378:80"
+      - "${HOST_BIND:-127.0.0.1}:13378:80"
     environment:
       <<: *common-env
     volumes:
@@ -1715,7 +1715,7 @@ services:
     container_name: navidrome
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.158}:4533:4533"
+      - "${HOST_BIND:-127.0.0.1}:4533:4533"
     environment:
       <<: *common-env
       ND_SCANSCHEDULE: 1h
@@ -2018,7 +2018,7 @@ services:
     container_name: immich-server
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.158}:2283:2283"
+      - "${HOST_BIND:-127.0.0.1}:2283:2283"
     environment:
       <<: *common-env
       DB_HOSTNAME: postgres
@@ -2142,7 +2142,7 @@ services:
       - "--web.enable-lifecycle"
       - "--web.enable-admin-api"
     ports:
-      - "${HOST_BIND:-192.168.178.158}:9090:9090"
+      - "${HOST_BIND:-127.0.0.1}:9090:9090"
     environment:
       <<: *common-env
     volumes:
@@ -2186,7 +2186,7 @@ services:
       - "--http-address=0.0.0.0:10902"
       - "--objstore.config-file=/etc/thanos/bucket.yml"
     ports:
-      - "${HOST_BIND:-192.168.178.158}:10902:10902"
+      - "${HOST_BIND:-127.0.0.1}:10902:10902"
     environment:
       <<: *common-env
     volumes:
@@ -2246,7 +2246,7 @@ services:
       - "--store=thanos-store:10901"
       - "--query.replica-label=replica"
     ports:
-      - "${HOST_BIND:-192.168.178.158}:10903:10902"
+      - "${HOST_BIND:-127.0.0.1}:10903:10902"
     networks:
       - potatostack
     depends_on:
@@ -2311,12 +2311,12 @@ services:
     logging: *default-logging
     user: "${PUID:-1000}:${PGID:-1000}"
     ports:
-      - "${HOST_BIND:-192.168.178.158}:3002:3000"
+      - "${HOST_BIND:-127.0.0.1}:3002:3000"
     environment:
       <<: *common-env
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
-      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel
+      GF_PLUGINS_PREINSTALL: grafana-clock-panel
       GF_SERVER_ROOT_URL: https://grafana.${HOST_DOMAIN:-local.domain}
       GF_DATABASE_TYPE: postgres
       GF_DATABASE_HOST: postgres:5432
@@ -2366,7 +2366,7 @@ services:
     devices:
       - /dev/kmsg
     ports:
-      - "${HOST_BIND:-192.168.178.158}:8089:8080"
+      - "${HOST_BIND:-127.0.0.1}:8089:8080"
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
@@ -2520,7 +2520,7 @@ services:
   #   logging: *default-logging
   #   hostname: potatostack-main
   #   ports:
-  #     - "${HOST_BIND:-192.168.178.158}:19999:19999"
+  #     - "${HOST_BIND:-127.0.0.1}:19999:19999"
   #   cap_add:
   #     - SYS_PTRACE
   #     - SYS_ADMIN
@@ -2573,7 +2573,7 @@ services:
     container_name: loki
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.158}:3100:3100"
+      - "${HOST_BIND:-127.0.0.1}:3100:3100"
     command: -config.file=/etc/loki/loki.yml -target=all
     volumes:
       - ./config/loki:/etc/loki
@@ -2625,7 +2625,7 @@ services:
   #   logging: *default-logging
   #   command: ["parseable", "local-store"]
   #   ports:
-  #     - "${HOST_BIND:-192.168.178.158}:8094:8000"
+  #     - "${HOST_BIND:-127.0.0.1}:8094:8000"
   #   environment:
   #     <<: *common-env
   #     P_USERNAME: ${PARSEABLE_USERNAME:-admin}
@@ -2661,7 +2661,7 @@ services:
       - SYS_RAWIO
       - SYS_ADMIN
     ports:
-      - "${HOST_BIND:-192.168.178.158}:8087:8080"
+      - "${HOST_BIND:-127.0.0.1}:8087:8080"
     volumes:
       - /run/udev:/run/udev:ro
       - /mnt/ssd/docker-data/scrutiny/config:/opt/scrutiny/config
@@ -2692,7 +2692,7 @@ services:
     container_name: uptime-kuma
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.158}:3001:3001"
+      - "${HOST_BIND:-127.0.0.1}:3001:3001"
     environment:
       <<: *common-env
       # Docker socket access via socket-proxy for container monitoring
@@ -2736,7 +2736,7 @@ services:
     container_name: n8n
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.158}:5678:5678"
+      - "${HOST_BIND:-127.0.0.1}:5678:5678"
     environment:
       <<: *common-env
       N8N_BASIC_AUTH_ACTIVE: "true"
@@ -2785,7 +2785,7 @@ services:
     container_name: rss-bridge
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.158}:3007:80"
+      - "${HOST_BIND:-127.0.0.1}:3007:80"
     volumes:
       - rssbridge-config:/config
       - ./config/rssbridge/whitelist.txt:/app/whitelist.txt:ro
@@ -2828,7 +2828,7 @@ services:
     container_name: healthchecks
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.158}:8001:8000"
+      - "${HOST_BIND:-127.0.0.1}:8001:8000"
     environment:
       <<: *common-env
       SITE_ROOT: https://healthchecks.${HOST_DOMAIN:-local.domain}
@@ -2872,7 +2872,7 @@ services:
     container_name: rustypaste
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.158}:8788:8000"
+      - "${HOST_BIND:-127.0.0.1}:8788:8000"
     environment:
       <<: *common-env
       CONFIG: /config/config.toml
@@ -2909,7 +2909,7 @@ services:
   #   container_name: stirling-pdf
   #   logging: *default-logging
   #   ports:
-  #     - "${HOST_BIND:-192.168.178.158}:8086:8080"
+  #     - "${HOST_BIND:-127.0.0.1}:8086:8080"
   #   environment:
   #     <<: *common-env
   #     DOCKER_ENABLE_SECURITY: "false"
@@ -2943,7 +2943,7 @@ services:
     container_name: linkding
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.158}:9091:9090"
+      - "${HOST_BIND:-127.0.0.1}:9091:9090"
     environment:
       <<: *common-env
       LD_DB_ENGINE: postgres
@@ -2980,7 +2980,7 @@ services:
   #   container_name: code-server
   #   logging: *default-logging
   #   ports:
-  #     - "${HOST_BIND:-192.168.178.158}:8444:8443"
+  #     - "${HOST_BIND:-127.0.0.1}:8444:8443"
   #   environment:
   #     <<: *common-env
   #     PASSWORD: ${CODE_SERVER_PASSWORD}
@@ -3013,7 +3013,7 @@ services:
     container_name: atuin
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.158}:8889:8888"
+      - "${HOST_BIND:-127.0.0.1}:8889:8888"
     environment:
       <<: *common-env
       ATUIN_DB_URI: postgres://postgres:${POSTGRES_SUPER_PASSWORD}@postgres/atuin
@@ -3048,7 +3048,7 @@ services:
   #   container_name: it-tools
   #   logging: *default-logging
   #   ports:
-  #     - "${HOST_BIND:-192.168.178.158}:8091:80"
+  #     - "${HOST_BIND:-127.0.0.1}:8091:80"
   #   environment:
   #     <<: *common-env
   #   networks:
@@ -3098,7 +3098,7 @@ services:
   #   container_name: paperless-ngx
   #   logging: *default-logging
   #   ports:
-  #     - "${HOST_BIND:-192.168.178.158}:8092:8000"
+  #     - "${HOST_BIND:-127.0.0.1}:8092:8000"
   #   environment:
   #     <<: *common-env
   #     PAPERLESS_REDIS: redis://redis-cache:6379/1
@@ -3158,8 +3158,8 @@ services:
     container_name: gitea
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.158}:3004:3000"
-      - "${HOST_BIND:-192.168.178.158}:${GITEA_SSH_PORT:-2223}:22"
+      - "${HOST_BIND:-127.0.0.1}:3004:3000"
+      - "${HOST_BIND:-127.0.0.1}:${GITEA_SSH_PORT:-2223}:22"
     environment:
       <<: *common-env
       GITEA__database__DB_TYPE: postgres
@@ -3240,7 +3240,7 @@ services:
     container_name: woodpecker-server
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.158}:3006:8000"
+      - "${HOST_BIND:-127.0.0.1}:3006:8000"
     environment:
       <<: *common-env
       WOODPECKER_HOST: https://ci.${HOST_DOMAIN:-local.domain}
@@ -3312,7 +3312,7 @@ services:
   #   container_name: open-webui
   #   logging: *default-logging
   #   ports:
-  #     - "${HOST_BIND:-192.168.178.158}:3005:8080"
+  #     - "${HOST_BIND:-127.0.0.1}:3005:8080"
   #   environment:
   #     <<: *common-env
   #     OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
@@ -3455,7 +3455,7 @@ services:
     container_name: homarr
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.158}:7575:7575"
+      - "${HOST_BIND:-127.0.0.1}:7575:7575"
     environment:
       <<: *common-env
       # Encryption key (generate with: openssl rand -hex 32)
@@ -3520,7 +3520,7 @@ services:
   #   logging: *default-logging
   #   user: "0:0"
   #   ports:
-  #     - "${HOST_BIND:-192.168.178.158}:8288:8080"
+  #     - "${HOST_BIND:-127.0.0.1}:8288:8080"
   #   environment:
   #     <<: *common-env
   #     NODE_ENV: production
@@ -3586,7 +3586,7 @@ services:
     logging: *default-logging
     command: ["server", "--listen", "0.0.0.0:8081"]
     ports:
-      - "${HOST_BIND:-192.168.178.158}:8081:8081"
+      - "${HOST_BIND:-127.0.0.1}:8081:8081"
     environment:
       <<: *common-env
       TRIVY_LISTEN: "0.0.0.0:8081"
@@ -3622,7 +3622,7 @@ services:
       - ./config/alertmanager:/etc/alertmanager:ro
       - alertmanager-data:/alertmanager
     ports:
-      - "${HOST_BIND:-192.168.178.158}:9093:9093"
+      - "${HOST_BIND:-127.0.0.1}:9093:9093"
     networks:
       - potatostack
     restart: unless-stopped
@@ -3680,7 +3680,7 @@ services:
     logging: *default-logging
     command: serve
     ports:
-      - "${HOST_BIND:-192.168.178.158}:8060:80"
+      - "${HOST_BIND:-127.0.0.1}:8060:80"
     environment:
       <<: *common-env
       NTFY_BASE_URL: https://ntfy.${HOST_DOMAIN:-local.domain}
@@ -3786,7 +3786,7 @@ services:
     security_opt:
       - no-new-privileges:true
     ports:
-      - "${HOST_BIND:-192.168.178.158}:${OPENSSH_PORT:-2222}:2222"
+      - "${HOST_BIND:-127.0.0.1}:${OPENSSH_PORT:-2222}:2222"
     environment:
       <<: *common-env
       USER_NAME: ${OPENSSH_USER:-sshuser}
@@ -4126,7 +4126,7 @@ services:
     container_name: velld-api
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.158}:8085:8080"
+      - "${HOST_BIND:-127.0.0.1}:8085:8080"
     environment:
       <<: *common-env
       JWT_SECRET: ${VELLD_JWT_SECRET}
@@ -4160,7 +4160,7 @@ services:
     container_name: velld-web
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.158}:3010:3000"
+      - "${HOST_BIND:-127.0.0.1}:3010:3000"
     environment:
       <<: *common-env
       NEXT_PUBLIC_API_URL: ${VELLD_API_URL}
@@ -4192,7 +4192,7 @@ services:
     hostname: backrest
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-192.168.178.158}:9898:9898"
+      - "${HOST_BIND:-127.0.0.1}:9898:9898"
     environment:
       <<: *common-env
       BACKREST_DATA: /data
