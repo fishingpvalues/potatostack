@@ -154,8 +154,13 @@ recreate_containers() {
 	# Approach 1: Try docker compose from /compose
 	if [ -d /compose ] && [ -f /compose/docker-compose.yml ]; then
 		echo "[$(date +'%Y-%m-%d %H:%M:%S')]   Trying docker compose from /compose..."
-		if docker compose -f /compose/docker-compose.yml up -d --force-recreate "$RESTART_CONTAINERS" 2>&1 | sed "s/^/    /"; then
+		# shellcheck disable=SC2086
+		local compose_output
+		if compose_output=$(docker compose -f /compose/docker-compose.yml up -d --force-recreate $RESTART_CONTAINERS 2>&1); then
+			echo "$compose_output" | sed "s/^/    /"
 			success=true
+		else
+			echo "$compose_output" | sed "s/^/    /"
 		fi
 	fi
 
@@ -163,9 +168,13 @@ recreate_containers() {
 	if [ "$success" = "false" ] && [ -d /home/daniel/potatostack ] && [ -f /home/daniel/potatostack/docker-compose.yml ]; then
 		echo "[$(date +'%Y-%m-%d %H:%M:%S')]   Trying docker compose from /home/daniel/potatostack..."
 		# Use -f flag to specify compose file, don't cd
-		if docker compose -f "/home/daniel/potatostack/docker-compose.yml" up -d --force-recreate "$RESTART_CONTAINERS" 2>&1 | sed "s/^/    /"; then
+		# shellcheck disable=SC2086
+		local compose_output
+		if compose_output=$(docker compose -f "/home/daniel/potatostack/docker-compose.yml" up -d --force-recreate $RESTART_CONTAINERS 2>&1); then
+			echo "$compose_output" | sed "s/^/    /"
 			success=true
 		else
+			echo "$compose_output" | sed "s/^/    /"
 			echo "[$(date +'%Y-%m-%d %H:%M:%S')]     Docker compose from /home/daniel/potatostack failed"
 		fi
 	fi
