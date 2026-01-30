@@ -1,0 +1,11 @@
+# Killswitch hardening: restrict ESTABLISHED/RELATED traffic to VPN + loopback only.
+# Without this, when tun0 goes down, existing TCP connections leak through eth0
+# via the default unrestricted conntrack RELATED,ESTABLISHED rule.
+#
+# Remove the unrestricted ESTABLISHED rule and add interface-bound versions.
+# The eth0 rules only allow established traffic to private subnets (container/LAN).
+iptables -D OUTPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+iptables -A OUTPUT -o tun0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+iptables -A OUTPUT -o lo -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+iptables -A OUTPUT -o eth0 -d 172.16.0.0/12 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+iptables -A OUTPUT -o eth0 -d 192.168.0.0/16 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT

@@ -593,6 +593,7 @@ services:
       HEALTH_VPN_DURATION_ADDITION: 10s
     volumes:
       - gluetun-config:/gluetun
+      - ./config/gluetun/post-rules.txt:/iptables/post-rules.txt:ro
     networks:
       - potatostack
     restart: unless-stopped
