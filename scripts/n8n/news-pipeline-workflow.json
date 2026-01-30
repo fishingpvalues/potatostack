@@ -201,8 +201,9 @@
           "parameters": [
             { "name": "Title", "value": "={{ $json.title || $('Split Entries').item.json.title }}" },
             { "name": "Tags", "value": "newspaper" },
-            { "name": "Click", "value": "={{ $json.url || $('Split Entries').item.json.url }}" },
-            { "name": "Priority", "value": "default" }
+            { "name": "Click", "value": "=https://potatostack.tale-iwato.ts.net:8093/entry/{{ $json.id || $('Split Entries').item.json.id }}" },
+            { "name": "Priority", "value": "default" },
+            { "name": "Actions", "value": "=view, Read full article, https://potatostack.tale-iwato.ts.net:8093/entry/{{ $json.id || $('Split Entries').item.json.id }}; view, Open source, {{ $json.url || $('Split Entries').item.json.url }}" }
           ]
         },
         "sendBody": true,
