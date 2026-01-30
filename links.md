@@ -17,11 +17,22 @@ All services accessible via HTTPS using Tailscale certificates or Traefik revers
 | Grafana | https://potatostack.tale-iwato.ts.net:3002 | https://grafana.potatostack.tale-iwato.ts.net | Metrics Dashboard |
 | cAdvisor | https://potatostack.tale-iwato.ts.net:8089 | https://cadvisor.potatostack.tale-iwato.ts.net | Container Metrics |
 
+## Core Infrastructure
+
+| Service | Port Link | Traefik Link | Description |
+|---------|-----------|-------------|-------------|
+| Traefik HTTP | http://potatostack.tale-iwato.ts.net:80 | - | HTTP Redirect |
+| Traefik HTTPS | https://potatostack.tale-iwato.ts.net:443 | - | HTTPS Entry |
+| Gluetun Control | https://potatostack.tale-iwato.ts.net:8008 | https://gluetun.potatostack.tale-iwato.ts.net | VPN Status |
+| Vaultwarden WebUI | https://potatostack.tale-iwato.ts.net:8888 | https://vault.potatostack.tale-iwato.ts.net | Password Manager |
+| Vaultwarden WebSockets | https://potatostack.tale-iwato.ts.net:3012 | - | Live Sync |
+
 ## Media
 
 | Service | Port Link | Traefik Link | Description |
 |---------|-----------|-------------|-------------|
 | Jellyfin | https://potatostack.tale-iwato.ts.net:8096 | https://jellyfin.potatostack.tale-iwato.ts.net | Media Server |
+| Jellyfin HTTPS | https://potatostack.tale-iwato.ts.net:8920 | - | Media Server (HTTPS) |
 | Jellyseerr | https://potatostack.tale-iwato.ts.net:5055 | https://jellyseerr.potatostack.tale-iwato.ts.net | Media Requests |
 | Sonarr | https://potatostack.tale-iwato.ts.net:8989 | https://sonarr.potatostack.tale-iwato.ts.net | TV Shows |
 | Radarr | https://potatostack.tale-iwato.ts.net:7878 | https://radarr.potatostack.tale-iwato.ts.net | Movies |
@@ -37,13 +48,13 @@ All services accessible via HTTPS using Tailscale certificates or Traefik revers
 | Service | Port Link | Traefik Link | Description |
 |---------|-----------|-------------|-------------|
 | qBittorrent | https://potatostack.tale-iwato.ts.net:8282 | https://qbittorrent.potatostack.tale-iwato.ts.net | Torrents |
+| qBittorrent Peer | - | - | 51413/tcp, 51413/udp |
 | pyLoad-ng | https://potatostack.tale-iwato.ts.net:8076 | https://pyload.potatostack.tale-iwato.ts.net | Download Manager |
 | pyLoad Click'n'Load | https://potatostack.tale-iwato.ts.net:9666 | - | Browser Extension |
 | slskd | https://potatostack.tale-iwato.ts.net:2234 | https://slskd.potatostack.tale-iwato.ts.net | Soulseek |
+| slskd Peer | - | - | 50000 |
 | SpotiFLAC | https://potatostack.tale-iwato.ts.net:8097 | https://spotiflac.potatostack.tale-iwato.ts.net | Spotify Downloader |
-# | Pinchflat | https://potatostack.tale-iwato.ts.net:8945 | https://pinchflat.potatostack.tale-iwato.ts.net | YouTube Downloader |
 | Prowlarr | https://potatostack.tale-iwato.ts.net:9696 | https://prowlarr.potatostack.tale-iwato.ts.net | Indexers |
-| Gluetun Control | https://potatostack.tale-iwato.ts.net:8008 | https://gluetun.potatostack.tale-iwato.ts.net | VPN Status |
 
 ## Files & Photos
 
@@ -51,7 +62,9 @@ All services accessible via HTTPS using Tailscale certificates or Traefik revers
 |---------|-----------|-------------|-------------|
 | Filebrowser | https://potatostack.tale-iwato.ts.net:8090 | https://filebrowser.potatostack.tale-iwato.ts.net | Web File Manager |
 | Filestash | https://potatostack.tale-iwato.ts.net:8095 | https://filestash.potatostack.tale-iwato.ts.net | Advanced File Manager |
-| Syncthing | https://potatostack.tale-iwato.ts.net:8384 | https://syncthing.potatostack.tale-iwato.ts.net | File Sync |
+| Syncthing WebUI | https://potatostack.tale-iwato.ts.net:8384 | https://syncthing.potatostack.tale-iwato.ts.net | File Sync |
+| Syncthing Discovery | - | - | 21027/udp |
+| Syncthing Transfer | - | - | 22000/tcp, 22000/udp |
 | Immich | https://potatostack.tale-iwato.ts.net:2283 | https://immich.potatostack.tale-iwato.ts.net | Photo Management |
 
 ## Development
@@ -62,63 +75,95 @@ All services accessible via HTTPS using Tailscale certificates or Traefik revers
 | Gitea SSH | ssh://potatostack.tale-iwato.ts.net:2223 | ssh://git.potatostack.tale-iwato.ts.net:2223 | Git SSH |
 | Woodpecker | https://potatostack.tale-iwato.ts.net:3006 | https://ci.potatostack.tale-iwato.ts.net | CI/CD |
 
-## Security
+## Automation & Workflows
 
 | Service | Port Link | Traefik Link | Description |
 |---------|-----------|-------------|-------------|
-| Vaultwarden | https://potatostack.tale-iwato.ts.net:8888 | https://vault.potatostack.tale-iwato.ts.net | Password Manager |
+| n8n | https://potatostack.tale-iwato.ts.net:5678 | https://n8n.potatostack.tale-iwato.ts.net | Workflow Automation |
+| RSS-Bridge | https://potatostack.tale-iwato.ts.net:3007 | https://rssbridge.potatostack.tale-iwato.ts.net | RSS Feed Generator |
+| Miniflux Webhook | - | https://miniflux-webhook.potatostack.tale-iwato.ts.net | RSS to ntfy |
+| Jellyfin Webhook | - | https://jellyfin-webhook.potatostack.tale-iwato.ts.net | Media to ntfy |
+| Jellyseerr Webhook | - | https://jellyseerr-webhook.potatostack.tale-iwato.ts.net | Requests to ntfy |
+| Healthchecks | https://potatostack.tale-iwato.ts.net:8001 | https://healthchecks.potatostack.tale-iwato.ts.net | Cron Monitoring |
 
-## Knowledge
+## Knowledge & Productivity
 
 | Service | Port Link | Traefik Link | Description |
 |---------|-----------|-------------|-------------|
+| Obsidian LiveSync | https://potatostack.tale-iwato.ts.net:5984 | https://obsidian.potatostack.tale-iwato.ts.net | Notes Sync |
 | Linkding | https://potatostack.tale-iwato.ts.net:9091 | https://linkding.potatostack.tale-iwato.ts.net | Bookmarks |
 | Miniflux | https://potatostack.tale-iwato.ts.net:8093 | https://rss.potatostack.tale-iwato.ts.net | RSS Reader |
-| Obsidian LiveSync | https://potatostack.tale-iwato.ts.net:5984 | https://obsidian.potatostack.tale-iwato.ts.net | Notes Sync |
-
-## Productivity
-
-| Service | Port Link | Traefik Link | Description |
-|---------|-----------|-------------|-------------|
 | Mealie | https://potatostack.tale-iwato.ts.net:9925 | https://mealie.potatostack.tale-iwato.ts.net | Recipes |
 | Actual Budget | https://potatostack.tale-iwato.ts.net:5006 | https://budget.potatostack.tale-iwato.ts.net | Finance |
 
-## Monitoring
+## Monitoring & Observability
 
 | Service | Port Link | Traefik Link | Description |
 |---------|-----------|-------------|-------------|
-| Prometheus | https://potatostack.tale-iwato.ts.net:9090 | https://prometheus.potatostack.tale-iwato.ts.net | Metrics |
-| Loki | https://potatostack.tale-iwato.ts.net:3100 | https://loki.potatostack.tale-iwato.ts.net | Logs |
-| Alertmanager | https://potatostack.tale-iwato.ts.net:9093 | https://alerts.potatostack.tale-iwato.ts.net | Alerts |
-| Thanos Query | https://potatostack.tale-iwato.ts.net:10903 | https://thanos.potatostack.tale-iwato.ts.net | Long-term Metrics |
+| Prometheus | https://potatostack.tale-iwato.ts.net:9090 | https://prometheus.potatostack.tale-iwato.ts.net | Metrics Collection |
+| Thanos Sidecar | https://potatostack.tale-iwato.ts.net:10902 | - | Long-term Storage |
+| Thanos Query | https://potatostack.tale-iwato.ts.net:10903 | https://thanos.potatostack.tale-iwato.ts.net | Unified Query |
+| Loki | https://potatostack.tale-iwato.ts.net:3100 | https://loki.potatostack.tale-iwato.ts.net | Log Aggregation |
+| Alertmanager | https://potatostack.tale-iwato.ts.net:9093 | https://alerts.potatostack.tale-iwato.ts.net | Alert Routing |
 | Scrutiny | https://potatostack.tale-iwato.ts.net:8087 | https://scrutiny.potatostack.tale-iwato.ts.net | Disk Health |
 | CrowdSec Metrics | https://potatostack.tale-iwato.ts.net:6060 | - | Security Metrics |
 
-## Utilities
+## Security & Notifications
 
 | Service | Port Link | Traefik Link | Description |
 |---------|-----------|-------------|-------------|
-| Healthchecks | https://potatostack.tale-iwato.ts.net:8001 | https://healthchecks.potatostack.tale-iwato.ts.net | Cron Monitoring |
-| Rustypaste | https://potatostack.tale-iwato.ts.net:8788 | https://paste.potatostack.tale-iwato.ts.net | Paste/File Sharing |
-| ntfy | https://potatostack.tale-iwato.ts.net:8060 | https://ntfy.potatostack.tale-iwato.ts.net | Notifications |
-| Atuin | https://potatostack.tale-iwato.ts.net:8889 | https://atuin.potatostack.tale-iwato.ts.net | Shell History |
+| ntfy | https://potatostack.tale-iwato.ts.net:8060 | https://ntfy.potatostack.tale-iwato.ts.net | Notification Hub |
+| Alertmanager ntfy | - | - | Alert Formatter |
 | Trivy | https://potatostack.tale-iwato.ts.net:8081 | - | Security Scanner |
 
-## Backup
+## Utilities & Tools
+
+| Service | Port Link | Traefik Link | Description |
+|---------|-----------|-------------|-------------|
+| Rustypaste | https://potatostack.tale-iwato.ts.net:8788 | https://paste.potatostack.tale-iwato.ts.net | Pastebin |
+| Atuin | https://potatostack.tale-iwato.ts.net:8889 | https://atuin.potatostack.tale-iwato.ts.net | Shell History |
+| OpenSSH | ssh://potatostack.tale-iwato.ts.net:2222 | - | SSH/SFTP Access |
+| Samba | - | - | SMB File Sharing (445) |
+
+## Backup & Storage
 
 | Service | Port Link | Traefik Link | Description |
 |---------|-----------|-------------|-------------|
 | Velld API | https://potatostack.tale-iwato.ts.net:8085 | https://velld-api.potatostack.tale-iwato.ts.net | Database Backup API |
 | Velld Web | https://potatostack.tale-iwato.ts.net:3010 | https://velld.potatostack.tale-iwato.ts.net | Database Backup UI |
+| Backrest | https://potatostack.tale-iwato.ts.net:9898 | https://backrest.potatostack.tale-iwato.ts.net | Restic Backup WebUI |
 
-## Network Services
+## Monitoring Scripts (Background)
 
-| Service | Port | Description |
-|---------|------|-------------|
-| OpenSSH | 2222 | SSH/SFTP Access |
-| Samba | 445 | SMB File Sharing (LAN) |
-| Syncthing Discovery | 21027/udp | Local Discovery |
-| Syncthing Transfer | 22000 | File Transfer |
+| Service | Description |
+|---------|-------------|
+| Gluetun Monitor | VPN connection monitoring & restart |
+| Disk Space Monitor | Storage usage alerts |
+| Traefik Log Monitor | Certificate error monitoring |
+| Backup Monitor | Backup freshness checks |
+| DB Health Monitor | PostgreSQL/Redis health |
+| Tailscale Connectivity Monitor | Mesh network health |
+| Internet Connectivity Monitor | Network availability |
+| slskd Queue Monitor | Soulseek queue tracking |
+| Immich Log Monitor | Photo service error monitoring |
+
+## Databases (Internal)
+
+| Service | Internal Port | Description |
+|---------|---------------|-------------|
+| PostgreSQL | 5432 | Primary Database |
+| PgBouncer | 5432 | Connection Pool |
+| MongoDB | 27017 | Document Database |
+| Redis Cache | 6379 | Shared Cache |
+| CouchDB | 5984 | Obsidian Sync |
+
+## Development Tools
+
+| Service | Port Link | Description |
+|---------|-----------|-------------|
+| Article Extractor | - | Full-text extraction service |
+| DuckDB Container | - | Ad-hoc analytics (no port) |
+| tdl Container | - | Telegram downloader (VPN) |
 
 ## Quick Access
 
@@ -146,12 +191,20 @@ open https://syncthing.potatostack.tale-iwato.ts.net
 # Development
 open https://potatostack.tale-iwato.ts.net:3004
 open https://git.potatostack.tale-iwato.ts.net
+open https://potatostack.tale-iwato.ts.net:3006
+open https://ci.potatostack.tale-iwato.ts.net
+
+# Automation
+open https://potatostack.tale-iwato.ts.net:5678
+open https://n8n.potatostack.tale-iwato.ts.net
 
 # Monitoring
 open https://potatostack.tale-iwato.ts.net:3002
 open https://grafana.potatostack.tale-iwato.ts.net
 open https://potatostack.tale-iwato.ts.net:3001
 open https://uptime.potatostack.tale-iwato.ts.net
+open https://potatostack.tale-iwato.ts.net:9090
+open https://prometheus.potatostack.tale-iwato.ts.net
 
 # Downloads (VPN)
 open https://potatostack.tale-iwato.ts.net:8282
@@ -164,6 +217,8 @@ open https://slskd.potatostack.tale-iwato.ts.net
 # Backups
 open https://potatostack.tale-iwato.ts.net:3010
 open https://velld.potatostack.tale-iwato.ts.net
+open https://potatostack.tale-iwato.ts.net:9898
+open https://backrest.potatostack.tale-iwato.ts.net
 ```
 
 ## Access Methods
@@ -190,46 +245,20 @@ Access these via:
 1. Traefik URL (recommended) - `https://sonarr.potatostack.tale-iwato.ts.net`
 2. Direct port through Gluetun - `https://potatostack.tale-iwato.ts.net:8989`
 
-## pyLoad-ng Setup
+## Storage Structure
 
-pyLoad-ng runs behind the Gluetun VPN killswitch for privacy.
+```
+/mnt/storage          - Main HDD storage (media, downloads, files)
+/mnt/ssd/docker-data  - SSD docker volumes (databases, configs)
+/mnt/cachehdd        - Cache HDD (temp files, transcodes)
+```
 
-**Access URLs:**
-- Port-based: https://potatostack.tale-iwato.ts.net:8076
-- Traefik: https://pyload.potatostack.tale-iwato.ts.net
+## Network Configuration
 
-**Ports:**
-- WebUI: 8076 (external) → 8000 (internal)
-- Click'n'Load: 9666 (for browser extensions)
-
-**Storage paths:**
-- Downloads: `/mnt/storage/downloads/pyload`
-- Incomplete: `/mnt/cachehdd/downloads/pyload`
-
-**First-time setup:**
-1. Access https://pyload.potatostack.tale-iwato.ts.net
-2. Default credentials: `pyload` / `pyload`
-3. Change password in Settings → General
-4. Configure download paths in Settings → General
-
-
-## Rustypaste Usage
-
-```bash
-# Upload a file (port-based)
-curl -F "file=@myfile.txt" https://potatostack.tale-iwato.ts.net:8788
-
-# Upload with expiry (1 hour)
-curl -F "file=@myfile.txt" -F "expire=1h" https://potatostack.tale-iwato.ts.net:8788
-
-# Upload with custom name
-curl -F "file=@myfile.txt" -F "url=custom-name" https://potatostack.tale-iwato.ts.net:8788
-
-# Delete a file (requires delete token from config)
-curl -X DELETE -H "Authorization: <delete_token>" https://potatostack.tale-iwato.ts.net:8788/filename
-
-# Or use Traefik URL:
-curl -F "file=@myfile.txt" https://paste.potatostack.tale-iwato.ts.net
+```
+Tailscale Network: tale-iwato.ts.net
+Docker Network: potatostack (172.22.0.0/16)
+VPN Network: Gluetun (varies by provider)
 ```
 
 ## Disabled Services
@@ -239,12 +268,14 @@ The following services are commented out in docker-compose.yml:
 - Authentik - SSO provider
 - WireGuard - VPN (replaced by Tailscale + Gluetun)
 - Open WebUI - LLM interface
-- n8n - Workflow automation
-- Paperless-ngx - Document management
+- Paperless-ngx - Document management (OOM issues)
 - Code-server - VS Code in browser
 - IT-Tools - Developer tools
 - Infisical - Secrets management
 - fail2ban - Intrusion prevention (use CrowdSec)
+- Maintainerr - Media library cleanup
+- Pinchflat - YouTube downloader
+- Stirling-PDF - PDF tools
 
 To enable any disabled service:
 1. Uncomment service block in docker-compose.yml

@@ -2009,6 +2009,24 @@ services:
     labels:
       - "autoheal=true"
 
+  # tdl - Telegram downloader toolkit
+  tdl:
+    image: iyear/tdl:${TDL_TAG:-latest}
+    container_name: tdl
+    logging: *default-logging
+    network_mode: "service:gluetun"
+    entrypoint: ["tail", "-f", "/dev/null"]
+    environment:
+      <<: *common-env
+    volumes:
+      - tdl-data:/root/.tdl
+      - /mnt/storage/downloads/telegram:/downloads
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    restart: unless-stopped
+
   ################################################################################
   # PHOTO MANAGEMENT
   ################################################################################
@@ -2750,6 +2768,7 @@ services:
       GENERIC_TIMEZONE: Europe/Berlin
       # Allow access without HTTPS (for direct port access via Tailscale)
       N8N_SECURE_COOKIE: false
+      MINIFLUX_API_KEY: ${MINIFLUX_API_KEY}
       DB_TYPE: postgresdb
       DB_POSTGRESDB_HOST: postgres
       DB_POSTGRESDB_PORT: 5432
@@ -4320,6 +4339,7 @@ volumes:
   # aria2-config:  # REMOVED
   pyload-config:
   slskd-config:
+  tdl-data:
 
   # Shared secrets
   shared-keys:
