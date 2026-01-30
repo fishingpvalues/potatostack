@@ -92,6 +92,7 @@ directories:
   downloads: /var/slskd/shared
 
 shares:
+  storage_mode: disk
   directories:
     # Share all mounted media libraries
     - /music

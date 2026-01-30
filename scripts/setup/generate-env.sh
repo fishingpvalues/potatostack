@@ -16,7 +16,6 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 ENV_FILE="$PROJECT_ROOT/.env"
-ENV_EXAMPLE="$PROJECT_ROOT/.env.example"
 
 ################################################################################
 # Helper Functions
@@ -141,6 +140,8 @@ main() {
 	read_input "Local network subnet (CIDR)" LAN_NETWORK "192.168.178.0/24"
 	read_input "Domain for services" HOST_DOMAIN "potatostack.tale-iwato.ts.net"
 	read_input "Email for SSL certificates" ACME_EMAIL "admin@example.com"
+	read_optional "Cloudflare API Email" CF_API_EMAIL
+	read_optional "Cloudflare DNS API Token" CF_DNS_API_TOKEN
 
 	print_header "Master Credentials"
 	echo -e "These credentials will be used for ALL services that require login.\n"
@@ -208,9 +209,6 @@ main() {
 	VELLD_ADMIN_PASSWORD="$ADMIN_PASSWORD"
 	ELASTIC_PASSWORD="$ADMIN_PASSWORD"
 	PAPERLESS_ADMIN_PASSWORD="$ADMIN_PASSWORD"
-	FILEBROWSER_PASSWORD="$ADMIN_PASSWORD"
-	QBITTORRENT_PASSWORD="$ADMIN_PASSWORD"
-	ACTUAL_PASSWORD="$ADMIN_PASSWORD"
 
 	print_step "Base64 secrets..."
 	AUTHENTIK_SECRET_KEY="$(gen_base64 48)"
@@ -248,6 +246,8 @@ main() {
 	DRONE_GITEA_CLIENT_ID="get_from_gitea_oauth_app"
 	DRONE_GITEA_CLIENT_SECRET="get_from_gitea_oauth_app"
 	OAUTH2_PROXY_CLIENT_ID="get_from_authentik_after_setup"
+	FILESTASH_OIDC_CLIENT_ID="get_from_authentik_after_setup"
+	FILESTASH_OIDC_CLIENT_SECRET="get_from_authentik_after_setup"
 	FIREFLY_ACCESS_TOKEN="get_from_firefly_after_setup"
 	SYNCTHING_API_KEY=""
 	PORTAINER_API_KEY=""
@@ -273,6 +273,8 @@ HOST_BIND=${HOST_BIND}
 LAN_NETWORK=${LAN_NETWORK}
 HOST_DOMAIN=${HOST_DOMAIN}
 ACME_EMAIL=${ACME_EMAIL}
+CF_API_EMAIL=${CF_API_EMAIL}
+CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
 
 ################################################################################
 # FILE SHARING (Samba)
@@ -346,10 +348,12 @@ GITEA_SSH_PORT=2223
 ################################################################################
 # MONITORING & HEALTHCHECK CONFIG
 ################################################################################
-IMMICH_LOG_CHECK_INTERVAL=60
-IMMICH_RESTART_COOLDOWN=300
-IMMICH_LOG_PATTERNS=redis|Redis|ECONNREFUSED|Connection refused|connect ECONNREFUSED|socket hang up
-IMMICH_NOTIFY_COOLDOWN=300
+	IMMICH_LOG_CHECK_INTERVAL=60
+	IMMICH_RESTART_COOLDOWN=300
+	IMMICH_REACHABILITY_TIMEOUT=120
+	IMMICH_REACHABILITY_RETRIES=6
+	IMMICH_LOG_PATTERNS=redis|Redis|ECONNREFUSED|Connection refused|connect ECONNREFUSED|socket hang up
+	IMMICH_NOTIFY_COOLDOWN=300
 
 GLUETUN_RESTART_ON_STOP=true
 GLUETUN_RESTART_ON_FAILURE=true
@@ -365,6 +369,7 @@ TRAEFIK_LOG_PATTERNS=acme|certificate|x509|tls
 TRAEFIK_LOG_LEVEL_PATTERN=level=error
 TRAEFIK_RESTART_ON_ERROR=false
 TRAEFIK_RESTART_COOLDOWN=300
+TRAEFIK_NOTIFY_COOLDOWN=300
 TRAEFIK_NOTIFY_COOLDOWN=300
 
 BACKUP_MONITOR_PATHS=/mnt/storage/stack-snapshot.log /mnt/storage/velld/backups
@@ -391,17 +396,24 @@ INTERNET_FAIL_THRESHOLD=3
 INTERNET_CHECK_TIMEOUT=5
 INTERNET_CHECK_URLS=https://1.1.1.1 https://www.google.com/generate_204 https://cloudflare.com/cdn-cgi/trace
 
-NTFY_INTERNAL_URL=http://ntfy:80
-NTFY_TOPIC=potatostack
-NTFY_TOPIC_CRITICAL=potatostack-critical
-NTFY_TOPIC_WARNING=potatostack-warning
-NTFY_TOPIC_INFO=potatostack-info
-NTFY_TOKEN=
-NTFY_AUTH_DEFAULT_ACCESS=read-write
-NTFY_ENABLE_LOGIN=false
-NTFY_ENABLE_METRICS=true
-NTFY_DEFAULT_TAGS=potatostack,monitor
-NTFY_DEFAULT_PRIORITY=default
+	NTFY_INTERNAL_URL=http://ntfy:80
+	NTFY_TOPIC=potatostack
+	NTFY_TOPIC_CRITICAL=potatostack-critical
+	NTFY_TOPIC_WARNING=potatostack-warning
+	NTFY_TOPIC_INFO=potatostack-info
+	NTFY_TOKEN=
+	NTFY_AUTH_DEFAULT_ACCESS=read-write
+	NTFY_ENABLE_LOGIN=false
+	NTFY_ENABLE_METRICS=true
+	NTFY_DEFAULT_TAGS=potatostack,monitor
+	NTFY_DEFAULT_PRIORITY=default
+	NTFY_RETRY_COUNT=3
+	NTFY_RETRY_DELAY=5
+	NTFY_TIMEOUT=10
+
+	JELLYFIN_NTFY_PORT=8081
+	JELLYSEERR_NTFY_PORT=8082
+	MINIFLUX_NTFY_PORT=8083
 
 ################################################################################
 # DASHBOARD & MANAGEMENT
@@ -517,10 +529,12 @@ LINKDING_ADMIN_USER=${ADMIN_USER}
 LINKDING_ADMIN_PASSWORD=${LINKDING_ADMIN_PASSWORD}
 CALCOM_NEXTAUTH_SECRET=${CALCOM_NEXTAUTH_SECRET}
 CALCOM_ENCRYPTION_KEY=${CALCOM_ENCRYPTION_KEY}
-ATUIN_HOST=0.0.0.0
-ATUIN_PORT=8888
-ATUIN_OPEN_REGISTRATION=true
-CODE_SERVER_PASSWORD=${CODE_SERVER_PASSWORD}
+	ATUIN_HOST=0.0.0.0
+	ATUIN_PORT=8888
+	ATUIN_OPEN_REGISTRATION=true
+	FILESTASH_OIDC_CLIENT_ID=${FILESTASH_OIDC_CLIENT_ID}
+	FILESTASH_OIDC_CLIENT_SECRET=${FILESTASH_OIDC_CLIENT_SECRET}
+	CODE_SERVER_PASSWORD=${CODE_SERVER_PASSWORD}
 CODE_SERVER_SUDO_PASSWORD=${CODE_SERVER_SUDO_PASSWORD}
 
 ################################################################################
@@ -557,7 +571,9 @@ ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
 ################################################################################
 # Repository encryption password (CRITICAL - store this safely!)
 KOPIA_PASSWORD=${KOPIA_PASSWORD}
-# Web UI credentials
+KOPIA_SERVER_USER=${KOPIA_SERVER_USER}
+KOPIA_SERVER_PASSWORD=${KOPIA_SERVER_PASSWORD}
+KOPIA_HOSTNAME=${KOPIA_HOSTNAME}
 # Automated snapshot schedule
 SNAPSHOT_CRON_SCHEDULE=0 3 * * *
 SNAPSHOT_PATHS=/data
@@ -632,6 +648,7 @@ WIREGUARD_TAG=latest
 # NEXTCLOUD_AIO_TAG=latest
 SYNCTHING_TAG=latest
 FILEBROWSER_TAG=latest
+FILESTASH_TAG=latest
 
 # Knowledge Management
 COUCHDB_TAG=latest
@@ -741,7 +758,7 @@ DOCKER_CLI_TAG=27.2.1
 DOCKER_TAG=cli
 
 # Secrets
-INFISICAL_TAG=latest
+# INFISICAL_TAG=latest
 
 # Long-term Storage
 THANOS_TAG=v0.37.2
@@ -750,6 +767,11 @@ THANOS_TAG=v0.37.2
 KOPIA_TAG=latest
 VELLD_API_TAG=latest
 VELLD_WEB_TAG=latest
+
+################################################################################
+# GLUETUN MONITOR TYPE
+################################################################################
+GLUETUN_MONITOR_TYPE=host
 ENVFILE
 
 	chmod 600 "$ENV_FILE"
