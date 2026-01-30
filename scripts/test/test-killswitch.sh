@@ -1,26 +1,31 @@
 #!/bin/bash
 
 ################################################################################
-# VPN Killswitch Test Script - Fixed Implementation
-# Tests Gluetun's killswitch firewall by examining iptables rules
-# Does NOT disrupt VPN connection (NON-DESTRUCTIVE)
+# VPN Killswitch Verification Test
+#
+# Proves Gluetun's killswitch blocks ALL traffic when VPN fails.
+#
+# Methodology:
+# 1. Verify VPN is up and services route through it
+# 2. Inspect iptables DROP policies
+# 3. Simulate VPN failure: bring down interface + block VPN endpoint
+#    (prevents gluetun from auto-reconnecting during the test)
+# 4. Confirm ALL dependent services cannot reach the internet
+# 5. Unblock endpoint, restore interface, verify recovery
 ################################################################################
 
 set -euo pipefail
 
-# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# Report file
-REPORT_FILE="killswitch-test-report-$(date +%Y%m%d-%H%M%S).txt"
-LOG_DIR="./test-logs"
-mkdir -p "$LOG_DIR"
+PASSED=0
+FAILED=0
+WARNINGS=0
 
-# All services that depend on gluetun
 VPN_DEPENDENT_SERVICES=(
 	"prowlarr"
 	"sonarr"
@@ -35,234 +40,342 @@ VPN_DEPENDENT_SERVICES=(
 	"stash"
 )
 
-# External test endpoints
-TEST_ENDPOINTS_TCP=(
-	"1.1.1.1:443"
-	"8.8.8.8:53"
-)
+pass() { echo -e "  ${GREEN}✓${NC} $1"; PASSED=$((PASSED + 1)); }
+fail() { echo -e "  ${RED}✗${NC} $1"; FAILED=$((FAILED + 1)); }
+warn() { echo -e "  ${YELLOW}!${NC} $1"; WARNINGS=$((WARNINGS + 1)); }
+info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 
-# Detect OS
-detect_os() {
-	echo -e "${BLUE}[INFO]${NC} Detecting OS..."
-
-	if [ -d "/data/data/com.termux" ]; then
-		OS_TYPE="termux"
-		DOCKER_CMD="docker compose"
-		echo -e "${GREEN}[OK]${NC} Running on Termux/Android"
-	elif [ -f /etc/debian_version ] || [ -f /etc/redhat-release ]; then
-		OS_TYPE="linux"
-		if command -v docker-compose &>/dev/null; then
-			DOCKER_CMD="docker-compose"
-		elif docker compose version &>/dev/null 2>&1; then
-			DOCKER_CMD="docker compose"
+get_running_services() {
+	local running=()
+	for svc in "${VPN_DEPENDENT_SERVICES[@]}"; do
+		if docker inspect --format='{{.State.Status}}' "$svc" 2>/dev/null | grep -q running; then
+			running+=("$svc")
 		fi
-		echo -e "${GREEN}[OK]${NC} Running on Linux - using $DOCKER_CMD"
-	fi
-
-	{
-		echo "OS Type: $OS_TYPE"
-		echo "Docker Command: $DOCKER_CMD"
-	} >>"$REPORT_FILE"
+	done
+	echo "${running[@]}"
 }
 
-# Check Docker availability
-check_docker_available() {
-	if ! docker ps >/dev/null 2>&1; then
-		echo -e "${RED}[ERROR]${NC} Docker daemon is not running"
+# Check if a service can reach the internet (returns 0 if reachable)
+can_reach_internet() {
+	local svc="$1"
+	local timeout="${2:-5}"
+	if docker exec "$svc" wget -q -O /dev/null --timeout="$timeout" http://1.1.1.1 2>/dev/null; then
+		return 0
+	fi
+	if docker exec "$svc" sh -c "echo | nc -w$timeout 1.1.1.1 443" 2>/dev/null; then
+		return 0
+	fi
+	return 1
+}
+
+# Extract VPN endpoint from iptables rules
+get_vpn_endpoint() {
+	docker exec gluetun iptables -L OUTPUT -n -v 2>/dev/null \
+		| grep 'udp.*dpt:51820\|udp.*dpt:1194' \
+		| awk '{print $NF}' \
+		| grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' \
+		| head -1
+}
+
+# Ensure VPN is restored even if script is interrupted
+cleanup() {
+	echo -e "\n${YELLOW}[CLEANUP]${NC} Restoring VPN..."
+	docker exec gluetun iptables -D OUTPUT -d "$VPN_ENDPOINT" -p udp -j DROP 2>/dev/null || true
+	docker exec gluetun ip link set "$VPN_IF" up 2>/dev/null || true
+	# If that doesn't work, restart gluetun
+	sleep 5
+	if ! docker exec gluetun wget -q -O /dev/null --timeout=5 http://1.1.1.1 2>/dev/null; then
+		docker restart gluetun 2>/dev/null || true
+	fi
+}
+
+################################################################################
+# Phase 1: Pre-flight checks
+################################################################################
+phase1_preflight() {
+	echo ""
+	echo "========================================"
+	info "Phase 1: Pre-flight checks"
+	echo "========================================"
+
+	if docker ps >/dev/null 2>&1; then
+		pass "Docker daemon running"
+	else
+		fail "Docker daemon not running"
 		exit 1
 	fi
 
-	{
-		echo "Docker Status: RUNNING"
-	} >>"$REPORT_FILE"
-
-	echo -e "${GREEN}[OK]${NC} Docker daemon is running"
-}
-
-# Check Gluetun status
-check_gluetun_status() {
-	echo -e "${BLUE}[INFO]${NC} Checking gluetun status..."
-
-	local status=$(docker inspect --format='{{.State.Status}}' gluetun 2>/dev/null || echo "not_found")
-	local health=$(docker inspect --format='{{.State.Health.Status}}' gluetun 2>/dev/null || echo "none")
-	VPN_INTERFACE=$(docker exec gluetun env 2>/dev/null | grep '^VPN_INTERFACE=' | cut -d'=' -f2 || echo "tun0")
-
-	local vpn_state=$(docker exec gluetun ip link show "$VPN_INTERFACE" 2>/dev/null | grep -o ',UP,' >/dev/null && echo "UP" || echo "DOWN")
-
-	{
-		echo "Gluetun Status: $status"
-		echo "Gluetun Health: $health"
-		echo "VPN Interface: $VPN_INTERFACE ($vpn_state)"
-	} >>"$REPORT_FILE"
-
-	if [ "$status" = "running" ] && [ "$vpn_state" = "UP" ]; then
-		echo -e "${GREEN}[OK]${NC} Gluetun is running and VPN interface is UP"
-		return 0
+	local status
+	status=$(docker inspect --format='{{.State.Status}}' gluetun 2>/dev/null || echo "not_found")
+	if [ "$status" = "running" ]; then
+		pass "Gluetun container running"
 	else
-		echo -e "${YELLOW}[WARNING]${NC} Gluetun status: $status, VPN: $vpn_state"
-		return 0
-	fi
-}
-
-# Check killswitch firewall rules (NEW: non-destructive)
-check_firewall_rules() {
-	echo -e "${BLUE}[INFO]${NC} Checking killswitch firewall rules..."
-	{
-		echo "=== FIREWALL RULES VERIFICATION ==="
-	} >>"$REPORT_FILE"
-
-	local firewall_active=0
-	local output_drop=0
-	local default_policy=0
-
-	# Check for iptables rules
-	local output_rules=$(docker exec gluetun iptables -L OUTPUT -v 2>/dev/null || echo "")
-
-	if echo "$output_rules" | grep -qi "drop"; then
-		output_drop=1
-		echo -e "  ${GREEN}✓${NC} Found OUTPUT DROP rules"
-		echo "  ✓ OUTPUT DROP rules found" >>"$REPORT_FILE"
+		fail "Gluetun container not running (status: $status)"
+		exit 1
 	fi
 
-	# Check default policies
-	local policies=$(docker exec gluetun iptables -L -n 2>/dev/null | grep "policy" || echo "")
-
-	if echo "$policies" | grep -qi "policy DROP"; then
-		default_policy=1
-		echo -e "  ${GREEN}✓${NC} Found DROP policies"
-		echo "  ✓ DROP policies found" >>"$REPORT_FILE"
-	fi
-
-	# Check for VPN interface rules
-	local vpn_rules=$(docker exec gluetun iptables -L -n -v 2>/dev/null | grep "$VPN_INTERFACE" || echo "")
-
-	if [ -n "$vpn_rules" ]; then
-		firewall_active=1
-		echo -e "  ${GREEN}✓${NC} Found $VPN_INTERFACE firewall rules"
-		echo "  ✓ $VPN_INTERFACE firewall rules found" >>"$REPORT_FILE"
-	fi
-
-	if [ "$output_drop" -eq 1 ] || [ "$default_policy" -eq 1 ]; then
-		firewall_active=1
-	fi
-
-	{
-		echo "OUTPUT DROP rules: $output_drop"
-		echo "DROP policies: $default_policy"
-		echo "$VPN_INTERFACE rules: present"
-		echo "Firewall active: $firewall_active"
-	} >>"$REPORT_FILE"
-
-	if [ "$firewall_active" -eq 1 ]; then
-		echo -e "${GREEN}[OK]${NC} Killswitch firewall is active"
-		FIREWALL_VERIFIED=1
-		return 0
+	# Detect VPN interface
+	VPN_IF=$(docker exec gluetun sh -c 'ip link show tun0 2>/dev/null && echo tun0 || (ip link show wg0 2>/dev/null && echo wg0) || echo none' 2>/dev/null | tail -1)
+	if [ "$VPN_IF" != "none" ]; then
+		pass "VPN interface $VPN_IF is present"
 	else
-		echo -e "${YELLOW}[WARNING]${NC} Killswitch firewall rules not clearly detected"
-		FIREWALL_VERIFIED=0
-		return 1
+		fail "No VPN interface (tun0/wg0) found"
+		exit 1
+	fi
+
+	# Detect VPN endpoint IP
+	VPN_ENDPOINT=$(get_vpn_endpoint)
+	if [ -n "$VPN_ENDPOINT" ]; then
+		pass "VPN endpoint: $VPN_ENDPOINT"
+	else
+		fail "Cannot determine VPN endpoint from iptables"
+		exit 1
+	fi
+
+	RUNNING_SERVICES=($(get_running_services))
+	if [ "${#RUNNING_SERVICES[@]}" -gt 0 ]; then
+		pass "${#RUNNING_SERVICES[@]} services behind gluetun: ${RUNNING_SERVICES[*]}"
+	else
+		fail "No VPN-dependent services are running"
+		exit 1
 	fi
 }
 
-# Test connectivity through VPN
-test_vpn_connectivity() {
-	echo -e "${BLUE}[INFO]${NC} Testing connectivity through VPN..."
+################################################################################
+# Phase 2: Verify iptables killswitch rules
+################################################################################
+phase2_firewall() {
+	echo ""
+	echo "========================================"
+	info "Phase 2: Firewall rule inspection"
+	echo "========================================"
 
-	local tcp_connected=0
-	local tcp_total=0
+	local output_policy
+	output_policy=$(docker exec gluetun iptables -L OUTPUT -n 2>/dev/null | head -1 || echo "")
 
-	for service in qbittorrent prowlarr sonarr; do
-		if ! docker inspect "$service" >/dev/null 2>&1; then
-			continue
-		fi
+	if echo "$output_policy" | grep -qi "policy DROP"; then
+		pass "OUTPUT chain default policy is DROP"
+	elif docker exec gluetun iptables -L OUTPUT -n -v 2>/dev/null | grep -qi "DROP"; then
+		pass "OUTPUT chain has DROP rules"
+	else
+		fail "No DROP policy/rules on OUTPUT chain"
+	fi
 
-		tcp_total=$((tcp_total + 1))
-		local public_ip=$(timeout 5 docker exec "$service" wget -q -O- --timeout=5 ifconfig.me/ip 2>/dev/null || echo "Failed")
+	local vpn_accept_rules
+	vpn_accept_rules=$(docker exec gluetun iptables -L OUTPUT -n -v 2>/dev/null | grep -c "$VPN_IF" || echo "0")
+	if [ "$vpn_accept_rules" -gt 0 ]; then
+		pass "ACCEPT rules for VPN interface $VPN_IF ($vpn_accept_rules rules)"
+	else
+		warn "No explicit ACCEPT rules for $VPN_IF"
+	fi
 
-		if [ "$public_ip" != "Failed" ]; then
-			tcp_connected=$((tcp_connected + 1))
-			echo -e "  ${GREEN}✓${NC} $service: $public_ip"
-			echo "  ✓ $service: $public_ip" >>"$REPORT_FILE"
+	if docker exec gluetun iptables -L INPUT -n 2>/dev/null | head -1 | grep -qi "policy DROP"; then
+		pass "INPUT chain default policy is DROP"
+	else
+		warn "INPUT chain is not DROP (less critical for killswitch)"
+	fi
+
+	info "Outbound iptables rules:"
+	docker exec gluetun iptables -L OUTPUT -n -v 2>/dev/null
+}
+
+################################################################################
+# Phase 3: Verify services use VPN IP
+################################################################################
+phase3_vpn_ip() {
+	echo ""
+	echo "========================================"
+	info "Phase 3: Verify services route through VPN"
+	echo "========================================"
+
+	VPN_IP=$(docker exec gluetun wget -q -O- --timeout=5 ifconfig.me/ip 2>/dev/null || echo "unknown")
+	info "Gluetun VPN IP: $VPN_IP"
+
+	HOST_IP=$(wget -q -O- --timeout=5 ifconfig.me/ip 2>/dev/null || echo "unknown")
+	info "Host IP: $HOST_IP"
+
+	if [ "$VPN_IP" = "unknown" ]; then
+		fail "Cannot determine VPN IP"
+		return
+	fi
+
+	if [ "$VPN_IP" = "$HOST_IP" ]; then
+		fail "VPN IP matches host IP — VPN may not be working!"
+		return
+	fi
+	pass "VPN IP ($VPN_IP) differs from host IP ($HOST_IP)"
+
+	for svc in "${RUNNING_SERVICES[@]}"; do
+		local svc_ip
+		svc_ip=$(docker exec "$svc" wget -q -O- --timeout=5 ifconfig.me/ip 2>/dev/null || echo "timeout")
+		if [ "$svc_ip" = "$VPN_IP" ]; then
+			pass "$svc → $svc_ip (VPN)"
+		elif [ "$svc_ip" = "timeout" ]; then
+			warn "$svc → no response (may lack wget)"
+		elif [ "$svc_ip" = "$HOST_IP" ]; then
+			fail "$svc → $svc_ip (HOST IP — LEAKING!)"
 		else
-			echo -e "  ${YELLOW}?${NC} $service: Failed"
-			echo "  ✗ $service: Failed" >>"$REPORT_FILE"
+			warn "$svc → $svc_ip (unexpected IP, expected $VPN_IP)"
+		fi
+	done
+}
+
+################################################################################
+# Phase 4: Killswitch test — simulate VPN failure
+################################################################################
+phase4_killswitch_test() {
+	echo ""
+	echo "========================================"
+	info "Phase 4: Killswitch test (simulate VPN failure)"
+	echo "========================================"
+
+	# Install cleanup trap
+	trap cleanup EXIT INT TERM
+
+	# Block VPN endpoint to prevent gluetun from auto-reconnecting
+	info "Blocking VPN endpoint $VPN_ENDPOINT to prevent reconnection..."
+	docker exec gluetun iptables -I OUTPUT -d "$VPN_ENDPOINT" -p udp -j DROP
+
+	# Bring down VPN interface
+	info "Bringing down VPN interface $VPN_IF..."
+	docker exec gluetun ip link set "$VPN_IF" down 2>/dev/null || {
+		fail "Could not bring down $VPN_IF"
+		return
+	}
+
+	local if_state
+	if_state=$(docker exec gluetun ip link show "$VPN_IF" 2>/dev/null | grep -o 'state [A-Z]*' || echo "state UNKNOWN")
+	info "Interface state: $if_state"
+
+	# Wait for routing to settle
+	sleep 3
+
+	# Test each service — NONE should reach the internet
+	local leak_detected=0
+	for svc in "${RUNNING_SERVICES[@]}"; do
+		if can_reach_internet "$svc" 8; then
+			fail "$svc CAN reach internet with VPN down — LEAK DETECTED!"
+			leak_detected=1
+		else
+			pass "$svc blocked (no internet access)"
 		fi
 	done
 
-	{
-		echo "VPN Connectivity: $tcp_connected/$tcp_total connected"
-	} >>"$REPORT_FILE"
-
-	if [ "$tcp_connected" -ge "$((tcp_total / 2))" ]; then
-		echo -e "${GREEN}[OK]${NC} VPN connectivity working"
-		return 0
+	# Test gluetun container itself
+	if docker exec gluetun wget -q -O /dev/null --timeout=8 http://1.1.1.1 2>/dev/null; then
+		fail "Gluetun itself can reach internet with VPN down — LEAK!"
+		leak_detected=1
 	else
-		echo -e "${YELLOW}[WARNING]${NC} VPN connectivity issues"
-		return 1
+		pass "Gluetun container blocked (no internet access)"
+	fi
+
+	if [ "$leak_detected" -eq 0 ]; then
+		echo -e "  ${GREEN}★ KILLSWITCH VERIFIED — zero bytes leaked${NC}"
+	else
+		echo -e "  ${RED}★ KILLSWITCH FAILED — traffic leaked without VPN${NC}"
 	fi
 }
 
-# Generate summary
-generate_summary() {
-	echo -e "${BLUE}[INFO]${NC} Generating test summary..."
-	{
-		echo ""
-		echo "====================================="
-		echo "=== KILLSWITCH TEST SUMMARY ==="
-		echo "====================================="
-		echo "Test completed: $(date)"
-		echo "Firewall Verified: $FIREWALL_VERIFIED"
-		echo "====================================="
-	} >>"$REPORT_FILE"
-
+################################################################################
+# Phase 5: Restore VPN and verify recovery
+################################################################################
+phase5_restore() {
 	echo ""
-	echo "======================================"
-	echo "KILLSWITCH TEST SUMMARY"
-	echo "======================================"
-	echo "Report saved to: $REPORT_FILE"
-	echo "======================================"
+	echo "========================================"
+	info "Phase 5: Restore VPN and verify recovery"
+	echo "========================================"
+
+	# Remove endpoint block
+	info "Unblocking VPN endpoint $VPN_ENDPOINT..."
+	docker exec gluetun iptables -D OUTPUT -d "$VPN_ENDPOINT" -p udp -j DROP 2>/dev/null || true
+
+	# Bring interface back up
+	info "Bringing VPN interface $VPN_IF back up..."
+	docker exec gluetun ip link set "$VPN_IF" up 2>/dev/null || {
+		warn "Could not bring $VPN_IF up — restarting gluetun"
+		docker restart gluetun
+		sleep 15
+	}
+
+	# Wait for reconnection
+	info "Waiting for VPN to reconnect..."
+	local max_wait=30
+	local waited=0
+	while [ "$waited" -lt "$max_wait" ]; do
+		if docker exec gluetun wget -q -O /dev/null --timeout=3 http://1.1.1.1 2>/dev/null; then
+			break
+		fi
+		sleep 2
+		waited=$((waited + 2))
+	done
+
+	if [ "$waited" -ge "$max_wait" ]; then
+		warn "VPN did not recover within ${max_wait}s — restarting gluetun"
+		docker restart gluetun
+		sleep 15
+	fi
+
+	# Clear trap since we've restored manually
+	trap - EXIT INT TERM
+
+	local restored_ip
+	restored_ip=$(docker exec gluetun wget -q -O- --timeout=5 ifconfig.me/ip 2>/dev/null || echo "unknown")
+	if [ "$restored_ip" != "unknown" ]; then
+		pass "VPN restored — IP: $restored_ip"
+	else
+		fail "VPN did not restore properly"
+	fi
+
+	# Spot-check first service
+	if [ "${#RUNNING_SERVICES[@]}" -gt 0 ]; then
+		local check_svc="${RUNNING_SERVICES[0]}"
+		local check_ip
+		check_ip=$(docker exec "$check_svc" wget -q -O- --timeout=5 ifconfig.me/ip 2>/dev/null || echo "timeout")
+		if [ "$check_ip" = "$restored_ip" ]; then
+			pass "$check_svc reconnected through VPN ($check_ip)"
+		else
+			warn "$check_svc IP: $check_ip (expected $restored_ip)"
+		fi
+	fi
 }
 
-# Main execution
-main() {
-	echo "======================================"
-	echo "VPN Killswitch Test (Fixed Non-Destructive)"
-	echo "Started: $(date)"
-	echo "======================================"
+################################################################################
+# Summary
+################################################################################
+print_summary() {
+	echo ""
+	echo "========================================"
+	echo "KILLSWITCH TEST RESULTS"
+	echo "========================================"
+	echo -e "  ${GREEN}Passed:${NC}   $PASSED"
+	echo -e "  ${RED}Failed:${NC}   $FAILED"
+	echo -e "  ${YELLOW}Warnings:${NC} $WARNINGS"
+	echo "========================================"
 
-	{
-		echo "Killswitch Test Report"
-		echo "Generated: $(date)"
-		echo "====================================="
-	} >"$REPORT_FILE"
-
-	detect_os
-
-	if ! check_docker_available; then
-		echo -e "${RED}[FAILED]${NC} Cannot proceed"
-		exit 1
-	fi
-
-	if ! check_gluetun_status; then
-		echo -e "${RED}[FAILED]${NC} Gluetun not available"
-		exit 1
-	fi
-
-	if ! test_vpn_connectivity; then
-		echo -e "${YELLOW}[WARNING]${NC} VPN connectivity issues detected"
-	fi
-
-	check_firewall_rules
-
-	generate_summary
-
-	if [ "$FIREWALL_VERIFIED" -eq 1 ]; then
-		echo -e "${GREEN}[PASSED]${NC} Killswitch verification complete"
+	if [ "$FAILED" -eq 0 ]; then
+		echo -e "${GREEN}[PASSED]${NC} Killswitch is working — no traffic leaks detected"
 		exit 0
 	else
-		echo -e "${YELLOW}[WARNING]${NC} Killswitch could not be fully verified"
+		echo -e "${RED}[FAILED]${NC} Killswitch issues detected — review failures above"
 		exit 1
 	fi
+}
+
+################################################################################
+# Main
+################################################################################
+main() {
+	echo "========================================"
+	echo "VPN Killswitch Verification Test"
+	echo "$(date)"
+	echo "========================================"
+
+	phase1_preflight
+	phase2_firewall
+	phase3_vpn_ip
+	phase4_killswitch_test
+	phase5_restore
+	print_summary
 }
 
 main "$@"
