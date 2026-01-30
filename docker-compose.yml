@@ -4140,6 +4140,64 @@ services:
       - "traefik.http.services.velld.loadbalancer.server.port=3000"
       - "traefik.http.routers.velld.middlewares=sso-chain@docker"
 
+  ################################################################################
+  # Backrest - Restic Backup WebUI & Scheduler
+  ################################################################################
+  backrest:
+    image: ghcr.io/garethgeorge/backrest:${BACKREST_TAG:-latest}
+    container_name: backrest
+    hostname: backrest
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-192.168.178.158}:9898:9898"
+    environment:
+      <<: *common-env
+      BACKREST_DATA: /data
+      BACKREST_CONFIG: /config/config.json
+      XDG_CACHE_HOME: /cache
+      TMPDIR: /tmp/backrest
+      BACKREST_PORT: "0.0.0.0:9898"
+    volumes:
+      # Config & database on SSD
+      - /mnt/ssd/docker-data/backrest/data:/data
+      - /mnt/ssd/docker-data/backrest/config:/config
+      # Cache on cache HDD
+      - /mnt/cachehdd/backrest/cache:/cache
+      - /mnt/cachehdd/backrest/tmp:/tmp/backrest
+      # Repos on HDD (large backup data)
+      - /mnt/storage/backrest/repos:/repos
+      # Read-write access to ALL data for backing up
+      - /mnt/storage:/mnt/storage
+      - /mnt/ssd/docker-data:/mnt/ssd/docker-data
+      - /mnt/cachehdd:/mnt/cachehdd
+    networks:
+      - potatostack
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:9898 || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backrest.rule=Host(`backrest.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.backrest.entrypoints=websecure"
+      - "traefik.http.routers.backrest.tls=true"
+      - "traefik.http.services.backrest.loadbalancer.server.port=9898"
+      - "traefik.http.routers.backrest.middlewares=sso-chain@docker"
+
   # Snapshot Scheduler - Cron-based Kopia snapshots
   snapshot-scheduler:
     image: docker:${DOCKER_CLI_TAG:-27.2.1}-cli

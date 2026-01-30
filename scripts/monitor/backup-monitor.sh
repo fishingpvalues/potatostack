@@ -5,7 +5,7 @@
 
 set -eu
 
-BACKUP_PATHS="${BACKUP_MONITOR_PATHS:-/mnt/storage/stack-snapshot.log /mnt/storage/velld/backups}"
+BACKUP_PATHS="${BACKUP_MONITOR_PATHS:-/mnt/storage/stack-snapshot.log /mnt/storage/velld/backups /mnt/storage/backrest/repos}"
 MAX_AGE_HOURS="${BACKUP_MAX_AGE_HOURS:-48}"
 CHECK_INTERVAL="${BACKUP_MONITOR_INTERVAL:-3600}"
 NTFY_TAGS="${BACKUP_MONITOR_NTFY_TAGS:-backup,storage}"

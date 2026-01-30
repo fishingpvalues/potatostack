@@ -439,6 +439,7 @@ test_service_endpoints() {
 	grep -q "velld-web" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Velld" "http://localhost:3010"
 	grep -q "maintainerr" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Maintainerr" "http://localhost:6246"
 	grep -q "atuin" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Atuin" "http://localhost:8888"
+	grep -q "backrest" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Backrest" "http://localhost:9898"
 
 	echo "" >>"$REPORT_FILE"
 	echo "Endpoints Passed: $passed" >>"$REPORT_FILE"

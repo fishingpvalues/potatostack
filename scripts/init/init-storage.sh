@@ -133,7 +133,8 @@ mkdir -p \
 	"${STORAGE_BASE}/paperless/media" \
 	"${STORAGE_BASE}/paperless/consume" \
 	"${STORAGE_BASE}/paperless/export" \
-	"${STORAGE_BASE}/photos"
+	"${STORAGE_BASE}/photos" \
+	"${STORAGE_BASE}/backrest/repos"
 
 # Create Immich required directories and markers
 mkdir -p "${STORAGE_BASE}/photos/encoded-video"
@@ -230,7 +231,9 @@ mkdir -p \
 
 # Misc app caches
 mkdir -p \
-	"${CACHE_BASE}/slskd/logs"
+	"${CACHE_BASE}/slskd/logs" \
+	"${CACHE_BASE}/backrest/cache" \
+	"${CACHE_BASE}/backrest/tmp"
 
 ################################################################################
 # SSD Directories (Databases and App Data)
@@ -259,7 +262,9 @@ mkdir -p \
 	"${SSD_BASE}/code-server" \
 	"${SSD_BASE}/filebrowser" \
 	"${SSD_BASE}/filestash" \
-	"${SSD_BASE}/jellyseerr"
+	"${SSD_BASE}/jellyseerr" \
+	"${SSD_BASE}/backrest/data" \
+	"${SSD_BASE}/backrest/config"
 
 # System directory on SSD (cron, etc)
 mkdir -p "/mnt/ssd/system/cron"
