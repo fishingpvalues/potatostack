@@ -58,6 +58,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
       POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-authentik,gitea,woodpecker,immich,calibre,linkding,healthchecks,atuin,homarr,miniflux,grafana,mealie}
+    entrypoint: sh /postgres-wrapper.sh
     command:
       - "postgres"
       - "-c"
@@ -89,6 +90,7 @@ services:
     volumes:
       - /mnt/ssd/docker-data/postgres:/var/lib/postgresql/data
       - ./scripts/init/init-postgres-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-postgres-multiple-dbs.sh:ro
+      - ./scripts/init/postgres-wrapper.sh:/postgres-wrapper.sh:ro
     tmpfs:
       - /tmp:exec,mode=1777
       - /var/run/postgresql:exec,mode=1777
