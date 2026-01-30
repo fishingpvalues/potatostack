@@ -55,16 +55,27 @@ get_running_services() {
 	echo "${running[@]}"
 }
 
-# Check if a service can reach the internet (returns 0 if reachable)
-can_reach_internet() {
+# Get public IP from a service container (tries curl, wget, and nc)
+get_public_ip() {
 	local svc="$1"
-	local timeout="${2:-5}"
-	if docker exec "$svc" wget -q -O /dev/null --timeout="$timeout" http://1.1.1.1 2>/dev/null; then
+	local t="${2:-5}"
+	local ip=""
+
+	# Try curl first
+	ip=$(docker exec "$svc" curl -4 -s --max-time "$t" ifconfig.me/ip 2>/dev/null || true)
+	if [ -n "$ip" ] && echo "$ip" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+'; then
+		echo "$ip"
 		return 0
 	fi
-	if docker exec "$svc" sh -c "echo | nc -w$timeout 1.1.1.1 443" 2>/dev/null; then
+
+	# Try wget
+	ip=$(docker exec "$svc" wget -q -O- --timeout="$t" ifconfig.me/ip 2>/dev/null || true)
+	if [ -n "$ip" ] && echo "$ip" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+'; then
+		echo "$ip"
 		return 0
 	fi
+
+	echo "BLOCKED"
 	return 1
 }
 
@@ -209,12 +220,12 @@ phase3_vpn_ip() {
 
 	for svc in "${RUNNING_SERVICES[@]}"; do
 		local svc_ip
-		svc_ip=$(docker exec "$svc" wget -q -O- --timeout=5 ifconfig.me/ip 2>/dev/null || echo "timeout")
+		svc_ip=$(get_public_ip "$svc" 5) || true
 		if [ "$svc_ip" = "$VPN_IP" ]; then
 			pass "$svc → $svc_ip (VPN)"
-		elif [ "$svc_ip" = "timeout" ]; then
-			warn "$svc → no response (may lack wget)"
-		elif [ "$svc_ip" = "$HOST_IP" ]; then
+		elif [ -z "$svc_ip" ] || [ "$svc_ip" = "BLOCKED" ]; then
+			warn "$svc → no response (may lack curl/wget/nc)"
+		elif [ "$svc_ip" = "$HOST_IP" ] || [ "$svc_ip" = "$HOST_IP4" ]; then
 			fail "$svc → $svc_ip (HOST IP — LEAKING!)"
 		else
 			warn "$svc → $svc_ip (unexpected IP, expected $VPN_IP)"
@@ -256,8 +267,8 @@ phase4_killswitch_test() {
 	local leak_detected=0
 	for svc in "${RUNNING_SERVICES[@]}"; do
 		local svc_ip
-		svc_ip=$(docker exec "$svc" wget -q -O- --timeout=8 ifconfig.me/ip 2>/dev/null || echo "BLOCKED")
-		if [ "$svc_ip" = "BLOCKED" ]; then
+		svc_ip=$(get_public_ip "$svc" 5) || true
+		if [ -z "$svc_ip" ] || [ "$svc_ip" = "BLOCKED" ]; then
 			pass "$svc blocked (no internet access)"
 		elif [ "$svc_ip" = "$HOST_IP" ] || [ "$svc_ip" = "$HOST_IP4" ]; then
 			fail "$svc reached internet via HOST IP ($svc_ip) — REAL LEAK!"
