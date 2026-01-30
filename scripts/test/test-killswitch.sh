@@ -72,8 +72,8 @@ can_reach_internet() {
 get_vpn_endpoint() {
 	docker exec gluetun iptables -L OUTPUT -n -v 2>/dev/null \
 		| grep 'udp.*dpt:51820\|udp.*dpt:1194' \
-		| awk '{print $NF}' \
 		| grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' \
+		| grep -v '^0\.0\.0\.0$' \
 		| head -1
 }
 
