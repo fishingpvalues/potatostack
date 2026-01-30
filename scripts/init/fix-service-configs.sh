@@ -107,7 +107,7 @@ fix_grafana_permissions() {
 # Fix Thanos Data Directories
 ################################################################################
 fix_thanos_permissions() {
-	local THANOS_BASE="/mnt/cachehdd/thanos"
+	local THANOS_BASE="/mnt/cachehdd/observability/thanos"
 
 	log_info "Checking Thanos data directories..."
 

@@ -393,11 +393,16 @@ printf '%s\n' "Setting service-specific permissions..."
 # Prometheus (UID 65534 - nobody)
 [ -d "${CACHE_BASE}/observability/prometheus" ] && chown -R 65534:65534 "${CACHE_BASE}/observability/prometheus"
 
+# Thanos sidecar needs a writable subdir inside prometheus data
+mkdir -p "${CACHE_BASE}/observability/prometheus/thanos"
+chown -R 1001:1001 "${CACHE_BASE}/observability/prometheus/thanos"
+
 # Loki (UID 10001)
 [ -d "${CACHE_BASE}/observability/loki" ] && chown -R 10001:10001 "${CACHE_BASE}/observability/loki"
 
-# Grafana (UID 472)
-[ -d "${SSD_BASE}/grafana" ] && chown -R 472:472 "${SSD_BASE}/grafana"
+# Grafana (UID 472) - ensure plugins dir exists
+mkdir -p "${SSD_BASE}/grafana/plugins"
+chown -R 472:472 "${SSD_BASE}/grafana"
 
 # Thanos (UID 1001)
 [ -d "${CACHE_BASE}/observability/thanos" ] && chown -R 1001:1001 "${CACHE_BASE}/observability/thanos"

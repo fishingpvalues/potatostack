@@ -2309,7 +2309,7 @@ services:
     image: grafana/grafana:${GRAFANA_TAG:-latest}
     container_name: grafana
     logging: *default-logging
-    user: "${PUID:-1000}:${PGID:-1000}"
+    user: "472:472"
     ports:
       - "${HOST_BIND:-127.0.0.1}:3002:3000"
     environment:
@@ -3666,7 +3666,8 @@ services:
     networks:
       - potatostack
     depends_on:
-      - ntfy
+      ntfy:
+        condition: service_healthy
     restart: unless-stopped
 
   ################################################################################
