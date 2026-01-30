@@ -1,0 +1,262 @@
+{
+  "name": "News Pipeline - Keyword Alerts",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Every 15 min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://miniflux:8080/v1/entries",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "status", "value": "unread" },
+            { "name": "limit", "value": "20" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-Auth-Token", "value": "={{ $env.MINIFLUX_API_KEY }}" }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "fetch-entries",
+      "name": "Fetch Unread Entries",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "entries",
+        "options": {}
+      },
+      "id": "split-entries",
+      "name": "Split Entries",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "short-content",
+              "leftValue": "={{ $json.content.length }}",
+              "rightValue": 500,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-truncated",
+      "name": "Content < 500 chars?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://article-extractor:8084/extract",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ url: $json.url }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "extract-article",
+      "name": "Extract Full Article",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, -100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "has-content",
+              "leftValue": "={{ $json.content }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-extraction",
+      "name": "Extraction OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1100, -100]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=http://miniflux:8080/v1/entries/{{ $('Split Entries').item.json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-Auth-Token", "value": "={{ $env.MINIFLUX_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ content: $json.content }) }}",
+        "options": {}
+      },
+      "id": "update-miniflux",
+      "name": "Update Miniflux Entry",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, -100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "keyword-match",
+              "leftValue": "={{ ($json.title + ' ' + $json.content).toLowerCase() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "keyword-check",
+      "name": "Keyword Match?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, 200],
+      "_note": "CONFIGURE MANUALLY: Set regex pattern to: (cs2|counter-strike|hltv|bielefeld|owl|paderborn|\\bnw\\b|westfalen)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ntfy:80/news-alerts",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Title", "value": "={{ $json.title || $('Split Entries').item.json.title }}" },
+            { "name": "Tags", "value": "newspaper" },
+            { "name": "Click", "value": "={{ $json.url || $('Split Entries').item.json.url }}" },
+            { "name": "Priority", "value": "default" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={{ ($json.content || $('Split Entries').item.json.content || '').substring(0, 300) + '...' }}",
+        "options": {}
+      },
+      "id": "notify-ntfy",
+      "name": "Send ntfy Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 200]
+    }
+  ],
+  "connections": {
+    "Every 15 min": {
+      "main": [[{ "node": "Fetch Unread Entries", "type": "main", "index": 0 }]]
+    },
+    "Fetch Unread Entries": {
+      "main": [[{ "node": "Split Entries", "type": "main", "index": 0 }]]
+    },
+    "Split Entries": {
+      "main": [[{ "node": "Content < 500 chars?", "type": "main", "index": 0 }]]
+    },
+    "Content < 500 chars?": {
+      "main": [
+        [{ "node": "Extract Full Article", "type": "main", "index": 0 }],
+        [{ "node": "Keyword Match?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Extract Full Article": {
+      "main": [[{ "node": "Extraction OK?", "type": "main", "index": 0 }]]
+    },
+    "Extraction OK?": {
+      "main": [
+        [{ "node": "Update Miniflux Entry", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Update Miniflux Entry": {
+      "main": [[{ "node": "Keyword Match?", "type": "main", "index": 0 }]]
+    },
+    "Keyword Match?": {
+      "main": [
+        [{ "node": "Send ntfy Alert", "type": "main", "index": 0 }],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    { "name": "news" },
+    { "name": "automation" }
+  ]
+}
