@@ -26,7 +26,14 @@ TAILSCALE_BASE_URL = os.environ.get(
 )
 KEYWORD_PATTERN = (
     os.environ.get("KEYWORD_PATTERN", "").strip()
-    or r"(cs2|counter-strike|hltv|bielefeld|owl|paderborn|\bnw\b|westfalen)"
+    or r"(cs2|counter-strike|hltv|bielefeld|owl|paderborn|\bnw\b|westfalen"
+    r"|germany|deutschland|europe|\beu\b|nato|bundesbank|ecb|ezb"
+    r"|trade war|tariff|recession|inflation|ukraine|china|taiwan"
+    r"|\bafd\b|bundestag|bundeswehr|dax|deutsche bank"
+    r"|volkswagen|\bvw\b|mercedes|\bbmw\b|siemens|\bsap\b|basf|bayer"
+    r"|thyssenkrupp|\brwe\b|dortmund|d[uü]sseldorf|k[oö]ln"
+    r"|semiconductor|cybersecurity|artificial intelligence|\bai\b|nord stream"
+    r"|blitzer|j[oö]llenbeck|halle|h[oö]rste)"
 )
 INTERVAL = int(os.environ.get("INTERVAL_SECONDS", "900"))
 MIN_CONTENT_LENGTH = int(os.environ.get("MIN_CONTENT_LENGTH", "500"))
@@ -136,6 +143,8 @@ SOURCE_MAP = {
     "nw.de": "NW",
     "westfalen-blatt": "WB",
     "westfalenblatt": "WB",
+    "wall street journal": "WSJ",
+    "wsj": "WSJ",
 }
 
 
@@ -156,7 +165,7 @@ def get_source_tag(entry):
 
 def fetch_unread_entries():
     """Fetch unread entries from Miniflux."""
-    url = f"{MINIFLUX_URL}/v1/entries?status=unread&limit=20"
+    url = f"{MINIFLUX_URL}/v1/entries?status=unread&limit=100"
     result = api_request(url, headers={"X-Auth-Token": MINIFLUX_API_KEY})
     if result and "entries" in result:
         return result["entries"]

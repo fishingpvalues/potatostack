@@ -10,7 +10,9 @@ import json
 import logging
 import os
 import re
+import subprocess
 import threading
+import time
 import urllib.request
 from html.parser import HTMLParser
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -262,9 +264,54 @@ class ExtractHandler(BaseHTTPRequestHandler):
         log.info(format, *args)
 
 
+BPC_URL = "https://gitflic.ru/project/magnolia1234/bpc_uploads/blob/raw?file=bypass-paywalls-chrome-clean-latest.crx&branch=main"
+BPC_UPDATE_INTERVAL = 86400  # 24 hours
+
+
+def update_bpc():
+    """Download latest BPC extension and reload driver if changed."""
+    try:
+        tmp = "/tmp/bpc-update.crx"
+        subprocess.run(
+            ["curl", "-fsSL", BPC_URL, "-o", tmp],
+            check=True,
+            timeout=60,
+        )
+        # Compare with current install by size (CRX changes on every release)
+        current_manifest = os.path.join(BPC_DIR, "manifest.json")
+        old_size = os.path.getsize(current_manifest) if os.path.exists(current_manifest) else 0
+        subprocess.run(
+            ["unzip", "-o", tmp, "-d", BPC_DIR],
+            check=True,
+            timeout=30,
+        )
+        os.remove(tmp)
+        new_size = os.path.getsize(current_manifest) if os.path.exists(current_manifest) else 0
+        if new_size != old_size:
+            log.info("BPC updated (manifest %d -> %d bytes), restarting driver", old_size, new_size)
+            with _browser_lock:
+                init_driver()
+        else:
+            log.info("BPC check: already up to date")
+    except Exception as exc:
+        log.warning("BPC update failed: %s", exc)
+
+
+def bpc_updater_loop():
+    """Background thread: check for BPC updates once a day."""
+    while True:
+        time.sleep(BPC_UPDATE_INTERVAL)
+        update_bpc()
+
+
 if __name__ == "__main__":
     log.info("Initializing Chromium driver...")
     init_driver()
+
+    updater = threading.Thread(target=bpc_updater_loop, daemon=True)
+    updater.start()
+    log.info("BPC auto-updater started (every %ds)", BPC_UPDATE_INTERVAL)
+
     server = HTTPServer(("0.0.0.0", 8084), ExtractHandler)
     log.info("Article extractor listening on :8084 (Chromium + BPC + site APIs)")
     server.serve_forever()
