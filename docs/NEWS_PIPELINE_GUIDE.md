@@ -1,6 +1,6 @@
 # News Aggregation Pipeline Guide
 
-RSS-Bridge + Article Extractor + n8n workflow for keyword-based ntfy alerts.
+Article Extractor + news-pipeline container for keyword-based ntfy alerts.
 
 Sources: HLTV, FAZ, Neue Westfälische, Westfalenblatt.
 
@@ -8,10 +8,8 @@ Sources: HLTV, FAZ, Neue Westfälische, Westfalenblatt.
 
 ```
 Miniflux (RSS reader)
-  ↑ feeds from
-RSS-Bridge (generates feeds for sites without RSS)
 
-n8n (every 15 min)
+news-pipeline (every 15 min)
   → fetches unread Miniflux entries
   → if content < 500 chars → calls Article Extractor
   → Article Extractor tries trafilatura, detects paywalls, falls back to newspaper3k
@@ -26,24 +24,12 @@ n8n (every 15 min)
 ### 1. Start services
 
 ```bash
-docker compose up -d n8n rss-bridge article-extractor
+docker compose up -d news-pipeline article-extractor
 ```
 
 ### 2. Add RSS feeds to Miniflux
 
-Open Miniflux and add feeds. For sites without native RSS, use RSS-Bridge at `http://localhost:3007`:
-
-| Source | Method |
-|---|---|
-| HLTV | RSS-Bridge → select `Hltv` bridge → copy feed URL → add to Miniflux |
-| FAZ | Direct: `https://www.faz.net/rss/aktuell/` or use RSS-Bridge `CssBridge` for specific sections |
-| Neue Westfälische | RSS-Bridge → `CssBridge` or `XPathBridge` → enter NW URL, configure CSS selectors |
-| Westfalenblatt | RSS-Bridge → `CssBridge` or `XPathBridge` → enter URL, configure CSS selectors |
-
-When adding RSS-Bridge feeds to Miniflux, use the internal Docker URL:
-```
-http://rss-bridge:80/?action=display&bridge=Hltv&format=Atom
-```
+Open Miniflux and add feeds directly (RSS/Atom URLs).
 
 ### 3. Get a Miniflux API key
 
@@ -54,38 +40,26 @@ http://rss-bridge:80/?action=display&bridge=Hltv&format=Atom
    MINIFLUX_API_KEY=your_actual_key_here
    ```
 
-### 4. Import the n8n workflow
+### 4. Configure keywords (optional)
 
-1. Open n8n at `http://localhost:5678`
-2. Create your admin account on first login
-3. Go to **Workflows → Import from File**
-4. Select `scripts/n8n/news-pipeline-workflow.json`
+Override the default keyword regex in `.env`:
+```
+KEYWORD_PATTERN=(cs2|counter-strike|hltv|bielefeld|owl|paderborn|\bnw\b|westfalen)
+```
 
-### 5. Configure the workflow in n8n
-
-1. Open the imported workflow
-2. Add environment variable: **Settings → Variables** → add `MINIFLUX_API_KEY` with your key
-3. Open the **"Keyword Match?"** node and set the regex condition value to:
-   ```
-   (cs2|counter-strike|hltv|bielefeld|owl|paderborn|\bnw\b|westfalen)
-   ```
-4. **Activate** the workflow (toggle in top-right)
-
-### 6. Test
+### 5. Test
 
 ```bash
-# RSS-Bridge is up
-curl -s http://localhost:3007 | head -5
-
 # Article extractor works
 curl -X POST http://localhost:8084/extract \
   -H "Content-Type: application/json" \
   -d '{"url":"https://www.hltv.org"}'
 
-# Or trigger the n8n workflow manually via the UI ("Test Workflow" button)
+# Check news-pipeline logs
+docker logs -f news-pipeline
 ```
 
-### 7. Subscribe to ntfy alerts
+### 6. Subscribe to ntfy alerts
 
 Subscribe to the `news-alerts` topic in the ntfy app or check `http://localhost:8089/news-alerts`.
 
@@ -120,19 +94,16 @@ Miniflux supports the Fever API for use with native mobile RSS apps (Unread, Ree
 
 ## Customization
 
-**Add/change keywords:** Edit the "Keyword Match?" node regex in n8n.
+**Add/change keywords:** Set `KEYWORD_PATTERN` in `.env` and restart news-pipeline.
 
-**Change schedule:** Edit the "Every 15 min" trigger node in n8n.
-
-**Add more sources:** Add feeds in Miniflux. If the site has no RSS, create a bridge in RSS-Bridge first. The whitelist at `config/rssbridge/whitelist.txt` controls which bridges are enabled.
+**Change schedule:** Set `INTERVAL_SECONDS` in `.env` (default 900 = 15 min).
 
 ## Troubleshooting
 
 ```bash
 # Check service logs
-docker logs -f rss-bridge
 docker logs -f article-extractor
-docker logs -f n8n
+docker logs -f news-pipeline
 
 # Test article extraction directly
 curl -X POST http://localhost:8084/extract \

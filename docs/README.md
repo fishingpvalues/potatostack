@@ -6,7 +6,7 @@ Complete self-hosted stack with 100 services optimized for low-power hardware.
 
 ## Quick Stats
 
-- **Services**: 99 total (n8n disabled)
+- **Services**: 99 total (news-pipeline background service)
 - **RAM Usage**: 12-13GB peak (out of 16GB)
 - **Storage**: SSD (Docker data) + HDD (media/cache)
 - **Monitoring**: Prometheus + Thanos (1yr retention) + Grafana

@@ -27,7 +27,7 @@ Based on **SOTA 2025 Docker Compose testing best practices**, testing ALL 65+ se
    - Media: Sonarr, Radarr, Lidarr, Readarr, Bazarr, Prowlarr, Jellyfin, Jellyseerr, qBittorrent, Audiobookshelf, Slskd
   - Productivity: Homarr, Paperless-ngx, Linkding, Miniflux, Actual-Budget, Stirling-PDF
   - Development: Gitea, Code-Server
-  - Automation: n8n, Healthchecks
+  - Automation: Healthchecks
   - Security: Vaultwarden, Authentik, AdGuard Home
    - Other: Syncthing, Open-WebUI, Immich, Kopia, Atuin, IT-Tools
 - **Log Analysis**: Greps all container logs for warnings/errors/critical issues

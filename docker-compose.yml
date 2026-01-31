@@ -2749,87 +2749,42 @@ services:
   # AUTOMATION & WORKFLOWS
   ################################################################################
 
-  # n8n - Workflow automation
-  n8n:
-    image: n8nio/n8n:${N8N_TAG:-latest}
-    container_name: n8n
+  # News Pipeline - Keyword alerts from Miniflux via article extraction + ntfy
+  news-pipeline:
+    image: python:3.12-alpine
+    container_name: news-pipeline
     logging: *default-logging
-    ports:
-      - "${HOST_BIND:-127.0.0.1}:5678:5678"
+    command: ["python", "/app/news-pipeline.py"]
     environment:
       <<: *common-env
-      N8N_BASIC_AUTH_ACTIVE: "true"
-      N8N_BASIC_AUTH_USER: ${N8N_USER:-admin}
-      N8N_BASIC_AUTH_PASSWORD: ${N8N_PASSWORD}
-      N8N_HOST: n8n.${HOST_DOMAIN:-local.domain}
-      N8N_PORT: 5678
-      N8N_PROTOCOL: https
-      WEBHOOK_URL: https://n8n.${HOST_DOMAIN:-local.domain}/
-      GENERIC_TIMEZONE: Europe/Berlin
-      # Allow access without HTTPS (for direct port access via Tailscale)
-      N8N_SECURE_COOKIE: false
       MINIFLUX_API_KEY: ${MINIFLUX_API_KEY}
-      DB_TYPE: postgresdb
-      DB_POSTGRESDB_HOST: postgres
-      DB_POSTGRESDB_PORT: 5432
-      DB_POSTGRESDB_DATABASE: n8n
-      DB_POSTGRESDB_USER: postgres
-      DB_POSTGRESDB_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      EXECUTIONS_MODE: queue
-      QUEUE_BULL_REDIS_HOST: redis-cache
-      QUEUE_BULL_REDIS_PORT: 6379
+      KEYWORD_PATTERN: ${KEYWORD_PATTERN:-}
+      INTERVAL_SECONDS: ${INTERVAL_SECONDS:-900}
+      NTFY_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}/news-alerts
+      TAILSCALE_BASE_URL: https://potatostack.tale-iwato.ts.net:8093
     volumes:
-      - /mnt/ssd/docker-data/n8n:/home/node/.n8n
+      - ./scripts/webhooks/news-pipeline.py:/app/news-pipeline.py:ro
     networks:
       - potatostack
     depends_on:
-      - postgres
-      - redis-cache
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 384M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.n8n.rule=Host(`n8n.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.n8n.entrypoints=websecure"
-      - "traefik.http.routers.n8n.tls=true"
-      - "traefik.http.services.n8n.loadbalancer.server.port=5678"
-      - "traefik.http.routers.n8n.middlewares=sso-chain@docker"
-
-  # RSS-Bridge - RSS feed generator for websites without feeds
-  rss-bridge:
-    image: rssbridge/rss-bridge:${RSS_BRIDGE_TAG:-latest}
-    container_name: rss-bridge
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-127.0.0.1}:3007:80"
-    volumes:
-      - rssbridge-config:/config
-      - ./config/rssbridge/whitelist.txt:/app/whitelist.txt:ro
-    networks:
-      - potatostack
+      - miniflux
+      - article-extractor
+      - ntfy
     restart: unless-stopped
     deploy:
       resources:
         limits:
           cpus: "0.25"
           memory: 128M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.rssbridge.rule=Host(`rssbridge.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.rssbridge.entrypoints=websecure"
-      - "traefik.http.routers.rssbridge.tls=true"
-      - "traefik.http.services.rssbridge.loadbalancer.server.port=80"
 
-  # Article Extractor - Full-text extraction for n8n news pipeline
+  # Article Extractor - Headless Chromium + Bypass Paywalls Clean + trafilatura
   article-extractor:
     image: python:3.12-alpine
     container_name: article-extractor
     logging: *default-logging
     entrypoint: ["/bin/sh", "/app/init.sh"]
+    environment:
+      <<: *common-env
     volumes:
       - ./scripts/webhooks/article-extractor.py:/app/article-extractor.py:ro
       - ./scripts/init/article-extractor-init.sh:/app/init.sh:ro
@@ -2839,8 +2794,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 256M
+          cpus: "1.0"
+          memory: 512M
 
   # Healthchecks - Cron monitoring
   healthchecks:
@@ -4355,7 +4310,7 @@ volumes:
 
   # Automation
   # n8n-data:
-  rssbridge-config:
+  # rssbridge-config: # removed
   # Utilities
   # stirling-pdf-data:
   # stirling-pdf-configs:

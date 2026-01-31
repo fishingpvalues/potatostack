@@ -191,7 +191,7 @@ echo '/mnt/ssd/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 
 ### Schedule Heavy Tasks
 
-Use n8n or cron to schedule:
+Use cron to schedule:
 - **Backups**: Run at night (e.g., 2 AM)
 - **ML inference (Immich)**: On-demand only
 - **Transcoding (Jellyfin)**: During low-usage hours

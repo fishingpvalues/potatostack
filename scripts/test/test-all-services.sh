@@ -70,7 +70,7 @@ declare -A SERVICE_PORTS=(
 	["homarr"]="7575"
 
 	# Automation
-	["n8n"]="5678"
+	["news-pipeline"]=""
 	["diun"]=""
 	["autoheal"]=""
 	["healthchecks"]="8000"
@@ -125,7 +125,7 @@ declare -A SERVICE_TYPES=(
 	["woodpecker-server"]="http"
 	["nextcloud-aio"]="http"
 	["paperless-ngx"]="http"
-	["n8n"]="http"
+	["news-pipeline"]="background"
 	["code-server"]="http"
 	["linkding"]="http"
 	["miniflux"]="http"

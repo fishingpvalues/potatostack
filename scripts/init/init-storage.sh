@@ -251,7 +251,6 @@ mkdir -p \
 	"${SSD_BASE}/scrutiny/influxdb" \
 	"${SSD_BASE}/wireguard" \
 	"${SSD_BASE}/duckdb" \
-	"${SSD_BASE}/n8n" \
 	"${SSD_BASE}/paperless-data" \
 	"${SSD_BASE}/crowdsec-db" \
 	"${SSD_BASE}/crowdsec-config" \

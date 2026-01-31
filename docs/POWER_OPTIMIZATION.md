@@ -19,14 +19,14 @@ All services have `deploy.resources` with CPU limits:
 
 ## 3. Power Scheduling Examples
 
-### Schedule heavy tasks at night using n8n or cron:
+### Schedule heavy tasks at night using cron:
 
-#### A. Backup Schedule (via n8n webhook)
-Create n8n workflow:
+#### A. Backup Schedule (via cron)
+Create cron job:
 1. Trigger: Cron (daily at 2 AM)
-2. HTTP Request to Kopia API: Start backup snapshot
+2. Execute backup script via system cron
 3. Wait for completion
-4. Notify via Healthchecks
+4. Notify via Healthchecks ping
 
 #### B. Heavy ML Processing (Immich face detection)
 Reduce Immich ML CPU during day:
@@ -47,43 +47,15 @@ Add to crontab on host:
 #### C. Sonarr/Radarr Download Schedule
 Configure in app settings:
 - Sonarr/Radarr > Settings > General > Start/Stop Hours
-- Or use n8n to pause/resume RSS checks during peak hours
+- Or use cron jobs to pause/resume services during peak hours
 
-### Example n8n Workflow (Power Schedule)
-```json
-{
-  "name": "Power Optimization Schedule",
-  "nodes": [
-    {
-      "name": "Every Day at 11 PM",
-      "type": "n8n-nodes-base.cron",
-      "parameters": {
-        "cronExpression": "0 23 * * *"
-      }
-    },
-    {
-      "name": "Enable Night Mode",
-      "type": "n8n-nodes-base.executeCommand",
-      "parameters": {
-        "command": "docker update --cpus=\"1.0\" immich-ml && docker update --cpus=\"1.5\" jellyfin"
-      }
-    },
-    {
-      "name": "Every Day at 9 AM",
-      "type": "n8n-nodes-base.cron",
-      "parameters": {
-        "cronExpression": "0 9 * * *"
-      }
-    },
-    {
-      "name": "Enable Day Mode",
-      "type": "n8n-nodes-base.executeCommand",
-      "parameters": {
-        "command": "docker update --cpus=\"0.5\" immich-ml && docker update --cpus=\"1.0\" jellyfin"
-      }
-    }
-  ]
-}
+### Example Cron Schedule (Power Schedule)
+```bash
+# Enable Night Mode at 11 PM (allow full CPU for intensive tasks)
+0 23 * * * docker update --cpus="1.0" immich-ml && docker update --cpus="1.5" jellyfin
+
+# Enable Day Mode at 9 AM (limit CPU for background tasks)
+0 9 * * * docker update --cpus="0.5" immich-ml && docker update --cpus="1.0" jellyfin
 ```
 
 ## 4. Storage I/O Optimization (Implemented)
@@ -101,7 +73,7 @@ Limit bandwidth for non-critical services during peak hours:
 ```bash
 # Limit qBittorrent upload to 5 MB/s during day
 # Configure in qBittorrent WebUI: Tools > Options > Speed
-# Schedule with n8n API calls to qBittorrent
+# Schedule with system cron or service-specific tools
 ```
 
 ## 7. Quick Sync Hardware Acceleration (Enabled)
@@ -115,18 +87,16 @@ Limit bandwidth for non-critical services during peak hours:
 - **Healthchecks**: Monitors cron jobs and scheduled tasks
 
 ## 9. Prometheus Alerts for Resource Usage
-Add to Alertmanager config (`config/alertmanager/config.yml`):
+Configure Alertmanager rules (`config/alertmanager/config.yml`) to send alerts when:
 ```yaml
-route:
-  receiver: 'default'
-  
+# Alert when RAM > 14GB (87.5%)
+# Alert when CPU > 90% for 5 minutes
+
+# Configure notification backend (webhook, email, etc)
 receivers:
   - name: 'default'
     webhook_configs:
-      - url: 'http://n8n:5678/webhook/alerts'
-
-# Alert when RAM > 14GB (87.5%)
-# Alert when CPU > 90% for 5 minutes
+      - url: 'http://ntfy:8060/alerts'  # Or your webhook service
 ```
 
 ## 10. Disable Unused Services

@@ -418,7 +418,6 @@ test_service_endpoints() {
 	grep -q "code-server" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Code Server" "http://localhost:8444"
 
 	# Automation
-	grep -q "n8n" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "n8n" "http://localhost:5678"
 	grep -q "healthchecks" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Healthchecks" "http://localhost:8000"
 
 	# Security & Network

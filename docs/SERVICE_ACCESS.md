@@ -66,7 +66,6 @@ Your services are accessible at `192.168.178.158` or via Traefik at `*.danielhom
 ### Automation & Tools
 | Service | HTTPS URL | Direct IP:Port |
 |---------|-----------|----------------|
-| n8n (Workflows) | https://n8n.danielhomelab.local | 192.168.178.158:5678 |
 | Healthchecks | https://healthchecks.danielhomelab.local | 192.168.178.158:8001 |
 | ntfy (Notifications) | https://ntfy.danielhomelab.local | 192.168.178.158:8060 |
 

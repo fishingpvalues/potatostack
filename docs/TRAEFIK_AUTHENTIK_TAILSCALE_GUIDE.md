@@ -55,9 +55,9 @@
 **Ports configured** (from `TAILSCALE_SERVE_PORTS`):
 ```
 7575  - Homarr          8096  - Jellyfin        2283  - Immich
-8093  - Miniflux        9000  - Authentik       5678  - n8n
-8384  - Syncthing       9090  - Prometheus      3100  - Loki
-8076  - pyLoad          2234  - slskd           8000  - Rustypaste
+8093  - Miniflux        9000  - Authentik       8384  - Syncthing
+9090  - Prometheus      3100  - Loki            8076  - pyLoad
+2234  - slskd           8000  - Rustypaste
 ```
 
 ### Traefik (Domain Routing + Security)
@@ -126,7 +126,6 @@ Use **Tailscale for daily access**, **Traefik+Authentik for sensitive services**
 | Jellyfin | `ts.net:8096` | Not needed (has own auth) |
 | Immich | `ts.net:2283` | Not needed (has own auth) |
 | Grafana | `ts.net:3001` | `grafana.local.domain` with SSO |
-| n8n | - | `n8n.local.domain` with SSO |
 | Traefik Dashboard | - | `traefik.local.domain` with SSO |
 
 ## Configuration Reference
@@ -134,7 +133,7 @@ Use **Tailscale for daily access**, **Traefik+Authentik for sensitive services**
 ### Tailscale Serve Ports
 Edit in `.env`:
 ```bash
-TAILSCALE_SERVE_PORTS=7575,8096,2283,8093,5678,...
+TAILSCALE_SERVE_PORTS=7575,8096,2283,8093,8384,9090,3100,...
 ```
 
 ### Adding SSO to a Service

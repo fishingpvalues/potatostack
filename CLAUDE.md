@@ -111,12 +111,12 @@ docker compose up -d postgres
 
 # 4. Force recreate ALL postgres-dependent services (they cache the password)
 docker compose up -d --force-recreate \
-  pgbouncer authentik-server authentik-worker n8n \
+  pgbouncer authentik-server authentik-worker \
   miniflux mealie immich-server grafana postgres-exporter \
   healthchecks linkding atuin gitea woodpecker-server homarr infisical
 ```
 
-**PostgreSQL-dependent services:** postgres, pgbouncer, authentik-server, authentik-worker, n8n, miniflux, mealie, immich-server, grafana, postgres-exporter, healthchecks, linkding, atuin, gitea, woodpecker-server, homarr, infisical
+**PostgreSQL-dependent services:** postgres, pgbouncer, authentik-server, authentik-worker, miniflux, mealie, immich-server, grafana, postgres-exporter, healthchecks, linkding, atuin, gitea, woodpecker-server, homarr, infisical
 
 **Data locations:**
 - PostgreSQL data: `/mnt/ssd/docker-data/postgres`
