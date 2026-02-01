@@ -16,6 +16,7 @@ All services accessible via HTTPS using Tailscale certificates or Traefik revers
 | Uptime Kuma | https://potatostack.tale-iwato.ts.net:3001 | https://uptime.potatostack.tale-iwato.ts.net | Uptime Monitoring |
 | Grafana | https://potatostack.tale-iwato.ts.net:3002 | https://grafana.potatostack.tale-iwato.ts.net | Metrics Dashboard |
 | cAdvisor | https://potatostack.tale-iwato.ts.net:8089 | https://cadvisor.potatostack.tale-iwato.ts.net | Container Metrics |
+| WUD | https://potatostack.tale-iwato.ts.net:3000 | https://wud.potatostack.tale-iwato.ts.net | Docker Update Monitor |
 
 ## Core Infrastructure
 
@@ -74,6 +75,12 @@ All services accessible via HTTPS using Tailscale certificates or Traefik revers
 | Gitea | https://potatostack.tale-iwato.ts.net:3004 | https://git.potatostack.tale-iwato.ts.net | Git Server |
 | Gitea SSH | ssh://potatostack.tale-iwato.ts.net:2223 | ssh://git.potatostack.tale-iwato.ts.net:2223 | Git SSH |
 | Woodpecker | https://potatostack.tale-iwato.ts.net:3006 | https://ci.potatostack.tale-iwato.ts.net | CI/CD |
+
+## Home Automation
+
+| Service | Port Link | Traefik Link | Description |
+|---------|-----------|-------------|-------------|
+| Home Assistant | https://potatostack.tale-iwato.ts.net:8123 | - | Smart Home (host network) |
 
 ## Automation & Workflows
 
@@ -194,6 +201,9 @@ open https://git.potatostack.tale-iwato.ts.net
 open https://potatostack.tale-iwato.ts.net:3006
 open https://ci.potatostack.tale-iwato.ts.net
 
+# Home Automation
+open https://potatostack.tale-iwato.ts.net:8123
+
 # Automation
 open https://potatostack.tale-iwato.ts.net:5678
 open https://n8n.potatostack.tale-iwato.ts.net
@@ -203,6 +213,8 @@ open https://potatostack.tale-iwato.ts.net:3002
 open https://grafana.potatostack.tale-iwato.ts.net
 open https://potatostack.tale-iwato.ts.net:3001
 open https://uptime.potatostack.tale-iwato.ts.net
+open https://potatostack.tale-iwato.ts.net:3000
+open https://wud.potatostack.tale-iwato.ts.net
 open https://potatostack.tale-iwato.ts.net:9090
 open https://prometheus.potatostack.tale-iwato.ts.net
 

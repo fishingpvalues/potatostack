@@ -126,13 +126,9 @@ mkdir -p \
 	"${STORAGE_BASE}/mealie-data" \
 	"${STORAGE_BASE}/downloads/torrent" \
 	"${STORAGE_BASE}/downloads/pyload" \
-	"${STORAGE_BASE}/projects" \
 	"${STORAGE_BASE}/velld/backups" \
 	"${STORAGE_BASE}/rustypaste/uploads" \
-	"${STORAGE_BASE}/slskd-shared" \
-	"${STORAGE_BASE}/paperless/media" \
-	"${STORAGE_BASE}/paperless/consume" \
-	"${STORAGE_BASE}/paperless/export" \
+	"${STORAGE_BASE}/downloads/slskd" \
 	"${STORAGE_BASE}/photos" \
 	"${STORAGE_BASE}/backrest/repos"
 

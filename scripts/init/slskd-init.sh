@@ -89,7 +89,7 @@ soulseek:
 
 directories:
   incomplete: /var/slskd/incomplete
-  downloads: /var/slskd/shared
+  downloads: /var/slskd/downloads
 
 shares:
   storage_mode: disk

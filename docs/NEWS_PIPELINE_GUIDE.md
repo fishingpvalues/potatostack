@@ -1,22 +1,36 @@
 # News Aggregation Pipeline Guide
 
-Article Extractor + news-pipeline container for keyword-based ntfy alerts.
-
-Sources: HLTV, FAZ, Neue Westfälische, Westfalenblatt.
+news-pipeline fetches RSS feeds and crawls NW.de, extracts full article text via article-extractor (Chromium + Bypass Paywalls Clean), and serves per-source RSS feeds that Miniflux subscribes to. Read on mobile with FeedMe (native Miniflux API).
 
 ## Architecture
 
 ```
-Miniflux (RSS reader)
-
 news-pipeline (every 15 min)
-  → fetches unread Miniflux entries
-  → if content < 500 chars → calls Article Extractor
-  → Article Extractor tries trafilatura, detects paywalls, falls back to newspaper3k
-  → updates Miniflux entry with full text
-  → if keywords match → sends ntfy alert to "news-alerts" topic
-      → tap notification → opens article in Miniflux via Tailscale
-      → "Open source" action → opens original URL
+  ├── fetches RSS feeds directly (FAZ, HLTV, WB, WSJ)
+  ├── crawls 7 NW.de OWL sections (no public RSS)
+  ├── extracts full text for each article via article-extractor
+  │   ├── FAZ: direct API extraction (bypasses paywall)
+  │   ├── NW.de/HLTV: Chromium + Bypass Paywalls Clean extension
+  │   ├── WB/WSJ: hard paywall, teaser only (BPC can't bypass)
+  │   └── fallback: trafilatura direct fetch
+  └── serves per-source RSS feeds on :8085
+      ├── /rss/faz   → FAZ articles
+      ├── /rss/wsj   → WSJ articles
+      ├── /rss/hltv  → HLTV articles
+      ├── /rss/wb    → Westfalen-Blatt articles
+      ├── /rss/nw    → NW.de articles
+      └── /rss       → all sources combined
+
+Miniflux subscribes to each per-source feed with categories:
+  ├── News:            FAZ, WSJ
+  ├── Counter Strike:  HLTV
+  └── Regionale News:  WB, NW.de
+
+article-extractor
+  ├── Headless Chromium + Bypass Paywalls Clean extension
+  ├── Site-specific API extractors (FAZ)
+  ├── trafilatura fallback
+  └── Daily BPC auto-update check (every 24h)
 ```
 
 ## Setup
@@ -27,76 +41,71 @@ news-pipeline (every 15 min)
 docker compose up -d news-pipeline article-extractor
 ```
 
-### 2. Add RSS feeds to Miniflux
+### 2. Feeds and categories
 
-Open Miniflux and add feeds directly (RSS/Atom URLs).
+The pipeline automatically registered these feeds in Miniflux:
 
-### 3. Get a Miniflux API key
+| Category | Feed | Endpoint | Full text |
+|----------|------|----------|-----------|
+| News | FAZ | `http://news-pipeline:8085/rss/faz` | Yes (API) |
+| News | WSJ | `http://news-pipeline:8085/rss/wsj` | Teaser only (hard paywall) |
+| Counter Strike | HLTV | `http://news-pipeline:8085/rss/hltv` | Yes (BPC) |
+| Regionale News | WB | `http://news-pipeline:8085/rss/wb` | Teaser only (hard paywall) |
+| Regionale News | NW.de | `http://news-pipeline:8085/rss/nw` | Yes (BPC) |
 
-1. Open Miniflux → **Settings → API Keys → Create a new API key**
-2. Copy the key
-3. Update `.env`:
-   ```
-   MINIFLUX_API_KEY=your_actual_key_here
-   ```
+NW.de has no public RSS feed. The pipeline crawls 7 OWL sections, extracts full text via Chromium+BPC, and serves them as a local RSS feed.
 
-### 4. Configure keywords (optional)
-
-Override the default keyword regex in `.env`:
-```
-KEYWORD_PATTERN=(cs2|counter-strike|hltv|bielefeld|owl|paderborn|\bnw\b|westfalen)
-```
-
-### 5. Test
+### 3. Test
 
 ```bash
-# Article extractor works
+# Article extractor health
+curl http://localhost:8084/health
+
+# Extract a specific article
 curl -X POST http://localhost:8084/extract \
   -H "Content-Type: application/json" \
-  -d '{"url":"https://www.hltv.org"}'
+  -d '{"url":"https://www.faz.net/aktuell/"}'
 
 # Check news-pipeline logs
 docker logs -f news-pipeline
+
+# Check feed health
+docker exec news-pipeline python3 -c "
+import urllib.request; print(urllib.request.urlopen('http://localhost:8085/health').read().decode())
+"
 ```
 
-### 6. Subscribe to ntfy alerts
+## Reading on Mobile with FeedMe
 
-Subscribe to the `news-alerts` topic in the ntfy app or check `http://localhost:8089/news-alerts`.
+FeedMe connects to Miniflux directly using its native API support.
 
-## Reading on Mobile
+### Setup
 
-### PWA (Recommended)
+1. Install **FeedMe** from Play Store
+2. Add account → select **Miniflux**
+3. Configure:
+   - **Server:** `https://potatostack.tale-iwato.ts.net:8093`
+   - **Username/Password:** your Miniflux credentials
+4. Sync — feeds appear organized by category (News, Counter Strike, Regionale News)
 
-Miniflux has a built-in progressive web app. On your phone:
+### Tips
 
-1. Open `https://potatostack.tale-iwato.ts.net:8093` in your browser (requires Tailscale)
-2. **iOS:** Tap Share → "Add to Home Screen"
-3. **Android:** Tap the menu → "Install app" or "Add to Home Screen"
+- Categories from Miniflux map directly to FeedMe folders
+- Full-text articles (FAZ, HLTV, NW.de) render inline — no need to open the browser
+- Enable offline sync in FeedMe settings for reading without Tailscale connection
 
-The PWA works offline for already-loaded articles and feels like a native app.
+### PWA (Alternative)
 
-### Native RSS Reader (Fever API)
+Miniflux has a built-in progressive web app:
 
-Miniflux supports the Fever API for use with native mobile RSS apps (Unread, Reeder, NetNewsWire, etc.):
-
-1. In Miniflux → **Settings → Integrations → Fever**
-2. Set a username and password, then click **Activate**
-3. In your RSS app, add a Fever account with:
-   - **Server:** `https://potatostack.tale-iwato.ts.net:8093/fever/`
-   - **Username/Password:** as configured above
-
-## Miniflux Tips
-
-- **Enable scraper per feed:** Feed settings → check "Fetch original content" to have Miniflux scrape full articles automatically (reduces need for Article Extractor)
-- **Categories:** Organize feeds into categories (News, Gaming, Local) for easier reading
-- **Entry limits:** Feed settings → "Keep N entries" to prevent feed bloat on high-volume sources
-- **Keyboard shortcuts:** `n`/`p` navigate entries, `v` opens original, `m` toggles read, `f` stars
+1. Open `https://potatostack.tale-iwato.ts.net:8093` in your mobile browser (requires Tailscale)
+2. Tap the menu → "Install app" or "Add to Home Screen"
 
 ## Customization
 
-**Add/change keywords:** Set `KEYWORD_PATTERN` in `.env` and restart news-pipeline.
-
 **Change schedule:** Set `INTERVAL_SECONDS` in `.env` (default 900 = 15 min).
+
+**Add new RSS feeds:** Add entries to the `RSS_FEEDS` list in `scripts/webhooks/news-pipeline.py`, add a source endpoint in `_SOURCE_META`, and register the new feed in Miniflux.
 
 ## Troubleshooting
 
@@ -112,4 +121,10 @@ curl -X POST http://localhost:8084/extract \
 
 # Health check
 curl http://localhost:8084/health
+
+# Check BPC extension version
+docker exec article-extractor ls -la /app/bpc-extension/manifest.json
+
+# Force BPC update
+docker compose restart article-extractor
 ```

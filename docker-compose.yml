@@ -112,6 +112,7 @@ services:
           memory: 512M
     labels:
       - "potatostack.alerts=critical"
+      - "wud.trigger.docker.update=false"
 
   # PgBouncer - PostgreSQL connection pooling (SOTA 2025)
   pgbouncer:
@@ -182,6 +183,7 @@ services:
           memory: 512M
     labels:
       - "potatostack.alerts=critical"
+      - "wud.trigger.docker.update=false"
 
   # Redis Shared Cache - SOTA 2025 consolidated (N8n, Gitea, Immich, Paperless, Sentry)
   redis-cache:
@@ -211,6 +213,7 @@ services:
           memory: 512M
     labels:
       - "potatostack.alerts=critical"
+      - "wud.trigger.docker.update=false"
 
   ################################################################################
   # SECURITY & INTRUSION PREVENTION
@@ -249,6 +252,8 @@ services:
         reservations:
           cpus: "0.1"
           memory: 128M
+    labels:
+      - "wud.trigger.docker.update=false"
 
   # CrowdSec Traefik Bouncer - Blocks malicious IPs at reverse proxy level
   crowdsec-traefik-bouncer:
@@ -360,6 +365,7 @@ services:
       - "traefik.http.middlewares.security-headers.headers.browserXssFilter=true"
       - "traefik.http.middlewares.security-headers.headers.referrerPolicy=no-referrer"
       - "traefik.http.middlewares.security-headers.headers.permissionsPolicy=geolocation=(), microphone=(), camera=()"
+      - "wud.trigger.docker.update=false"
     deploy:
       resources:
         limits:
@@ -688,6 +694,7 @@ services:
       - "traefik.http.routers.pyload.service=pyload"
       - "traefik.http.services.pyload.loadbalancer.server.port=8000"
       - "traefik.http.routers.pyload.middlewares=sso-chain@docker"
+      - "wud.trigger.docker.update=false"
 
   # WireGuard - REMOVED (using Gluetun + Tailscale instead)
   # wireguard:
@@ -903,6 +910,7 @@ services:
       - "traefik.http.routers.syncthing.entrypoints=websecure"
       - "traefik.http.routers.syncthing.tls=true"
       - "traefik.http.services.syncthing.loadbalancer.server.port=8384"
+      - "wud.trigger.docker.update=true"
 
   # Filebrowser - Web-based file manager with full RW access
   filebrowser:
@@ -946,6 +954,7 @@ services:
       - "traefik.http.routers.filebrowser.tls=true"
       - "traefik.http.services.filebrowser.loadbalancer.server.port=80"
       - "traefik.http.routers.filebrowser.middlewares=sso-chain@docker"
+      - "wud.trigger.docker.update=true"
 
   # Filestash - Advanced web file manager with multi-protocol support (SOTA 2025)
   # Supports: Local, SFTP, FTP, S3, WebDAV, Git, LDAP, Dropbox, Google Drive
@@ -1115,6 +1124,7 @@ services:
       - "traefik.http.routers.miniflux.entrypoints=websecure"
       - "traefik.http.routers.miniflux.tls=true"
       - "traefik.http.routers.miniflux.middlewares=sso-chain@docker"
+      - "wud.trigger.docker.update=true"
 
   # Miniflux webhook to ntfy bridge
   miniflux-webhook:
@@ -1221,6 +1231,7 @@ services:
       - "traefik.http.routers.mealie.tls=true"
       - "traefik.http.routers.mealie.middlewares=sso-chain@docker"
       - "traefik.http.services.mealie.loadbalancer.server.port=9000"
+      - "wud.trigger.docker.update=true"
 
   ################################################################################
   # FINANCE
@@ -1580,6 +1591,7 @@ services:
       - "traefik.http.routers.jellyfin.tls=true"
       - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
       - "traefik.http.routers.jellyfin.middlewares=sso-chain@docker"
+      - "wud.trigger.docker.update=true"
 
   # Jellyfin webhook to ntfy bridge
   jellyfin-webhook:
@@ -1701,7 +1713,7 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 128M
+          memory: 512M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.audiobookshelf.rule=Host(`audiobooks.${HOST_DOMAIN:-local.domain}`)"
@@ -1930,7 +1942,7 @@ services:
     volumes:
       - slskd-config:/app
       - /mnt/cachehdd/slskd/logs:/app/logs
-      - /mnt/storage/slskd-shared:/var/slskd/shared
+      - /mnt/storage/downloads/slskd:/var/slskd/downloads
       - /mnt/cachehdd/downloads/slskd:/var/slskd/incomplete
       - shared-keys:/keys:ro
       - ./scripts/init/slskd-init.sh:/init.sh:ro
@@ -2047,6 +2059,10 @@ services:
       REDIS_HOSTNAME: redis-cache
       REDIS_DBINDEX: 0
       UPLOAD_LOCATION: /usr/src/app/upload
+      IMMICH_FFMPEG_ACCEL: qsv
+      IMMICH_FFMPEG_PREFERRED_HW_DEVICE: /dev/dri/renderD128
+    devices:
+      - /dev/dri/renderD128:/dev/dri/renderD128
     volumes:
       - /mnt/storage/photos:/usr/src/app/upload
       - /etc/localtime:/etc/localtime:ro
@@ -2077,6 +2093,7 @@ services:
       - "traefik.http.routers.immich.entrypoints=websecure"
       - "traefik.http.routers.immich.tls=true"
       - "traefik.http.services.immich.loadbalancer.server.port=2283"
+      - "wud.trigger.docker.update=false"
       # - "traefik.http.routers.immich.middlewares=sso-chain@docker"  # Disabled for native app auth
 
   immich-machine-learning:
@@ -2104,11 +2121,13 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.0"
-          memory: 1G
+          cpus: "2.0"
+          memory: 2G
         reservations:
           cpus: "0.5"
-          memory: 512M
+          memory: 1G
+    labels:
+      - "wud.trigger.docker.update=false"
 
   # Immich Log Monitor - Restart on error patterns
   immich-log-monitor:
@@ -2191,6 +2210,7 @@ services:
       - "traefik.http.routers.prometheus.tls=true"
       - "traefik.http.routers.prometheus.middlewares=sso-chain@docker"
       - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+      - "wud.trigger.docker.update=false"
 
   # Thanos Sidecar - Long-term metrics storage (SOTA 2025)
   thanos-sidecar:
@@ -2375,6 +2395,7 @@ services:
       - "traefik.http.routers.grafana.tls=true"
       - "traefik.http.routers.grafana.middlewares=sso-chain@docker"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      - "wud.trigger.docker.update=false"
 
   # cAdvisor - Container metrics for Prometheus and Grafana dashboards
   cadvisor:
@@ -2612,6 +2633,7 @@ services:
       - "traefik.http.routers.loki.tls=true"
       - "traefik.http.services.loki.loadbalancer.server.port=3100"
       - "traefik.http.routers.loki.middlewares=sso-chain@docker"
+      - "wud.trigger.docker.update=false"
 
   # Grafana Alloy - Unified collector (Promtail replacement)
   alloy:
@@ -2749,7 +2771,7 @@ services:
   # AUTOMATION & WORKFLOWS
   ################################################################################
 
-  # News Pipeline - Keyword alerts from Miniflux via article extraction + ntfy
+  # News Pipeline - Fetches RSS + crawls NW.de, extracts full text, serves combined RSS feed
   news-pipeline:
     image: python:3.12-alpine
     container_name: news-pipeline
@@ -2757,19 +2779,13 @@ services:
     command: ["python", "/app/news-pipeline.py"]
     environment:
       <<: *common-env
-      MINIFLUX_API_KEY: ${MINIFLUX_API_KEY}
-      KEYWORD_PATTERN: ${KEYWORD_PATTERN:-}
       INTERVAL_SECONDS: ${INTERVAL_SECONDS:-900}
-      NTFY_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}/news-alerts
-      TAILSCALE_BASE_URL: https://potatostack.tale-iwato.ts.net:8093
     volumes:
       - ./scripts/webhooks/news-pipeline.py:/app/news-pipeline.py:ro
     networks:
       - potatostack
     depends_on:
-      - miniflux
       - article-extractor
-      - ntfy
     restart: unless-stopped
     deploy:
       resources:
@@ -2795,7 +2811,7 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 512M
+          memory: 1G
 
   # Healthchecks - Cron monitoring
   healthchecks:
@@ -2948,6 +2964,7 @@ services:
       - "traefik.http.routers.linkding.tls=true"
       - "traefik.http.services.linkding.loadbalancer.server.port=9090"
       - "traefik.http.routers.linkding.middlewares=sso-chain@docker"
+      - "wud.trigger.docker.update=true"
 
   # Code-server - DISABLED: VS Code in browser
   # code-server:
@@ -3016,6 +3033,7 @@ services:
       - "traefik.http.routers.atuin.tls=true"
       - "traefik.http.services.atuin.loadbalancer.server.port=8888"
       - "traefik.http.routers.atuin.middlewares=sso-chain@docker"
+      - "wud.trigger.docker.update=true"
 
   # IT-Tools - REMOVED: User requested removal
   # it-tools:
@@ -3184,6 +3202,7 @@ services:
       - "traefik.http.routers.gitea.tls=true"
       - "traefik.http.services.gitea.loadbalancer.server.port=3000"
       - "traefik.http.routers.gitea.middlewares=sso-chain@docker"
+      - "wud.trigger.docker.update=false"
 
   # Gitea Runner - CI/CD for Gitea
   gitea-runner:
@@ -3356,11 +3375,17 @@ services:
       STASH_GENERATED: /generated
       STASH_METADATA: /metadata
       STASH_CACHE: /cache
+      STASH_FFMPEG_HARDWARE_ACCELERATION: "true"
+    devices:
+      - /dev/dri/renderD128:/dev/dri/renderD128
+      - /dev/dri/card0:/dev/dri/card0
+    group_add:
+      - "109"
     volumes:
-      - stash-config:/root/.stash
-      - stash-generated:/generated
-      - stash-metadata:/metadata
-      - stash-cache:/cache
+      - /mnt/ssd/docker-data/stash/config:/root/.stash
+      - /mnt/ssd/docker-data/stash/generated:/generated
+      - /mnt/ssd/docker-data/stash/metadata:/metadata
+      - /mnt/cachehdd/stash/cache:/cache
       - /mnt/storage/media/adult:/data
     depends_on:
       gluetun:
@@ -3379,6 +3404,7 @@ services:
           memory: 256M
     labels:
       - "autoheal=true"
+      - "wud.trigger.docker.update=true"
 
   ################################################################################
   # DASHBOARD & CONTAINER MANAGEMENT
@@ -3482,6 +3508,7 @@ services:
       - "traefik.http.routers.homarr.tls=true"
       - "traefik.http.routers.homarr.middlewares=sso-chain@docker"
       - "traefik.http.services.homarr.loadbalancer.server.port=7575"
+      - "wud.trigger.docker.update=true"
 
   # Dockge - Modern Docker Compose stack manager (SOTA 2025)
   ################################################################################
@@ -3692,42 +3719,43 @@ services:
       - "traefik.http.routers.ntfy.tls=true"
       - "traefik.http.services.ntfy.loadbalancer.server.port=80"
       - "traefik.http.routers.ntfy.middlewares=security-headers@docker"
+      - "wud.trigger.docker.update=true"
 
-  # Diun - Docker Image Update Notifier (SOTA 2025 best practice)
-  # Monitors for updates but doesn't auto-update, giving full control
-  diun:
-    image: crazymax/diun:${DIUN_TAG:-latest}
-    container_name: diun
+  # What's Up Docker (WUD) - Docker Image Update Monitor with auto-update support
+  wud:
+    image: getwud/wud:${WUD_TAG:-latest}
+    container_name: wud
     logging: *default-logging
-    command: serve
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:3000:3000"
     environment:
       <<: *common-env
-      LOG_LEVEL: info
-      LOG_JSON: "false"
-      DIUN_WATCH_WORKERS: 20
-      DIUN_WATCH_SCHEDULE: "0 */6 * * *"
-      DIUN_WATCH_JITTER: 30s
-      DIUN_PROVIDERS_DOCKER: "true"
-      DIUN_PROVIDERS_DOCKER_WATCHBYDEFAULT: "true"
-      DIUN_NOTIF_NTFY_ENDPOINT: ${NTFY_INTERNAL_URL:-http://ntfy:80}
-      DIUN_NOTIF_NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
-      DIUN_NOTIF_NTFY_TOKEN: ${NTFY_TOKEN:-}
-      # DIUN_NOTIF_GOTIFY_ENDPOINT: ${DIUN_GOTIFY_ENDPOINT:-}
-      # DIUN_NOTIF_GOTIFY_TOKEN: ${DIUN_GOTIFY_TOKEN:-}
-      DIUN_NOTIF_DISCORD_WEBHOOKURL: ${DIUN_DISCORD_WEBHOOK:-}
-      DIUN_NOTIF_TELEGRAM_TOKEN: ${DIUN_TELEGRAM_TOKEN:-}
-      DIUN_NOTIF_TELEGRAM_CHATIDS: ${DIUN_TELEGRAM_CHATIDS:-}
+      WUD_WATCHER_LOCAL_CRON: "0 */6 * * *"
+      WUD_WATCHER_LOCAL_WATCHBYDEFAULT: "true"
+      WUD_LOG_LEVEL: info
+      # ntfy trigger
+      WUD_TRIGGER_NTFY_POTATOSTACK_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
+      WUD_TRIGGER_NTFY_POTATOSTACK_TOPIC: ${NTFY_TOPIC:-potatostack}
+      WUD_TRIGGER_NTFY_POTATOSTACK_PRIORITY: "3"
     volumes:
-      - diun-data:/data
+      - wud-data:/data
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - potatostack
+    depends_on:
+      - ntfy
     restart: unless-stopped
     deploy:
       resources:
         limits:
           cpus: "0.25"
-          memory: 128M
+          memory: 256M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wud.rule=Host(`wud.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.wud.entrypoints=websecure"
+      - "traefik.http.routers.wud.tls=true"
+      - "traefik.http.services.wud.loadbalancer.server.port=3000"
 
   # Autoheal - Container health recovery
   autoheal:
@@ -3820,29 +3848,38 @@ services:
         [storage]
         path = /mnt/storage
         browsable = yes
+        writable = yes
         read only = no
         guest ok = no
         valid users = daniel
-        create mask = 0755
-        directory mask = 0755
+        force user = daniel
+        force group = daniel
+        create mask = 0777
+        directory mask = 0777
       SAMBA_VOLUME_CONFIG_cachehdd: |
         [cachehdd]
         path = /mnt/cachehdd
         browsable = yes
+        writable = yes
         read only = no
         guest ok = no
         valid users = daniel
-        create mask = 0755
-        directory mask = 0755
+        force user = daniel
+        force group = daniel
+        create mask = 0777
+        directory mask = 0777
       SAMBA_VOLUME_CONFIG_media: |
         [media]
         path = /mnt/storage/media
         browsable = yes
+        writable = yes
         read only = no
         guest ok = no
         valid users = daniel
-        create mask = 0755
-        directory mask = 0755
+        force user = daniel
+        force group = daniel
+        create mask = 0777
+        directory mask = 0777
     volumes:
       - /mnt/storage:/mnt/storage
       - /mnt/cachehdd:/mnt/cachehdd
@@ -3863,6 +3900,28 @@ services:
         reservations:
           cpus: "0.1"
           memory: 64M
+
+  # Home Assistant - Smart home automation with BLE/mDNS discovery
+  home-assistant:
+    image: ghcr.io/home-assistant/home-assistant:${HA_TAG:-stable}
+    container_name: home-assistant
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:8123:8123"
+    environment:
+      <<: *common-env
+    volumes:
+      - /mnt/ssd/docker-data/home-assistant:/config
+      - /etc/localtime:/etc/localtime:ro
+      - /run/dbus:/run/dbus:ro
+    network_mode: host
+    privileged: true
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
 
   ################################################################################
   # Gluetun Monitor - VPN Connection Monitor & Auto-Restart
@@ -4284,10 +4343,6 @@ volumes:
   jellyfin-config:
   jellyseerr-config:
   audiobookshelf-config:
-  stash-config:
-  stash-generated:
-  stash-metadata:
-  stash-cache:
 
   # Downloads
   qbittorrent-config:
@@ -4351,7 +4406,7 @@ volumes:
   # paperless-media:
 
   # System
-  diun-data:
+  wud-data:
   ntfy-cache:
   ntfy-data:
   openssh-config:
