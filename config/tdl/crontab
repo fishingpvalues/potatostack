@@ -1,0 +1,2 @@
+# Weekly download videos from Saved Messages (every Sunday 3am)
+0 3 * * 0 /bin/sh /etc/tdl/download-saved.sh >> /downloads/cron.log 2>&1
