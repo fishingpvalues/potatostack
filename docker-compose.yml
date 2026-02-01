@@ -1944,6 +1944,7 @@ services:
       - /mnt/cachehdd/slskd/logs:/app/logs
       - /mnt/storage/downloads/slskd:/var/slskd/downloads
       - /mnt/cachehdd/downloads/slskd:/var/slskd/incomplete
+      - /mnt/storage/slskd-shared:/var/slskd/shared
       - shared-keys:/keys:ro
       - ./scripts/init/slskd-init.sh:/init.sh:ro
       # Share music and audiobook libraries
