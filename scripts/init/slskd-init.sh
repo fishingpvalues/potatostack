@@ -71,11 +71,6 @@ if [ -f "$CONFIG_FILE" ] && [ -n "$SLSKD_SOULSEEK_USERNAME" ] && [ -n "$SLSKD_SO
 	fi
 fi
 
-# Configure shared directories for Soulseek sharing
-# Map container paths to host paths: /var/slskd/shared -> /mnt/storage/slskd-shared
-export SLSKD_SHARED_DIR
-echo "✓ Shared directory configured: $SLSKD_SHARED_DIR"
-
 # Create slskd.yml if it doesn't exist or update API key
 if [ ! -f "$CONFIG_FILE" ]; then
 	echo "Creating new slskd configuration with API key..."
@@ -97,7 +92,6 @@ shares:
     # Share all mounted media libraries
     - /music
     - /audiobooks
-    - /var/slskd/shared
   filters:
     # Exclude common non-music files
     - '\.jpg$'
@@ -249,7 +243,6 @@ shares:
   directories:
     - /music
     - /audiobooks
-    - /var/slskd/shared
 SHARESEOF
 
 	echo "✓ Shares configuration added"

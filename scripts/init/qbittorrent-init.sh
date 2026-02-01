@@ -4,8 +4,8 @@
 ################################################################################
 
 CONFIG_FILE="/config/qBittorrent/qBittorrent.conf"
-QB_USER="${QBITTORRENT_USER:-${QB_USER:-admin}}"
-QB_PASSWORD="${QBITTORRENT_PASSWORD:-}"
+QB_USER="${QBITTORRENT_USER:-${QB_USER:-}}"
+QB_PASSWORD="${QBITTORRENT_PASSWORD:-${QB_PASSWORD:-}}"
 
 # Wait for config directory
 mkdir -p /config/qBittorrent

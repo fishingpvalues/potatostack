@@ -86,8 +86,6 @@ All services accessible via HTTPS using Tailscale certificates or Traefik revers
 
 | Service | Port Link | Traefik Link | Description |
 |---------|-----------|-------------|-------------|
-| n8n | https://potatostack.tale-iwato.ts.net:5678 | https://n8n.potatostack.tale-iwato.ts.net | Workflow Automation |
-| RSS-Bridge | https://potatostack.tale-iwato.ts.net:3007 | https://rssbridge.potatostack.tale-iwato.ts.net | RSS Feed Generator |
 | Miniflux Webhook | - | https://miniflux-webhook.potatostack.tale-iwato.ts.net | RSS to ntfy |
 | Jellyfin Webhook | - | https://jellyfin-webhook.potatostack.tale-iwato.ts.net | Media to ntfy |
 | Jellyseerr Webhook | - | https://jellyseerr-webhook.potatostack.tale-iwato.ts.net | Requests to ntfy |
