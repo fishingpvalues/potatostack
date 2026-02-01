@@ -43,6 +43,7 @@ echo "=========================================="
 echo "Monitoring: $GLUETUN_URL/v1/vpn/status"
 echo "Check interval: ${CHECK_INTERVAL}s"
 echo "Will recreate: $RESTART_CONTAINERS"
+echo "Internet check: every $((CHECK_INTERVAL * INTERNET_CHECK_INTERVAL))s"
 echo "=========================================="
 
 LAST_STATUS=""
@@ -50,6 +51,11 @@ CONSECUTIVE_FAILURES=0
 MAX_FAILURES=3
 LAST_RESTART_AT=0
 LAST_GLUETUN_ID=""
+INTERNET_WAS_DOWN=false
+INTERNET_CHECK_INTERVAL="${INTERNET_CHECK_INTERVAL:-6}"
+INTERNET_CHECK_COUNTER=0
+ORPHAN_CLEANUP_INTERVAL="${ORPHAN_CLEANUP_INTERVAL:-30}"
+ORPHAN_CLEANUP_COUNTER=0
 
 # Get gluetun container ID
 get_gluetun_id() {
@@ -72,6 +78,36 @@ check_network_stale() {
 		fi
 	fi
 	return 1 # Not stale
+}
+
+# Check if services can reach the internet through gluetun
+check_internet_through_gluetun() {
+	local test_container="qbittorrent"
+	if ! docker inspect "$test_container" >/dev/null 2>&1; then
+		# Fall back to any running gluetun-bound container
+		for c in $RESTART_CONTAINERS; do
+			if docker inspect "$c" --format '{{.State.Running}}' 2>/dev/null | grep -q "true"; then
+				test_container="$c"
+				break
+			fi
+		done
+	fi
+	docker exec "$test_container" wget -q -O /dev/null --timeout=5 http://1.1.1.1 2>/dev/null
+}
+
+# Remove orphaned containers with hash-prefixed names (e.g. 6c3cc1750f43_pgbouncer)
+cleanup_orphan_containers() {
+	local orphans
+	orphans=$(docker ps -a --format '{{.Names}}' | grep -E '^[0-9a-f]{12}_' || true)
+	if [ -z "$orphans" ]; then
+		return
+	fi
+	echo "[$(date +'%Y-%m-%d %H:%M:%S')] 🧹 Cleaning up orphaned containers:"
+	for name in $orphans; do
+		echo "[$(date +'%Y-%m-%d %H:%M:%S')]   • Removing $name..."
+		docker rm -f "$name" 2>&1 | sed "s/^/    /" || true
+	done
+	notify_event "PotatoStack - Orphan cleanup" "Removed orphaned containers: ${orphans}" "low" "maintenance,cleanup"
 }
 
 # Test if services can actually connect after recreation
@@ -336,6 +372,34 @@ while true; do
 		done
 	fi
 	LAST_GLUETUN_ID="$CURRENT_GLUETUN_ID"
+
+	# Periodic internet connectivity check through gluetun
+	# Runs every INTERNET_CHECK_INTERVAL loops (default: every 60s with 10s CHECK_INTERVAL)
+	INTERNET_CHECK_COUNTER=$((INTERNET_CHECK_COUNTER + 1))
+	if [ "$CURRENT_STATUS" = "running" ] && [ $INTERNET_CHECK_COUNTER -ge "$INTERNET_CHECK_INTERVAL" ]; then
+		INTERNET_CHECK_COUNTER=0
+		if ! check_internet_through_gluetun; then
+			if [ "$INTERNET_WAS_DOWN" = "false" ]; then
+				echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✗ Internet unreachable through gluetun (VPN reports running)"
+				notify_event "PotatoStack - Internet down through VPN" "VPN running but no internet connectivity" "high" "vpn,internet,warning"
+				INTERNET_WAS_DOWN=true
+			fi
+		else
+			if [ "$INTERNET_WAS_DOWN" = "true" ]; then
+				echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ Internet restored through gluetun, restarting dependent services..."
+				notify_event "PotatoStack - Internet restored through VPN" "Restarting dependent containers" "default" "vpn,internet,recovered"
+				restart_containers "internet-restored-through-vpn"
+				INTERNET_WAS_DOWN=false
+			fi
+		fi
+	fi
+
+	# Periodic orphaned container cleanup (every ~5 min with default 10s interval)
+	ORPHAN_CLEANUP_COUNTER=$((ORPHAN_CLEANUP_COUNTER + 1))
+	if [ $ORPHAN_CLEANUP_COUNTER -ge "$ORPHAN_CLEANUP_INTERVAL" ]; then
+		ORPHAN_CLEANUP_COUNTER=0
+		cleanup_orphan_containers
+	fi
 
 	sleep "$CHECK_INTERVAL"
 done
