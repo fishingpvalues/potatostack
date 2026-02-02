@@ -87,6 +87,8 @@ services:
       - "max_parallel_workers=4"
       - "-c"
       - "max_parallel_workers_per_gather=2"
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:5432:5432"
     volumes:
       - /mnt/ssd/docker-data/postgres:/var/lib/postgresql/data
       - ./scripts/init/init-postgres-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-postgres-multiple-dbs.sh:ro
@@ -3251,6 +3253,7 @@ services:
       STASH_METADATA: /metadata
       STASH_CACHE: /cache
       STASH_FFMPEG_HARDWARE_ACCELERATION: "true"
+      STASH_EXTERNAL_HOST: https://potatostack.tale-iwato.ts.net:9900
     devices:
       - /dev/dri/renderD128:/dev/dri/renderD128
       - /dev/dri/card0:/dev/dri/card0
@@ -3269,6 +3272,11 @@ services:
       storage-init:
         condition: service_completed_successfully
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9900"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     deploy:
       resources:
         limits:
@@ -4143,7 +4151,45 @@ services:
           cpus: "0.1"
           memory: 64M
 
-  # Gluetun Monitor Init - Initialize gluetun monitoring
+  # SearXNG - Privacy-respecting metasearch engine
+  searxng:
+    image: searxng/searxng:${SEARXNG_TAG:-latest}
+    container_name: searxng
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:8180:8080"
+    environment:
+      <<: *common-env
+      SEARXNG_BASE_URL: https://search.${HOST_DOMAIN:-local.domain}
+      SEARXNG_SECRET: ${SEARXNG_SECRET_KEY}
+    volumes:
+      - ./config/searxng:/etc/searxng:rw
+    networks:
+      - potatostack
+    depends_on:
+      - redis-cache
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.searxng.rule=Host(`search.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.searxng.entrypoints=websecure"
+      - "traefik.http.routers.searxng.tls=true"
+      - "traefik.http.routers.searxng.middlewares=sso-chain@docker"
+      - "wud.trigger.docker.update=true"
+
 ################################################################################
 # NETWORKS
 ################################################################################

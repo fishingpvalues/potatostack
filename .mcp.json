@@ -1,0 +1,41 @@
+{
+  "mcpServers": {
+    "searxng": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "searxng-mcp"],
+      "env": {
+        "SEARXNG_URL": "http://localhost:8180"
+      }
+    },
+    "prometheus": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "prometheus-mcp-server"],
+      "env": {
+        "PROMETHEUS_URL": "http://localhost:9090"
+      }
+    },
+    "loki": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@grafana/loki-mcp"],
+      "env": {
+        "LOKI_URL": "http://localhost:3100"
+      }
+    },
+    "postgres": {
+      "type": "stdio",
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm", "--network", "host",
+        "-e", "DATABASE_URI",
+        "crystaldba/postgres-mcp",
+        "--access-mode=restricted"
+      ],
+      "env": {
+        "DATABASE_URI": "postgresql://postgres:${POSTGRES_SUPER_PASSWORD}@localhost:5432/postgres"
+      }
+    }
+  }
+}
