@@ -95,12 +95,6 @@ if [ -d "${CACHE_BASE}/prometheus" ] && [ ! -d "${CACHE_BASE}/observability/prom
 	mv "${CACHE_BASE}/prometheus" "${CACHE_BASE}/observability/" 2>/dev/null || true
 fi
 
-if [ -d "${CACHE_BASE}/thanos" ] && [ ! -d "${CACHE_BASE}/observability/thanos" ]; then
-	printf '%s\n' "Migrating thanos to observability namespace..."
-	mkdir -p "${CACHE_BASE}/observability"
-	mv "${CACHE_BASE}/thanos" "${CACHE_BASE}/observability/" 2>/dev/null || true
-fi
-
 if [ -d "${CACHE_BASE}/alertmanager" ] && [ ! -d "${CACHE_BASE}/observability/alertmanager" ]; then
 	printf '%s\n' "Migrating alertmanager to observability namespace..."
 	mkdir -p "${CACHE_BASE}/observability"
@@ -214,8 +208,6 @@ mkdir -p \
 	"${CACHE_BASE}/observability/loki/data" \
 	"${CACHE_BASE}/observability/loki/wal" \
 	"${CACHE_BASE}/observability/prometheus" \
-	"${CACHE_BASE}/observability/thanos/store" \
-	"${CACHE_BASE}/observability/thanos/compact" \
 	"${CACHE_BASE}/observability/alertmanager"
 
 # Sync caches
@@ -389,19 +381,12 @@ printf '%s\n' "Setting service-specific permissions..."
 # Prometheus (UID 65534 - nobody)
 [ -d "${CACHE_BASE}/observability/prometheus" ] && chown -R 65534:65534 "${CACHE_BASE}/observability/prometheus"
 
-# Thanos sidecar needs a writable subdir inside prometheus data
-mkdir -p "${CACHE_BASE}/observability/prometheus/thanos"
-chown -R 1001:1001 "${CACHE_BASE}/observability/prometheus/thanos"
-
 # Loki (UID 10001)
 [ -d "${CACHE_BASE}/observability/loki" ] && chown -R 10001:10001 "${CACHE_BASE}/observability/loki"
 
 # Grafana (UID 472) - ensure plugins dir exists
 mkdir -p "${SSD_BASE}/grafana/plugins"
 chown -R 472:472 "${SSD_BASE}/grafana"
-
-# Thanos (UID 1001)
-[ -d "${CACHE_BASE}/observability/thanos" ] && chown -R 1001:1001 "${CACHE_BASE}/observability/thanos"
 
 # Alertmanager (UID 65534)
 [ -d "${CACHE_BASE}/observability/alertmanager" ] && chown -R 65534:65534 "${CACHE_BASE}/observability/alertmanager"

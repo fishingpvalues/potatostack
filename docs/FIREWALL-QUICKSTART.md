@@ -246,7 +246,6 @@ sudo ufw reload
 | 9090  | Prometheus        | `http://192.168.178.158:9090`      |
 | 3002  | Grafana           | `http://192.168.178.158:3002`      |
 | 3100  | Loki              | `http://192.168.178.158:3100`      |
-| 8089  | cAdvisor          | `http://192.168.178.158:8089`      |
 
 ### Never Expose Publicly
 

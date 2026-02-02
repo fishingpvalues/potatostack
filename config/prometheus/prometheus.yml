@@ -24,23 +24,6 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
-  # Thanos components
-  - job_name: "thanos-sidecar"
-    static_configs:
-      - targets: ["thanos-sidecar:10902"]
-
-  - job_name: "thanos-query"
-    static_configs:
-      - targets: ["thanos-query:10902"]
-
-  - job_name: "thanos-store"
-    static_configs:
-      - targets: ["thanos-store:10902"]
-
-  - job_name: "thanos-compactor"
-    static_configs:
-      - targets: ["thanos-compactor:10902"]
-
   # Traefik reverse proxy metrics
   - job_name: "traefik"
     static_configs:
@@ -59,7 +42,7 @@ scrape_configs:
       - targets: ["miniflux:8080"]
     metrics_path: "/metrics"
 
-  # Netdata - DISABLED: Use node-exporter and cadvisor instead
+  # Netdata - DISABLED: Use node-exporter instead
   # - job_name: "netdata"
   #   static_configs:
   #     - targets: ["netdata:19999"]
@@ -122,25 +105,3 @@ scrape_configs:
     static_configs:
       - targets: ["smartctl-exporter:9633"]
 
-  # Docker containers via cAdvisor (recommended)
-  - job_name: "cadvisor"
-    static_configs:
-      - targets: ["cadvisor:8080"]
-    metric_relabel_configs:
-      # Drop high-cardinality metrics
-      - source_labels: [__name__]
-        regex: "container_.*"
-        action: keep
-      - source_labels: [id]
-        regex: "/docker/.*"
-        action: keep
-
-  # Node Exporter (for host metrics if added)
-  # - job_name: 'node'
-  #   static_configs:
-  #   - targets: ['node-exporter:9100']
-
-# Remote write to Thanos (optional - using sidecar instead)
-# Note: storage.tsdb settings moved to command line flags
-# remote_write:
-#   - url: http://thanos-receive:19291/api/v1/receive

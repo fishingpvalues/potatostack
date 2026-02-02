@@ -15,7 +15,6 @@ All services accessible via HTTPS using Tailscale certificates or Traefik revers
 | Traefik GUI | - | https://traefik-gui.potatostack.tale-iwato.ts.net | Traefik Alternative UI |
 | Uptime Kuma | https://potatostack.tale-iwato.ts.net:3001 | https://uptime.potatostack.tale-iwato.ts.net | Uptime Monitoring |
 | Grafana | https://potatostack.tale-iwato.ts.net:3002 | https://grafana.potatostack.tale-iwato.ts.net | Metrics Dashboard |
-| cAdvisor | https://potatostack.tale-iwato.ts.net:8089 | https://cadvisor.potatostack.tale-iwato.ts.net | Container Metrics |
 | WUD | https://potatostack.tale-iwato.ts.net:3000 | https://wud.potatostack.tale-iwato.ts.net | Docker Update Monitor |
 
 ## Core Infrastructure
@@ -107,8 +106,6 @@ All services accessible via HTTPS using Tailscale certificates or Traefik revers
 | Service | Port Link | Traefik Link | Description |
 |---------|-----------|-------------|-------------|
 | Prometheus | https://potatostack.tale-iwato.ts.net:9090 | https://prometheus.potatostack.tale-iwato.ts.net | Metrics Collection |
-| Thanos Sidecar | https://potatostack.tale-iwato.ts.net:10902 | - | Long-term Storage |
-| Thanos Query | https://potatostack.tale-iwato.ts.net:10903 | https://thanos.potatostack.tale-iwato.ts.net | Unified Query |
 | Loki | https://potatostack.tale-iwato.ts.net:3100 | https://loki.potatostack.tale-iwato.ts.net | Log Aggregation |
 | Alertmanager | https://potatostack.tale-iwato.ts.net:9093 | https://alerts.potatostack.tale-iwato.ts.net | Alert Routing |
 | Scrutiny | https://potatostack.tale-iwato.ts.net:8087 | https://scrutiny.potatostack.tale-iwato.ts.net | Disk Health |
@@ -120,7 +117,6 @@ All services accessible via HTTPS using Tailscale certificates or Traefik revers
 |---------|-----------|-------------|-------------|
 | ntfy | https://potatostack.tale-iwato.ts.net:8060 | https://ntfy.potatostack.tale-iwato.ts.net | Notification Hub |
 | Alertmanager ntfy | - | - | Alert Formatter |
-| Trivy | https://potatostack.tale-iwato.ts.net:8081 | - | Security Scanner |
 
 ## Utilities & Tools
 

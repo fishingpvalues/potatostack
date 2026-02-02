@@ -14,7 +14,6 @@
 - **shellcheck** - Shell script linting (static analysis)
 - **shfmt** - Shell script formatting (SOTA 2025)
 - **prettier** - Code formatter for YAML/JSON/JavaScript
-- **trivy** - Security vulnerability scanner for containers
 - **jq** - JSON processor for command-line data manipulation
 - **yq** - YAML processor for parsing and transforming YAML
 - **make** - Build automation tool for running Makefile commands

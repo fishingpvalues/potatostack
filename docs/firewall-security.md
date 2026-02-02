@@ -233,7 +233,6 @@ LAN Client → HOST_BIND:PORT → Service
 
 - `http://192.168.178.158:9090` → Prometheus
 - `http://192.168.178.158:3002` → Grafana
-- `http://192.168.178.158:8089` → cAdvisor
 
 **Configuration:**
 
@@ -483,7 +482,6 @@ See `docker-compose.yml` for full list. Key services:
 | 9090  | Prometheus        |
 | 3002  | Grafana           |
 | 3100  | Loki              |
-| 8089  | cAdvisor          |
 
 ### Internal Ports (No External Access)
 

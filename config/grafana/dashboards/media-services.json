@@ -378,7 +378,7 @@
   "templating": {
     "list": [
       {
-        "current": { "selected": false, "text": "Thanos", "value": "Thanos" },
+        "current": { "selected": false, "text": "Prometheus", "value": "Prometheus" },
         "hide": 0,
         "includeAll": false,
         "label": "Datasource",

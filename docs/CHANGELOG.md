@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive SOTA 2025 testing suite for both main and light stacks
 - Complete monitoring stack with Grafana, Prometheus, and Loki
 - RSS reader service integration
-- Security scanning with Trivy integration (`scripts/security/security-scan.sh`)
+- Security scanning integration (`scripts/security/security-scan.sh`)
 - SOTA 2025 formatters and linters (shellcheck, shfmt, yamllint, prettier, yq)
 - Validation suite with 7-step validation process (`scripts/validate/validate-stack.sh`)
 - Git hooks for code quality enforcement:

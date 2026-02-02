@@ -10,7 +10,7 @@ groups:
           component: infrastructure
         annotations:
           summary: "🚨 Critical service DOWN: {{ $labels.container_label_com_docker_compose_service }}"
-          description: "Service {{ $labels.container_label_com_docker_compose_service }} has not been seen by cAdvisor for > 2 minutes. This may indicate the container has crashed or stopped."
+          description: "Service {{ $labels.container_label_com_docker_compose_service }} has not been seen for > 2 minutes. This may indicate the container has crashed or stopped."
           runbook: "Check container logs: docker logs {{ $labels.container_label_com_docker_compose_service }}"
 
       - alert: ContainerCrashLooping
@@ -253,16 +253,6 @@ groups:
           description: "Gluetun VPN container is not running. All VPN-dependent services may be exposed."
           runbook: "Restart: docker restart gluetun"
 
-      - alert: VPNTunnelDown
-        expr: up{job="cadvisor", container_label_com_docker_compose_service="gluetun"} == 0
-        for: 2m
-        labels:
-          severity: critical
-          component: vpn
-        annotations:
-          summary: "🚫 VPN tunnel disconnected"
-          description: "VPN tunnel appears to be down. Check Gluetun logs: docker logs gluetun"
-
   - name: slskd Health
     interval: 60s
     rules:
@@ -285,7 +275,7 @@ groups:
           component: media
         annotations:
           summary: "🎧 slskd container not seen"
-          description: "cAdvisor has not seen slskd for > 2 minutes. Container may be stopped or unhealthy."
+          description: "slskd has not been seen for > 2 minutes. Container may be stopped or unhealthy."
           runbook: "Check: docker ps | grep slskd"
 
   - name: Media Managers Health

@@ -13,7 +13,7 @@ This repository contains a Docker Compose-based self-hosted infrastructure stack
 - `make validate` - Docker-compose syntax validation
 - `make lint` - YAML, shell, compose linting (yamllint, shellcheck, dclint)
 - `make format` - Format all files (shfmt, prettier)
-- `make security` - Trivy vulnerability scan
+- `make security` - Security vulnerability scan
 - `make logs SERVICE=name` - View logs for specific service
 
 ### Running Single Tests

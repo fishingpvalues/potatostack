@@ -23,7 +23,7 @@ Based on **SOTA 2025 Docker Compose testing best practices**, testing ALL 65+ se
 - **Health Check Validation**: Waits up to 3 minutes for all containers to become healthy
 - **Database Connectivity**: Tests PostgreSQL, pgBouncer, Redis, MongoDB, Immich-Postgres
 - **HTTP Endpoint Testing**: Tests ALL 40+ web services including:
-  - Monitoring: Grafana, Prometheus, Alertmanager, Uptime-Kuma,  cAdvisor
+  - Monitoring: Grafana, Prometheus, Alertmanager, Uptime-Kuma
    - Media: Sonarr, Radarr, Lidarr, Readarr, Bazarr, Prowlarr, Jellyfin, Jellyseerr, qBittorrent, Audiobookshelf, Slskd
   - Productivity: Homarr, Paperless-ngx, Linkding, Miniflux, Actual-Budget, Stirling-PDF
   - Development: Gitea, Code-Server

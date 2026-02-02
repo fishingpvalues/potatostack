@@ -220,7 +220,7 @@ Prometheus → Alertmanager → alertmanager-ntfy.py → ntfy → Clients
 
 **Current Alert Groups:**
 1. **Critical Infrastructure**
-   - `CriticalServiceDown` - Services not seen by cAdvisor
+   - `CriticalServiceDown` - Services not seen for > 2 minutes
    - `ContainerCrashLooping` - Multiple restarts
    - `HighMemoryUsage` - >90% memory limit
    - `HighCPUUsage` - >80% CPU for 10 min

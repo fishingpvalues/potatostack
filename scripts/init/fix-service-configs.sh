@@ -104,22 +104,6 @@ fix_grafana_permissions() {
 }
 
 ################################################################################
-# Fix Thanos Data Directories
-################################################################################
-fix_thanos_permissions() {
-	local THANOS_BASE="/mnt/cachehdd/observability/thanos"
-
-	log_info "Checking Thanos data directories..."
-
-	mkdir -p "$THANOS_BASE/store" "$THANOS_BASE/compact"
-
-	# Thanos runs as UID 1001
-	chown -R 1001:1001 "$THANOS_BASE" 2>/dev/null || true
-
-	log_info "✓ Thanos data directories ready"
-}
-
-################################################################################
 # Validate Docker Compose Config
 ################################################################################
 validate_compose() {
@@ -148,7 +132,6 @@ main() {
 	fix_loki_config
 	fix_homarr_permissions
 	fix_grafana_permissions
-	fix_thanos_permissions
 	validate_compose
 
 	echo ""

@@ -628,7 +628,7 @@ OAUTH2_PROXY_TAG=latest
 CROWDSEC_TAG=latest
 CROWDSEC_BOUNCER_TAG=latest
 FAIL2BAN_TAG=latest
-TRIVY_TAG=latest
+
 
 # VPN
 GLUETUN_TAG=latest
@@ -684,7 +684,7 @@ LOKI_TAG=latest
 PROMTAIL_TAG=latest
 ALLOY_TAG=latest
 NODE_EXPORTER_TAG=latest
-CADVISOR_TAG=latest
+
 FRITZBOX_EXPORTER_TAG=latest
 NETDATA_TAG=latest
 UPTIME_KUMA_TAG=latest
@@ -749,9 +749,6 @@ DOCKER_TAG=cli
 
 # Secrets
 # INFISICAL_TAG=latest
-
-# Long-term Storage
-THANOS_TAG=v0.37.2
 
 # Backups
 VELLD_API_TAG=latest

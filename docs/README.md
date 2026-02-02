@@ -9,7 +9,7 @@ Complete self-hosted stack with 100 services optimized for low-power hardware.
 - **Services**: 99 total (news-pipeline background service)
 - **RAM Usage**: 12-13GB peak (out of 16GB)
 - **Storage**: SSD (Docker data) + HDD (media/cache)
-- **Monitoring**: Prometheus + Thanos (1yr retention) + Grafana
+- **Monitoring**: Prometheus (30d retention) + Grafana
 
 ## Core Components
 
@@ -24,7 +24,6 @@ Complete self-hosted stack with 100 services optimized for low-power hardware.
 - OAuth2-Proxy - OIDC SSO gateway
 - Vaultwarden - Password manager
 - Fail2Ban - Intrusion prevention
-- Trivy - Vulnerability scanner
 - HashiCorp Vault - Secrets management
 
 ### Networking
@@ -44,12 +43,10 @@ Complete self-hosted stack with 100 services optimized for low-power hardware.
 - SpotiFLAC - Spotify to FLAC downloader
 
 ### Monitoring & Observability (SOTA 2025)
-- **Prometheus** - Metrics collection (7 days)
-- **Thanos** - Long-term storage (1 year, downsampled)
-- **Grafana** - Visualization with 11 pre-configured dashboards
+- **Prometheus** - Metrics collection (30 days)
+- **Grafana** - Visualization with pre-configured dashboards
 - **Loki** - Log aggregation (30 days, TSDB v12)
 - **Parseable** - Lightweight log analytics
-- **cAdvisor** - Container metrics
 - **Scrutiny** - HDD SMART monitoring
 - **Beszel** - Lightweight Docker monitoring
 - **Uptime Kuma** - Uptime checks
@@ -85,7 +82,6 @@ Complete self-hosted stack with 100 services optimized for low-power hardware.
 
 ### Monitoring
 - **Prometheus**: http://192.168.178.158:9090
-- **Thanos Query**: http://192.168.178.158:10903
 - **Beszel**: http://192.168.178.158:8090
 
 ### Management
@@ -172,10 +168,8 @@ See [QUICK_START.md](QUICK_START.md) for detailed setup instructions.
 
 ### Monitoring Strategy
 - **Real-time**: Grafana (live dashboard)
-- **Short-term**: Prometheus (7 days, 30s resolution)
-- **Long-term**: Thanos (1 year, downsampled to 5m/1h)
+- **Short-term**: Prometheus (30 days, 30s resolution)
 - **Logs**: Loki (30 days, TSDB v12)
-- **Container metrics**: cAdvisor → Prometheus → Grafana
 
 ## Performance Tuning
 
@@ -207,7 +201,6 @@ See [POWER_OPTIMIZATION.md](POWER_OPTIMIZATION.md) for scheduling examples.
 - **Authentik**: SSO with 2FA support
 - **Vaultwarden**: Password management
 - **Traefik**: Automatic SSL with Let's Encrypt
-- **Trivy**: Container vulnerability scanning
 - **HashiCorp Vault**: Enterprise secrets management
 
 ## Maintenance
@@ -254,7 +247,6 @@ This stack configuration is provided as-is for personal use.
 
 Built with SOTA 2025 best practices:
 - pgvector for embeddings
-- Thanos for long-term metrics
 - TSDB v12 for faster log queries
 - PgBouncer for connection pooling
 - Consolidated Redis cache

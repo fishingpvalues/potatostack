@@ -13,7 +13,6 @@ This directory contains pre-configured Grafana dashboards for monitoring the Pot
 ### System Monitoring
 - **Node Exporter Full** (ID: 1860) - Comprehensive system metrics
 - **Docker Container & Host Metrics** (ID: 179) - Container monitoring
-- **cAdvisor** (ID: 14282) - Detailed container stats
 
 ### Loki & Logs
 - **Loki Stack Monitoring** (ID: 14055) - Loki stack health

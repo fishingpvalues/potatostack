@@ -21,7 +21,7 @@ make test          # Full integration tests (scripts/test/stack-test.sh)
 make test-quick    # Quick health check
 make validate      # Docker-compose syntax validation
 make lint          # YAML, shell, compose linting
-make security      # Trivy vulnerability scan
+make security      # Security vulnerability scan
 
 # Formatting
 make format        # Format all files (shfmt, prettier)
@@ -38,8 +38,8 @@ make format        # Format all files (shfmt, prettier)
 - PostgreSQL 16 (pgvector) with PgBouncer - 18 databases consolidated
 - MongoDB 7, Redis 7 (shared cache, 16 databases)
 - Traefik (reverse proxy), Gluetun (VPN), CrowdSec (IPS)
-- Prometheus → Thanos (1yr retention) → Grafana
-- Loki (logs), cAdvisor (monitoring)
+- Prometheus (30d retention) → Grafana
+- Loki (logs)
 
 **Network:** All services on `potatostack` network, socket-proxy for privileged ops.
 

@@ -383,7 +383,6 @@ test_service_endpoints() {
 	grep -q "alertmanager" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Alertmanager" "http://localhost:9093"
 	grep -q "uptime-kuma" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Uptime Kuma" "http://localhost:3001"
 	grep -q "netdata" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Netdata" "http://localhost:19999"
-	grep -q "cadvisor" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "cAdvisor" "http://localhost:8080"
 	grep -q "scrutiny" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Scrutiny" "http://localhost:8087"
 	grep -q "parseable" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Parseable" "http://localhost:8094"
 

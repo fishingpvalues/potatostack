@@ -11,11 +11,9 @@ sleep 10
 
 # Dashboard IDs to import (best for PotatoStack)
 declare -A DASHBOARDS=(
-	["893"]="Docker Containers (cAdvisor)"
 	["17346"]="Traefik"
 	["13639"]="Loki Logs"
 	["1860"]="Node Exporter Full"
-	["12937"]="Thanos Overview"
 	["3662"]="Prometheus Stats"
 	["9628"]="PostgreSQL Database"
 	["11835"]="Redis"
@@ -43,7 +41,7 @@ for DASHBOARD_ID in "${!DASHBOARDS[@]}"; do
         \"name\": \"DS_PROMETHEUS\",
         \"type\": \"datasource\",
         \"pluginId\": \"prometheus\",
-        \"value\": \"Thanos\"
+        \"value\": \"Prometheus\"
       }],
       \"folderId\": 0,
       \"pluginId\": \"$DASHBOARD_ID\"

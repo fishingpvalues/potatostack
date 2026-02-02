@@ -165,7 +165,6 @@ Access these from your browser:
 
 ### Monitoring
 - **Prometheus**: http://192.168.178.158:9090
-- **Thanos Query**: http://192.168.178.158:10903
 - **Uptime Kuma**: http://192.168.178.158:3001
 
 ### Applications

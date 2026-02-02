@@ -62,22 +62,6 @@ http:
       tls:
         options: default
 
-    tailnet-thanos:
-      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/thanos`)"
-      entryPoints: ["websecure"]
-      service: thanos
-      middlewares: ["sso-chain@docker", "strip-first-segment"]
-      tls:
-        options: default
-
-    tailnet-cadvisor:
-      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/cadvisor`)"
-      entryPoints: ["websecure"]
-      service: cadvisor
-      middlewares: ["sso-chain@docker", "strip-first-segment"]
-      tls:
-        options: default
-
     tailnet-scrutiny:
       rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/scrutiny`)"
       entryPoints: ["websecure"]
@@ -384,16 +368,6 @@ http:
       loadBalancer:
         servers:
           - url: "http://loki:3100"
-
-    thanos:
-      loadBalancer:
-        servers:
-          - url: "http://thanos-query:10902"
-
-    cadvisor:
-      loadBalancer:
-        servers:
-          - url: "http://cadvisor:8080"
 
     scrutiny:
       loadBalancer:

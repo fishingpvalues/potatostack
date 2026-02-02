@@ -143,7 +143,7 @@ fix-permissions: ## Fix named volume permissions (run if services fail with perm
 	@chmod +x ./scripts/init/fix-volume-permissions.sh
 	@./scripts/init/fix-volume-permissions.sh
 
-fix-configs: ## Fix service configs (Loki, Homarr, Grafana, Thanos)
+fix-configs: ## Fix service configs (Loki, Homarr, Grafana)
 	@echo "Running service configuration fixes..."
 	@chmod +x ./scripts/init/fix-service-configs.sh
 	@./scripts/init/fix-service-configs.sh

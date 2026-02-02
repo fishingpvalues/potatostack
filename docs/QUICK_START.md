@@ -5,7 +5,6 @@
 # Verify config files exist
 ls -la config/prometheus/prometheus.yml
 ls -la config/prometheus/alerts/
-ls -la config/thanos/bucket.yml
 ls -la config/grafana/provisioning/datasources/
 ls -la config/loki/loki.yml
 
@@ -20,23 +19,21 @@ nano .env
 # Add these (replace with secure passwords):
 GRAFANA_ADMIN_PASSWORD=your-secure-password
 MINIFLUX_ADMIN_PASSWORD=your-secure-password
-THANOS_TAG=v0.37.2
-CADVISOR_TAG=latest
 ```
 
 ## 3. Start Monitoring Stack
 ```bash
 # Pull images first (faster startup)
-docker compose pull prometheus grafana thanos-sidecar thanos-store thanos-query thanos-compactor cadvisor loki alloy
+docker compose pull prometheus grafana loki alloy
 
 # Start all monitoring services
-docker compose up -d prometheus grafana thanos-sidecar thanos-store thanos-query thanos-compactor cadvisor loki alloy
+docker compose up -d prometheus grafana loki alloy
 ```
 
 ## 4. Verify Services Started
 ```bash
 # Check all monitoring containers are running
-docker ps | grep -E "prometheus|thanos|grafana|cadvisor|loki|alloy"
+docker ps | grep -E "prometheus|grafana|loki|alloy"
 
 # Should see 10+ containers
 ```
@@ -60,14 +57,13 @@ sleep 30
 In Grafana UI:
 1. Click "+" (left sidebar) → "Import"
 2. Enter dashboard ID: **893** (Docker Containers)
-3. Select datasource: **Thanos**
+3. Select datasource: **Prometheus**
 4. Click "Import"
 
 Repeat for these IDs:
 - **17346** - Traefik
 - **13639** - Loki Logs  
 - **1860** - Node Exporter
-- **12937** - Thanos Overview
 - **3662** - Prometheus Stats
 
 ## 7. Verify Metrics Collection
@@ -75,13 +71,7 @@ Repeat for these IDs:
 # Check Prometheus targets (should all be UP)
 curl -s http://192.168.178.158:9090/api/v1/targets | grep -o '"health":"[^"]*"' | sort | uniq -c
 
-# Check Thanos can query data
-curl -s http://192.168.178.158:10903/api/v1/query?query=up | jq '.data.result | length'
-# Should return number > 0
 
-# Check cAdvisor metrics
-curl -s http://192.168.178.158:8089/metrics | grep container_memory_usage_bytes | wc -l
-# Should return number > 0 (one per container)
 ```
 
 ## 8. Test Loki Logs
@@ -122,11 +112,6 @@ curl -s http://192.168.178.158:9090/api/v1/rules | jq '.data.groups[].name'
   - CPU per core
   - RAM breakdown
 
-### Long-term Analysis
-- **Thanos Query**: http://192.168.178.158:10903
-  - Query metrics from last year
-  - Downsampled historical data
-
 ## Troubleshooting
 
 ### "No data" in Grafana
@@ -134,25 +119,14 @@ curl -s http://192.168.178.158:9090/api/v1/rules | jq '.data.groups[].name'
 # Check Prometheus is scraping
 docker logs prometheus | grep "Scrape"
 
-# Check Thanos sidecar connected
-docker logs thanos-sidecar | grep "prometheus"
 ```
 
 ### High RAM usage
 ```bash
 # Check which monitoring service uses most RAM
-docker stats --no-stream | grep -E "prometheus|thanos|grafana|cadvisor|loki"
+docker stats --no-stream | grep -E "prometheus|grafana|loki"
 
 # If Loki is high, reduce ingestion limits in config/loki/loki.yml
-```
-
-### Containers not showing in cAdvisor
-```bash
-# Restart cAdvisor
-docker compose restart cadvisor
-
-# Check it can access Docker socket
-docker exec cadvisor ls /var/run/docker.sock
 ```
 
 ## Summary
@@ -161,7 +135,7 @@ docker exec cadvisor ls /var/run/docker.sock
 **Total Stack RAM:** ~12.5-14GB / 16GB  
 **Services:** 100 total (95 original + 5 monitoring)  
 **Dashboards:** 11 pre-configured  
-**Metrics Retention:** 7 days (Prometheus) + 365 days (Thanos)  
+**Metrics Retention:** 30 days (Prometheus)
 **Log Retention:** 30 days (Loki)
 
 **Main URL:** http://192.168.178.158:3002 (Grafana)

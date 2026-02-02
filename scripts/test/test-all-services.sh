@@ -32,16 +32,11 @@ declare -A SERVICE_PORTS=(
 	["loki"]="3100"
 	["alloy"]=""
 	["netdata"]="19999"
-	["cadvisor"]="8080"
 	["uptime-kuma"]="3001"
 	["scrutiny"]="8087"
 	["parseable"]="8094"
 	["ntfy"]="8060"
 	# ["nextcloud-aio"]="8443"
-	["thanos-query"]="10902"
-	["thanos-sidecar"]="10901"
-	["thanos-store"]="10905"
-	["thanos-compactor"]="10903"
 
 	# Media - *arr stack
 	["sonarr"]="8989"
@@ -95,7 +90,6 @@ declare -A SERVICE_PORTS=(
 	["duckdb"]=""
 	["wireguard"]=""
 	["snapshot-scheduler"]=""
-	["trivy"]=""
 	["gluetun-monitor"]=""
 	["storage-init"]=""
 )
@@ -146,7 +140,6 @@ declare -A SERVICE_TYPES=(
 	["rustypaste"]="http"
 	["maintainerr"]="http"
 	["velld-web"]="http"
-	["cadvisor"]="http"
 	["netdata"]="http"
 	["alertmanager"]="http"
 	["adguardhome"]="http"
@@ -172,15 +165,10 @@ declare -A SERVICE_TYPES=(
 	["authentik-worker"]="background"
 	["oauth2-proxy"]="background"
 	["immich-machine-learning"]="background"
-	["thanos-query"]="background"
-	["thanos-sidecar"]="background"
-	["thanos-store"]="background"
-	["thanos-compactor"]="background"
 	["aria2"]="background"
 	["duckdb"]="background"
 	["wireguard"]="background"
 	["snapshot-scheduler"]="background"
-	["trivy"]="background"
 	["storage-init"]="init"
 )
 
