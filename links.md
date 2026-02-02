@@ -55,6 +55,7 @@ All services accessible via HTTPS using Tailscale certificates or Traefik revers
 | slskd | https://potatostack.tale-iwato.ts.net:2234 | https://slskd.potatostack.tale-iwato.ts.net | Soulseek |
 | slskd Peer | - | - | 50000 |
 | SpotiFLAC | https://potatostack.tale-iwato.ts.net:8097 | https://spotiflac.potatostack.tale-iwato.ts.net | Spotify Downloader |
+| rdt-client | https://potatostack.tale-iwato.ts.net:6500 | https://rdt-client.potatostack.tale-iwato.ts.net | Real-Debrid Downloads |
 | Prowlarr | https://potatostack.tale-iwato.ts.net:9696 | https://prowlarr.potatostack.tale-iwato.ts.net | Indexers |
 
 ## Files & Photos
@@ -223,6 +224,7 @@ open https://potatostack.tale-iwato.ts.net:8076
 open https://pyload.potatostack.tale-iwato.ts.net
 open https://potatostack.tale-iwato.ts.net:2234
 open https://slskd.potatostack.tale-iwato.ts.net
+open https://potatostack.tale-iwato.ts.net:6500
 
 # Backups
 open https://potatostack.tale-iwato.ts.net:3010
@@ -248,7 +250,7 @@ open https://backrest.potatostack.tale-iwato.ts.net
 ### VPN-Tunnelled Services
 Some services run behind Gluetun VPN for privacy:
 - Sonarr, Radarr, Lidarr, Bazarr, Bookshelf
-- qBittorrent, pyLoad, slskd
+- qBittorrent, rdt-client, pyLoad, slskd
 - SpotiFLAC, Stash
 
 Access these via:

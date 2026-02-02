@@ -129,6 +129,7 @@ mkdir -p \
 	"${STORAGE_BASE}/velld/backups" \
 	"${STORAGE_BASE}/rustypaste/uploads" \
 	"${STORAGE_BASE}/downloads/slskd" \
+	"${STORAGE_BASE}/downloads/rdt-client" \
 	"${STORAGE_BASE}/photos" \
 	"${STORAGE_BASE}/backrest/repos"
 

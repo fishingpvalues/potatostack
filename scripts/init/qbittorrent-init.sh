@@ -99,4 +99,25 @@ else
 	echo "[qb-init] WARNING: QBITTORRENT_PASSWORD not set"
 fi
 
+# Connection limits (optimized for low-power hardware)
+set_config "BitTorrent" "Session\\\\MaxConnections" "200"
+set_config "BitTorrent" "Session\\\\MaxConnectionsPerTorrent" "50"
+set_config "BitTorrent" "Session\\\\MaxUploads" "30"
+set_config "BitTorrent" "Session\\\\MaxUploadsPerTorrent" "8"
+
+# Disk I/O tuning
+set_config "BitTorrent" "Session\\\\PieceExtentAffinity" "true"
+set_config "BitTorrent" "Session\\\\DiskCacheSize" "64"
+set_config "BitTorrent" "Session\\\\AsyncIOThreads" "2"
+set_config "BitTorrent" "Session\\\\SendBufferLowWatermark" "10"
+set_config "BitTorrent" "Session\\\\SendBufferWatermark" "500"
+set_config "BitTorrent" "Session\\\\CoalesceReadWrite" "true"
+
+# Categories for *arr integration
+set_config "BitTorrent" "Session\\\\DisableAutoTMMByDefault" "false"
+
+# Post-torrent completion hook
+set_config "AutoRun" "enabled" "true"
+set_config "AutoRun" "program" "/hooks/post-torrent.sh \\\"%N\\\" \\\"%C\\\" \\\"%F\\\" \\\"%D\\\" \\\"%G\\\""
+
 echo "[qb-init] Configuration complete"

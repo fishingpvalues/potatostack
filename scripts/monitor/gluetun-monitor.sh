@@ -54,6 +54,8 @@ LAST_GLUETUN_ID=""
 INTERNET_WAS_DOWN=false
 INTERNET_CHECK_INTERVAL="${INTERNET_CHECK_INTERVAL:-6}"
 INTERNET_CHECK_COUNTER=0
+INTERNET_FAIL_COUNT=0
+INTERNET_MAX_FAILURES="${INTERNET_MAX_FAILURES:-3}"
 ORPHAN_CLEANUP_INTERVAL="${ORPHAN_CLEANUP_INTERVAL:-30}"
 ORPHAN_CLEANUP_COUNTER=0
 
@@ -379,16 +381,24 @@ while true; do
 	if [ "$CURRENT_STATUS" = "running" ] && [ $INTERNET_CHECK_COUNTER -ge "$INTERNET_CHECK_INTERVAL" ]; then
 		INTERNET_CHECK_COUNTER=0
 		if ! check_internet_through_gluetun; then
+			INTERNET_FAIL_COUNT=$((INTERNET_FAIL_COUNT + 1))
 			if [ "$INTERNET_WAS_DOWN" = "false" ]; then
-				echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✗ Internet unreachable through gluetun (VPN reports running)"
+				echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✗ Internet unreachable through gluetun (VPN reports running) [$INTERNET_FAIL_COUNT/$INTERNET_MAX_FAILURES]"
 				notify_event "PotatoStack - Internet down through VPN" "VPN running but no internet connectivity" "high" "vpn,internet,warning"
 				INTERNET_WAS_DOWN=true
 			fi
+			# After consecutive failures, recreate containers to fix stale network
+			if [ $INTERNET_FAIL_COUNT -ge "$INTERNET_MAX_FAILURES" ]; then
+				echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✗ Internet unreachable for $INTERNET_FAIL_COUNT consecutive checks, recreating containers..."
+				recreate_containers "internet-unreachable-through-vpn"
+				INTERNET_FAIL_COUNT=0
+			fi
 		else
+			INTERNET_FAIL_COUNT=0
 			if [ "$INTERNET_WAS_DOWN" = "true" ]; then
-				echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ Internet restored through gluetun, restarting dependent services..."
-				notify_event "PotatoStack - Internet restored through VPN" "Restarting dependent containers" "default" "vpn,internet,recovered"
-				restart_containers "internet-restored-through-vpn"
+				echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ Internet restored through gluetun, recreating dependent services..."
+				notify_event "PotatoStack - Internet restored through VPN" "Recreating dependent containers" "default" "vpn,internet,recovered"
+				recreate_containers "internet-restored-through-vpn"
 				INTERNET_WAS_DOWN=false
 			fi
 		fi
