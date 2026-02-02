@@ -18,6 +18,7 @@ search:
     - json
 
 server:
+  base_url: "https://potatostack.tale-iwato.ts.net:8180/"
   secret_key: "${SEARXNG_SECRET}"
   limiter: true
   image_proxy: true
@@ -30,10 +31,6 @@ server:
 
 redis:
   url: redis://redis-cache:6379/15
-
-cache:
-  cache_dir: ""
-  cache_type: redis
 
 ui:
   static_use_hash: true
@@ -59,61 +56,3 @@ enabled_plugins:
   - Unit converter
   - Hostnames plugin
   - Open Access DOI rewrite
-  - Tor check plugin
-
-engines:
-  - name: google
-    engine: google
-    shortcut: g
-
-  - name: duckduckgo
-    engine: duckduckgo
-    shortcut: ddg
-
-  - name: bing
-    engine: bing
-    shortcut: b
-
-  - name: brave
-    engine: brave
-    shortcut: br
-
-  - name: wikipedia
-    engine: wikipedia
-    shortcut: wp
-
-  - name: wikidata
-    engine: wikidata
-    shortcut: wd
-
-  - name: github
-    engine: github
-    shortcut: gh
-
-  - name: stackoverflow
-    engine: stackoverflow
-    shortcut: so
-
-  - name: arch wiki
-    engine: archlinux
-    shortcut: aw
-
-  - name: reddit
-    engine: reddit
-    shortcut: r
-
-  - name: npm
-    engine: npm
-    shortcut: npm
-
-  - name: pypi
-    engine: pypi
-    shortcut: pip
-
-  - name: dockerhub
-    engine: docker_hub
-    shortcut: dh
-
-  - name: crates.io
-    engine: crates
-    shortcut: cra

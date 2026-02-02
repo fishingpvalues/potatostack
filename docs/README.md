@@ -68,7 +68,7 @@ Complete self-hosted stack with 100 services optimized for low-power hardware.
 - Velld - Database backup scheduler
 - Snapshot Scheduler - Automated Kopia snapshots
 - DuckDB - Ad-hoc analytics
-- Linkding - Bookmark manager
+- Karakeep - AI-powered bookmark manager
 - Memos - Note-taking
 - Code Server - VS Code in browser
 - Actual Budget - Budgeting

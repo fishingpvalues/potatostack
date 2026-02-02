@@ -57,7 +57,7 @@ services:
       <<: *common-env
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-authentik,gitea,woodpecker,immich,calibre,linkding,healthchecks,atuin,homarr,miniflux,grafana,mealie}
+      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-authentik,gitea,woodpecker,immich,calibre,karakeep,healthchecks,atuin,homarr,miniflux,grafana,mealie}
     entrypoint: sh /postgres-wrapper.sh
     command:
       - "postgres"
@@ -2805,42 +2805,89 @@ services:
   #     - "traefik.http.services.stirling.loadbalancer.server.port=8080"
   #     - "traefik.http.routers.stirling.middlewares=sso-chain@docker"
 
-  # Linkding - Bookmark manager
-  linkding:
-    image: sissbruecker/linkding:${LINKDING_TAG:-latest}
-    container_name: linkding
+  ################################################################################
+  # Karakeep - AI-powered bookmark manager (replaces Linkding)
+  ################################################################################
+
+  karakeep:
+    image: ghcr.io/karakeep-app/karakeep:${KARAKEEP_TAG:-release}
+    container_name: karakeep
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-127.0.0.1}:9091:9090"
+      - "${HOST_BIND:-127.0.0.1}:9091:3000"
     environment:
       <<: *common-env
-      LD_DB_ENGINE: postgres
-      LD_DB_HOST: postgres
-      LD_DB_PORT: 5432
-      LD_DB_DATABASE: linkding
-      LD_DB_USER: postgres
-      LD_DB_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      LD_SUPERUSER_NAME: ${LINKDING_ADMIN_USER:-admin}
-      LD_SUPERUSER_PASSWORD: ${LINKDING_ADMIN_PASSWORD}
+      DATA_DIR: /data
+      NEXTAUTH_SECRET: ${KARAKEEP_NEXTAUTH_SECRET}
+      MEILI_MASTER_KEY: ${KARAKEEP_MEILI_MASTER_KEY}
+      MEILI_ADDR: http://karakeep-meilisearch:7700
+      BROWSER_WEB_URL: http://karakeep-chrome:9222
+      OPENAI_API_KEY: ${KARAKEEP_OPENAI_API_KEY:-}
+      OLLAMA_BASE_URL: ${KARAKEEP_OLLAMA_BASE_URL:-}
+      DISABLE_SIGNUPS: ${KARAKEEP_DISABLE_SIGNUPS:-false}
     volumes:
-      - /mnt/ssd/docker-data/linkding:/etc/linkding/data
+      - /mnt/ssd/docker-data/karakeep:/data
     networks:
       - potatostack
     depends_on:
+      - karakeep-meilisearch
+      - karakeep-chrome
       - postgres
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          cpus: "0.25"
-          memory: 192M
+          cpus: "0.5"
+          memory: 512M
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.linkding.rule=Host(`linkding.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.linkding.entrypoints=websecure"
-      - "traefik.http.routers.linkding.tls=true"
-      - "traefik.http.services.linkding.loadbalancer.server.port=9090"
-      - "traefik.http.routers.linkding.middlewares=sso-chain@docker"
+      - "traefik.http.routers.karakeep.rule=Host(`karakeep.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.karakeep.entrypoints=websecure"
+      - "traefik.http.routers.karakeep.tls=true"
+      - "traefik.http.services.karakeep.loadbalancer.server.port=3000"
+      - "traefik.http.routers.karakeep.middlewares=sso-chain@docker"
+      - "wud.trigger.docker.update=true"
+
+  karakeep-chrome:
+    image: gcr.io/zenika-hub/alpine-chrome:${KARAKEEP_CHROME_TAG:-123}
+    container_name: karakeep-chrome
+    logging: *default-logging
+    command:
+      - --no-sandbox
+      - --disable-gpu
+      - --disable-dev-shm-usage
+      - --remote-debugging-address=0.0.0.0
+      - --remote-debugging-port=9222
+      - --hide-scrollbars
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+    labels:
+      - "wud.trigger.docker.update=true"
+
+  karakeep-meilisearch:
+    image: getmeili/meilisearch:${KARAKEEP_MEILISEARCH_TAG:-v1.13.3}
+    container_name: karakeep-meilisearch
+    logging: *default-logging
+    environment:
+      MEILI_MASTER_KEY: ${KARAKEEP_MEILI_MASTER_KEY}
+      MEILI_NO_ANALYTICS: "true"
+    volumes:
+      - /mnt/ssd/docker-data/karakeep-meilisearch:/meili_data
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+    labels:
       - "wud.trigger.docker.update=true"
 
   # Code-server - DISABLED: VS Code in browser

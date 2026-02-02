@@ -134,10 +134,10 @@ http:
       tls:
         options: default
 
-    tailnet-linkding:
-      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/linkding`)"
+    tailnet-karakeep:
+      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/karakeep`)"
       entryPoints: ["websecure"]
-      service: linkding
+      service: karakeep
       middlewares: ["sso-chain@docker", "strip-first-segment"]
       tls:
         options: default
@@ -414,10 +414,10 @@ http:
         servers:
           - url: "http://mealie:9000"
 
-    linkding:
+    karakeep:
       loadBalancer:
         servers:
-          - url: "http://linkding:9090"
+          - url: "http://karakeep:3000"
 
     atuin:
       loadBalancer:

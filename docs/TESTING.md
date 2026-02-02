@@ -25,7 +25,7 @@ Based on **SOTA 2025 Docker Compose testing best practices**, testing ALL 65+ se
 - **HTTP Endpoint Testing**: Tests ALL 40+ web services including:
   - Monitoring: Grafana, Prometheus, Alertmanager, Uptime-Kuma
    - Media: Sonarr, Radarr, Lidarr, Readarr, Bazarr, Prowlarr, Jellyfin, Jellyseerr, qBittorrent, Audiobookshelf, Slskd
-  - Productivity: Homarr, Paperless-ngx, Linkding, Miniflux, Actual-Budget, Stirling-PDF
+  - Productivity: Homarr, Paperless-ngx, Karakeep, Miniflux, Actual-Budget, Stirling-PDF
   - Development: Gitea, Code-Server
   - Automation: Healthchecks
   - Security: Vaultwarden, Authentik, AdGuard Home

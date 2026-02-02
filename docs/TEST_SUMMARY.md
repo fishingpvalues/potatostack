@@ -11,7 +11,7 @@ Production-ready testing suite for PotatoStack with **65+ services** across all 
 ✓ **Security (6)**: crowdsec, crowdsec-traefik-bouncer, fail2ban, vaultwarden, authentik-server, authentik-worker
 ✓ **Monitoring (7)**: prometheus, grafana, alertmanager, loki, alloy, uptime-kuma
 ✓ **Media (13)**: sonarr, radarr, lidarr, readarr, bazarr, prowlarr, jellyfin, jellyseerr, qbittorrent, aria2, ariang, audiobookshelf, slskd
-✓ **Productivity (7)**: homarr, paperless-ngx, linkding, miniflux, actual-budget, stirling-pdf, it-tools
+✓ **Productivity (7)**: homarr, paperless-ngx, karakeep, miniflux, actual-budget, stirling-pdf, it-tools
 ✓ **Automation (3)**: diun, autoheal, healthchecks
 ✓ **Development (3)**: gitea, gitea-runner, code-server
 ✓ **Network (4)**: gluetun, gluetun-monitor, tailscale, adguardhome

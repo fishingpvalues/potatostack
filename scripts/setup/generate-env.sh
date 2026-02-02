@@ -195,7 +195,8 @@ main() {
 	# All services use ADMIN_USER and ADMIN_PASSWORD for consistency
 	GRAFANA_PASSWORD="$ADMIN_PASSWORD"
 	GRAFANA_ADMIN_PASSWORD="$ADMIN_PASSWORD"
-	LINKDING_ADMIN_PASSWORD="$ADMIN_PASSWORD"
+	KARAKEEP_NEXTAUTH_SECRET=$(generate_password 32)
+	KARAKEEP_MEILI_MASTER_KEY=$(generate_password 32)
 	HEALTHCHECKS_ADMIN_PASSWORD="$ADMIN_PASSWORD"
 	COUCHDB_PASSWORD="$ADMIN_PASSWORD"
 	SLSKD_PASSWORD="$ADMIN_PASSWORD"
@@ -284,7 +285,7 @@ SAMBA_PASSWORD=${SAMBA_PASSWORD}
 # CORE DATABASES
 ################################################################################
 POSTGRES_SUPER_PASSWORD=${POSTGRES_SUPER_PASSWORD}
-POSTGRES_DATABASES=authentik,gitea,woodpecker,immich,calibre,linkding,healthchecks,atuin,homarr,miniflux,grafana,infisical,mealie
+POSTGRES_DATABASES=authentik,gitea,woodpecker,immich,calibre,karakeep,healthchecks,atuin,homarr,miniflux,grafana,infisical,mealie
 MONGO_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
 
 ################################################################################
@@ -520,8 +521,11 @@ PAPERLESS_ADMIN_PASSWORD=${PAPERLESS_ADMIN_PASSWORD}
 ################################################################################
 # UTILITIES & TOOLS
 ################################################################################
-LINKDING_ADMIN_USER=${ADMIN_USER}
-LINKDING_ADMIN_PASSWORD=${LINKDING_ADMIN_PASSWORD}
+KARAKEEP_NEXTAUTH_SECRET=${KARAKEEP_NEXTAUTH_SECRET}
+KARAKEEP_MEILI_MASTER_KEY=${KARAKEEP_MEILI_MASTER_KEY}
+KARAKEEP_OPENAI_API_KEY=${KARAKEEP_OPENAI_API_KEY}
+KARAKEEP_OLLAMA_BASE_URL=${KARAKEEP_OLLAMA_BASE_URL}
+KARAKEEP_DISABLE_SIGNUPS=false
 CALCOM_NEXTAUTH_SECRET=${CALCOM_NEXTAUTH_SECRET}
 CALCOM_ENCRYPTION_KEY=${CALCOM_ENCRYPTION_KEY}
 	ATUIN_HOST=0.0.0.0
@@ -708,7 +712,9 @@ OPENSSH_SERVER_TAG=latest
 NTFY_TAG=latest
 RUSTYPASTE_TAG=latest
 STIRLING_PDF_TAG=latest
-LINKDING_TAG=latest
+KARAKEEP_TAG=release
+KARAKEEP_CHROME_TAG=123
+KARAKEEP_MEILISEARCH_TAG=v1.13.3
 CALCOM_TAG=latest
 CODE_SERVER_TAG=latest
 DRAWIO_TAG=latest

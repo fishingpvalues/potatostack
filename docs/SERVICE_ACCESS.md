@@ -73,7 +73,7 @@ Your services are accessible at `192.168.178.158` or via Traefik at `*.danielhom
 | Service | HTTPS URL | Direct IP:Port |
 |---------|-----------|----------------|
 | Miniflux (RSS) | https://miniflux.danielhomelab.local | 192.168.178.158:8088 |
-| Linkding (Bookmarks) | https://linkding.danielhomelab.local | 192.168.178.158:9091 |
+| Karakeep (Bookmarks) | https://karakeep.danielhomelab.local | 192.168.178.158:9091 |
 | Paperless-ngx (Docs) | https://paperless.danielhomelab.local | 192.168.178.158:8085 |
 | Actual Budget | https://actual.danielhomelab.local | 192.168.178.158:5006 |
 | IT-Tools | https://it-tools.danielhomelab.local | 192.168.178.158:8087 |

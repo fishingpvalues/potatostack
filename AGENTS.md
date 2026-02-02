@@ -6,62 +6,89 @@ This repository contains a Docker Compose-based self-hosted infrastructure stack
 
 ### Essential Commands
 - `make help` - Display all available commands
-- `make up` - Start all services
+- `make up` - Start all services (runs init containers first)
 - `make down` - Stop all services
-- `make test` - Full integration tests (scripts/test/stack-test.sh)
-- `make test-quick` - Quick health check only
-- `make validate` - Docker-compose syntax validation
-- `make lint` - YAML, shell, compose linting (yamllint, shellcheck, dclint)
-- `make format` - Format all files (shfmt, prettier)
-- `make security` - Security vulnerability scan
+- `make ps` - List running containers with ports
 - `make logs SERVICE=name` - View logs for specific service
+- `make health` - Check health status of all services
+
+### Testing Commands
+- `make test` - Full integration tests (scripts/test/stack-test.sh)
+- `make test-quick` - Quick health check only (no log analysis)
+- `make test-killswitch` - Test VPN killswitch functionality
+- `make containers-check` - Fail if any containers are unhealthy/exited
 
 ### Running Single Tests
-- `docker ps --filter "name=service_name"` - Check specific container
-- `docker logs -f service_name` - View service logs
-- `docker exec service_name command` - Execute in container
-- `curl -I http://localhost:PORT` - Test HTTP endpoint
-- `PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U postgres -c "SELECT version();"` - Test PostgreSQL
-- `redis-cli -h localhost ping` - Test Redis
-- `mongosh --eval "db.adminCommand('ping')"` - Test MongoDB
+Test a specific HTTP endpoint:
+```bash
+curl -f http://localhost:PORT          # Generic HTTP test
+curl -I http://localhost:PORT          # HEAD request test
+curl -fsS http://localhost:8088/ping   # Traefik ping endpoint
+```
 
-### Individual Service Tests
-Test HTTP endpoints individually using curl:
-`curl -f http://localhost:PORT` where PORT is service-specific (e.g., 8088 for Traefik, 3000 for Grafana)
+Test a specific service:
+```bash
+# Check container status
+docker ps --filter "name=service_name"
+docker logs -f service_name            # Follow logs
+docker exec service_name command       # Execute command in container
+
+# Test databases
+PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U postgres -c "SELECT version();"
+redis-cli -h localhost ping
+mongosh --eval "db.adminCommand('ping')"
+```
+
+### Validation & Linting
+- `make validate` - Docker-compose syntax + required files check
+- `make validate-compose` - Validate docker-compose.yml only
+- `make lint` - Full linting (YAML, shell, compose, Dockerfiles)
+- `make lint-yaml` - Lint YAML files with yamllint
+- `make lint-shell` - Lint shell scripts (shellcheck + shfmt)
+- `make lint-compose` - Lint docker-compose.yml (dclint)
+- `make lint-full` - Full validation suite with reporting
+- `make security` - Security vulnerability scan (trivy)
+
+### Formatting
+- `make format` - Format all files (shell + YAML + Dockerfiles)
+- `make format-shell` - Format shell scripts with shfmt
+- `make format-yaml` - Format YAML files with prettier/yq
+- `make format-dockerfiles` - Format Dockerfiles with dockfmt
 
 ## Code Style Guidelines
 
 ### Shell Scripts
-- **Shebang**: `#!/bin/bash` with `set -euo pipefail`
+- **Shebang**: `#!/bin/bash` with `set -euo pipefail` (or `#!/bin/sh` with `set -eu` for POSIX)
 - **Functions**: snake_case (e.g., `detect_os`, `validate_yaml_syntax`)
-- **Colors**: RED, GREEN, YELLOW, BLUE, NC variables at top
-- **OS detection**: Support Linux/Termux (see scripts/test/stack-test.sh:27-53)
-- **Variables**: UPPER_CASE constants, lower_case locals, always quote `"$VAR"`
-- **Comments**: Single-line `#`, header `#` with blank line for sections
+- **Colors**: Define RED, GREEN, YELLOW, BLUE, NC at top for output
+- **Variables**: UPPER_CASE for constants/exports, lower_case for locals
+- **Quoting**: Always quote variables: `"$VAR"` not `$VAR`
+- **OS detection**: Support Linux and Termux/Android via proot-distro
+- **Comments**: Use `################################################################################` for file headers, `# Section` for sections
 
 ### Docker Compose / YAML
-- **Indent**: 2 spaces, 120 char max line length (200 absolute max)
-- **Anchors/aliases**: `x-common-env`, `x-logging` patterns (docker-compose.yml:4-10)
+- **Indent**: 2 spaces, max 120 chars (200 absolute max per .yamllint)
 - **Service names**: lowercase-with-hyphens (e.g., `postgres`, `redis-cache`)
-- **Environment vars**: UPPER_CASE (e.g., `POSTGRES_USER`, `TZ`)
-- **Quotes**: Double quotes for strings, environment vars
-- **Section headers**: `#` comments for major service groups
+- **Environment vars**: UPPER_CASE in .env, referenced as `${VAR:-default}`
+- **Quotes**: Double quotes for strings, especially environment variables
+- **Anchors/aliases**: Use `x-common-env`, `x-logging` for reusable configs
+- **Section headers**: Use `################################################################################` comments for major groups
 
 ### File Organization
-- `scripts/init/` - Initialization scripts
-- `scripts/setup/` - Setup/installation scripts
-- `scripts/test/` - Test scripts
-- `scripts/validate/` - Validation scripts
-- `scripts/security/` - Security scanning
-- `scripts/monitor/` - Monitoring scripts
-- `scripts/backup/` - Backup scripts
-- `config/<service_name>/` - Service configs
-
-### Error Handling
-- **Shell**: `set -e` exits on error, `|| true` ignores specific errors
-- **Return codes**: 0=success, non-zero=failure
-- **Error messages**: RED for errors, YELLOW for warnings
-- **Validation**: Check inputs/paths before processing
+```
+scripts/
+  init/       - Initialization scripts (storage-init, service configs)
+  setup/      - Setup/installation scripts (ufw, hardening, autostart)
+  test/       - Test scripts (stack-test.sh, test-killswitch.sh)
+  validate/   - Validation scripts (validate-stack.sh)
+  security/   - Security scanning (security-scan.sh)
+  monitor/    - Monitoring scripts (health, connectivity, queue)
+  backup/     - Backup scripts (stack-snapshot.sh)
+  hooks/      - Service hooks (post-download, post-torrent)
+  import/     - Import scripts (grafana dashboards)
+  webhooks/   - Webhook handlers
+config/<service>/ - Service-specific configuration files
+```
 
 ### Naming Conventions
 - **Scripts**: `name-action.sh` (e.g., `init-storage.sh`, `security-scan.sh`)
@@ -70,21 +97,20 @@ Test HTTP endpoints individually using curl:
 - **Environment vars**: UPPER_CASE_WITH_UNDERSCORES
 - **Directories**: lowercase-with-hyphens
 
-### Formatting & Linting
-- **Shell**: shfmt for formatting (`make format-shell`)
-- **YAML**: prettier or yq for formatting (`make format-yaml`)
-- **Lint**: `make lint` before committing (shellcheck, yamllint, dclint)
-- **No trailing whitespace**: Remove all trailing whitespace
-- **Final newline**: Ensure single newline at file end
+### Error Handling
+- **Shell**: `set -e` exits on error, `|| true` to ignore specific errors
+- **Return codes**: 0=success, non-zero=failure
+- **Error messages**: Use colors - RED for errors, YELLOW for warnings, GREEN for success
+- **Validation**: Check inputs/paths exist before processing
 
 ### Types & Data Structures
 - **Shell arrays**: Indexed for lists, associative for key-value pairs
-- **String manipulation**: `${VAR#prefix}` parameter expansion
-- **Numeric operations**: `$(( ))` for arithmetic
-- **Defaults**: `${VAR:-default}` for optional vars
+- **String manipulation**: Use `${VAR#prefix}` parameter expansion
+- **Numeric operations**: Use `$(( ))` for arithmetic
+- **Defaults**: Use `${VAR:-default}` for optional variables
 
 ### Security
-- **Secrets**: Never commit to repo, use .env file
+- **Secrets**: Never commit to repo - use .env file only
 - **Permissions**: 755 for executable scripts
 - **Input sanitization**: Validate all user inputs
 - **Command injection**: Use arrays: `cmd=(docker exec "$container" ls); "${cmd[@]}"`
@@ -94,24 +120,6 @@ Test HTTP endpoints individually using curl:
 - **Commit messages**: Conventional Commits: `type(scope): description`
 - **Pre-commit**: Run `make lint && make format`
 - **Types**: feat, fix, docs, style, refactor, perf, test, build, ci, chore
-
-### Testing Strategy
-- `make test` - Full integration tests
-- `make test-quick` - Quick health check
-- `make validate` - Syntax validation
-- `make lint` - Comprehensive validation
-- `make security` - Vulnerability scan
-
-### Environment
-- Copy `.env.example` to `.env`
-- Set TZ, PUID, PGID in .env
-- Service vars use `SERVICE_VAR` pattern
-- Use defaults: `${VAR:-default}` in compose files
-
-### PostgreSQL Notes
-- **Password only set on first init** - changing POSTGRES_SUPER_PASSWORD in .env has no effect if data exists
-- **Reset password**: Remove `/mnt/ssd/docker-data/postgres` directory, recreate with `docker compose up -d postgres`
-- **Force recreate all postgres-dependent services** after password reset: authentik, n8n, miniflux, mealie, immich, grafana, etc.
 
 ### Platform Compatibility
 - Support Linux and Termux/Android via proot-distro
@@ -123,4 +131,30 @@ Test HTTP endpoints individually using curl:
 - Set CPU/memory limits via `deploy.resources` in docker-compose.yml
 - Use shared services (Redis, PostgreSQL) to reduce overhead
 - Configure tmpfs for temp files to reduce disk I/O
-- Hardware acceleration: Jellyfin uses `/dev/dri/renderD128` (docker-compose.yml:415)
+- Hardware acceleration: Jellyfin uses `/dev/dri/renderD128`
+
+### PostgreSQL Notes
+- **Password only set on first init** - changing POSTGRES_SUPER_PASSWORD in .env has no effect if data exists
+- **Reset password**: Remove `/mnt/ssd/docker-data/postgres` directory, recreate with `docker compose up -d postgres`
+- **Force recreate** all postgres-dependent services after password reset: authentik, n8n, miniflux, mealie, immich, grafana, etc.
+
+### Environment Setup
+1. Copy `.env.example` to `.env`
+2. Set TZ, PUID, PGID in .env
+3. Service vars use `SERVICE_VAR` pattern
+4. Use defaults: `${VAR:-default}` in compose files
+
+### Firewall Management
+- `make firewall-install` - Install UFW with Docker integration
+- `make firewall-apply` - Apply PotatoStack firewall rules
+- `make firewall-status` - Show current firewall status
+- `make firewall-allow` - Allow a Docker container port (interactive)
+- `make firewall-deny` - Deny a Docker container port (interactive)
+
+### Troubleshooting
+- `make doctor` - Check tool availability and versions
+- `make containers-unhealthy` - List unhealthy containers
+- `make containers-exited` - List exited containers
+- `make resources` - Check resource usage (CPU/Memory)
+- `make fix-permissions` - Fix named volume permissions
+- `make recovery` - Full recovery after crash (fix Docker + start stack)

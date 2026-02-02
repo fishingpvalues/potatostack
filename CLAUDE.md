@@ -113,10 +113,10 @@ docker compose up -d postgres
 docker compose up -d --force-recreate \
   pgbouncer authentik-server authentik-worker \
   miniflux mealie immich-server grafana postgres-exporter \
-  healthchecks linkding atuin gitea woodpecker-server homarr infisical
+  healthchecks karakeep atuin gitea woodpecker-server homarr infisical
 ```
 
-**PostgreSQL-dependent services:** postgres, pgbouncer, authentik-server, authentik-worker, miniflux, mealie, immich-server, grafana, postgres-exporter, healthchecks, linkding, atuin, gitea, woodpecker-server, homarr, infisical
+**PostgreSQL-dependent services:** postgres, pgbouncer, authentik-server, authentik-worker, miniflux, mealie, immich-server, grafana, postgres-exporter, healthchecks, karakeep, atuin, gitea, woodpecker-server, homarr, infisical
 
 **Data locations:**
 - PostgreSQL data: `/mnt/ssd/docker-data/postgres`
