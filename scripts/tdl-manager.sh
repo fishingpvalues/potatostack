@@ -111,6 +111,7 @@ tdl download \
   -d /downloads/.skip-index \
   -i mp4,mkv,avi,mov,wmv,webm \
   --skip-same \
+  --continue \
   -l 2 \
   --template \"{{ .MessageID }}_{{ .FileName }}\" \
   2>&1 && \

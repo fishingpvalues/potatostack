@@ -126,14 +126,6 @@ http:
       tls:
         options: default
 
-    tailnet-mealie:
-      rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/mealie`)"
-      entryPoints: ["websecure"]
-      service: mealie
-      middlewares: ["sso-chain@docker", "strip-first-segment"]
-      tls:
-        options: default
-
     tailnet-karakeep:
       rule: "Host(`potatostack.tale-iwato.ts.net`) && PathPrefix(`/karakeep`)"
       entryPoints: ["websecure"]
@@ -408,11 +400,6 @@ http:
       loadBalancer:
         servers:
           - url: "http://actual-budget:5006"
-
-    mealie:
-      loadBalancer:
-        servers:
-          - url: "http://mealie:9000"
 
     karakeep:
       loadBalancer:

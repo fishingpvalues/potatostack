@@ -31,7 +31,7 @@ make format        # Format all files (shfmt, prettier)
 
 **Storage Layout:**
 - SSD (`/mnt/ssd/docker-data`) - Databases, configs, critical data
-- HDD (`/mnt/storage`) - Media, photos, documents, recipes (mealie), knowledge (obsidian)
+- HDD (`/mnt/storage`) - Media, photos, documents, knowledge (obsidian)
 - HDD (`/mnt/cachehdd`) - Caches, incomplete downloads, metrics
 
 **Core Services:**
@@ -112,11 +112,11 @@ docker compose up -d postgres
 # 4. Force recreate ALL postgres-dependent services (they cache the password)
 docker compose up -d --force-recreate \
   pgbouncer authentik-server authentik-worker \
-  miniflux mealie immich-server grafana postgres-exporter \
+  miniflux immich-server grafana postgres-exporter \
   healthchecks karakeep atuin gitea woodpecker-server homarr infisical
 ```
 
-**PostgreSQL-dependent services:** postgres, pgbouncer, authentik-server, authentik-worker, miniflux, mealie, immich-server, grafana, postgres-exporter, healthchecks, karakeep, atuin, gitea, woodpecker-server, homarr, infisical
+**PostgreSQL-dependent services:** postgres, pgbouncer, authentik-server, authentik-worker, miniflux, immich-server, grafana, postgres-exporter, healthchecks, karakeep, atuin, gitea, woodpecker-server, homarr, infisical
 
 **Data locations:**
 - PostgreSQL data: `/mnt/ssd/docker-data/postgres`

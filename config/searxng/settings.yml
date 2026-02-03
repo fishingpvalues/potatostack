@@ -19,7 +19,7 @@ search:
 
 server:
   base_url: "https://potatostack.tale-iwato.ts.net:8180/"
-  secret_key: "${SEARXNG_SECRET}"
+  secret_key: "${SEARXNG_SECRET_KEY}"
   limiter: true
   image_proxy: true
   method: "POST"

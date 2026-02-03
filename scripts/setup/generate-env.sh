@@ -223,7 +223,6 @@ main() {
 	OPEN_WEBUI_SECRET_KEY="$(gen_base64 32)"
 	VELLD_JWT_SECRET="$(gen_base64 32)"
 	PAPERLESS_SECRET_KEY="$(gen_base64 32)"
-	MEALIE_SECRET_KEY="$(gen_base64 32)"
 	# INFISICAL_AUTH_SECRET="$(gen_base64 32)"
 	# INFISICAL_ENCRYPTION_KEY="$(gen_base64 32)"
 
@@ -285,7 +284,7 @@ SAMBA_PASSWORD=${SAMBA_PASSWORD}
 # CORE DATABASES
 ################################################################################
 POSTGRES_SUPER_PASSWORD=${POSTGRES_SUPER_PASSWORD}
-POSTGRES_DATABASES=authentik,gitea,woodpecker,immich,calibre,karakeep,healthchecks,atuin,homarr,miniflux,grafana,infisical,mealie
+POSTGRES_DATABASES=authentik,gitea,woodpecker,immich,calibre,karakeep,healthchecks,atuin,homarr,miniflux,grafana,infisical
 MONGO_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
 
 ################################################################################
@@ -429,10 +428,6 @@ COUCHDB_USER=${ADMIN_USER}
 COUCHDB_PASSWORD=${COUCHDB_PASSWORD}
 COUCHDB_DATABASE=obsidian-vault
 
-# Recipe Management
-MEALIE_SECRET_KEY=${MEALIE_SECRET_KEY}
-
-################################################################################
 # FILE BROWSER
 ################################################################################
 FILEBROWSER_USER=${ADMIN_USER}
@@ -649,7 +644,6 @@ FILESTASH_TAG=latest
 COUCHDB_TAG=latest
 OBSIDIAN_LIVESYNC_TAG=latest
 CURL_TAG=latest
-MEALIE_TAG=latest
 
 # Finance
 FIREFLY_TAG=latest

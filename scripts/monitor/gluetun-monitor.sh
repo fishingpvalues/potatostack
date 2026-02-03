@@ -97,19 +97,70 @@ check_internet_through_gluetun() {
 	docker exec "$test_container" wget -q -O /dev/null --timeout=5 http://1.1.1.1 2>/dev/null
 }
 
-# Remove orphaned containers with hash-prefixed names (e.g. 6c3cc1750f43_pgbouncer)
+# Remove orphaned containers
+# Detects: hash-prefixed names, compose orphans, long-exited containers
 cleanup_orphan_containers() {
-	local orphans
-	orphans=$(docker ps -a --format '{{.Names}}' | grep -E '^[0-9a-f]{12}_' || true)
+	local orphans=""
+	local compose_dir=""
+
+	# Find compose directory
+	if [ -d /compose ]; then
+		compose_dir="/compose"
+	elif [ -d /home/daniel/potatostack ]; then
+		compose_dir="/home/daniel/potatostack"
+	fi
+
+	# 1. Hash-prefixed containers (e.g. 6c3cc1750f43_pgbouncer)
+	local hash_orphans
+	hash_orphans=$(docker ps -a --format '{{.Names}}' | grep -E '^[0-9a-f]{12}_' || true)
+	if [ -n "$hash_orphans" ]; then
+		orphans="$hash_orphans"
+	fi
+
+	# 2. Docker Compose orphans (containers from project but not in compose file)
+	if [ -n "$compose_dir" ] && [ -f "$compose_dir/docker-compose.yml" ]; then
+		local compose_orphans
+		# Get orphan names from docker compose (captures "Removing <name>" lines)
+		compose_orphans=$(docker compose -f "$compose_dir/docker-compose.yml" down --remove-orphans --dry-run 2>&1 | grep -oP '(?<=Removing )[^ ]+' || true)
+		if [ -n "$compose_orphans" ]; then
+			orphans=$(printf "%s\n%s" "$orphans" "$compose_orphans" | grep -v '^$' | sort -u)
+		fi
+	fi
+
+	# 3. Containers exited for more than 24 hours (excluding intentionally stopped ones)
+	local old_exited
+	old_exited=$(docker ps -a --filter "status=exited" --format '{{.Names}} {{.Status}}' | \
+		awk '$NF ~ /days|weeks|months/ || ($NF ~ /hours/ && $(NF-1) >= 24) {print $1}' | \
+		grep -v -E '^(postgres|redis|mongodb)$' || true)  # Exclude db containers that may be intentionally stopped
+	if [ -n "$old_exited" ]; then
+		orphans=$(printf "%s\n%s" "$orphans" "$old_exited" | grep -v '^$' | sort -u)
+	fi
+
+	# 4. Dead containers
+	local dead_containers
+	dead_containers=$(docker ps -a --filter "status=dead" --format '{{.Names}}' || true)
+	if [ -n "$dead_containers" ]; then
+		orphans=$(printf "%s\n%s" "$orphans" "$dead_containers" | grep -v '^$' | sort -u)
+	fi
+
 	if [ -z "$orphans" ]; then
 		return
 	fi
+
 	echo "[$(date +'%Y-%m-%d %H:%M:%S')] 🧹 Cleaning up orphaned containers:"
+	local removed=""
 	for name in $orphans; do
+		# Skip empty names
+		[ -z "$name" ] && continue
 		echo "[$(date +'%Y-%m-%d %H:%M:%S')]   • Removing $name..."
-		docker rm -f "$name" 2>&1 | sed "s/^/    /" || true
+		if docker rm -f "$name" 2>&1 | sed "s/^/    /"; then
+			removed="${removed:+$removed, }$name"
+		fi
 	done
-	notify_event "PotatoStack - Orphan cleanup" "Removed orphaned containers: ${orphans}" "low" "maintenance,cleanup"
+
+	if [ -n "$removed" ]; then
+		notify_event "PotatoStack - Orphan cleanup" "Removed: ${removed}" "low" "maintenance,cleanup"
+	fi
 }
 
 # Test if services can actually connect after recreation

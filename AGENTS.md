@@ -136,7 +136,7 @@ config/<service>/ - Service-specific configuration files
 ### PostgreSQL Notes
 - **Password only set on first init** - changing POSTGRES_SUPER_PASSWORD in .env has no effect if data exists
 - **Reset password**: Remove `/mnt/ssd/docker-data/postgres` directory, recreate with `docker compose up -d postgres`
-- **Force recreate** all postgres-dependent services after password reset: authentik, n8n, miniflux, mealie, immich, grafana, etc.
+- **Force recreate** all postgres-dependent services after password reset: authentik, n8n, miniflux, immich, grafana, etc.
 
 ### Environment Setup
 1. Copy `.env.example` to `.env`

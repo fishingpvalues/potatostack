@@ -99,7 +99,6 @@ All services accessible via HTTPS using Tailscale certificates or Traefik revers
 | Karakeep | https://potatostack.tale-iwato.ts.net:9091 | https://karakeep.potatostack.tale-iwato.ts.net | Bookmarks |
 | Miniflux | https://potatostack.tale-iwato.ts.net:8093 | https://rss.potatostack.tale-iwato.ts.net | RSS Reader |
 | SearXNG | https://potatostack.tale-iwato.ts.net:8180 | https://search.potatostack.tale-iwato.ts.net | Metasearch Engine |
-| Mealie | https://potatostack.tale-iwato.ts.net:9925 | https://mealie.potatostack.tale-iwato.ts.net | Recipes |
 | Actual Budget | https://potatostack.tale-iwato.ts.net:5006 | https://budget.potatostack.tale-iwato.ts.net | Finance |
 
 ## Monitoring & Observability

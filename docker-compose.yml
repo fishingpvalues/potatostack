@@ -57,7 +57,7 @@ services:
       <<: *common-env
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-authentik,gitea,woodpecker,immich,calibre,karakeep,healthchecks,atuin,homarr,miniflux,grafana,mealie}
+      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-authentik,gitea,woodpecker,immich,calibre,karakeep,healthchecks,atuin,homarr,miniflux,grafana}
     entrypoint: sh /postgres-wrapper.sh
     command:
       - "postgres"
@@ -340,6 +340,11 @@ services:
       crowdsec-traefik-bouncer:
         condition: service_started
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:8080/ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     labels:
       - "potatostack.alerts=critical"
       - "traefik.enable=true"
@@ -922,14 +927,11 @@ services:
     image: filebrowser/filebrowser:${FILEBROWSER_TAG:-latest}
     container_name: filebrowser
     logging: *default-logging
-    user: "${PUID:-1000}:${PGID:-1000}"
-    entrypoint: sh /filebrowser-init.sh
     ports:
-      - "${HOST_BIND:-127.0.0.1}:8090:80"
+      - "${HOST_BIND:-127.0.0.1}:8086:80"
     environment:
       <<: *common-env
-      FILEBROWSER_USER: ${FILEBROWSER_USER:-admin}
-      FILEBROWSER_PASSWORD: ${FILEBROWSER_PASSWORD:-}
+    entrypoint: sh /filebrowser-init.sh
     volumes:
       - /mnt/storage:/srv/storage
       - /mnt/cachehdd:/srv/cachehdd
@@ -951,7 +953,7 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 128M
+          memory: 64M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.filebrowser.rule=Host(`filebrowser.${HOST_DOMAIN:-local.domain}`)"
@@ -1173,73 +1175,6 @@ services:
   ################################################################################
   # RECIPE MANAGEMENT
   ################################################################################
-
-  # Mealie - Recipe management and meal planning (SOTA 2025)
-  mealie:
-    image: ghcr.io/mealie-recipes/mealie:${MEALIE_TAG:-latest}
-    container_name: mealie
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-127.0.0.1}:9925:9000"
-    environment:
-      <<: *common-env
-      # Core settings
-      BASE_URL: https://mealie.${HOST_DOMAIN:-local.domain}
-      API_PORT: 9000
-      SECRET_KEY: ${MEALIE_SECRET_KEY}
-      ALLOW_SIGNUP: "false" # Use Authentik SSO instead
-      LOG_LEVEL: info
-      # PostgreSQL (your primary DB)
-      POSTGRES_SERVER: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: mealie
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      # Redis (your shared redis-cache)
-      REDIS_URL: redis://redis-cache:6379/10 # DB 10 - avoid conflicts
-      # Optional nice-to-haves
-      MEALIE_LOG_LEVEL: info
-      MEALIE_THEME: light # or system, dark
-      MEALIE_DEFAULT_GROUP: Home
-      MEALIE_DEFAULT_HOUSEHOLD: Main
-      # Disable built-in auth (Traefik + Authentik will handle it)
-      OIDC_ENABLED: "false"
-    volumes:
-      - /mnt/ssd/docker-data/mealie:/app/data
-    networks:
-      - potatostack
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis-cache:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          '/opt/mealie/bin/python -c "import urllib.request; urllib.request.urlopen(''http://127.0.0.1:9000/api/app/about'', timeout=5)"',
-        ]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 45s
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 512M
-        reservations:
-          cpus: "0.5"
-          memory: 256M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.mealie.rule=Host(`mealie.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.mealie.entrypoints=websecure"
-      - "traefik.http.routers.mealie.tls=true"
-      - "traefik.http.routers.mealie.middlewares=sso-chain@docker"
-      - "traefik.http.services.mealie.loadbalancer.server.port=9000"
-      - "wud.trigger.docker.update=true"
 
   ################################################################################
   # FINANCE
@@ -1474,20 +1409,20 @@ services:
     image: lscr.io/linuxserver/bazarr:${BAZARR_TAG:-latest}
     container_name: bazarr
     logging: *default-logging
-    network_mode: "service:gluetun"
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:6767:6767"
     environment:
       <<: *common-env
     volumes:
       - bazarr-config:/config
       - /mnt/storage/media/movies:/movies
       - /mnt/storage/media/tv:/tv
+    tmpfs:
+      - /tmp:exec,mode=1777,size=500m
+    networks:
+      - potatostack
     depends_on:
-      gluetun:
-        condition: service_healthy
-        restart: true
-      sonarr:
-        condition: service_started
-      radarr:
+      prowlarr:
         condition: service_started
       storage-init:
         condition: service_completed_successfully
@@ -1502,10 +1437,10 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 256M
+          memory: 384M
         reservations:
           cpus: "0.1"
-          memory: 128M
+          memory: 192M
     labels:
       - "autoheal=true"
 
@@ -1848,10 +1783,10 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 128M
+          memory: 256M
         reservations:
           cpus: "0.25"
-          memory: 128M
+          memory: 192M
     labels:
       - "autoheal=true"
 
@@ -2021,10 +1956,10 @@ services:
       resources:
         limits:
           cpus: "0.75"
-          memory: 256M
+          memory: 384M
         reservations:
           cpus: "0.25"
-          memory: 128M
+          memory: 192M
     labels:
       - "autoheal=true"
       - "potatostack.alerts=critical"
@@ -2675,7 +2610,7 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 128M
+          memory: 64M
 
   # Article Extractor - Headless Chromium + Bypass Paywalls Clean + trafilatura
   article-extractor:
@@ -2765,10 +2700,10 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 128M
+          memory: 64M
         reservations:
           cpus: "0.1"
-          memory: 64M
+          memory: 32M
     labels:
       - "autoheal=true"
       - "traefik.enable=true"
@@ -2845,7 +2780,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 512M
+          memory: 768M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.karakeep.rule=Host(`karakeep.${HOST_DOMAIN:-local.domain}`)"
@@ -3125,7 +3060,7 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 384M
+          memory: 256M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.gitea.rule=Host(`git.${HOST_DOMAIN:-local.domain}`)"
@@ -3434,7 +3369,7 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 768M
+          memory: 512M
         reservations:
           cpus: "0.25"
           memory: 256M
@@ -4089,7 +4024,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 256M
+          memory: 128M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.velld-api.rule=Host(`velld-api.${HOST_DOMAIN:-local.domain}`)"
@@ -4117,7 +4052,7 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 128M
+          memory: 64M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.velld.rule=Host(`velld.${HOST_DOMAIN:-local.domain}`)"

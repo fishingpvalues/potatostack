@@ -406,7 +406,6 @@ test_service_endpoints() {
 	grep -q "paperless-ngx" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Paperless-ngx" "http://localhost:8092"
 	grep -q "karakeep" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Karakeep" "http://localhost:9091"
 	grep -q "miniflux" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Miniflux" "http://localhost:8080"
-	grep -q "mealie" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Mealie" "http://localhost:9000"
 	grep -q "actual-budget" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Actual Budget" "http://localhost:5006"
 	grep -q "stirling-pdf" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Stirling PDF" "http://localhost:8080"
 	grep -q "it-tools" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "IT Tools" "http://localhost:8080"

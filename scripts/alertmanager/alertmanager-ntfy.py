@@ -115,17 +115,18 @@ class Handler(BaseHTTPRequestHandler):
         topic = _pick_topic(severity)
         tags = ",".join(filter(None, ["prometheus", severity, component, status]))
 
+        # Emojis cannot be in HTTP headers (latin-1 encoding limit), so put them in body
         severity_emoji = {"critical": "🚨", "warning": "⚠️", "info": "ℹ️"}.get(severity, "🔔")
         status_emoji = {"firing": "🔥", "resolved": "✅"}.get(status, "🔔")
 
-        title = f"{severity_emoji} PotatoStack - {status.upper()} - {alertname}"
+        title = f"PotatoStack - {status.upper()} - {alertname}"
         summary = common_annotations.get("summary", "")
         description = common_annotations.get("description", "")
 
-        lines = []
+        lines = [f"{severity_emoji} {status_emoji} {severity.upper()} - {status.upper()}"]
 
         if summary:
-            lines.append(f"*{summary}*")
+            lines.append(f"\n*{summary}*")
 
         if description:
             lines.append(f"\n{description}")
