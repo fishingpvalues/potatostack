@@ -54,6 +54,7 @@ All *arr services run behind Gluetun VPN (`network_mode: "service:gluetun"`).
 | Service | Port | Purpose |
 |---------|------|---------|
 | **Prowlarr** | 9696 | Indexer manager - configure once, syncs to all *arrs |
+| **FlareSolverr** | 8191 | Cloudflare bypass proxy for Prowlarr |
 
 ### Media Managers (*arr apps)
 
@@ -95,6 +96,36 @@ All *arr services run behind Gluetun VPN (`network_mode: "service:gluetun"`).
    - Lidarr: `http://127.0.0.1:8686`
    - Bookshelf: `http://127.0.0.1:8787`
 4. Get API keys from each app's Settings > General
+
+### 1b. Configure FlareSolverr (for Cloudflare-protected indexers)
+
+Many indexers like 1337x use Cloudflare protection. FlareSolverr runs a headless browser to solve these challenges.
+
+**Setup in Prowlarr:**
+
+1. Go to **Settings → Indexers**
+2. Click **+** under "Indexer Proxies" (not regular indexers)
+3. Select **FlareSolverr**
+4. Configure:
+   ```
+   Name: FlareSolverr
+   Tags: flaresolverr
+   Host: http://127.0.0.1:8191
+   Request Timeout: 60
+   ```
+5. Click **Test** then **Save**
+
+**Using FlareSolverr with indexers:**
+
+When adding Cloudflare-protected indexers (1337x, etc):
+1. Add the indexer normally
+2. In the indexer settings, add the `flaresolverr` tag
+3. Save - requests will now route through FlareSolverr
+
+**Notes:**
+- First request to each site may take 10-30 seconds (solving challenge)
+- FlareSolverr uses ~256-512MB RAM (headless Chrome)
+- Both Prowlarr and FlareSolverr run behind Gluetun VPN
 
 ### 2. Configure Download Clients (in each *arr app)
 
@@ -182,6 +213,7 @@ All VPN services communicate via `127.0.0.1` (same gluetun network namespace):
 | Sonarr | rdt-client | `127.0.0.1:6500` |
 | Sonarr | qBittorrent | `127.0.0.1:8282` |
 | Prowlarr | Sonarr | `127.0.0.1:8989` |
+| Prowlarr | FlareSolverr | `127.0.0.1:8191` |
 
 Services outside VPN reach *arrs via gluetun container:
 

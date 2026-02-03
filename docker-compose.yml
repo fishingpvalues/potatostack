@@ -585,6 +585,7 @@ services:
       - "${HOST_BIND:-127.0.0.1}:9666:9666" # pyLoad Click'n'Load
       - "${HOST_BIND:-127.0.0.1}:9900:9900" # Stash
       - "${HOST_BIND:-127.0.0.1}:6500:6500" # rdt-client WebUI
+      - "${HOST_BIND:-127.0.0.1}:8191:8191" # FlareSolverr
     environment:
       <<: *common-env
       VPN_SERVICE_PROVIDER: ${VPN_PROVIDER:-surfshark}
@@ -781,8 +782,8 @@ services:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
       # All service ports to expose via HTTPS
-      # WUD (3000), home-assistant (8123) added; removed stale ports (8945,8080,51515,5678,3007,9000,9443,8288,8091)
-      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,9091,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,8085,9925,5984,9898,8123"
+      # WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed stale ports (8945,8080,51515,5678,3007,9000,9443,8288,8091)
+      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,9091,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,8085,9925,5984,9898,8123,8191,6500"
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_MARKER_FILE: /https-marker/setup-complete
@@ -810,8 +811,8 @@ services:
     environment:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
-      # WUD (3000), home-assistant (8123) added; removed stale ports (8945,8080,51515,5678,3007,9000,9443,8288,8091)
-      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,9091,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,8085,9925,5984,9898,8123"
+      # WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed stale ports (8945,8080,51515,5678,3007,9000,9443,8288,8091)
+      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,9091,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,8085,9925,5984,9898,8123,8191,6500"
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_SERVE_LOOP: "true"
@@ -1253,6 +1254,39 @@ services:
         reservations:
           cpus: "0.1"
           memory: 128M
+    labels:
+      - "autoheal=true"
+
+  # FlareSolverr - Cloudflare bypass for Prowlarr
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:${FLARESOLVERR_TAG:-latest}
+    container_name: flaresolverr
+    logging: *default-logging
+    network_mode: "service:gluetun"
+    environment:
+      <<: *common-env
+      LOG_LEVEL: info
+      LOG_HTML: "false"
+      CAPTCHA_SOLVER: none
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8191/health || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
     labels:
       - "autoheal=true"
 

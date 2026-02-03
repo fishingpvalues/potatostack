@@ -48,6 +48,8 @@ make format        # Format all files (shfmt, prettier)
 - Tailscale serve proxies localhost ports via HTTPS to `potatostack.tale-iwato.ts.net:<port>`
 - Access pattern: `https://potatostack.tale-iwato.ts.net:8093` (miniflux example)
 - DO NOT set `HOST_BIND=0.0.0.0` - conflicts with Tailscale serve bindings
+- **Tailscale runs as a container** - use `docker exec tailscale tailscale <command>` for CLI operations
+- Add new ports to `TAILSCALE_SERVE_PORTS` in docker-compose.yml (both tailscale-https-init and tailscale-https-monitor)
 
 ## Code Style
 
