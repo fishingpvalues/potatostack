@@ -16,6 +16,9 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 LOG_FILE="/mnt/storage/downloads/telegram/tdl-download.log"
 PID_FILE="/tmp/tdl-manager.pid"
 TMUX_SESSION="tdl-download"
+MAX_RETRIES=0  # 0 = infinite retries
+RETRY_DELAY=30 # seconds between retries
+ERROR_PATTERNS="error|failed|timeout|connection reset|EOF|panic|fatal"
 
 log() { echo -e "${BLUE}[$(date '+%H:%M:%S')]${NC} $1"; }
 error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
@@ -102,26 +105,67 @@ cmd_start() {
 		tmux kill-session -t "$TMUX_SESSION" 2>/dev/null || true
 	fi
 
-	# Build download command with resume support
-	local download_cmd="mkdir -p /downloads/.skip-index && \
-echo \"[\\$(date)] === TDL Download Started ===\" && \
-echo \"[\\$(date)] Resuming from previous state (skip-same enabled)\" && \
-tdl download \
-  -f /downloads/saved-messages-all.json \
-  -d /downloads/.skip-index \
-  -i mp4,mkv,avi,mov,wmv,webm \
-  --skip-same \
-  --continue \
-  -l 2 \
-  --template \"{{ .MessageID }}_{{ .FileName }}\" \
-  2>&1 && \
-echo \"[\\$(date)] Moving completed files...\" && \
-find /downloads/.skip-index -maxdepth 1 -type f -exec mv {} /adult-telegram/ \\; && \
-rm -rf /downloads/.skip-index && \
-echo \"[\\$(date)] === Download Session Complete ===\""
+	# Build download command with auto-restart on error
+	local download_cmd='
+retry_count=0
+max_retries='"$MAX_RETRIES"'
+retry_delay='"$RETRY_DELAY"'
+
+while true; do
+  mkdir -p /downloads/.skip-index
+  echo "[$(date)] === TDL Download Started (attempt $((retry_count + 1))) ==="
+  echo "[$(date)] Resuming from previous state (skip-same enabled)"
+
+  # Run download and capture exit code
+  set +e
+  tdl download \
+    -f /downloads/saved-messages-all.json \
+    -d /downloads/.skip-index \
+    -i mp4,mkv,avi,mov,wmv,webm \
+    --skip-same \
+    --continue \
+    -l 2 \
+    --template "{{ .MessageID }}_{{ .FileName }}" \
+    2>&1
+  exit_code=$?
+  set -e
+
+  if [ $exit_code -eq 0 ]; then
+    echo "[$(date)] Download completed successfully"
+    echo "[$(date)] Moving completed files..."
+    find /downloads/.skip-index -maxdepth 1 -type f -exec mv {} /adult-telegram/ \;
+    rm -rf /downloads/.skip-index
+    echo "[$(date)] === Download Session Complete ==="
+    break
+  else
+    retry_count=$((retry_count + 1))
+    echo "[$(date)] ERROR: Download failed with exit code $exit_code"
+
+    # Check max retries (0 = infinite)
+    if [ $max_retries -gt 0 ] && [ $retry_count -ge $max_retries ]; then
+      echo "[$(date)] Max retries ($max_retries) reached. Giving up."
+      exit 1
+    fi
+
+    echo "[$(date)] Waiting ${retry_delay}s before retry $retry_count..."
+    sleep $retry_delay
+
+    # Exponential backoff capped at 5 minutes
+    retry_delay=$((retry_delay * 2))
+    if [ $retry_delay -gt 300 ]; then
+      retry_delay=300
+    fi
+  fi
+done
+'
+
+	# Write download script to temp file and execute in tmux
+	local script_file="/tmp/tdl-download-script.sh"
+	echo "$download_cmd" >"$script_file"
+	chmod +x "$script_file"
 
 	# Start in tmux
-	tmux new-session -d -s "$TMUX_SESSION" "docker exec tdl sh -c '$download_cmd' 2>&1 | tee -a $LOG_FILE"
+	tmux new-session -d -s "$TMUX_SESSION" "cat $script_file | docker exec -i tdl sh 2>&1 | tee -a $LOG_FILE"
 
 	sleep 2
 
@@ -221,6 +265,56 @@ cmd_attach() {
 	fi
 }
 
+# Monitor and auto-restart if process dies
+cmd_monitor() {
+	log "Starting TDL monitor (Ctrl+C to stop)..."
+	info "Will auto-restart if download process dies unexpectedly"
+
+	local check_interval=60
+	local consecutive_failures=0
+
+	# Ensure download is started
+	if ! check_download_running; then
+		log "Download not running, starting it..."
+		cmd_start
+	fi
+
+	while true; do
+		sleep "$check_interval"
+
+		if ! check_download_running; then
+			consecutive_failures=$((consecutive_failures + 1))
+			warning "Download not running (check #$consecutive_failures)"
+
+			# Check if tmux session still exists (intentional stop vs crash)
+			if ! check_tmux_session; then
+				log "Tmux session gone - likely intentional stop. Exiting monitor."
+				break
+			fi
+
+			# Check last log line for completion message
+			if tail -5 "$LOG_FILE" 2>/dev/null | grep -q "Download Session Complete"; then
+				success "Download completed successfully. Exiting monitor."
+				break
+			fi
+
+			# Auto-restart
+			log "Auto-restarting download..."
+			cmd_start
+
+			# Reset failure count on successful restart
+			if check_download_running; then
+				consecutive_failures=0
+			fi
+		else
+			if [ "$consecutive_failures" -gt 0 ]; then
+				success "Download recovered and running"
+				consecutive_failures=0
+			fi
+		fi
+	done
+}
+
 # Show status
 cmd_status() {
 	echo -e "${CYAN}=== TDL Download Status ===${NC}"
@@ -238,12 +332,17 @@ cmd_status() {
 	get_stats
 
 	echo ""
+	local retry_display="infinite"
+	[ "$MAX_RETRIES" -gt 0 ] && retry_display="$MAX_RETRIES"
+	info "Auto-restart: Enabled (retries: $retry_display, delay: ${RETRY_DELAY}s)"
+	echo ""
 	info "Quick Commands:"
-	echo "  start   - Start/resume download"
+	echo "  start   - Start/resume download (auto-restarts on errors)"
 	echo "  stop    - Stop download gracefully"
 	echo "  fix     - Hard reset (kill all, restart fresh)"
 	echo "  attach  - Watch live in tmux"
 	echo "  logs    - View recent logs"
+	echo "  monitor - Background watchdog (auto-restart if dies)"
 	echo "  status  - This screen"
 }
 
@@ -267,16 +366,20 @@ logs | log)
 attach | watch)
 	cmd_attach
 	;;
+monitor)
+	cmd_monitor
+	;;
 *)
-	echo "Usage: $0 [start|stop|fix|status|logs|attach]"
+	echo "Usage: $0 [start|stop|fix|status|logs|attach|monitor]"
 	echo ""
 	echo "Commands:"
-	echo "  start   - Start or resume download (safe to run multiple times)"
+	echo "  start   - Start or resume download (auto-restarts on errors)"
 	echo "  stop    - Stop download gracefully"
 	echo "  fix     - Full reset: kill everything, recreate container, start fresh"
 	echo "  status  - Show current status"
 	echo "  logs    - View recent log output"
 	echo "  attach  - Attach to live tmux session"
+	echo "  monitor - Watch and auto-restart if process dies"
 	echo ""
 	cmd_status
 	;;

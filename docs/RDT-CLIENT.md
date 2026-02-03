@@ -31,11 +31,16 @@ rdt-client natively supports TorBox as a provider — no fork or extra image nee
 
 1. Get your TorBox API key from https://torbox.app/settings
 
-2. In rdt-client WebUI:
+2. Add to `.env`:
+   ```
+   TORBOX_API_KEY=your_key_here
+   ```
+
+3. In rdt-client WebUI:
    - **Settings > Provider**: Select **TorBox**, paste API key
    - **Settings > General > Timeout**: Set to **30 seconds** or higher (TorBox needs more time)
 
-3. In your TorBox account settings (https://torbox.app/settings):
+4. In your TorBox account settings (https://torbox.app/settings):
    - Enable **WebDAV flatten** — required for rdt-client compatibility
 
 Everything else (Sonarr/Radarr setup, paths, notifications) stays the same.
