@@ -25,6 +25,13 @@ log = logging.getLogger("news-pipeline")
 EXTRACTOR_URL = os.environ.get("EXTRACTOR_URL", "http://article-extractor:8084")
 INTERVAL = int(os.environ.get("INTERVAL_SECONDS", "900"))
 
+# Miniflux DB purge settings
+MINIFLUX_DB_URL = os.environ.get("MINIFLUX_DB_URL", "")
+PURGE_READ_DAYS = int(os.environ.get("PURGE_READ_DAYS", "7"))
+PURGE_UNREAD_DAYS = int(os.environ.get("PURGE_UNREAD_DAYS", "30"))
+PURGE_INTERVAL_HOURS = int(os.environ.get("PURGE_INTERVAL_HOURS", "6"))
+_last_purge: float = 0
+
 # RSS feeds to fetch directly
 # extract=True means try full-text extraction via article-extractor
 # extract=False means use RSS description as-is (for hard paywalls where extraction always fails)
@@ -421,6 +428,77 @@ def seed_existing():
 
 
 # ---------------------------------------------------------------------------
+# Miniflux DB purge
+# ---------------------------------------------------------------------------
+
+
+def parse_db_url(url):
+    """Parse postgres://user:pass@host:port/db URL."""
+    import re
+    m = re.match(r"postgres://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)", url)
+    if not m:
+        return None
+    return {
+        "user": m.group(1),
+        "password": m.group(2),
+        "host": m.group(3),
+        "port": int(m.group(4)),
+        "database": m.group(5),
+    }
+
+
+def purge_miniflux_entries():
+    """Delete old entries from Miniflux database."""
+    global _last_purge
+
+    if not MINIFLUX_DB_URL:
+        return
+
+    # Check if purge interval has passed
+    now = time.time()
+    if now - _last_purge < PURGE_INTERVAL_HOURS * 3600:
+        return
+
+    _last_purge = now
+
+    try:
+        import pg8000.native
+    except ImportError:
+        log.warning("pg8000 not installed, skipping purge")
+        return
+
+    db_config = parse_db_url(MINIFLUX_DB_URL)
+    if not db_config:
+        log.error("Invalid MINIFLUX_DB_URL format")
+        return
+
+    try:
+        conn = pg8000.native.Connection(
+            user=db_config["user"],
+            password=db_config["password"],
+            host=db_config["host"],
+            port=db_config["port"],
+            database=db_config["database"],
+        )
+
+        # Delete old read entries
+        read_deleted = conn.run(
+            f"DELETE FROM entries WHERE published_at < NOW() - INTERVAL '{PURGE_READ_DAYS} days' AND status = 'read'"
+        )
+
+        # Delete old unread entries
+        unread_deleted = conn.run(
+            f"DELETE FROM entries WHERE published_at < NOW() - INTERVAL '{PURGE_UNREAD_DAYS} days'"
+        )
+
+        conn.close()
+        log.info("Purged Miniflux: read (>%dd), unread (>%dd)", PURGE_READ_DAYS, PURGE_UNREAD_DAYS)
+
+    except Exception as exc:
+        log.error("Miniflux purge failed: %s", exc)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -451,6 +529,11 @@ def main():
             process_nw_articles()
         except Exception:
             log.exception("Error in NW.de processing")
+
+        try:
+            purge_miniflux_entries()
+        except Exception:
+            log.exception("Error in Miniflux purge")
 
         # Trim seen set
         if len(_seen_urls) > _SEEN_MAX:

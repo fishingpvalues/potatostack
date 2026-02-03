@@ -119,6 +119,7 @@ mkdir -p \
 	"${STORAGE_BASE}/obsidian-couchdb" \
 	"${STORAGE_BASE}/mealie-data" \
 	"${STORAGE_BASE}/downloads/torrent" \
+	"${STORAGE_BASE}/downloads/incomplete" \
 	"${STORAGE_BASE}/downloads/pyload" \
 	"${STORAGE_BASE}/velld/backups" \
 	"${STORAGE_BASE}/rustypaste/uploads" \
@@ -190,9 +191,8 @@ mkdir -p \
 ################################################################################
 printf '%s\n' "Creating cache directories with normalized namespace..."
 
-# Downloads - incomplete/in-progress
+# Downloads - incomplete/in-progress (qbittorrent moved to storage)
 mkdir -p \
-	"${CACHE_BASE}/downloads/torrent" \
 	"${CACHE_BASE}/downloads/pyload" \
 	"${CACHE_BASE}/downloads/slskd"
 # "${CACHE_BASE}/downloads/pinchflat"
@@ -351,8 +351,8 @@ printf '%s\n' "Setting ownership to ${PUID}:${PGID}..."
 printf '%s\n' "Configuring Home Assistant http settings..."
 HA_CONFIG="${SSD_BASE}/home-assistant/configuration.yaml"
 if [ -f "$HA_CONFIG" ]; then
-  if ! grep -q "^http:" "$HA_CONFIG"; then
-    cat >>"$HA_CONFIG" <<HAEOF
+	if ! grep -q "^http:" "$HA_CONFIG"; then
+		cat >>"$HA_CONFIG" <<HAEOF
 
 http:
   use_x_forwarded_for: true
@@ -361,10 +361,10 @@ http:
     - 100.64.0.0/10
   server_host: 127.0.0.1
 HAEOF
-    printf '%s\n' "✓ Home Assistant http config added"
-  else
-    printf '%s\n' "✓ Home Assistant http config already exists"
-  fi
+		printf '%s\n' "✓ Home Assistant http config added"
+	else
+		printf '%s\n' "✓ Home Assistant http config already exists"
+	fi
 fi
 
 # Exclude docker directory (overlay2 data) from recursive operations

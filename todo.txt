@@ -17,3 +17,5 @@
   - Log: /mnt/storage/downloads/telegram/cron.log     
 
   Ich habe einen Stack mit fritzbox 14TB externer hjdd 256gb externer hdd und mini pc in einem ikea korb liegen auf der fensterbank die festpolatten können entweder stehen oder einfach lose hängen und die fritzbox auch liegen oder hängen wie kann ich mir am besten ein gerüst oder rack dafür kaufen welches uach erweiterbar ist und mich in die Zukunft begleitet? vielleicht auch noch mehr hdds und gutes cooling ajktuell ist winter aber der Korb wird schon sehr warm wie kann ich auf der Fensterbank ein Rack erstellen welches diese komponenten aufnehmen können und welche auch platz für Kabelmanagement netzteil Mehrfachsteckdose und werweiterbare Scahen hat. wahrscheinlich kaufe ich noch eine externe Festplatte nach die auch im Gehäuse stehend ist
+- check homeassisganz for logs and how to fix 
+

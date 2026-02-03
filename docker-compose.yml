@@ -1104,6 +1104,9 @@ services:
       WORKER_POOL_SIZE: 5
       METRICS_COLLECTOR: "1"
       METRICS_ALLOWED_NETWORKS: 172.22.0.0/16
+      CLEANUP_FREQUENCY_HOURS: "1"
+      CLEANUP_ARCHIVE_READ_DAYS: "7"
+      CLEANUP_ARCHIVE_UNREAD_DAYS: "30"
     networks:
       - potatostack
     depends_on:
@@ -1825,7 +1828,7 @@ services:
     volumes:
       - qbittorrent-config:/config
       - /mnt/storage/downloads:/downloads
-      - /mnt/cachehdd/downloads/torrent:/incomplete
+      - /mnt/storage/downloads/incomplete:/incomplete
       - ./scripts/init/qbittorrent-init.sh:/custom-cont-init.d/99-qb-init.sh:ro
       - ./scripts/hooks/qbittorrent-post-torrent.sh:/hooks/post-torrent.sh:ro
     depends_on:
@@ -2653,10 +2656,14 @@ services:
     image: python:3.12-alpine
     container_name: news-pipeline
     logging: *default-logging
-    command: ["python", "/app/news-pipeline.py"]
+    command: ["sh", "-c", "pip install -q pg8000 && python /app/news-pipeline.py"]
     environment:
       <<: *common-env
       INTERVAL_SECONDS: ${INTERVAL_SECONDS:-900}
+      MINIFLUX_DB_URL: postgres://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/miniflux
+      PURGE_READ_DAYS: "7"
+      PURGE_UNREAD_DAYS: "30"
+      PURGE_INTERVAL_HOURS: "6"
     volumes:
       - ./scripts/webhooks/news-pipeline.py:/app/news-pipeline.py:ro
     networks:
