@@ -249,13 +249,26 @@ recreate_containers() {
 	# Try multiple approaches in order of reliability
 	local success=false
 
-	# Approach 1: Try docker compose from /home/daniel/potatostack
-	if [ "$success" = "false" ] && [ -d /home/daniel/potatostack ] && [ -f /home/daniel/potatostack/docker-compose.yml ]; then
-		echo "[$(date +'%Y-%m-%d %H:%M:%S')]   Trying docker compose from /home/daniel/potatostack..."
-		# Use -f flag to specify compose file, don't cd
+	# Approach 1: Try docker compose from /compose (with explicit project name)
+	if [ -d /compose ] && [ -f /compose/docker-compose.yml ]; then
+		echo "[$(date +'%Y-%m-%d %H:%M:%S')]   Trying docker compose from /compose..."
 		# shellcheck disable=SC2086
 		local compose_output
-		if compose_output=$(docker compose -f "/home/daniel/potatostack/docker-compose.yml" up -d --force-recreate $RESTART_CONTAINERS 2>&1); then
+		# Use -p potatostack to ensure correct network name (potatostack_potatostack)
+		if compose_output=$(docker compose -p potatostack -f /compose/docker-compose.yml up -d --force-recreate $RESTART_CONTAINERS 2>&1); then
+			echo "$compose_output" | sed "s/^/    /"
+			success=true
+		else
+			echo "$compose_output" | sed "s/^/    /"
+		fi
+	fi
+
+	# Approach 2: Try docker compose from /home/daniel/potatostack (fallback)
+	if [ "$success" = "false" ] && [ -d /home/daniel/potatostack ] && [ -f /home/daniel/potatostack/docker-compose.yml ]; then
+		echo "[$(date +'%Y-%m-%d %H:%M:%S')]   Trying docker compose from /home/daniel/potatostack..."
+		# shellcheck disable=SC2086
+		local compose_output
+		if compose_output=$(docker compose -p potatostack -f "/home/daniel/potatostack/docker-compose.yml" up -d --force-recreate $RESTART_CONTAINERS 2>&1); then
 			echo "$compose_output" | sed "s/^/    /"
 			success=true
 		else
