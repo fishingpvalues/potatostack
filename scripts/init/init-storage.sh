@@ -5,9 +5,12 @@
 # Runs once at startup via storage-init container
 #
 # Structure (2025 consolidated):
-# - /mnt/storage: Main HDD - media, downloads, syncthing, obsidian
-# - /mnt/cachehdd: Cache HDD - organized by function (downloads, media, observability, sync, system)
+# - /mnt/storage: Main HDD - media, downloads (complete + incomplete), syncthing, obsidian
+# - /mnt/cachehdd: Cache HDD - organized by function (media caches, observability, sync, system)
 # - /mnt/ssd/docker-data: SSD - databases and app configs
+#
+# Note: All incomplete downloads moved from cachehdd to storagehdd:
+#   /mnt/storage/downloads/incomplete/{sonarr,radarr,lidarr,bookshelf,qbittorrent,sabnzbd,aria2,slskd,pyload}
 ################################################################################
 
 set -eu
@@ -35,31 +38,73 @@ if [ -d "${STORAGE_BASE}/duckdb" ]; then
 	rm -rf "${STORAGE_BASE}/duckdb"
 fi
 
-# Migrate old incomplete dirs to new cache structure
-if [ -d "${CACHE_BASE}/qbittorrent-incomplete" ] && [ ! -d "${CACHE_BASE}/downloads/torrent" ]; then
-	printf '%s\n' "Migrating qbittorrent-incomplete to new cache structure..."
-	mkdir -p "${CACHE_BASE}/downloads/torrent"
-	if [ "$(ls -A "${CACHE_BASE}/qbittorrent-incomplete" 2>/dev/null)" ]; then
-		mv "${CACHE_BASE}/qbittorrent-incomplete"/* "${CACHE_BASE}/downloads/torrent/" 2>/dev/null || true
+# Migrate incomplete dirs from cachehdd to storagehdd (service-specific subdirs)
+printf '%s\n' "Migrating incomplete download directories from cachehdd to storagehdd..."
+
+# Migrate torrent downloads to service-specific directories
+if [ -d "${CACHE_BASE}/downloads/torrent" ]; then
+	printf '%s\n' "Migrating torrent downloads to service-specific storage directories..."
+	# Migrate to sonarr
+	mkdir -p "${STORAGE_BASE}/downloads/incomplete/sonarr"
+	if [ "$(ls -A "${CACHE_BASE}/downloads/torrent" 2>/dev/null)" ]; then
+		mv "${CACHE_BASE}/downloads/torrent"/* "${STORAGE_BASE}/downloads/incomplete/sonarr/" 2>/dev/null || true
 	fi
+	rm -rf "${CACHE_BASE}/downloads/torrent"
+fi
+
+# Migrate aria2 incomplete
+if [ -d "${CACHE_BASE}/downloads/aria2" ]; then
+	printf '%s\n' "Migrating aria2 incomplete downloads to storage..."
+	mkdir -p "${STORAGE_BASE}/downloads/incomplete/aria2"
+	if [ "$(ls -A "${CACHE_BASE}/downloads/aria2" 2>/dev/null)" ]; then
+		mv "${CACHE_BASE}/downloads/aria2"/* "${STORAGE_BASE}/downloads/incomplete/aria2/" 2>/dev/null || true
+	fi
+	rm -rf "${CACHE_BASE}/downloads/aria2"
+fi
+
+# Migrate slskd incomplete
+if [ -d "${CACHE_BASE}/downloads/slskd" ]; then
+	printf '%s\n' "Migrating slskd incomplete downloads to storage..."
+	mkdir -p "${STORAGE_BASE}/downloads/incomplete/slskd"
+	if [ "$(ls -A "${CACHE_BASE}/downloads/slskd" 2>/dev/null)" ]; then
+		mv "${CACHE_BASE}/downloads/slskd"/* "${STORAGE_BASE}/downloads/incomplete/slskd/" 2>/dev/null || true
+	fi
+	rm -rf "${CACHE_BASE}/downloads/slskd"
+fi
+
+# Migrate usenet incomplete
+if [ -d "${CACHE_BASE}/downloads/usenet" ]; then
+	printf '%s\n' "Migrating usenet incomplete downloads to storage..."
+	mkdir -p "${STORAGE_BASE}/downloads/incomplete/sabnzbd"
+	if [ "$(ls -A "${CACHE_BASE}/downloads/usenet" 2>/dev/null)" ]; then
+		mv "${CACHE_BASE}/downloads/usenet"/* "${STORAGE_BASE}/downloads/incomplete/sabnzbd/" 2>/dev/null || true
+	fi
+	rm -rf "${CACHE_BASE}/downloads/usenet"
+fi
+
+# Migrate pyload incomplete
+if [ -d "${CACHE_BASE}/downloads/pyload" ]; then
+	printf '%s\n' "Migrating pyload incomplete downloads to storage..."
+	mkdir -p "${STORAGE_BASE}/downloads/incomplete/pyload"
+	if [ "$(ls -A "${CACHE_BASE}/downloads/pyload" 2>/dev/null)" ]; then
+		mv "${CACHE_BASE}/downloads/pyload"/* "${STORAGE_BASE}/downloads/incomplete/pyload/" 2>/dev/null || true
+	fi
+	rm -rf "${CACHE_BASE}/downloads/pyload"
+fi
+
+# Clean up old legacy directories if they still exist
+if [ -d "${CACHE_BASE}/qbittorrent-incomplete" ]; then
+	printf '%s\n' "Removing legacy qbittorrent-incomplete directory..."
 	rm -rf "${CACHE_BASE}/qbittorrent-incomplete"
 fi
 
-if [ -d "${CACHE_BASE}/aria2-incomplete" ] && [ ! -d "${CACHE_BASE}/downloads/aria2" ]; then
-	printf '%s\n' "Migrating aria2-incomplete to new cache structure..."
-	mkdir -p "${CACHE_BASE}/downloads/aria2"
-	if [ "$(ls -A "${CACHE_BASE}/aria2-incomplete" 2>/dev/null)" ]; then
-		mv "${CACHE_BASE}/aria2-incomplete"/* "${CACHE_BASE}/downloads/aria2/" 2>/dev/null || true
-	fi
+if [ -d "${CACHE_BASE}/aria2-incomplete" ]; then
+	printf '%s\n' "Removing legacy aria2-incomplete directory..."
 	rm -rf "${CACHE_BASE}/aria2-incomplete"
 fi
 
-if [ -d "${CACHE_BASE}/slskd-incomplete" ] && [ ! -d "${CACHE_BASE}/downloads/slskd" ]; then
-	printf '%s\n' "Migrating slskd-incomplete to new cache structure..."
-	mkdir -p "${CACHE_BASE}/downloads/slskd"
-	if [ "$(ls -A "${CACHE_BASE}/slskd-incomplete" 2>/dev/null)" ]; then
-		mv "${CACHE_BASE}/slskd-incomplete"/* "${CACHE_BASE}/downloads/slskd/" 2>/dev/null || true
-	fi
+if [ -d "${CACHE_BASE}/slskd-incomplete" ]; then
+	printf '%s\n' "Removing legacy slskd-incomplete directory..."
 	rm -rf "${CACHE_BASE}/slskd-incomplete"
 fi
 
@@ -127,6 +172,21 @@ mkdir -p \
 	"${STORAGE_BASE}/photos" \
 	"${STORAGE_BASE}/backrest/repos"
 
+################################################################################
+# Service-Specific Incomplete Download Directories (moved from cachehdd)
+################################################################################
+printf '%s\n' "Creating service-specific incomplete download directories..."
+mkdir -p \
+	"${STORAGE_BASE}/downloads/incomplete/sonarr" \
+	"${STORAGE_BASE}/downloads/incomplete/radarr" \
+	"${STORAGE_BASE}/downloads/incomplete/lidarr" \
+	"${STORAGE_BASE}/downloads/incomplete/bookshelf" \
+	"${STORAGE_BASE}/downloads/incomplete/qbittorrent" \
+	"${STORAGE_BASE}/downloads/incomplete/sabnzbd" \
+	"${STORAGE_BASE}/downloads/incomplete/aria2" \
+	"${STORAGE_BASE}/downloads/incomplete/slskd" \
+	"${STORAGE_BASE}/downloads/incomplete/pyload"
+
 # Create Immich required directories and markers
 mkdir -p "${STORAGE_BASE}/photos/encoded-video"
 mkdir -p "${STORAGE_BASE}/photos/library"
@@ -190,11 +250,8 @@ mkdir -p \
 ################################################################################
 printf '%s\n' "Creating cache directories with normalized namespace..."
 
-# Downloads - incomplete/in-progress (qbittorrent moved to storage)
-mkdir -p \
-	"${CACHE_BASE}/downloads/pyload" \
-	"${CACHE_BASE}/downloads/slskd"
-# "${CACHE_BASE}/downloads/pinchflat"
+# Note: All incomplete downloads moved to storagehdd: /mnt/storage/downloads/incomplete/<service>
+# Downloads cache directories removed - now handled in storage section
 
 # Media caches
 mkdir -p \

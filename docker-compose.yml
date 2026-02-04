@@ -1309,7 +1309,7 @@ services:
       - sonarr-config:/config
       - /mnt/storage/media/tv:/tv
       - /mnt/storage/downloads:/downloads
-      - /mnt/cachehdd/downloads/torrent:/downloads/incomplete
+      - /mnt/storage/downloads/incomplete/sonarr:/downloads/incomplete
     depends_on:
       gluetun:
         condition: service_healthy
@@ -1346,7 +1346,7 @@ services:
       - radarr-config:/config
       - /mnt/storage/media/movies:/movies
       - /mnt/storage/downloads:/downloads
-      - /mnt/cachehdd/downloads/torrent:/downloads/incomplete
+      - /mnt/storage/downloads/incomplete/radarr:/downloads/incomplete
     depends_on:
       gluetun:
         condition: service_healthy
@@ -1383,7 +1383,7 @@ services:
       - lidarr-config:/config
       - /mnt/storage/media/music:/music
       - /mnt/storage/downloads:/downloads
-      - /mnt/cachehdd/downloads/torrent:/downloads/incomplete
+      - /mnt/storage/downloads/incomplete/lidarr:/downloads/incomplete
     depends_on:
       gluetun:
         condition: service_healthy
@@ -1420,7 +1420,7 @@ services:
       - bookshelf-config:/config
       - /mnt/storage/media/books:/books
       - /mnt/storage/downloads:/downloads
-      - /mnt/cachehdd/downloads/torrent:/downloads/incomplete
+      - /mnt/storage/downloads/incomplete/bookshelf:/downloads/incomplete
     depends_on:
       gluetun:
         condition: service_healthy
@@ -2099,7 +2099,7 @@ services:
     volumes:
       - qbittorrent-config:/config
       - /mnt/storage/downloads:/downloads
-      - /mnt/storage/downloads/incomplete:/incomplete
+      - /mnt/storage/downloads/incomplete/qbittorrent:/incomplete
       - ./scripts/init/qbittorrent-init.sh:/custom-cont-init.d/99-qb-init.sh:ro
       - ./scripts/hooks/qbittorrent-post-torrent.sh:/hooks/post-torrent.sh:ro
     depends_on:
@@ -2137,7 +2137,7 @@ services:
     volumes:
       - sabnzbd-config:/config
       - /mnt/storage/downloads:/downloads
-      - /mnt/cachehdd/downloads/usenet:/incomplete-downloads
+      - /mnt/storage/downloads/incomplete/sabnzbd:/incomplete-downloads
     depends_on:
       gluetun:
         condition: service_healthy
@@ -2219,7 +2219,7 @@ services:
     volumes:
       - aria2-config:/config
       - /mnt/storage/downloads/aria2:/downloads
-      - /mnt/cachehdd/downloads/aria2:/incomplete
+      - /mnt/storage/downloads/incomplete/aria2:/incomplete
       - ./scripts/init/aria2-init.sh:/aria2-init.sh:ro
       - shared-keys:/keys:ro
     depends_on:
@@ -2302,7 +2302,7 @@ services:
       - slskd-config:/app
       - /mnt/cachehdd/slskd/logs:/app/logs
       - /mnt/storage/downloads/slskd:/var/slskd/downloads
-      - /mnt/cachehdd/downloads/slskd:/var/slskd/incomplete
+      - /mnt/storage/downloads/incomplete/slskd:/var/slskd/incomplete
       - /mnt/storage/slskd-shared:/var/slskd/shared
       - shared-keys:/keys:ro
       - ./scripts/init/slskd-init.sh:/init.sh:ro
@@ -2381,7 +2381,7 @@ services:
     volumes:
       - pyload-config:/config
       - /mnt/storage/downloads/pyload:/downloads
-      - /mnt/cachehdd/downloads/pyload:/incomplete
+      - /mnt/storage/downloads/incomplete/pyload:/incomplete
       - ./scripts/init/pyload-init.sh:/pyload-init.sh:ro
     depends_on:
       gluetun:
