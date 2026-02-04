@@ -138,9 +138,9 @@ cleanup_orphan_containers() {
 
 	# 3. Containers exited for more than 24 hours (excluding intentionally stopped ones)
 	local old_exited
-	old_exited=$(docker ps -a --filter "status=exited" --format '{{.Names}} {{.Status}}' | \
-		awk '$NF ~ /days|weeks|months/ || ($NF ~ /hours/ && $(NF-1) >= 24) {print $1}' | \
-		grep -v -E '^(postgres|redis|mongodb)$' || true)  # Exclude db containers that may be intentionally stopped
+	old_exited=$(docker ps -a --filter "status=exited" --format '{{.Names}} {{.Status}}' |
+		awk '$NF ~ /days|weeks|months/ || ($NF ~ /hours/ && $(NF-1) >= 24) {print $1}' |
+		grep -v -E '^(postgres|redis|mongodb)$' || true) # Exclude db containers that may be intentionally stopped
 	if [ -n "$old_exited" ]; then
 		orphans=$(printf "%s\n%s" "$orphans" "$old_exited" | grep -v '^$' | sort -u)
 	fi
@@ -249,20 +249,7 @@ recreate_containers() {
 	# Try multiple approaches in order of reliability
 	local success=false
 
-	# Approach 1: Try docker compose from /compose
-	if [ -d /compose ] && [ -f /compose/docker-compose.yml ]; then
-		echo "[$(date +'%Y-%m-%d %H:%M:%S')]   Trying docker compose from /compose..."
-		# shellcheck disable=SC2086
-		local compose_output
-		if compose_output=$(docker compose -f /compose/docker-compose.yml up -d --force-recreate $RESTART_CONTAINERS 2>&1); then
-			echo "$compose_output" | sed "s/^/    /"
-			success=true
-		else
-			echo "$compose_output" | sed "s/^/    /"
-		fi
-	fi
-
-	# Approach 2: Try docker compose from /home/daniel/potatostack
+	# Approach 1: Try docker compose from /home/daniel/potatostack
 	if [ "$success" = "false" ] && [ -d /home/daniel/potatostack ] && [ -f /home/daniel/potatostack/docker-compose.yml ]; then
 		echo "[$(date +'%Y-%m-%d %H:%M:%S')]   Trying docker compose from /home/daniel/potatostack..."
 		# Use -f flag to specify compose file, don't cd

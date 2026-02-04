@@ -251,7 +251,10 @@ mkdir -p \
 	"${SSD_BASE}/filestash" \
 	"${SSD_BASE}/jellyseerr" \
 	"${SSD_BASE}/backrest/data" \
-	"${SSD_BASE}/backrest/config"
+	"${SSD_BASE}/backrest/config" \
+	"${SSD_BASE}/recyclarr" \
+	"${SSD_BASE}/notifiarr" \
+	"${SSD_BASE}/uptime-kuma"
 
 # System directory on SSD (cron, etc)
 mkdir -p "/mnt/ssd/system/cron"
@@ -440,6 +443,18 @@ chown -R 472:472 "${SSD_BASE}/grafana"
 
 # Code-server (UID 1000)
 [ -d "${SSD_BASE}/code-server" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/code-server"
+
+# Recyclarr (UID 1000) - needs PUID/PGID ownership for /config/cache
+[ -d "${SSD_BASE}/recyclarr" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/recyclarr"
+
+# Notifiarr (UID 1000) - ensure proper ownership
+[ -d "${SSD_BASE}/notifiarr" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/notifiarr"
+
+# Uptime-Kuma (UID 1000)
+[ -d "${SSD_BASE}/uptime-kuma" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/uptime-kuma"
+
+# Velld (UID 1000)
+[ -d "${SSD_BASE}/velld" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/velld"
 
 printf '%s\n' "✓ Service permissions set"
 

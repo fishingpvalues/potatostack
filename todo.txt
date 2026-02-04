@@ -19,162 +19,120 @@
   Ich habe einen Stack mit fritzbox 14TB externer hjdd 256gb externer hdd und mini pc in einem ikea korb liegen auf der fensterbank die festpolatten können entweder stehen oder einfach lose hängen und die fritzbox auch liegen oder hängen wie kann ich mir am besten ein gerüst oder rack dafür kaufen welches uach erweiterbar ist und mich in die Zukunft begleitet? vielleicht auch noch mehr hdds und gutes cooling ajktuell ist winter aber der Korb wird schon sehr warm wie kann ich auf der Fensterbank ein Rack erstellen welches diese komponenten aufnehmen können und welche auch platz für Kabelmanagement netzteil Mehrfachsteckdose und werweiterbare Scahen hat. wahrscheinlich kaufe ich noch eine externe Festplatte nach die auch im Gehäuse stehend ist
 - check homeassisganz for logs and how to fix 
 - check why after gluetun down slskd was down and also all other containers its not reliable the gluetun monito ris not working right
-Add Indexer
-Protocol
-Language
-Privacy
-Categories
-Prowlarr supports many indexers in addition to any indexer that uses the Newznab/Torznab standard using 'Generic Newznab' (for usenet) or 'Generic Torznab' (for torrents). Search & Select your indexer from below.
-Protocol	Name	Language	Description	Privacy	Categories
-torrent	0Magnet	en-US	ØMagnet is a CHINESE Public tracker for Asian 3X (JAV)	Public	XXX
-torrent	1337x	en-US	1337x is a Public torrent site that offers verified torrent downloads	Public	ConsoleMoviesAudioPCTVXXXBooksOther
-torrent	52BT	zh-CN	52BT is a CHINESE Public tracker for MOVIES / TV / MUSIC / GENERAL	Public	MoviesAudioPCTVBooksOther
-torrent	ACG.RIP	zh-CN	ACG.RIP is a CHINESE Public torrent tracker for the latest anime and Japanese related torrents	Public	TV
-torrent	Anidex	en-US	Anidex is a Public torrent tracker and indexer, primarily for English fansub groups of anime	Public	AudioPCTVXXXBooksOther
-torrent	AniSource	en-US	AniSource is a Public site for HD Anime raws.	Public	TV
-torrent	arab-torrents.com	ar-AE	arab-torrents.com is an ARABIC Public Torrent Tracker for MOVIES / TV / GENERAL	Public	MoviesAudioPCTVBooksOther
-torrent	Bangumi Moe	en-US	Bangumi Moe is a Public torrent site for ANIME	Public	ConsoleMoviesAudioTVBooksOther
-torrent	BigFANGroup	ru-RU	BigFANGroup is a RUSSIAN Public Torrent Tracker for MOVIES / TV	Public	MoviesAudioPCTVXXXBooksOther
-torrent	BitRu	ru-RU	BitRu is a RUSSIAN Public Torrent Tracker for MOVIES / TV / GENERAL	Public	MoviesAudioPCTVXXXBooksOther
-torrent	BitSearch	en-US	BitSearch (Solid Torrents) is a Public torrent meta-search engine	Public	ConsoleMoviesAudioPCTVBooksOther
-torrent	BlueRoms	en-US	BlueRoms is a Public Torrent Tracker for ROMS	Public	Console
-torrent	BT.etree	en-US	BT.etree is a Public Tracker dedicated to Bootleg FLAC MUSIC	Public	Audio
-torrent	BTdirectory	en-US	BTdirectory (BT目录) is a Public DHT Crawler	Public	Other
-torrent	btstate	en-US	btstate is a Public BitTorrent DHT search engine.	Public	Other
-torrent	Byrutor	ru-RU	Byrutor is a RUSSIAN Public Torrent Tracker for GAMES	Public	PC
-torrent	Catorrent	ru-RU	Catorrent is a RUSSIAN Public Torrent Tracker for GAMES	Public	ConsolePC
-torrent	cpasbien clone	fr-FR	cpasbien clone is a FRENCH Public site for MOVIES / TV / GENERAL	Public	Other
-torrent	CrackingPatching	en-US	CrackingPatching is a Public tracker for Software and Apps	Public	PCOther
-torrent	DaMagNet	en-US	DaMagNet is a Public DHT Crawler	Public	Other
-torrent	dmhy	zh-TW	dmhy is a TAIWANESE Public magnet tracker for ANIME	Public	ConsoleMoviesAudioPCTVBooksOther
-torrent	E-Hentai	en-US	E-Hentai is a Public site for Hentai doujinshi, manga.	Public	TV
-torrent	EBookBay	en-US	EBook Bay (EBB) is a Public Torrent Tracker for E-BOOKS	Public	AudioBooks
-torrent	Elitetorrent-wf	es-ES	Elitetorrent-wf is a SPANISH Public tracker for MOVIES / TV	Public	MoviesTVOther
-torrent	ExtraTorrent.st	en-US	ExtraTorrent.st is a Public tracker for MOVIE / TV / GENERAL magnets	Public	ConsoleMoviesAudioPCTVXXXBooksOther
-torrent	EZTV	en-US	EZTV is a Public torrent site for TV shows	Public	TV
-torrent	FileMood	en-US	FileMood is a Public BitTorrent DHT search engine.	Public	Other
-torrent	Free JAV Torrent	en-US	Free JAV Torrent is a Public tracker for Asian 3X (JAV)	Public	XXX
-torrent	Frozen Layer	es-ES	Frozen Layer is a SPANISH Public torrent site focused on ANIME	Public	TV
-torrent	GamesTorrents	es-ES	GamesTorrents is a SPANISH Public tracker for GAMES	Public	ConsolePC
-torrent	GTorrent.club	ru-RU	GTorrent.club is a RUSSIAN Public Torrent Tracker for MOVIES / TV / GENERAL	Public	ConsoleMoviesAudioPCTVOther
-torrent	ilCorSaRoNeRo	it-IT	ilCorSaRoNeRo is an ITALIAN Public site for MOVIES / TV / GENERAL	Public	MoviesAudioPCTVBooksOther
-torrent	Internet Archive	en-US	Internet Archive is a non-profit digital library offering free universal access to books, movies & music, as well as 406 billion archived web pages	Public	MoviesAudioPCTVBooksOther
-torrent	Isohunt2	en-US	Isohunt2 is a Public torrent search engine for MOVIES / TV / GENERAL	Public	MoviesAudioPCTVXXXBooksOther
-torrent	kickasstorrents.to	en-US	kickasstorrents.to is a Public KickAssTorrent clone for MOVIES / TV / GENERAL	Public	ConsoleMoviesAudioPCTVXXXBooksOther
-torrent	kickasstorrents.ws	en-US	kickasstorrents.ws is a Public KickAssTorrent clone for MOVIES / TV / GENERAL	Public	ConsoleMoviesAudioPCTVXXXBooksOther
-torrent	Knaben	en-US	Knaben is a Public torrent meta-search engine	Public	ConsoleMoviesAudioPCTVXXXBooksOther
-torrent	LimeTorrents	en-US	LimeTorrents is a Public general torrent index with mostly verified torrents	Public	ConsoleMoviesAudioPCTVBooksOther
-torrent	LinuxTracker	en-US	LinuxTracker is a Public Linux ISO Torrent Repository	Public	PCOther
-torrent	Mac Torrents Download	en-US	Mac Torrents Download is a Public tracker for Mac software	Public	PCOther
-torrent	Magnet Cat	en-US	Magnet Cat is a Public Tracker for MOVIES / TV / GENERAL	Public	MoviesAudioPCTVBooksOther
-torrent	MagnetDownload	en-US	MagnetDownload is a Public DHT Crawler	Public	Other
-torrent	Magnetz	en-US	Magnetz is a Public torrent meta-search engine	Public	Other
-torrent	MegaPeer	ru-RU	MegaPeer is a RUSSIAN Public Torrent Tracker for MOVIES / TV	Public	ConsoleMoviesAudioPCTVBooksOther
-torrent	Mikan	zh-CN	Mikan is a CHINESE Public torrent tracker for ANIME	Public	TV
-torrent	MixtapeTorrent	en-US	MixtapeTorrent is a Public Music site for MixTapes	Public	Audio
-torrent	MoviesDVDR	es-ES	MoviesDVDR is a SPANISH Public tracker for MOVIES	Public	Movies
-torrent	MyPornClub	en-US	MyPornClub is a Public Torrent Tracker for 3X	Public	XXX
-torrent	nekoBT	en-US	nekoBT is a Public Torrent Tracker for ANIME	Public	MoviesTV
-torrent	NewStudio	ru-RU	NewStudio is a RUSSIAN Public site for TV	Public	TV
-torrent	Nipponsei	en-US	Nipponsei is a Public site for MUSIC fresh from JAPAN	Public	Audio
-torrent	NoNaMe Club	ru-RU	NoNaMe Club (NNM-Club) is a RUSSIAN Public Tracker for MOVIES / TV / MUSIC	Public	MoviesAudioTVBooksOther
-torrent	NorTorrent	fr-FR	NorTorrent is a FRENCH Public tracker for MOVIES / TV / GENERAL	Public	ConsoleMoviesAudioPCTVXXXBooksOther
-torrent	Nyaa.si	en-US	Nyaa is a Public torrent site focused on Eastern ASIAN media including anime, manga, literature and music	Public	MoviesAudioPCTVBooksOther
-torrent	OneJAV	en-US	OneJAV is a Public tracker for ASIAN 3X (JAV)	Public	XXX
-torrent	OpenSharing	ru-RU	OpenSharing is a RUSSIAN Public Torrent Tracker for 3X	Public	XXX
-torrent	PC-torrent	ru-RU	PC-torrent is a RUSSIAN Public Torrent Tracker for Games	Public	PC
-torrent	The Pirate Bay	en-US	The Pirate Bay (TPB) is the galaxy’s most resilient Public BitTorrent site	Public	ConsoleMoviesAudioPCTVXXXBooksOther
-torrent	Pirate's Paradise	en-US	Pirate's Paradise is a Public Torrent Tracker for MOVIES / TV	Public	Other
-torrent	plugintorrent	en-US	plugintorrent is a Public site for AUDIO apps, plugins and samples	Public	PC
-torrent	PornRips	en-US	PornRips is a Public site for 3X	Public	XXX
-torrent	Postman	en-US	Postman is a Public I2P Torrent Tracker for MOVIES / TV / GENERAL	Public	MoviesAudioPCTVXXXBooksOther
-torrent	RinTor.NeT	ru-RU	RinTor.NeT is a RUSSIAN Public tracker for 3X	Public	XXX
-torrent	RuTor	ru-RU	RuTor is a RUSSIAN Public site for MOVIES / TV / GENERAL	Public	MoviesTVOther
-torrent	RuTracker.RU	ru-RU	RuTracker.RU is a RUSSIAN Public Torrent Tracker for MOVIES / TV / GENERAL	Public	ConsoleMoviesAudioPCTVXXXBooksOther
-torrent	Sexy-Pics	en-US	Sexy-Pics is a Public Magnet Links site for 3X MP4	Public	XXX
-torrent	Shana Project	en-US	Shana Project is a Public torrent site for ANIME	Public	TV
-torrent	showRSS	en-US	showRSS is a service that allows you to keep track of your favorite TV shows	Public	TV
-torrent	showRSS	en-US	showRSS is a service that allows you to keep track of your favorite TV shows	Public	Other
-torrent	SkidrowRepack	en-US	SkidrowRepack is a Public Torrent Tracker for GAMES	Public	PC
-torrent	sosulki	ru-RU	sosulki is a RUSSIAN Public Torrent Tracker for 3X	Public	XXX
-torrent	SubsPlease	en-US	SubsPlease - A better HorribleSubs/Erai replacement	Public	MoviesTV
-torrent	sukebei.nyaa.si	en-US	sukebei.nyaa is a Public torrent site focused on adult Eastern ASIAN media including anime, manga, games and JAV	Public	XXX
-torrent	Tokyo Toshokan	en-US	Tokyo Toshokan is a Public BitTorrent Library for JAPANESE Media	Public	AudioTVXXXBooksOther
-torrent	torrent.by	ru-RU	torrent.by is a BELARUSIAN Public Torrent Tracker	Public	Other
-torrent	Torrent Downloads	en-US	Torrent Downloads (TD) is a Public torrent site for all kinds of content	Public	MoviesAudioPCTVBooksOther
-torrent	Torrent Oyun indir	tr-TR	Torrent Oyun indir is a TURKISH Public torrent site for GAMES	Public	PC
-torrent	torrent-pirat	ru-RU	torrent-pirat is a RUSSIAN Public Torrent Tracker for 3X	Public	XXX
-torrent	Torrent RSS Feed	en-US	Generic RSS Feed containing torrents	Public	Other
-torrent	Torrent9	fr-FR	Torrent9 is a FRENCH Public site for MOVIES / TV / GENERAL	Public	MoviesAudioPCTVBooksOther
-torrent	Torrent[CORE]	en-US	Torrent[CORE] is a Public DHT Crawler	Public	ConsoleMoviesAudioPCTVXXXBooksOther
-torrent	TorrentDownload	en-US	TorrentDownload is a Public torrent meta-search engine	Public	ConsoleMoviesAudioPCTVXXXBooksOther
-torrent	TorrentGalaxyClone	en-US	TorrentGalaxyClone is a Public site for MOVIES / TV / GENERAL	Public	ConsoleMoviesAudioPCTVXXXBooksOther
-torrent	TorrentKitty	en-US	TorrentKitty is a Public torrent indexer	Public	Other
-torrent	TorrentProject2	en-US	TorrentProject2 is a Public torrent meta-search engine	Public	Other
-torrent	TorrentQQ	ko-KR	TorrentQQ (토렌트큐큐) is a Public KOREAN tracker for Korean media.	Public	ConsoleMoviesAudioPCTVXXXOther
-torrent	TorrentsCSV	en-US	Torrents.csv is a self-hostable open source torrent search engine and database	Public	Other
-torrent	Torrentsome	ko-KR	Torrentsome is a KOREAN Public tracker for Korean media.	Public	MoviesAudioTVBooks
-torrent	Torrenttip	ko-KR	Torrenttip (토렌트팁) is a Public KOREAN tracker for Korean media.	Public	ConsoleMoviesAudioPCTVBooks
-torrent	TrahT	ru-RU	TrahT is a RUSSIAN Public Torrent Tracker for 3X	Public	XXX
-torrent	U3C3	zh-CN	U3C3 is a CHINESE Public tracker focused on 3X Eastern Asian media	Public	ConsolePCXXXBooksOther
-torrent	Uindex	en-US	Uindex is a Public Torrent Tracker for MOVIES / TV / MUSIC / GENERAL	Public	ConsoleMoviesAudioPCTVXXXOther
-torrent	UzTracker	ru-RU	UzTracker is an UZBEK Public Torrent Tracker for MOVIES / TV / GENERAL	Public	MoviesAudioPCTVBooksOther
-torrent	VST Torrentz	en-US	VST Torrentz is a Public site for AUDIO apps, plugins and samples	Public	PC
-torrent	VSTHouse	ru-RU	VSTHouse is a RUSSIAN Public site for AUDIO apps, plugins and samples	Public	PC
-torrent	VSTorrent	en-US	VSTorrent is a Public site for AUDIO apps, plugins and samples	Public	PC
-torrent	World-torrent	fr-FR	World-torrent is a FRENCH Public site for MOVIES / TV / GENERAL	Public	ConsoleMoviesAudioPCTVXXXBooksOther
-torrent	XXXClub	en-US	XXXClub is a Public torrent site for 3X	Public	XXX
-torrent	xxxtor	ru-RU	xxxtor is a RUSSIAN Public Torrent Tracker for 3X	Public	XXX
-torrent	YTS	en-US	YTS is a Public torrent site specialising in HD movies of small size	Public	Movies
-torrent	ZkTorrent	fr-FR	ZkTorrent is a FRENCH Public site for MOVIES / TV / GENERAL	Public	ConsoleMoviesAudioPCTVXXXBooks
-101 indexer(s) available
-Add Indexer - Cardigann (1337x)
-Name
-Enable
-Redirect
-Sync Profile
-App profiles are used to control RSS, Automatic Search and Interactive Search settings on application sync
-Base Url
-Select which base url Prowlarr will use for requests to the site
-Query Limit
-The number of max queries as specified by the respective unit that Prowlarr will allow to the site
-Grab Limit
-The number of max grabs as specified by the respective unit that Prowlarr will allow to the site
-Limits Unit
-The unit of time for counting limits per indexer
-Apps Minimum Seeders
-Minimum seeders required by the Applications for the indexer to grab, empty is Sync profile's default
-Seed Ratio
-The ratio a torrent should reach before stopping, empty uses the download client's default. Ratio should be at least 1.0 and follow the indexers rules
-Seed Time
-The time a torrent should be seeded before stopping, empty uses the download client's default
-Pack Seed Time
-The time a pack (season or discography) torrent should be seeded before stopping, empty is app's default
-Prefer Magnet URL
-Filter by Uploader
-About filtering by Uploader
-You can filter by Uploader by entering a Case Sensitive username, or leave empty to get all results.
-Note: this is the username of the Uploader and not the Groupname that often show up at the end of 1337x titles, eg -GalaxyRG.
-FlareSolverr Info
-This site may use Cloudflare DDoS Protection, therefore Prowlarr requires FlareSolverr to access it.
-More Info
-Download link
-Download link (fallback)
-About the Download links
-As the iTorrents .torrent download link on this site is known to fail from time to time, we suggest using the magnet link as a fallback. The BTCache and Torrage services are not supported because they require additional user interaction (a captcha for BTCache and a download button on Torrage.)
-Disable sorting - 1337x prevents sorting searches during high server load, which breaks the indexer when performing a keyword search - disable if you get zero results
-Sort requested from site
-Order requested from site
-Indexer Priority
-Indexer Priority from 1 (Highest) to 50 (Lowest). Default: 25.
-Tags
-Use tags to specify Indexer Proxies or which apps the indexer is synced to.
-Tags should be used with caution, they can have unintended effects. An indexer with a tag will only sync to apps with the same tag.
-Prowlarr Logo
-Indexers
-Stats
-Search
-History
-Settings
-System1
-No indexers found, to get started you'll want to add a new indexer.
+
+#!/bin/bash
+################################################################################
+# Fetch API Keys from *arr Services and Update .env
+# This script helps configure exportarr services by fetching API keys
+################################################################################
+
+set -euo pipefail
+
+ENV_FILE="/home/daniel/potatostack/.env"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+echo "Fetching API keys for exportarr services..."
+echo ""
+
+# Function to extract API key from Sonarr/Radarr/Lidarr/Prowlarr config
+fetch_api_key() {
+	local service=$1
+	local port=$2
+	local config_path=""
+
+	case $service in
+	sonarr)
+		config_path="/mnt/ssd/docker-data/sonarr/config.xml"
+		;;
+	radarr)
+		config_path="/mnt/ssd/docker-data/radarr/config.xml"
+		;;
+	lidarr)
+		config_path="/mnt/ssd/docker-data/lidarr/config.xml"
+		;;
+	prowlarr)
+		config_path="/mnt/ssd/docker-data/prowlarr/config.xml"
+		;;
+	esac
+
+	if [ -f "$config_path" ]; then
+		local api_key=$(grep -oP '(?<=<ApiKey>)[^<]+' "$config_path" 2>/dev/null || echo "")
+		if [ -n "$api_key" ]; then
+			echo "$api_key"
+			return 0
+		fi
+	fi
+
+	return 1
+}
+
+# Try to fetch each API key
+updated=0
+
+for service in sonarr radarr lidarr prowlarr; do
+	var_name="${service^^}_API_KEY"
+	port=""
+
+	case $service in
+	sonarr) port="8989" ;;
+	radarr) port="7878" ;;
+	lidarr) port="8686" ;;
+	prowlarr) port="9696" ;;
+	esac
+
+	echo -n "Checking ${service}... "
+
+	# Check if already set in .env
+	if grep -q "^${var_name}=" "$ENV_FILE" 2>/dev/null && ! grep -q "^${var_name}=$" "$ENV_FILE" 2>/dev/null; then
+		current_key=$(grep "^${var_name}=" "$ENV_FILE" | cut -d'=' -f2)
+		if [ -n "$current_key" ]; then
+			echo -e "${GREEN}✓ already set${NC}"
+			continue
+		fi
+	fi
+
+	# Try to fetch from config file
+	api_key=$(fetch_api_key "$service" "$port" || echo "")
+
+	if [ -n "$api_key" ]; then
+		# Update .env file
+		if grep -q "^${var_name}=" "$ENV_FILE"; then
+			sed -i "s/^${var_name}=.*/${var_name}=${api_key}/" "$ENV_FILE"
+		else
+			echo "${var_name}=${api_key}" >>"$ENV_FILE"
+		fi
+		echo -e "${GREEN}✓ fetched and saved${NC}"
+		updated=$((updated + 1))
+	else
+		echo -e "${YELLOW}⚠ not found - manual setup required${NC}"
+		echo "  1. Open http://localhost:${port}/settings/general"
+		echo "  2. Copy the API Key"
+		echo "  3. Add to ${ENV_FILE}: ${var_name}=your_key_here"
+	fi
+done
+
+echo ""
+
+if [ $updated -gt 0 ]; then
+	echo -e "${GREEN}✓ Updated ${updated} API key(s) in ${ENV_FILE}${NC}"
+	echo ""
+	echo "Restarting exportarr services..."
+	docker compose restart exportarr-radarr exportarr-sonarr exportarr-lidarr exportarr-prowlarr
+	echo -e "${GREEN}✓ Services restarted${NC}"
+else
+	echo "No API keys were updated."
+	echo ""
+	echo "To manually add API keys:"
+	echo "  1. Sonarr: http://localhost:8989/settings/general"
+	echo "  2. Radarr: http://localhost:7878/settings/general"
+	echo "  3. Lidarr: http://localhost:8686/settings/general"
+	echo "  4. Prowlarr: http://localhost:9696/settings/general"
+	echo ""
+	echo "Then add them to ${ENV_FILE} and run:"
+	echo "  docker compose restart exportarr-radarr exportarr-sonarr exportarr-lidarr exportarr-prowlarr"
+fi

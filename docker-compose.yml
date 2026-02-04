@@ -1257,10 +1257,10 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 192M
+          memory: 512M
         reservations:
           cpus: "0.1"
-          memory: 128M
+          memory: 256M
     labels:
       - "autoheal=true"
 
@@ -1429,11 +1429,11 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8787/ || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8787/api/v1/health || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 60s
     deploy:
       resources:
         limits:
@@ -2119,10 +2119,10 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 256M
+          memory: 1G
         reservations:
           cpus: "0.25"
-          memory: 192M
+          memory: 512M
     labels:
       - "autoheal=true"
 
@@ -2964,6 +2964,8 @@ services:
       - /mnt/ssd/docker-data/uptime-kuma:/app/data
       # Mount docker.sock for Docker monitors (socket-proxy env var may not work for all features)
       - /var/run/docker.sock:/var/run/docker.sock:ro
+    group_add:
+      - "987"  # docker group for socket access
     networks:
       - potatostack
     depends_on:
@@ -4594,10 +4596,11 @@ services:
       - redis-cache
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8080"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz | grep -q OK || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 60s
     deploy:
       resources:
         limits:
