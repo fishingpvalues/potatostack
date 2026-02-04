@@ -44,6 +44,8 @@ echo "Monitoring: $GLUETUN_URL/v1/vpn/status"
 echo "Check interval: ${CHECK_INTERVAL}s"
 echo "Will recreate: $RESTART_CONTAINERS"
 echo "Internet check: every $((CHECK_INTERVAL * INTERNET_CHECK_INTERVAL))s"
+echo "Initial startup delay: ${INITIAL_STARTUP_DELAY}s"
+echo "Skip initial check: $SKIP_INITIAL_CHECK"
 echo "=========================================="
 
 LAST_STATUS=""
@@ -58,6 +60,13 @@ INTERNET_FAIL_COUNT=0
 INTERNET_MAX_FAILURES="${INTERNET_MAX_FAILURES:-3}"
 ORPHAN_CLEANUP_INTERVAL="${ORPHAN_CLEANUP_INTERVAL:-30}"
 ORPHAN_CLEANUP_COUNTER=0
+INITIAL_STARTUP_DELAY="${INITIAL_STARTUP_DELAY:-120}"
+SKIP_INITIAL_CHECK="${SKIP_INITIAL_CHECK:-true}"
+
+# Wait for services to stabilize on startup
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] → Waiting ${INITIAL_STARTUP_DELAY}s for services to stabilize..."
+sleep "$INITIAL_STARTUP_DELAY"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ Startup delay complete, beginning monitoring"
 
 # Get gluetun container ID
 get_gluetun_id() {
@@ -385,13 +394,15 @@ while true; do
 		# Initial status
 		echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ Initial VPN status: $CURRENT_STATUS"
 
-		# FIXED: Verify initial service connectivity
-		if [ "$CURRENT_STATUS" = "running" ]; then
+		# Skip initial connectivity check to avoid startup cascade
+		if [ "$SKIP_INITIAL_CHECK" != "true" ] && [ "$CURRENT_STATUS" = "running" ]; then
 			sleep 5
 			if ! verify_service_connectivity; then
 				echo "[$(date +'%Y-%m-%d %H:%M:%S')] ⚠ Services have connectivity issues, recreating..."
 				recreate_containers "initial-connectivity-check"
 			fi
+		else
+			echo "[$(date +'%Y-%m-%d %H:%M:%S')] → Skipping initial connectivity check (startup delay already waited)"
 		fi
 	fi
 
@@ -413,16 +424,19 @@ while true; do
 		LAST_GLUETUN_ID="$CURRENT_GLUETUN_ID"
 		echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ Initial Gluetun container ID: $CURRENT_GLUETUN_ID"
 
-		# Check for stale network attachments on startup
-		for container in $RESTART_CONTAINERS; do
-			if docker inspect "$container" >/dev/null 2>&1; then
-				if check_network_stale "$container" "$CURRENT_GLUETUN_ID"; then
-					echo "[$(date +'%Y-%m-%d %H:%M:%S')] ⚠ $container has stale network attachment"
-					recreate_containers "stale-network-on-startup"
-					break
+		# Skip stale network check on startup (startup delay already waited)
+		if [ "$SKIP_INITIAL_CHECK" != "true" ]; then
+			# Check for stale network attachments on startup
+			for container in $RESTART_CONTAINERS; do
+				if docker inspect "$container" >/dev/null 2>&1; then
+					if check_network_stale "$container" "$CURRENT_GLUETUN_ID"; then
+						echo "[$(date +'%Y-%m-%d %H:%M:%S')] ⚠ $container has stale network attachment"
+						recreate_containers "stale-network-on-startup"
+						break
+					fi
 				fi
-			fi
-		done
+			done
+		fi
 	fi
 	LAST_GLUETUN_ID="$CURRENT_GLUETUN_ID"
 
