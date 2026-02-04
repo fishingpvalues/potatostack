@@ -1,0 +1,395 @@
+---
+# PotatoStack Homer Dashboard - SOTA 2025 Configuration
+# Minimal, fast, dark theme with smart service status
+
+title: "PotatoStack"
+subtitle: "Self-Hosted Infrastructure"
+documentTitle: "PotatoStack Dashboard"
+logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/homer.png"
+icon: "fas fa-server"
+
+header: true
+footer: '<p>PotatoStack <span class="has-text-grey">|</span> <a href="https://github.com/bastienwirtz/homer" target="_blank">Homer</a></p>'
+
+columns: "4"
+connectivityCheck: true
+
+stylesheet:
+  - "assets/custom.css"
+
+defaults:
+  layout: columns
+  colorTheme: dark
+
+# SOTA 2025 Dark Theme - Pure black with white accents
+colors:
+  light:
+    highlight-primary: "#1a1a1a"
+    highlight-secondary: "#2d2d2d"
+    highlight-hover: "#3d3d3d"
+    background: "#0d0d0d"
+    card-background: "#1a1a1a"
+    text: "#f5f5f5"
+    text-header: "#ffffff"
+    text-title: "#ffffff"
+    text-subtitle: "#b0b0b0"
+    card-shadow: rgba(0, 0, 0, 0.5)
+    link: "#ffffff"
+    link-hover: "#4a9eff"
+  dark:
+    highlight-primary: "#0f0f0f"
+    highlight-secondary: "#1a1a1a"
+    highlight-hover: "#2a2a2a"
+    background: "#000000"
+    card-background: "#0f0f0f"
+    text: "#f0f0f0"
+    text-header: "#ffffff"
+    text-title: "#ffffff"
+    text-subtitle: "#909090"
+    card-shadow: rgba(0, 0, 0, 0.8)
+    link: "#ffffff"
+    link-hover: "#4a9eff"
+
+# Quick links in header
+links:
+  - name: "GitHub"
+    icon: "fab fa-github"
+    url: "https://github.com"
+    target: "_blank"
+
+# Service groups
+services:
+  # ============================================================================
+  # MONITORING & OBSERVABILITY
+  # ============================================================================
+  - name: "Monitoring"
+    icon: "fas fa-chart-line"
+    items:
+      - name: "Grafana"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/grafana.png"
+        subtitle: "Dashboards & Visualization"
+        url: "https://potatostack.tale-iwato.ts.net:3000"
+        target: "_blank"
+        type: "Ping"
+
+      - name: "Prometheus"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/prometheus.png"
+        subtitle: "Metrics Collection"
+        url: "https://potatostack.tale-iwato.ts.net:9090"
+        target: "_blank"
+        type: "Prometheus"
+
+      - name: "Uptime Kuma"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/uptime-kuma.png"
+        subtitle: "Service Monitoring"
+        url: "https://potatostack.tale-iwato.ts.net:3001"
+        target: "_blank"
+        type: "UptimeKuma"
+
+      - name: "Healthchecks"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/healthchecks.png"
+        subtitle: "Cron Job Monitoring"
+        url: "https://potatostack.tale-iwato.ts.net:8001"
+        target: "_blank"
+        type: "Healthchecks"
+
+      - name: "Loki"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/loki.png"
+        subtitle: "Log Aggregation"
+        url: "https://potatostack.tale-iwato.ts.net:3100"
+        target: "_blank"
+        type: "Ping"
+
+      - name: "Alertmanager"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/alertmanager.png"
+        subtitle: "Alert Management"
+        url: "https://potatostack.tale-iwato.ts.net:9093"
+        target: "_blank"
+        type: "Ping"
+
+      - name: "Scrutiny"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/scrutiny.png"
+        subtitle: "Disk Health Monitoring"
+        url: "https://potatostack.tale-iwato.ts.net:8087"
+        target: "_blank"
+        type: "Scrutiny"
+
+  # ============================================================================
+  # MEDIA STREAMING
+  # ============================================================================
+  - name: "Media"
+    icon: "fas fa-film"
+    items:
+      - name: "Jellyfin"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/jellyfin.png"
+        subtitle: "Media Server"
+        url: "https://potatostack.tale-iwato.ts.net:8096"
+        target: "_blank"
+        type: "Emby"
+        apikey: "${JELLYFIN_API_KEY:-}"
+
+      - name: "Jellyseerr"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/jellyseerr.png"
+        subtitle: "Media Requests"
+        url: "https://potatostack.tale-iwato.ts.net:5055"
+        target: "_blank"
+        type: "Ping"
+
+      - name: "Navidrome"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/navidrome.png"
+        subtitle: "Music Streaming"
+        url: "https://potatostack.tale-iwato.ts.net:4533"
+        target: "_blank"
+        type: "Ping"
+
+      - name: "Audiobookshelf"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/audiobookshelf.png"
+        subtitle: "Audiobooks & Podcasts"
+        url: "https://potatostack.tale-iwato.ts.net:13378"
+        target: "_blank"
+        type: "Ping"
+
+      - name: "Immich"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/immich.png"
+        subtitle: "Photo Management"
+        url: "https://potatostack.tale-iwato.ts.net:2283"
+        target: "_blank"
+        type: "Immich"
+        apikey: "${IMMICH_API_KEY:-}"
+
+      - name: "Stash"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/stash.png"
+        subtitle: "Media Organizer"
+        url: "https://potatostack.tale-iwato.ts.net:9900"
+        target: "_blank"
+        type: "Ping"
+
+  # ============================================================================
+  # MEDIA AUTOMATION
+  # ============================================================================
+  - name: "Automation"
+    icon: "fas fa-robot"
+    items:
+      - name: "Sonarr"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/sonarr.png"
+        subtitle: "TV Shows"
+        url: "https://potatostack.tale-iwato.ts.net:8989"
+        target: "_blank"
+        type: "Sonarr"
+        apikey: "${SONARR_API_KEY:-}"
+
+      - name: "Radarr"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/radarr.png"
+        subtitle: "Movies"
+        url: "https://potatostack.tale-iwato.ts.net:7878"
+        target: "_blank"
+        type: "Radarr"
+        apikey: "${RADARR_API_KEY:-}"
+
+      - name: "Lidarr"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/lidarr.png"
+        subtitle: "Music"
+        url: "https://potatostack.tale-iwato.ts.net:8686"
+        target: "_blank"
+        type: "Lidarr"
+        apikey: "${LIDARR_API_KEY:-}"
+
+      - name: "Prowlarr"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/prowlarr.png"
+        subtitle: "Indexer Manager"
+        url: "https://potatostack.tale-iwato.ts.net:9696"
+        target: "_blank"
+        type: "Prowlarr"
+        apikey: "${PROWLARR_API_KEY:-}"
+
+      - name: "Bazarr"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/bazarr.png"
+        subtitle: "Subtitles"
+        url: "https://potatostack.tale-iwato.ts.net:6767"
+        target: "_blank"
+        type: "Ping"
+
+      - name: "Readarr"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/readarr.png"
+        subtitle: "Books"
+        url: "https://potatostack.tale-iwato.ts.net:8787"
+        target: "_blank"
+        type: "Readarr"
+        apikey: "${READARR_API_KEY:-}"
+
+  # ============================================================================
+  # DOWNLOADS
+  # ============================================================================
+  - name: "Downloads"
+    icon: "fas fa-download"
+    items:
+      - name: "qBittorrent"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/qbittorrent.png"
+        subtitle: "Torrent Client"
+        url: "https://potatostack.tale-iwato.ts.net:8282"
+        target: "_blank"
+        type: "qBittorrent"
+
+      - name: "Slskd"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/slskd.png"
+        subtitle: "Soulseek Client"
+        url: "https://potatostack.tale-iwato.ts.net:2234"
+        target: "_blank"
+        type: "Ping"
+
+      - name: "pyLoad"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/pyload.png"
+        subtitle: "Download Manager"
+        url: "https://potatostack.tale-iwato.ts.net:8076"
+        target: "_blank"
+        type: "Ping"
+
+      - name: "SpotiFlac"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/spotify.png"
+        subtitle: "Spotify Downloader"
+        url: "https://potatostack.tale-iwato.ts.net:8097"
+        target: "_blank"
+        type: "Ping"
+
+  # ============================================================================
+  # PRODUCTIVITY & KNOWLEDGE
+  # ============================================================================
+  - name: "Productivity"
+    icon: "fas fa-lightbulb"
+    items:
+      - name: "Miniflux"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/miniflux.png"
+        subtitle: "RSS Reader"
+        url: "https://potatostack.tale-iwato.ts.net:8093"
+        target: "_blank"
+        type: "Miniflux"
+        apikey: "${MINIFLUX_API_KEY:-}"
+
+      - name: "Obsidian Sync"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/obsidian.png"
+        subtitle: "Notes Sync"
+        url: "https://potatostack.tale-iwato.ts.net:5984"
+        target: "_blank"
+        type: "Ping"
+
+      - name: "Actual Budget"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/actual.png"
+        subtitle: "Budgeting"
+        url: "https://potatostack.tale-iwato.ts.net:5006"
+        target: "_blank"
+        type: "Ping"
+
+      - name: "Atuin"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/atuin.png"
+        subtitle: "Shell History Sync"
+        url: "https://potatostack.tale-iwato.ts.net:8888"
+        target: "_blank"
+        type: "Ping"
+
+  # ============================================================================
+  # FILE MANAGEMENT
+  # ============================================================================
+  - name: "Files"
+    icon: "fas fa-folder-open"
+    items:
+      - name: "Syncthing"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/syncthing.png"
+        subtitle: "File Sync"
+        url: "https://potatostack.tale-iwato.ts.net:8384"
+        target: "_blank"
+        type: "Ping"
+
+      - name: "Filebrowser"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/filebrowser.png"
+        subtitle: "Web File Manager"
+        url: "https://potatostack.tale-iwato.ts.net:8089"
+        target: "_blank"
+        type: "Ping"
+
+      - name: "Backrest"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/restic.png"
+        subtitle: "Backup Management"
+        url: "https://potatostack.tale-iwato.ts.net:9898"
+        target: "_blank"
+        type: "Ping"
+
+  # ============================================================================
+  # DEVELOPMENT
+  # ============================================================================
+  - name: "Development"
+    icon: "fas fa-code"
+    items:
+      - name: "Gitea"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/gitea.png"
+        subtitle: "Git Hosting"
+        url: "https://potatostack.tale-iwato.ts.net:3004"
+        target: "_blank"
+        type: "Ping"
+
+      - name: "Woodpecker CI"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/woodpecker-ci.png"
+        subtitle: "CI/CD Pipeline"
+        url: "https://potatostack.tale-iwato.ts.net:8081"
+        target: "_blank"
+        type: "Ping"
+
+  # ============================================================================
+  # SECURITY & ACCESS
+  # ============================================================================
+  - name: "Security"
+    icon: "fas fa-shield-alt"
+    items:
+      - name: "Vaultwarden"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/bitwarden.png"
+        subtitle: "Password Manager"
+        url: "https://potatostack.tale-iwato.ts.net:8090"
+        target: "_blank"
+        type: "Ping"
+
+      - name: "Authentik"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/authentik.png"
+        subtitle: "Identity Provider"
+        url: "https://potatostack.tale-iwato.ts.net:9000"
+        target: "_blank"
+        type: "Ping"
+
+      - name: "Traefik"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/traefik.png"
+        subtitle: "Reverse Proxy"
+        url: "https://potatostack.tale-iwato.ts.net:8088"
+        target: "_blank"
+        type: "Traefik"
+
+  # ============================================================================
+  # UTILITIES
+  # ============================================================================
+  - name: "Utilities"
+    icon: "fas fa-tools"
+    items:
+      - name: "SearXNG"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/searxng.png"
+        subtitle: "Meta Search Engine"
+        url: "https://potatostack.tale-iwato.ts.net:8085"
+        target: "_blank"
+        type: "Ping"
+
+      - name: "ntfy"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/ntfy.png"
+        subtitle: "Push Notifications"
+        url: "https://potatostack.tale-iwato.ts.net:8060"
+        target: "_blank"
+        type: "Ping"
+
+      - name: "Gluetun"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/gluetun.png"
+        subtitle: "VPN Gateway"
+        url: "https://potatostack.tale-iwato.ts.net:8008"
+        target: "_blank"
+        type: "Ping"
+
+      - name: "Home Assistant"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/home-assistant.png"
+        subtitle: "Home Automation"
+        url: "https://potatostack.tale-iwato.ts.net:8123"
+        target: "_blank"
+        type: "HomeAssistant"

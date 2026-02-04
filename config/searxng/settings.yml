@@ -23,6 +23,8 @@ server:
   limiter: true
   image_proxy: true
   method: "POST"
+  bind_address: "0.0.0.0"
+  port: 8080
   default_http_headers:
     X-Content-Type-Options: nosniff
     X-Download-Options: noopen

@@ -367,16 +367,36 @@ HAEOF
 fi
 
 # Exclude docker directory (overlay2 data) from recursive operations
-find "${STORAGE_BASE}" -maxdepth 1 -mindepth 1 -not -name "docker" -exec chown -R "${PUID}:${PGID}" {} + 2>/dev/null || true
-chown -R "${PUID}:${PGID}" "${SSD_BASE}" 2>/dev/null || true
-chown -R "${PUID}:${PGID}" "/mnt/ssd/system" 2>/dev/null || true
-find "${CACHE_BASE}" -not -path "*swapfile*" -exec chown "${PUID}:${PGID}" {} + 2>/dev/null || true
+# Check if ownership is already correct before running chown
+set_ownership() {
+	target="$1"
+	if [ -d "$target" ]; then
+		current_owner=$(stat -c "%u:%g" "$target" 2>/dev/null || echo "0:0")
+		if [ "$current_owner" != "${PUID}:${PGID}" ]; then
+			chown -R "${PUID}:${PGID}" "$target" 2>/dev/null || true
+		fi
+	fi
+}
+
+for dir in "${STORAGE_BASE}"/*; do
+	[ -e "$dir" ] && [ "$(basename "$dir")" != "docker" ] && set_ownership "$dir"
+done
+set_ownership "${SSD_BASE}"
+set_ownership "/mnt/ssd/system"
+
+for item in "${CACHE_BASE}"/*; do
+	[ -e "$item" ] && [ "$(basename "$item")" != "swapfile" ] && chown "${PUID}:${PGID}" "$item" 2>/dev/null || true
+done
 
 printf '%s\n' "Setting permissions..."
-find "${STORAGE_BASE}" -maxdepth 1 -mindepth 1 -not -name "docker" -exec chmod -R 755 {} + 2>/dev/null || true
+for dir in "${STORAGE_BASE}"/*; do
+	[ -e "$dir" ] && [ "$(basename "$dir")" != "docker" ] && chmod -R 755 "$dir" 2>/dev/null || true
+done
 chmod -R 755 "${SSD_BASE}" 2>/dev/null || true
 chmod -R 755 "/mnt/ssd/system" 2>/dev/null || true
-find "${CACHE_BASE}" -not -path "*swapfile*" -exec chmod 755 {} + 2>/dev/null || true
+for item in "${CACHE_BASE}"/*; do
+	[ -e "$item" ] && [ "$(basename "$item")" != "swapfile" ] && chmod 755 "$item" 2>/dev/null || true
+done
 
 if [ -f "$SWAP_FILE" ]; then
 	chown root:root "$SWAP_FILE"

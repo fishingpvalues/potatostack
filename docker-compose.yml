@@ -586,6 +586,7 @@ services:
       - "${HOST_BIND:-127.0.0.1}:9900:9900" # Stash
       - "${HOST_BIND:-127.0.0.1}:6500:6500" # rdt-client WebUI
       - "${HOST_BIND:-127.0.0.1}:8191:8191" # FlareSolverr
+      - "${HOST_BIND:-127.0.0.1}:8085:8080" # SABnzbd WebUI (internal 8080)
     environment:
       <<: *common-env
       VPN_SERVICE_PROVIDER: ${VPN_PROVIDER:-surfshark}
@@ -705,6 +706,12 @@ services:
       - "traefik.http.routers.pyload.service=pyload"
       - "traefik.http.services.pyload.loadbalancer.server.port=8000"
       - "traefik.http.routers.pyload.middlewares=sso-chain@docker"
+      - "traefik.http.routers.sabnzbd.rule=Host(`sabnzbd.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.sabnzbd.entrypoints=websecure"
+      - "traefik.http.routers.sabnzbd.tls=true"
+      - "traefik.http.routers.sabnzbd.service=sabnzbd"
+      - "traefik.http.services.sabnzbd.loadbalancer.server.port=8080"
+      - "traefik.http.routers.sabnzbd.middlewares=sso-chain@docker"
       - "wud.trigger.docker.update=false"
 
   # WireGuard - REMOVED (using Gluetun + Tailscale instead)
@@ -782,8 +789,8 @@ services:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
       # All service ports to expose via HTTPS
-      # WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed stale ports (8945,8080,51515,5678,3007,9000,9443,8288,8091)
-      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,9091,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,8085,9925,5984,9898,8123,8191,6500"
+      # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr
+      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,8085,9925,5984,9898,8123,8191,6500"
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_MARKER_FILE: /https-marker/setup-complete
@@ -811,8 +818,8 @@ services:
     environment:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
-      # WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed stale ports (8945,8080,51515,5678,3007,9000,9443,8288,8091)
-      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,9091,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,8085,9925,5984,9898,8123,8191,6500"
+      # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr
+      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,8085,9925,5984,9898,8123,8191,6500"
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_SERVE_LOOP: "true"
@@ -1478,32 +1485,271 @@ services:
     labels:
       - "autoheal=true"
 
-  # Maintainerr - DISABLED: Media library cleanup
-  # maintainerr:
-  #   image: jorenn92/maintainerr:${MAINTAINERR_TAG:-latest}
-  #   container_name: maintainerr
-  #   logging: *default-logging
-  #   ports:
-  #     - "${HOST_BIND:-127.0.0.1}:6246:6246"
-  #   environment:
-  #     <<: *common-env
-  #   volumes:
-  #     - maintainerr-data:/opt/data
-  #   networks:
-  #     - potatostack
-  #   restart: unless-stopped
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: "0.25"
-  #         memory: 192M
-  #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.maintainerr.rule=Host(`maintainerr.${HOST_DOMAIN:-local.domain}`)"
-  #     - "traefik.http.routers.maintainerr.entrypoints=websecure"
-  #     - "traefik.http.routers.maintainerr.tls=true"
-  #     - "traefik.http.services.maintainerr.loadbalancer.server.port=6246"
-  #     - "traefik.http.routers.maintainerr.middlewares=sso-chain@docker"
+  # Maintainerr - Rules-based media library cleanup
+  maintainerr:
+    image: jorenn92/maintainerr:${MAINTAINERR_TAG:-latest}
+    container_name: maintainerr
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:6246:6246"
+    environment:
+      <<: *common-env
+    volumes:
+      - maintainerr-data:/opt/data
+    networks:
+      - potatostack
+    depends_on:
+      - sonarr
+      - radarr
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:6246/api/health || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.maintainerr.rule=Host(`maintainerr.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.maintainerr.entrypoints=websecure"
+      - "traefik.http.routers.maintainerr.tls=true"
+      - "traefik.http.services.maintainerr.loadbalancer.server.port=6246"
+      - "traefik.http.routers.maintainerr.middlewares=sso-chain@docker"
+
+  # Recyclarr - TRaSH Guides quality profile sync
+  recyclarr:
+    image: ghcr.io/recyclarr/recyclarr:${RECYCLARR_TAG:-latest}
+    container_name: recyclarr
+    logging: *default-logging
+    user: 1000:1000
+    environment:
+      <<: *common-env
+      RECYCLARR_CREATE_CONFIG: "true"
+    volumes:
+      - /mnt/ssd/docker-data/recyclarr:/config
+    networks:
+      - potatostack
+    depends_on:
+      - sonarr
+      - radarr
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
+
+  # Unpackerr - Extracts archived downloads for *arrs
+  unpackerr:
+    image: ghcr.io/hotio/unpackerr:${UNPACKERR_TAG:-latest}
+    container_name: unpackerr
+    logging: *default-logging
+    environment:
+      <<: *common-env
+      UMASK: "002"
+      # Sonarr config
+      UN_SONARR_0_URL: http://gluetun:8989
+      UN_SONARR_0_API_KEY: ${SONARR_API_KEY:-}
+      UN_SONARR_0_PATHS_0: /downloads/tv
+      UN_SONARR_0_PROTOCOLS: torrent
+      UN_SONARR_0_TIMEOUT: 10s
+      UN_SONARR_0_DELETE_DELAY: 5m
+      UN_SONARR_0_DELETE_ORIG: "false"
+      # Radarr config
+      UN_RADARR_0_URL: http://gluetun:7878
+      UN_RADARR_0_API_KEY: ${RADARR_API_KEY:-}
+      UN_RADARR_0_PATHS_0: /downloads/movies
+      UN_RADARR_0_PROTOCOLS: torrent
+      UN_RADARR_0_TIMEOUT: 10s
+      UN_RADARR_0_DELETE_DELAY: 5m
+      UN_RADARR_0_DELETE_ORIG: "false"
+      # Lidarr config
+      UN_LIDARR_0_URL: http://gluetun:8686
+      UN_LIDARR_0_API_KEY: ${LIDARR_API_KEY:-}
+      UN_LIDARR_0_PATHS_0: /downloads/music
+      UN_LIDARR_0_PROTOCOLS: torrent
+      UN_LIDARR_0_TIMEOUT: 10s
+      UN_LIDARR_0_DELETE_DELAY: 5m
+      UN_LIDARR_0_DELETE_ORIG: "false"
+    volumes:
+      - /mnt/storage/downloads:/downloads
+    networks:
+      - potatostack
+    depends_on:
+      - sonarr
+      - radarr
+      - lidarr
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+
+  # Notifiarr - Unified notifications for *arr stack
+  notifiarr:
+    image: golift/notifiarr:${NOTIFIARR_TAG:-latest}
+    container_name: notifiarr
+    logging: *default-logging
+    hostname: potatostack
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:5454:5454"
+    environment:
+      <<: *common-env
+      DN_API_KEY: ${NOTIFIARR_API_KEY:-}
+      DN_UI_PASSWORD: ${NOTIFIARR_UI_PASSWORD:-}
+      # Sonarr
+      DN_SONARR_0_URL: http://gluetun:8989
+      DN_SONARR_0_API_KEY: ${SONARR_API_KEY:-}
+      # Radarr
+      DN_RADARR_0_URL: http://gluetun:7878
+      DN_RADARR_0_API_KEY: ${RADARR_API_KEY:-}
+      # Lidarr
+      DN_LIDARR_0_URL: http://gluetun:8686
+      DN_LIDARR_0_API_KEY: ${LIDARR_API_KEY:-}
+      # Prowlarr
+      DN_PROWLARR_0_URL: http://gluetun:9696
+      DN_PROWLARR_0_API_KEY: ${PROWLARR_API_KEY:-}
+    volumes:
+      - /mnt/ssd/docker-data/notifiarr:/config
+      - /var/run/utmp:/var/run/utmp:ro
+    networks:
+      - potatostack
+    depends_on:
+      - sonarr
+      - radarr
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5454/"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 192M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.notifiarr.rule=Host(`notifiarr.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.notifiarr.entrypoints=websecure"
+      - "traefik.http.routers.notifiarr.tls=true"
+      - "traefik.http.services.notifiarr.loadbalancer.server.port=5454"
+      - "traefik.http.routers.notifiarr.middlewares=sso-chain@docker"
+
+  # Exportarr - Prometheus metrics exporter for *arr stack
+  exportarr:
+    image: ghcr.io/onedr0p/exportarr:${EXPORTARR_TAG:-latest}
+    container_name: exportarr-sonarr
+    logging: *default-logging
+    command: ["sonarr"]
+    environment:
+      PORT: "9707"
+      URL: http://gluetun:8989
+      APIKEY: ${SONARR_API_KEY:-}
+      ENABLE_ADDITIONAL_METRICS: "true"
+      ENABLE_UNKNOWN_QUEUE_ITEMS: "true"
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:9707:9707"
+    networks:
+      - potatostack
+    depends_on:
+      - sonarr
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
+
+  exportarr-radarr:
+    image: ghcr.io/onedr0p/exportarr:${EXPORTARR_TAG:-latest}
+    container_name: exportarr-radarr
+    logging: *default-logging
+    command: ["radarr"]
+    environment:
+      PORT: "9708"
+      URL: http://gluetun:7878
+      APIKEY: ${RADARR_API_KEY:-}
+      ENABLE_ADDITIONAL_METRICS: "true"
+      ENABLE_UNKNOWN_QUEUE_ITEMS: "true"
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:9708:9708"
+    networks:
+      - potatostack
+    depends_on:
+      - radarr
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
+
+  exportarr-lidarr:
+    image: ghcr.io/onedr0p/exportarr:${EXPORTARR_TAG:-latest}
+    container_name: exportarr-lidarr
+    logging: *default-logging
+    command: ["lidarr"]
+    environment:
+      PORT: "9709"
+      URL: http://gluetun:8686
+      APIKEY: ${LIDARR_API_KEY:-}
+      ENABLE_ADDITIONAL_METRICS: "true"
+      ENABLE_UNKNOWN_QUEUE_ITEMS: "true"
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:9709:9709"
+    networks:
+      - potatostack
+    depends_on:
+      - lidarr
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
+
+  exportarr-prowlarr:
+    image: ghcr.io/onedr0p/exportarr:${EXPORTARR_TAG:-latest}
+    container_name: exportarr-prowlarr
+    logging: *default-logging
+    command: ["prowlarr"]
+    environment:
+      PORT: "9710"
+      URL: http://gluetun:9696
+      APIKEY: ${PROWLARR_API_KEY:-}
+      ENABLE_ADDITIONAL_METRICS: "true"
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:9710:9710"
+    networks:
+      - potatostack
+    depends_on:
+      - prowlarr
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
 
   ################################################################################
   # MEDIA SERVERS & REQUEST MANAGEMENT
@@ -1667,6 +1913,62 @@ services:
       - "traefik.http.routers.jellyseerr-webhook.tls=true"
       - "traefik.http.services.jellyseerr-webhook.loadbalancer.server.port:8082"
 
+  # Tdarr - Distributed transcoding system for optimizing media library
+  # tdarr:
+  #   image: ghcr.io/haveagitgat/tdarr:${TDARR_TAG:-latest}
+  #   container_name: tdarr
+  #   logging: *default-logging
+  #   ports:
+  #     - "${HOST_BIND:-127.0.0.1}:8265:8265"
+  #     - "${HOST_BIND:-127.0.0.1}:8266:8266"
+  #   environment:
+  #     <<: *common-env
+  #     serverIP: 0.0.0.0
+  #     serverPort: 8266
+  #     webUIPort: 8265
+  #     internalNode: "true"
+  #     inContainer: "true"
+  #     ffmpegVersion: "6"
+  #     nodeName: potatostack-node
+  #   devices:
+  #     - /dev/dri/renderD128:/dev/dri/renderD128
+  #     - /dev/dri/card0:/dev/dri/card0
+  #   group_add:
+  #     - "109"
+  #   volumes:
+  #     - /mnt/ssd/docker-data/tdarr/server:/app/server
+  #     - /mnt/ssd/docker-data/tdarr/configs:/app/configs
+  #     - /mnt/ssd/docker-data/tdarr/logs:/app/logs
+  #     - /mnt/cachehdd/tdarr/transcode_cache:/temp
+  #     - /mnt/storage/media/movies:/media/movies
+  #     - /mnt/storage/media/tv:/media/tv
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - storage-init
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -f http://127.0.0.1:8265/ || exit 1"]
+  #     interval: 60s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 60s
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "2.0"
+  #         memory: 2G
+  #       reservations:
+  #         cpus: "0.5"
+  #         memory: 512M
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.tdarr.rule=Host(`tdarr.${HOST_DOMAIN:-local.domain}`)"
+  #     - "traefik.http.routers.tdarr.entrypoints=websecure"
+  #     - "traefik.http.routers.tdarr.tls=true"
+  #     - "traefik.http.services.tdarr.loadbalancer.server.port=8265"
+  #     - "traefik.http.routers.tdarr.middlewares=sso-chain@docker"
+
   # Audiobookshelf - Audiobook and podcast server
   audiobookshelf:
     image: ghcr.io/advplyr/audiobookshelf:${AUDIOBOOKSHELF_TAG:-latest}
@@ -1821,6 +2123,42 @@ services:
         reservations:
           cpus: "0.25"
           memory: 192M
+    labels:
+      - "autoheal=true"
+
+  # SABnzbd - Usenet download client (for Torbox/Eweka usenet)
+  sabnzbd:
+    image: lscr.io/linuxserver/sabnzbd:${SABNZBD_TAG:-latest}
+    container_name: sabnzbd
+    logging: *default-logging
+    network_mode: "service:gluetun"
+    environment:
+      <<: *common-env
+    volumes:
+      - sabnzbd-config:/config
+      - /mnt/storage/downloads:/downloads
+      - /mnt/cachehdd/downloads/usenet:/incomplete-downloads
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+      storage-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8080/api?mode=version || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
     labels:
       - "autoheal=true"
 
@@ -1997,6 +2335,32 @@ services:
     labels:
       - "autoheal=true"
       - "potatostack.alerts=critical"
+
+  # Soularr - Bridge between Lidarr and Soulseek (slskd)
+  soularr:
+    image: mrusse08/soularr:${SOULARR_TAG:-latest}
+    container_name: soularr
+    logging: *default-logging
+    environment:
+      <<: *common-env
+      SCRIPT_INTERVAL: 300
+    volumes:
+      - /mnt/ssd/docker-data/soularr:/data
+      - /mnt/storage/downloads/slskd:/downloads/slskd
+    networks:
+      - potatostack
+    depends_on:
+      - lidarr
+      - slskd
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
 
   # pyLoad-ng - Web-based download manager (HTTP/FTP/etc)
   # WebUI: 8076 (external) -> 8000 (internal), Click'n'Load: 9666
@@ -2782,89 +3146,89 @@ services:
   #     - "traefik.http.routers.stirling.middlewares=sso-chain@docker"
 
   ################################################################################
-  # Karakeep - AI-powered bookmark manager (replaces Linkding)
+  # Karakeep - AI-powered bookmark manager (DISABLED - replaced by Homer dashboard)
   ################################################################################
 
-  karakeep:
-    image: ghcr.io/karakeep-app/karakeep:${KARAKEEP_TAG:-release}
-    container_name: karakeep
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-127.0.0.1}:9091:3000"
-    environment:
-      <<: *common-env
-      DATA_DIR: /data
-      NEXTAUTH_SECRET: ${KARAKEEP_NEXTAUTH_SECRET}
-      MEILI_MASTER_KEY: ${KARAKEEP_MEILI_MASTER_KEY}
-      MEILI_ADDR: http://karakeep-meilisearch:7700
-      BROWSER_WEB_URL: http://karakeep-chrome:9222
-      OPENAI_API_KEY: ${KARAKEEP_OPENAI_API_KEY:-}
-      OLLAMA_BASE_URL: ${KARAKEEP_OLLAMA_BASE_URL:-}
-      DISABLE_SIGNUPS: ${KARAKEEP_DISABLE_SIGNUPS:-false}
-    volumes:
-      - /mnt/ssd/docker-data/karakeep:/data
-    networks:
-      - potatostack
-    depends_on:
-      - karakeep-meilisearch
-      - karakeep-chrome
-      - postgres
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 768M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.karakeep.rule=Host(`karakeep.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.karakeep.entrypoints=websecure"
-      - "traefik.http.routers.karakeep.tls=true"
-      - "traefik.http.services.karakeep.loadbalancer.server.port=3000"
-      - "traefik.http.routers.karakeep.middlewares=sso-chain@docker"
-      - "wud.trigger.docker.update=true"
+  # karakeep:
+  #   image: ghcr.io/karakeep-app/karakeep:${KARAKEEP_TAG:-release}
+  #   container_name: karakeep
+  #   logging: *default-logging
+  #   ports:
+  #     - "${HOST_BIND:-127.0.0.1}:9091:3000"
+  #   environment:
+  #     <<: *common-env
+  #     DATA_DIR: /data
+  #     NEXTAUTH_SECRET: ${KARAKEEP_NEXTAUTH_SECRET}
+  #     MEILI_MASTER_KEY: ${KARAKEEP_MEILI_MASTER_KEY}
+  #     MEILI_ADDR: http://karakeep-meilisearch:7700
+  #     BROWSER_WEB_URL: http://karakeep-chrome:9222
+  #     OPENAI_API_KEY: ${KARAKEEP_OPENAI_API_KEY:-}
+  #     OLLAMA_BASE_URL: ${KARAKEEP_OLLAMA_BASE_URL:-}
+  #     DISABLE_SIGNUPS: ${KARAKEEP_DISABLE_SIGNUPS:-false}
+  #   volumes:
+  #     - /mnt/ssd/docker-data/karakeep:/data
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - karakeep-meilisearch
+  #     - karakeep-chrome
+  #     - postgres
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.5"
+  #         memory: 768M
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.karakeep.rule=Host(`karakeep.${HOST_DOMAIN:-local.domain}`)"
+  #     - "traefik.http.routers.karakeep.entrypoints=websecure"
+  #     - "traefik.http.routers.karakeep.tls=true"
+  #     - "traefik.http.services.karakeep.loadbalancer.server.port=3000"
+  #     - "traefik.http.routers.karakeep.middlewares=sso-chain@docker"
+  #     - "wud.trigger.docker.update=true"
 
-  karakeep-chrome:
-    image: gcr.io/zenika-hub/alpine-chrome:${KARAKEEP_CHROME_TAG:-123}
-    container_name: karakeep-chrome
-    logging: *default-logging
-    command:
-      - --no-sandbox
-      - --disable-gpu
-      - --disable-dev-shm-usage
-      - --remote-debugging-address=0.0.0.0
-      - --remote-debugging-port=9222
-      - --hide-scrollbars
-    networks:
-      - potatostack
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 256M
-    labels:
-      - "wud.trigger.docker.update=true"
+  # karakeep-chrome:
+  #   image: gcr.io/zenika-hub/alpine-chrome:${KARAKEEP_CHROME_TAG:-123}
+  #   container_name: karakeep-chrome
+  #   logging: *default-logging
+  #   command:
+  #     - --no-sandbox
+  #     - --disable-gpu
+  #     - --disable-dev-shm-usage
+  #     - --remote-debugging-address=0.0.0.0
+  #     - --remote-debugging-port=9222
+  #     - --hide-scrollbars
+  #   networks:
+  #     - potatostack
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.25"
+  #         memory: 256M
+  #   labels:
+  #     - "wud.trigger.docker.update=true"
 
-  karakeep-meilisearch:
-    image: getmeili/meilisearch:${KARAKEEP_MEILISEARCH_TAG:-v1.13.3}
-    container_name: karakeep-meilisearch
-    logging: *default-logging
-    environment:
-      MEILI_MASTER_KEY: ${KARAKEEP_MEILI_MASTER_KEY}
-      MEILI_NO_ANALYTICS: "true"
-    volumes:
-      - /mnt/ssd/docker-data/karakeep-meilisearch:/meili_data
-    networks:
-      - potatostack
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 256M
-    labels:
-      - "wud.trigger.docker.update=true"
+  # karakeep-meilisearch:
+  #   image: getmeili/meilisearch:${KARAKEEP_MEILISEARCH_TAG:-v1.13.3}
+  #   container_name: karakeep-meilisearch
+  #   logging: *default-logging
+  #   environment:
+  #     MEILI_MASTER_KEY: ${KARAKEEP_MEILI_MASTER_KEY}
+  #     MEILI_NO_ANALYTICS: "true"
+  #   volumes:
+  #     - /mnt/ssd/docker-data/karakeep-meilisearch:/meili_data
+  #   networks:
+  #     - potatostack
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.25"
+  #         memory: 256M
+  #   labels:
+  #     - "wud.trigger.docker.update=true"
 
   # Code-server - DISABLED: VS Code in browser
   # code-server:
@@ -3356,65 +3720,102 @@ services:
           cpus: "0.1"
           memory: 64M
 
-  # Homarr - Modern drag-and-drop dashboard with 30+ integrations (homarr-labs v1.x)
-  homarr:
-    image: ghcr.io/homarr-labs/homarr:${HOMARR_TAG:-latest}
-    container_name: homarr
+  # Homer - Static dashboard (SOTA 2025 - lightweight, fast, YAML-configured)
+  homer:
+    image: b4bz/homer:${HOMER_TAG:-latest}
+    container_name: homer
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-127.0.0.1}:7575:7575"
+      - "${HOST_BIND:-127.0.0.1}:7575:8080"
     environment:
       <<: *common-env
-      # Encryption key (generate with: openssl rand -hex 32)
-      SECRET_ENCRYPTION_KEY: ${HOMARR_SECRET_KEY:-f95cefcebd962e7b56b1cb4e1a166c756cf7b821c91e759cfb7fd2995be4517a}
-      # Database - PostgreSQL for persistence
-      DRIVER: nodePostgres
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: homarr
-      DB_USER: postgres
-      DB_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      # Docker integration via socket-proxy (v1.x format)
-      DOCKER_HOSTNAMES: socket-proxy
-      DOCKER_PORTS: 2375
-      # Use external Redis (shared redis-cache)
-      REDIS_IS_EXTERNAL: "true"
-      REDIS_HOST: redis-cache
-      REDIS_PORT: 6379
-      REDIS_DATABASE_INDEX: 7
+      INIT_ASSETS: "0"
     volumes:
-      - /mnt/ssd/docker-data/homarr:/appdata
+      - ./config/homer:/www/assets:ro
     networks:
       - potatostack
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis-cache:
-        condition: service_healthy
-      socket-proxy:
-        condition: service_started
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:7575/ || exit 1"]
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:8080/ || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
     deploy:
       resources:
         limits:
-          cpus: "1.0"
-          memory: 512M
+          cpus: "0.1"
+          memory: 32M
         reservations:
-          cpus: "0.25"
-          memory: 256M
+          cpus: "0.01"
+          memory: 16M
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.homarr.rule=Host(`home.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.homarr.entrypoints=websecure"
-      - "traefik.http.routers.homarr.tls=true"
-      - "traefik.http.routers.homarr.middlewares=sso-chain@docker"
-      - "traefik.http.services.homarr.loadbalancer.server.port=7575"
+      - "traefik.http.routers.homer.rule=Host(`home.${HOST_DOMAIN:-local.domain}`)"
+      - "traefik.http.routers.homer.entrypoints=websecure"
+      - "traefik.http.routers.homer.tls=true"
+      - "traefik.http.routers.homer.middlewares=sso-chain@docker"
+      - "traefik.http.services.homer.loadbalancer.server.port=8080"
       - "wud.trigger.docker.update=true"
+
+  # Homarr - DISABLED: Replaced by Homer (lighter weight, no DB dependency)
+  # homarr:
+  #   image: ghcr.io/homarr-labs/homarr:${HOMARR_TAG:-latest}
+  #   container_name: homarr
+  #   logging: *default-logging
+  #   ports:
+  #     - "${HOST_BIND:-127.0.0.1}:7575:7575"
+  #   environment:
+  #     <<: *common-env
+  #     # Encryption key (generate with: openssl rand -hex 32)
+  #     SECRET_ENCRYPTION_KEY: ${HOMARR_SECRET_KEY:-f95cefcebd962e7b56b1cb4e1a166c756cf7b821c91e759cfb7fd2995be4517a}
+  #     # Database - PostgreSQL for persistence
+  #     DRIVER: nodePostgres
+  #     DB_HOST: postgres
+  #     DB_PORT: 5432
+  #     DB_NAME: homarr
+  #     DB_USER: postgres
+  #     DB_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+  #     # Docker integration via socket-proxy (v1.x format)
+  #     DOCKER_HOSTNAMES: socket-proxy
+  #     DOCKER_PORTS: 2375
+  #     # Use external Redis (shared redis-cache)
+  #     REDIS_IS_EXTERNAL: "true"
+  #     REDIS_HOST: redis-cache
+  #     REDIS_PORT: 6379
+  #     REDIS_DATABASE_INDEX: 7
+  #   volumes:
+  #     - /mnt/ssd/docker-data/homarr:/appdata
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis-cache:
+  #       condition: service_healthy
+  #     socket-proxy:
+  #       condition: service_started
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:7575/ || exit 1"]
+  #     interval: 60s
+  #     timeout: 10s
+  #     retries: 3
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "1.0"
+  #         memory: 512M
+  #       reservations:
+  #         cpus: "0.25"
+  #         memory: 256M
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.homarr.rule=Host(`home.${HOST_DOMAIN:-local.domain}`)"
+  #     - "traefik.http.routers.homarr.entrypoints=websecure"
+  #     - "traefik.http.routers.homarr.tls=true"
+  #     - "traefik.http.routers.homarr.middlewares=sso-chain@docker"
+  #     - "traefik.http.services.homarr.loadbalancer.server.port=7575"
+  #     - "wud.trigger.docker.update=true"
 
   # Dockge - Modern Docker Compose stack manager (SOTA 2025)
   ################################################################################
@@ -4038,7 +4439,7 @@ services:
     container_name: velld-api
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-127.0.0.1}:8085:8080"
+      - "${HOST_BIND:-127.0.0.1}:8083:8080"
     environment:
       <<: *common-env
       JWT_SECRET: ${VELLD_JWT_SECRET}
@@ -4262,6 +4663,7 @@ volumes:
   # Downloads
   rdt-client-data:
   qbittorrent-config:
+  sabnzbd-config:
   aria2-config:
   pyload-config:
   slskd-config:

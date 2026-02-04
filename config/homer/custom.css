@@ -1,0 +1,240 @@
+/* PotatoStack Homer - SOTA 2025 Dark Theme */
+/* Pure black minimalist design with smooth transitions */
+
+:root {
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Global dark mode enforcement */
+body {
+  font-family: var(--font-family);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Header styling */
+.navbar {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.8) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Logo and title */
+.logo img {
+  filter: brightness(1.1);
+}
+
+.first-line .headline {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* Card styling */
+.card {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.card-content {
+  padding: 1rem;
+}
+
+/* Service icons */
+.card .media-left img {
+  border-radius: 8px;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+/* Group headers */
+.group-title {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.85rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 1rem;
+}
+
+.group-title i {
+  margin-right: 0.5rem;
+  opacity: 0.7;
+}
+
+/* Search bar */
+#bighead .search-bar {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+#bighead .search-bar input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #fff;
+  padding: 0.75rem 1rem;
+  transition: all 0.2s ease;
+}
+
+#bighead .search-bar input:focus {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.2);
+}
+
+#bighead .search-bar input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Status indicators */
+.status {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.status.online {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.status.offline {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+/* Tags */
+.tag {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Footer */
+footer {
+  padding: 2rem 0;
+  font-size: 0.85rem;
+  opacity: 0.6;
+}
+
+footer a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  transition: border-color 0.2s ease;
+}
+
+footer a:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Message banners */
+.message {
+  border-radius: 8px;
+  border: none;
+  margin-bottom: 1.5rem;
+}
+
+.message.is-info {
+  background: rgba(74, 158, 255, 0.1);
+  border-left: 3px solid #4a9eff;
+}
+
+.message.is-warning {
+  background: rgba(251, 191, 36, 0.1);
+  border-left: 3px solid #fbbf24;
+}
+
+.message.is-danger {
+  background: rgba(239, 68, 68, 0.1);
+  border-left: 3px solid #ef4444;
+}
+
+.message.is-success {
+  background: rgba(16, 185, 129, 0.1);
+  border-left: 3px solid #10b981;
+}
+
+/* Links in header */
+.links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  transition: all 0.2s ease;
+}
+
+.links a:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 768px) {
+  .card {
+    margin-bottom: 0.75rem;
+  }
+
+  .card .media-left img {
+    width: 40px;
+    height: 40px;
+  }
+
+  .group-title {
+    font-size: 0.8rem;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Smooth page load */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.container {
+  animation: fadeIn 0.3s ease-out;
+}
