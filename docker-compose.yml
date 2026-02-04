@@ -62,11 +62,11 @@ services:
     command:
       - "postgres"
       - "-c"
-      - "shared_buffers=1GB"
+      - "shared_buffers=256MB"
       - "-c"
-      - "effective_cache_size=3GB"
+      - "effective_cache_size=1GB"
       - "-c"
-      - "work_mem=16MB"
+      - "work_mem=8MB"
       - "-c"
       - "maintenance_work_mem=256MB"
       - "-c"
@@ -155,7 +155,7 @@ services:
     logging: *default-logging
     command:
       - "mongod"
-      - "--wiredTigerCacheSizeGB=1.5"
+      - "--wiredTigerCacheSizeGB=0.5"
       - "--wiredTigerJournalCompressor=snappy"
       - "--bind_ip_all"
     environment:
@@ -192,7 +192,7 @@ services:
     image: redis:${REDIS_TAG:-7-alpine}
     container_name: redis-cache
     logging: *default-logging
-    command: redis-server --maxmemory 1gb --maxmemory-policy allkeys-lfu --databases 16 --activedefrag yes --lazyfree-lazy-eviction yes --lazyfree-lazy-expire yes --lazyfree-lazy-server-del yes --save 60 1000 --appendonly yes --appendfsync everysec
+    command: redis-server --maxmemory 384mb --maxmemory-policy allkeys-lfu --databases 16 --activedefrag yes --lazyfree-lazy-eviction yes --lazyfree-lazy-expire yes --lazyfree-lazy-server-del yes --save 60 1000 --appendonly yes --appendfsync everysec
     volumes:
       - /mnt/ssd/docker-data/redis-cache:/data
     tmpfs:
@@ -1867,7 +1867,10 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 192M
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.jellyseerr.rule=Host(`jellyseerr.${HOST_DOMAIN:-local.domain}`)"
@@ -2545,6 +2548,14 @@ services:
     networks:
       - potatostack
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
 
   ################################################################################
   # MONITORING & OBSERVABILITY
@@ -3058,7 +3069,10 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 192M
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.healthchecks.rule=Host(`healthchecks.${HOST_DOMAIN:-local.domain}`)"
@@ -3948,6 +3962,14 @@ services:
       ntfy:
         condition: service_healthy
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
 
   ################################################################################
   # SYSTEM UTILITIES
@@ -4025,8 +4047,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.25"
+          cpus: "0.5"
           memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.wud.rule=Host(`wud.${HOST_DOMAIN:-local.domain}`)"
@@ -4319,6 +4344,14 @@ services:
     networks:
       - potatostack
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
 
   # DB Health Monitor
   db-health-monitor:
@@ -4352,6 +4385,14 @@ services:
     networks:
       - potatostack
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
 
   # Tailscale Connectivity Monitor
   tailscale-connectivity-monitor:
@@ -4375,61 +4416,21 @@ services:
       - ./scripts/monitor/tailscale-connectivity-monitor.sh:/tailscale-connectivity-monitor.sh:ro
       - ./scripts/monitor/notify.sh:/notify.sh:ro
     depends_on:
-      - tailscale
-    networks:
-      - potatostack
-    restart: unless-stopped
-
-  # Internet Connectivity Monitor
-  internet-connectivity-monitor:
-    image: alpine:${ALPINE_TAG:-3.21}
-    container_name: internet-connectivity-monitor
-    logging: *default-logging
-    entrypoint: sh /internet-connectivity-monitor.sh
-    environment:
-      INTERNET_CHECK_INTERVAL: ${INTERNET_CHECK_INTERVAL:-30}
-      INTERNET_FAIL_THRESHOLD: ${INTERNET_FAIL_THRESHOLD:-3}
-      INTERNET_CHECK_TIMEOUT: ${INTERNET_CHECK_TIMEOUT:-5}
-      INTERNET_CHECK_URLS: ${INTERNET_CHECK_URLS:-https://1.1.1.1 https://www.google.com/generate_204 https://cloudflare.com/cdn-cgi/trace}
-      NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
-      NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
-      NTFY_TOKEN: ${NTFY_TOKEN:-}
-      NTFY_DEFAULT_TAGS: ${NTFY_DEFAULT_TAGS:-potatostack,monitor}
-      NTFY_DEFAULT_PRIORITY: ${NTFY_DEFAULT_PRIORITY:-default}
-    volumes:
-      - ./scripts/monitor/internet-connectivity-monitor.sh:/internet-connectivity-monitor.sh:ro
-      - ./scripts/monitor/notify.sh:/notify.sh:ro
-    networks:
-      - potatostack
-    restart: unless-stopped
-
-  # slskd Queue & Download Monitor
-  slskd-queue-monitor:
-    image: alpine:${ALPINE_TAG:-3.21}
-    container_name: slskd-queue-monitor
-    logging: *default-logging
-    entrypoint: sh /slskd-queue-monitor.sh
-    environment:
-      SLSKD_DB_PATH: /slskd/data/transfers.db
-      SLSKD_QUEUE_CHECK_INTERVAL: ${SLSKD_QUEUE_CHECK_INTERVAL:-60}
-      SLSKD_QUEUE_WARN_PERCENT: ${SLSKD_QUEUE_WARN_PERCENT:-80}
-      SLSKD_QUEUE_FILES: ${SLSKD_QUEUE_FILES:-500}
-      SLSKD_NOTIFY_LIMIT: ${SLSKD_NOTIFY_LIMIT:-5}
-      NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
-      NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
-      NTFY_TOKEN: ${NTFY_TOKEN:-}
-      NTFY_DEFAULT_TAGS: ${NTFY_DEFAULT_TAGS:-potatostack,monitor}
-      NTFY_DEFAULT_PRIORITY: ${NTFY_DEFAULT_PRIORITY:-default}
-    volumes:
-      - slskd-config:/slskd:ro
-      - ./scripts/monitor/slskd-queue-monitor.sh:/slskd-queue-monitor.sh:ro
-      - ./scripts/monitor/notify.sh:/notify.sh:ro
-    networks:
-      - potatostack
-    depends_on:
       - slskd
+    networks:
+      - potatostack
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
 
+  ################################################################################
+  # Velld - Database Backup Scheduler (Postgres, Mongo, Redis)
   ################################################################################
   # Velld - Database Backup Scheduler (Postgres, Mongo, Redis)
   ################################################################################
