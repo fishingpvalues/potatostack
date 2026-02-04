@@ -1450,8 +1450,7 @@ services:
     image: lscr.io/linuxserver/bazarr:${BAZARR_TAG:-latest}
     container_name: bazarr
     logging: *default-logging
-    ports:
-      - "${HOST_BIND:-127.0.0.1}:6767:6767"
+    network_mode: "service:gluetun"
     environment:
       <<: *common-env
     volumes:
@@ -1460,11 +1459,9 @@ services:
       - /mnt/storage/media/tv:/tv
     tmpfs:
       - /tmp:exec,mode=1777,size=500m
-    networks:
-      - potatostack
     depends_on:
-      prowlarr:
-        condition: service_started
+      gluetun:
+        condition: service_healthy
       storage-init:
         condition: service_completed_successfully
     restart: unless-stopped
