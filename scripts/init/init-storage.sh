@@ -312,8 +312,8 @@ mkdir -p \
 	"${SSD_BASE}/backrest/data" \
 	"${SSD_BASE}/backrest/config" \
 	"${SSD_BASE}/recyclarr" \
-	"${SSD_BASE}/notifiarr" \
-	"${SSD_BASE}/uptime-kuma"
+	"${SSD_BASE}/notifiarr"
+# "${SSD_BASE}/uptime-kuma" # DISABLED
 
 # System directory on SSD (cron, etc)
 mkdir -p "/mnt/ssd/system/cron"
@@ -509,8 +509,8 @@ chown -R 472:472 "${SSD_BASE}/grafana"
 # Notifiarr (UID 1000) - ensure proper ownership
 [ -d "${SSD_BASE}/notifiarr" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/notifiarr"
 
-# Uptime-Kuma (UID 1000)
-[ -d "${SSD_BASE}/uptime-kuma" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/uptime-kuma"
+# Uptime-Kuma (UID 1000) - DISABLED
+# [ -d "${SSD_BASE}/uptime-kuma" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/uptime-kuma"
 
 # Velld (UID 1000)
 [ -d "${SSD_BASE}/velld" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/velld"

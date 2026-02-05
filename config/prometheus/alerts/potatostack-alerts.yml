@@ -367,16 +367,17 @@ groups:
   - name: Uptime Monitoring
     interval: 60s
     rules:
-      - alert: UptimeKumaDown
-        expr: time() - container_last_seen{container_label_com_docker_compose_service="uptime-kuma"} > 120
-        for: 2m
-        labels:
-          severity: critical
-          component: monitoring
-        annotations:
-          summary: "📊 Uptime Kuma DOWN"
-          description: "Uptime Kuma monitoring service container has not been seen for > 2 minutes."
-          runbook: "Check: docker logs uptime-kuma"
+      # DISABLED - uptime-kuma service removed
+      # - alert: UptimeKumaDown
+      #   expr: time() - container_last_seen{container_label_com_docker_compose_service="uptime-kuma"} > 120
+      #   for: 2m
+      #   labels:
+      #     severity: critical
+      #     component: monitoring
+      #   annotations:
+      #     summary: "📊 Uptime Kuma DOWN"
+      #     description: "Uptime Kuma monitoring service container has not been seen for > 2 minutes."
+      #     runbook: "Check: docker logs uptime-kuma"
 
       - alert: HealthchecksDown
         expr: time() - container_last_seen{container_label_com_docker_compose_service="healthchecks"} > 120

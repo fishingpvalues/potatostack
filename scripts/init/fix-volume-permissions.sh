@@ -36,11 +36,11 @@ if [ -d "${SSD_BASE}/notifiarr" ]; then
 	chown -R "${PUID}:${PGID}" "${SSD_BASE}/notifiarr"
 fi
 
-# Uptime-Kuma (UID 1000)
-if [ -d "${SSD_BASE}/uptime-kuma" ]; then
-	echo "  Fixing uptime-kuma permissions..."
-	chown -R "${PUID}:${PGID}" "${SSD_BASE}/uptime-kuma"
-fi
+# Uptime-Kuma (UID 1000) - DISABLED
+# if [ -d "${SSD_BASE}/uptime-kuma" ]; then
+# 	echo "  Fixing uptime-kuma permissions..."
+# 	chown -R "${PUID}:${PGID}" "${SSD_BASE}/uptime-kuma"
+# fi
 
 # Velld (UID 1000)
 if [ -d "${SSD_BASE}/velld" ]; then

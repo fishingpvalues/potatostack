@@ -79,13 +79,6 @@ services:
         target: "_blank"
         type: "Prometheus"
 
-      - name: "Uptime Kuma"
-        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/uptime-kuma.png"
-        subtitle: "Service Monitoring"
-        url: "https://potatostack.tale-iwato.ts.net:3001"
-        target: "_blank"
-        type: "UptimeKuma"
-
       - name: "Healthchecks"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/healthchecks.png"
         subtitle: "Cron Job Monitoring"

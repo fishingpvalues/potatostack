@@ -84,7 +84,7 @@ sleep 3
 # Phase 5: Start monitoring
 echo ""
 echo "[5/8] Starting Monitoring (Phase 3)..."
-docker compose up -d prometheus grafana loki netdata uptime-kuma 2>&1 | grep -v "^$"
+docker compose up -d prometheus grafana loki netdata 2>&1 | grep -v "^$"
 sleep 3
 
 # Phase 6: Start everything else
