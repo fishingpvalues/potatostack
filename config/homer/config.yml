@@ -68,7 +68,7 @@ services:
       - name: "Grafana"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/grafana.png"
         subtitle: "Dashboards & Visualization"
-        url: "https://potatostack.tale-iwato.ts.net:3000"
+        url: "https://potatostack.tale-iwato.ts.net:3002"
         target: "_blank"
         type: "Ping"
 
@@ -295,7 +295,7 @@ services:
       - name: "Filebrowser"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/filebrowser.png"
         subtitle: "Web File Manager"
-        url: "https://potatostack.tale-iwato.ts.net:8089"
+        url: "https://potatostack.tale-iwato.ts.net:8086"
         target: "_blank"
         type: "Ping"
 
@@ -322,7 +322,7 @@ services:
       - name: "Woodpecker CI"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/woodpecker-ci.png"
         subtitle: "CI/CD Pipeline"
-        url: "https://potatostack.tale-iwato.ts.net:8081"
+        url: "https://potatostack.tale-iwato.ts.net:3006"
         target: "_blank"
         type: "Ping"
 
@@ -335,7 +335,7 @@ services:
       - name: "Vaultwarden"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/bitwarden.png"
         subtitle: "Password Manager"
-        url: "https://potatostack.tale-iwato.ts.net:8090"
+        url: "https://potatostack.tale-iwato.ts.net:8888"
         target: "_blank"
         type: "Ping"
 
@@ -355,7 +355,7 @@ services:
       - name: "SearXNG"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/searxng.png"
         subtitle: "Meta Search Engine"
-        url: "https://potatostack.tale-iwato.ts.net:8085"
+        url: "https://potatostack.tale-iwato.ts.net:8180"
         target: "_blank"
         type: "Ping"
 
