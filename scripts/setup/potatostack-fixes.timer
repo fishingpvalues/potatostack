@@ -1,0 +1,10 @@
+[Unit]
+Description=Run PotatoStack fixes every hour
+Requires=potatostack-periodic-fixes.service
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+
+[Install]
+WantedBy=timers.target

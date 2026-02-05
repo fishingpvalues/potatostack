@@ -676,6 +676,9 @@ services:
       - "${HOST_BIND:-127.0.0.1}:21027:21027/udp"
     environment:
       <<: *common-env
+      # Disable NAT traversal to prevent NAT-PMP errors in Docker
+      STNATPMPENABLED: "false"
+      STGLOBALFOLDERS: "false"
     volumes:
       - syncthing-config:/config
       - /mnt/storage/syncthing:/data
@@ -1818,11 +1821,11 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8080/api?mode=version || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8085/api?mode=version || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 60s
     deploy:
       resources:
         limits:
@@ -2411,8 +2414,22 @@ services:
     container_name: smartctl-exporter
     logging: *default-logging
     privileged: true
+    group_add:
+      - disk
+    devices:
+      - /dev/sda
+      - /dev/sda1
+      - /dev/sda2
+      - /dev/sda3
+      - /dev/sdb
+      - /dev/sdb1
+      - /dev/sdc
+      - /dev/sdc1
     command:
       - "--smartctl.path=/usr/sbin/smartctl"
+      - "--smartctl.device=/dev/sda"
+      - "--smartctl.device=/dev/sdb"
+      - "--smartctl.device=/dev/sdc"
     volumes:
       - /dev:/dev
       - /run/udev:/run/udev:ro
@@ -3588,6 +3605,10 @@ services:
       WUD_WATCHER_LOCAL_CRON: "0 */6 * * *"
       WUD_WATCHER_LOCAL_WATCHBYDEFAULT: "true"
       WUD_LOG_LEVEL: info
+      # Docker Hub authentication to avoid rate limits
+      WUD_REGISTRY_DOCKERHUB_LOGIN: ${DOCKERHUB_LOGIN:-}
+      WUD_REGISTRY_DOCKERHUB_PASSWORD: ${DOCKERHUB_PASSWORD:-}
+      WUD_REGISTRY_DOCKERHUB_TOKEN: ${DOCKERHUB_TOKEN:-}
       # ntfy trigger
       WUD_TRIGGER_NTFY_POTATOSTACK_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
       WUD_TRIGGER_NTFY_POTATOSTACK_TOPIC: ${NTFY_TOPIC:-potatostack}

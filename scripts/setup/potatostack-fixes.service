@@ -1,0 +1,15 @@
+[Unit]
+Description=PotatoStack Post-Start Fixes
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/home/daniel/potatostack
+ExecStart=/home/daniel/potatostack/scripts/setup/post-start-hook.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

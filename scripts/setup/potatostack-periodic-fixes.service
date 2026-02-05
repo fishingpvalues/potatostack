@@ -1,0 +1,14 @@
+[Unit]
+Description=PotatoStack Periodic Fixes
+After=docker.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/home/daniel/potatostack
+ExecStart=/home/daniel/potatostack/scripts/setup/apply-log-fixes.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -4,7 +4,8 @@
 	format-dockerfiles security health resources doctor fix init fix-permissions fix-configs startup \
 	fix-docker harden recovery \
 	firewall firewall-status firewall-install firewall-apply firewall-list firewall-reset firewall-allow firewall-deny \
-	tailscale-https tailscale-https-setup tailscale-https-monitor
+	tailscale-https tailscale-https-setup tailscale-https-monitor \
+	apply-fixes install-autofix uninstall-autofix
 
 # Detect OS and set appropriate docker command
 ifeq ($(shell test -d /data/data/com.termux && echo yes),yes)
@@ -308,6 +309,31 @@ firewall-deny: ## Deny a Docker container port (interactive)
 	@echo "Deny Docker container port through firewall..."
 	@chmod +x ./scripts/setup/setup-ufw-rules.sh
 	@sudo ./scripts/setup/setup-ufw-rules.sh deny
+
+################################################################################
+# Auto-Fix System
+################################################################################
+
+apply-fixes: ## Manually run system-level fixes
+	@echo "Running system-level fixes..."
+	@chmod +x ./scripts/setup/apply-log-fixes.sh
+	@sudo ./scripts/setup/apply-log-fixes.sh
+
+install-autofix: ## Install systemd services for automatic fixes
+	@echo "Installing PotatoStack auto-fix systemd services..."
+	@chmod +x ./scripts/setup/install-autofix.sh
+	@sudo ./scripts/setup/install-autofix.sh
+
+uninstall-autofix: ## Uninstall systemd services for automatic fixes
+	@echo "Uninstalling PotatoStack auto-fix systemd services..."
+	@sudo systemctl disable --now potatostack-fixes.timer 2>/dev/null || true
+	@sudo systemctl disable --now potatostack-fixes.service 2>/dev/null || true
+	@sudo systemctl disable --now potatostack-periodic-fixes.service 2>/dev/null || true
+	@sudo rm -f /etc/systemd/system/potatostack-fixes.service 2>/dev/null || true
+	@sudo rm -f /etc/systemd/system/potatostack-periodic-fixes.service 2>/dev/null || true
+	@sudo rm -f /etc/systemd/system/potatostack-fixes.timer 2>/dev/null || true
+	@sudo systemctl daemon-reload
+	@echo "✓ PotatoStack auto-fix services uninstalled"
 
 ################################################################################
 
