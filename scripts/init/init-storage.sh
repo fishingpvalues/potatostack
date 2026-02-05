@@ -10,7 +10,7 @@
 # - /mnt/ssd/docker-data: SSD - databases and app configs
 #
 # Note: All incomplete downloads moved from cachehdd to storagehdd:
-#   /mnt/storage/downloads/incomplete/{sonarr,radarr,lidarr,bookshelf,qbittorrent,sabnzbd,aria2,slskd,pyload}
+#   /mnt/storage/downloads/incomplete/{sonarr,radarr,lidarr,bookshelf,qbittorrent,sabnzbd,aria2,slskd,pyload,pinchflat}
 ################################################################################
 
 set -eu
@@ -185,7 +185,8 @@ mkdir -p \
 	"${STORAGE_BASE}/downloads/incomplete/sabnzbd" \
 	"${STORAGE_BASE}/downloads/incomplete/aria2" \
 	"${STORAGE_BASE}/downloads/incomplete/slskd" \
-	"${STORAGE_BASE}/downloads/incomplete/pyload"
+	"${STORAGE_BASE}/downloads/incomplete/pyload" \
+	"${STORAGE_BASE}/downloads/incomplete/pinchflat"
 
 # Create Immich required directories and markers
 mkdir -p "${STORAGE_BASE}/photos/encoded-video"
@@ -298,6 +299,7 @@ mkdir -p \
 	"${SSD_BASE}/duckdb" \
 	"${SSD_BASE}/paperless-data" \
 	"${SSD_BASE}/crowdsec-db" \
+	"${SSD_BASE}/pairdrop" \
 	"${SSD_BASE}/crowdsec-config" \
 	"${SSD_BASE}/homarr" \
 	"${SSD_BASE}/grafana" \

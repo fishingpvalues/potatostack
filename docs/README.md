@@ -158,7 +158,7 @@ See [QUICK_START.md](QUICK_START.md) for detailed setup instructions.
 ### Storage Strategy
 - **SSD** (`/mnt/ssd/docker-data`) - Databases, configs, critical data
 - **HDD** (`/mnt/storage`) - Media, photos, documents
-- **HDD** (`/mnt/cachehdd`) - Caches, incomplete downloads, metrics
+- **HDD** (`/mnt/cachehdd`) - Caches, metrics
 
 ### Resource Optimization
 - CPU limits on all services via `deploy.resources`

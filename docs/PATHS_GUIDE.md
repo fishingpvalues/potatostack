@@ -52,29 +52,49 @@ Full tree:
 │   └── ...
 
 /srv/cachehdd/
-├── downloads/torrent/
-├── slskd-incomplete/
-└── syncthing-versions/
+├── media/                   # Media server caches
+├── observability/           # Prometheus, Loki, Alertmanager
+├── sync/                    # Syncthing version history
+└── system/                  # System cache files
 ```
 
 ### qBittorrent
 **Container sees**:
 - Downloads: `/downloads` → `/mnt/storage/downloads`
-- Incomplete: `/incomplete` → `/mnt/cachehdd/downloads/torrent`
+- Incomplete: `/incomplete` → `/mnt/storage/downloads/incomplete/qbittorrent`
 
 ### Slskd (Soulseek)
 **Container sees**:
-- Shared: `/var/slskd/shared` → `/mnt/storage/slskd-shared`
-- Incomplete: `/var/slskd/incomplete` → `/mnt/cachehdd/slskd-incomplete`
+- Shared: `/var/slskd/shared` → `/mnt/storage/downloads/slskd`
+- Incomplete: `/var/slskd/incomplete` → `/mnt/storage/downloads/incomplete/slskd`
 
 ## Storage Layout on Host
 
 ### Main Storage HDD (`/mnt/storage`)
 ```
 /mnt/storage/
-├── downloads/              # qBittorrent completed downloads
-├── slskd-shared/          # Soulseek shared files
-└── syncthing/             # P2P sync folders
+├── downloads/              # Downloads root
+│   ├── incomplete/        # Active downloads (service-specific subdirs)
+│   │   ├── sonarr/        # Sonarr incomplete
+│   │   ├── radarr/        # Radarr incomplete
+│   │   ├── lidarr/        # Lidarr incomplete
+│   │   ├── bookshelf/     # Bookshelf incomplete
+│   │   ├── qbittorrent/   # qBittorrent incomplete
+│   │   ├── sabnzbd/       # SABnzbd incomplete
+│   │   ├── aria2/         # Aria2 incomplete
+│   │   ├── slskd/         # Soulseek incomplete
+│   │   └── pyload/        # pyLoad incomplete
+│   ├── torrent/           # Completed torrent downloads
+│   ├── slskd/             # Soulseek shared files
+│   ├── pyload/            # pyLoad downloads
+│   └── rdt-client/        # Real-Debrid downloads
+├── media/                 # Media library (TV, movies, music, etc.)
+├── photos/                # Immich photos
+├── syncthing/             # P2P sync folders
+├── obsidian-couchdb/      # Obsidian LiveSync
+├── velld/                 # Velld backups
+├── rustypaste/            # Rustypaste uploads
+└── backrest/              # Backrest repositories
     ├── Desktop/
     ├── Obsidian-Vault/
     ├── Bilder/
@@ -99,10 +119,13 @@ Full tree:
 ### Cache HDD (`/mnt/cachehdd`)
 ```
 /mnt/cachehdd/
-├── downloads/torrent/         # Active torrent downloads (qBittorrent)
-├── slskd-incomplete/          # Active Soulseek downloads
-└── syncthing-versions/        # File version history
+├── media/                     # Media server caches (jellyfin, audiobookshelf, immich-ml)
+├── observability/             # Metrics and logs (prometheus, loki, alertmanager)
+├── sync/                      # Sync caches (syncthing-versions)
+└── system/                    # System files (swap)
 ```
+
+**Note:** All incomplete downloads have been moved to `/mnt/storage/downloads/incomplete/<service>` for better data integrity and consistent backup patterns.
 
 ## Common Setup Scenarios
 

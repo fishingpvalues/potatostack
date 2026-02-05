@@ -790,7 +790,7 @@ services:
       TAILSCALE_CONTAINER: tailscale
       # All service ports to expose via HTTPS
       # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr
-      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,8085,9925,5984,9898,8123,8191,6500"
+      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8085,9925,5984,9898,8123,8191,6500"
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_MARKER_FILE: /https-marker/setup-complete
@@ -819,7 +819,7 @@ services:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
       # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr
-      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,8085,9925,5984,9898,8123,8191,6500"
+      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8089,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8085,9925,5984,9898,8123,8191,6500"
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_SERVE_LOOP: "true"
@@ -1429,7 +1429,7 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8787/api/v1/health || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8787/ping || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -1437,11 +1437,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.0"
-          memory: 256M
+          cpus: "2.0"
+          memory: 1536M
         reservations:
-          cpus: "0.25"
-          memory: 128M
+          cpus: "0.5"
+          memory: 512M
     labels:
       - "autoheal=true"
 
@@ -3124,6 +3124,45 @@ services:
       - "traefik.http.routers.rustypaste.middlewares=sso-chain@docker"
       - "traefik.http.services.rustypaste.loadbalancer.server.port=8000"
 
+  # PairDrop - AirDrop alternative (P2P file sharing)
+  pairdrop:
+    image: lscr.io/linuxserver/pairdrop:${PAIRDROP_TAG:-latest}
+    container_name: pairdrop
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:3013:3000"
+    environment:
+      <<: *common-env
+      RATE_LIMIT: ${PAIRDROP_RATE_LIMIT:-false}
+      WS_FALLBACK: ${PAIRDROP_WS_FALLBACK:-false}
+      RTC_CONFIG: ${PAIRDROP_RTC_CONFIG:-}
+      DEBUG_MODE: ${PAIRDROP_DEBUG_MODE:-false}
+    volumes:
+      - /mnt/ssd/docker-data/pairdrop:/config
+    networks:
+      - potatostack
+    depends_on:
+      - storage-init
+    restart: unless-stopped
+    healthcheck:
+      disable: true
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+    labels:
+      - "autoheal=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.pairdrop.rule=PathPrefix(`/pairdrop`)"
+      - "traefik.http.routers.pairdrop.entrypoints=websecure"
+      - "traefik.http.routers.pairdrop.tls=true"
+      - "traefik.http.routers.pairdrop.middlewares=sso-chain@docker"
+      - "traefik.http.services.pairdrop.loadbalancer.server.port=3000"
+
   # Stirling-PDF - PDF tools
   # stirling-pdf:
   #   image: frooodle/s-pdf:${STIRLING_PDF_TAG:-latest}
@@ -3623,7 +3662,7 @@ services:
   #   volumes:
   #     - pinchflat-config:/config
   #     - /mnt/storage/media/youtube:/downloads
-  #     - /mnt/cachehdd/downloads/pinchflat:/incomplete
+    #     - /mnt/storage/downloads/incomplete/pinchflat:/incomplete
   #   depends_on:
   #     gluetun:
   #       condition: service_healthy

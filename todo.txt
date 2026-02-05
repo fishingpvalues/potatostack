@@ -1,5 +1,4 @@
-● Running. It's downloading at ~6 MB/s, working through all 2,802 messages (filtering for video files only).                                                                                        
-                                                                                                                                                                                                    
+- check tdl manager script
   Monitor it with:                                                                                                                                                                                  
   - tmux attach -t tdl-download — watch live                                                                                                                                                        
   - tail -f /mnt/storage/downloads/telegram/tdl-download.log — check log                                                                                                                            
@@ -136,5 +135,3 @@ else
 	echo "Then add them to ${ENV_FILE} and run:"
 	echo "  docker compose restart exportarr-radarr exportarr-sonarr exportarr-lidarr exportarr-prowlarr"
 fi
-
-- make sure no more incomplete dir on cachehdd use incomplete dir on storage hdd for ALL services grep for cachehdd/downloads/incomplete and update it accordingly make subdirs for the services if suitable and edit init-storage .sh as well to create and check them 
