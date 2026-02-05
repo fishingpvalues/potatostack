@@ -20,6 +20,11 @@ RESTART_CONTAINERS="${RESTART_CONTAINERS:-prowlarr sonarr radarr lidarr bookshel
 RESTART_ON_STOP="${RESTART_ON_STOP:-true}"
 RESTART_ON_FAILURE="${RESTART_ON_FAILURE:-true}"
 RESTART_COOLDOWN="${RESTART_COOLDOWN:-120}"
+INITIAL_STARTUP_DELAY="${INITIAL_STARTUP_DELAY:-120}"
+SKIP_INITIAL_CHECK="${SKIP_INITIAL_CHECK:-true}"
+INTERNET_CHECK_INTERVAL="${INTERNET_CHECK_INTERVAL:-6}"
+INTERNET_MAX_FAILURES="${INTERNET_MAX_FAILURES:-3}"
+ORPHAN_CLEANUP_INTERVAL="${ORPHAN_CLEANUP_INTERVAL:-30}"
 
 if [ -f /notify.sh ]; then
 	# shellcheck disable=SC1091
@@ -54,14 +59,9 @@ MAX_FAILURES=3
 LAST_RESTART_AT=0
 LAST_GLUETUN_ID=""
 INTERNET_WAS_DOWN=false
-INTERNET_CHECK_INTERVAL="${INTERNET_CHECK_INTERVAL:-6}"
 INTERNET_CHECK_COUNTER=0
 INTERNET_FAIL_COUNT=0
-INTERNET_MAX_FAILURES="${INTERNET_MAX_FAILURES:-3}"
-ORPHAN_CLEANUP_INTERVAL="${ORPHAN_CLEANUP_INTERVAL:-30}"
 ORPHAN_CLEANUP_COUNTER=0
-INITIAL_STARTUP_DELAY="${INITIAL_STARTUP_DELAY:-120}"
-SKIP_INITIAL_CHECK="${SKIP_INITIAL_CHECK:-true}"
 
 # Wait for services to stabilize on startup
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] → Waiting ${INITIAL_STARTUP_DELAY}s for services to stabilize..."
@@ -130,7 +130,7 @@ cleanup_orphan_containers() {
 	if [ -n "$compose_dir" ] && [ -f "$compose_dir/docker-compose.yml" ]; then
 		local compose_orphans
 		# Get orphan names from docker compose (captures "Removing <name>" lines)
-		compose_orphans=$(docker compose -f "$compose_dir/docker-compose.yml" down --remove-orphans --dry-run 2>&1 | grep -oP '(?<=Removing )[^ ]+' || true)
+		compose_orphans=$(docker compose -f "$compose_dir/docker-compose.yml" down --remove-orphans --dry-run 2>&1 | sed 's/.*Removing //' | awk '{print $1}' || true)
 		if [ -n "$compose_orphans" ]; then
 			orphans=$(printf "%s\n%s" "$orphans" "$compose_orphans" | grep -v '^$' | sort -u)
 		fi
