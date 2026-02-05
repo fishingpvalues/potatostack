@@ -51,13 +51,13 @@ get_stats() {
 	if check_download_running; then
 		info "Download process: ${GREEN}RUNNING${NC} (PID: $(get_download_pid))"
 
-		# Count temp files (active downloads)
-		local temp_count=$(docker exec tdl find /downloads/.skip-index -name "*.tmp" 2>/dev/null | wc -l)
-		local done_count=$(docker exec tdl find /downloads/.skip-index -type f ! -name "*.tmp" 2>/dev/null | wc -l)
+		local skip_dir="/downloads/.skip-index"
+		local temp_count=$(docker exec tdl find "$skip_dir" -name "*.tmp" 2>/dev/null | wc -l)
+		local done_count=$(docker exec tdl find "$skip_dir" -maxdepth 1 -type f ! -name "*.tmp" 2>/dev/null | wc -l)
 
 		if [ "$temp_count" -gt 0 ]; then
 			info "Active downloads: $temp_count files"
-			docker exec tdl ls -la /downloads/.skip-index/*.tmp 2>/dev/null | awk '{printf "  - %s (%s)\n", $9, $5}' | head -5
+			docker exec tdl ls -la "$skip_dir"/*.tmp 2>/dev/null | awk '{printf "  - %s (%s)\n", $9, $5}' | head -5
 		fi
 
 		if [ "$done_count" -gt 0 ]; then
@@ -111,32 +111,37 @@ retry_count=0
 max_retries='"$MAX_RETRIES"'
 retry_delay='"$RETRY_DELAY"'
 
-while true; do
-  mkdir -p /downloads/.skip-index
-  echo "[$(date)] === TDL Download Started (attempt $((retry_count + 1))) ==="
-  echo "[$(date)] Resuming from previous state (skip-same enabled)"
+ while true; do
+   SKIP_DIR="/downloads/.skip-index"
+   rm -rf "$SKIP_DIR"
+   mkdir -p "$SKIP_DIR"
+   find /adult -type f \( -name '*.mp4' -o -name '*.mkv' -o -name '*.avi' \
+     -o -name '*.mov' -o -name '*.wmv' -o -name '*.webm' \) \
+     -exec ln -sf {} "$SKIP_DIR/" \;
+   echo "[$(date)] === TDL Download Started (attempt $((retry_count + 1))) ==="
+   echo "[$(date)] Indexed $(ls "$SKIP_DIR" | wc -l) existing videos for dedup"
 
-  # Run download and capture exit code
-  set +e
-  tdl download \
-    -f /downloads/saved-messages-all.json \
-    -d /downloads/.skip-index \
-    -i mp4,mkv,avi,mov,wmv,webm \
-    --skip-same \
-    --continue \
-    -l 2 \
-    --template "{{ .MessageID }}_{{ .FileName }}" \
-    2>&1
-  exit_code=$?
-  set -e
+   # Run download and capture exit code
+   set +e
+   tdl download \
+     -f /downloads/saved-messages-all.json \
+     -d "$SKIP_DIR" \
+     -i mp4,mkv,avi,mov,wmv,webm \
+     --skip-same \
+     --continue \
+     -l 2 \
+     --template "{{ .MessageID }}_{{ .FileName }}" \
+     2>&1
+   exit_code=$?
+   set -e
 
-  if [ $exit_code -eq 0 ]; then
-    echo "[$(date)] Download completed successfully"
-    echo "[$(date)] Moving completed files..."
-    find /downloads/.skip-index -maxdepth 1 -type f -exec mv {} /adult-telegram/ \;
-    rm -rf /downloads/.skip-index
-    echo "[$(date)] === Download Session Complete ==="
-    break
+   if [ $exit_code -eq 0 ]; then
+     echo "[$(date)] Download completed successfully"
+     echo "[$(date)] Moving completed files..."
+     find "$SKIP_DIR" -maxdepth 1 -type f -exec mv {} /adult-telegram/ \;
+     rm -rf "$SKIP_DIR"
+     echo "[$(date)] === Download Session Complete ==="
+     break
   else
     retry_count=$((retry_count + 1))
     echo "[$(date)] ERROR: Download failed with exit code $exit_code"
