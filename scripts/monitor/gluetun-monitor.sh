@@ -16,14 +16,14 @@ fi
 
 GLUETUN_URL="${GLUETUN_URL:-http://gluetun:8008}"
 CHECK_INTERVAL="${CHECK_INTERVAL:-10}"
-RESTART_CONTAINERS="${RESTART_CONTAINERS:-prowlarr sonarr radarr lidarr bookshelf bazarr qbittorrent slskd pyload spotiflac stash flaresolverr}"
+RESTART_CONTAINERS="${RESTART_CONTAINERS:-prowlarr sonarr radarr lidarr bookshelf bazarr qbittorrent slskd pyload spotiflac stash rdt-client aria2}"
 RESTART_ON_STOP="${RESTART_ON_STOP:-true}"
 RESTART_ON_FAILURE="${RESTART_ON_FAILURE:-true}"
 RESTART_COOLDOWN="${RESTART_COOLDOWN:-120}"
 INITIAL_STARTUP_DELAY="${INITIAL_STARTUP_DELAY:-120}"
 SKIP_INITIAL_CHECK="${SKIP_INITIAL_CHECK:-true}"
 INTERNET_CHECK_INTERVAL="${INTERNET_CHECK_INTERVAL:-6}"
-INTERNET_MAX_FAILURES="${INTERNET_MAX_FAILURES:-3}"
+INTERNET_MAX_FAILURES="${INTERNET_MAX_FAILURES:-10}"
 ORPHAN_CLEANUP_INTERVAL="${ORPHAN_CLEANUP_INTERVAL:-30}"
 
 if [ -f /notify.sh ]; then
@@ -250,7 +250,7 @@ recreate_containers() {
 	local success=false
 
 	# Approach 1: Try docker compose from /compose (with explicit project name)
-	if [ -d /compose ] && [ -f /compose/docker-compose.yml ]; then
+	if [ -f /compose/docker-compose.yml ]; then
 		echo "[$(date +'%Y-%m-%d %H:%M:%S')]   Trying docker compose from /compose..."
 		# shellcheck disable=SC2086
 		local compose_output
@@ -263,12 +263,12 @@ recreate_containers() {
 		fi
 	fi
 
-	# Approach 2: Try docker compose from /home/daniel/potatostack (fallback)
-	if [ "$success" = "false" ] && [ -d /home/daniel/potatostack ] && [ -f /home/daniel/potatostack/docker-compose.yml ]; then
-		echo "[$(date +'%Y-%m-%d %H:%M:%S')]   Trying docker compose from /home/daniel/potatostack..."
+	# Approach 2: Try docker compose from /compose (fallback)
+	if [ "$success" = "false" ] && [ -d /compose ] && [ -f /compose/docker-compose.yml ]; then
+		echo "[$(date +'%Y-%m-%d %H:%M:%S')]   Trying docker compose from /compose..."
 		# shellcheck disable=SC2086
 		local compose_output
-		if compose_output=$(docker compose -p potatostack -f "/home/daniel/potatostack/docker-compose.yml" up -d --force-recreate $RESTART_CONTAINERS 2>&1); then
+		if compose_output=$(docker compose -p potatostack -f "/compose/docker-compose.yml" up -d --force-recreate $RESTART_CONTAINERS 2>&1); then
 			echo "$compose_output" | sed "s/^/    /"
 			success=true
 		else

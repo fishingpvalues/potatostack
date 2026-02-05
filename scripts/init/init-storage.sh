@@ -468,6 +468,28 @@ fi
 chmod 775 "${CACHE_BASE}/sync/syncthing-versions"
 
 ################################################################################
+# Fix Gluetun post-rules.txt directory issue
+################################################################################
+printf '%s\n' "Fixing gluetun post-rules.txt..."
+
+# Ensure /compose/config/gluetun/post-rules.txt is a file, not a directory
+GLUETUN_COMPOSE_CONFIG="/compose/config/gluetun"
+GLUETUN_PROJECT_CONFIG="/home/daniel/potatostack/config/gluetun"
+
+# Fix in /compose/config/gluetun if it exists as a directory
+if [ -d "${GLUETUN_COMPOSE_CONFIG}/post-rules.txt" ]; then
+	printf '%s\n' "  Removing directory ${GLUETUN_COMPOSE_CONFIG}/post-rules.txt"
+	rm -rf "${GLUETUN_COMPOSE_CONFIG}/post-rules.txt"
+fi
+
+# Copy from project config if exists
+if [ -f "${GLUETUN_PROJECT_CONFIG}/post-rules.txt" ]; then
+	mkdir -p "${GLUETUN_COMPOSE_CONFIG}"
+	cp "${GLUETUN_PROJECT_CONFIG}/post-rules.txt" "${GLUETUN_COMPOSE_CONFIG}/post-rules.txt"
+	printf '%s\n' "  ✓ Copied post-rules.txt from project config"
+fi
+
+################################################################################
 # Service-specific permissions (UIDs vary by image)
 ################################################################################
 printf '%s\n' "Setting service-specific permissions..."
