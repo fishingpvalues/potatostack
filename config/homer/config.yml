@@ -1,6 +1,5 @@
 ---
 # PotatoStack Homer Dashboard - SOTA 2025 Configuration
-# Minimal, fast, dark theme with smart service status
 
 title: "PotatoStack"
 subtitle: "Self-Hosted Infrastructure"
@@ -21,7 +20,6 @@ defaults:
   layout: columns
   colorTheme: dark
 
-# SOTA 2025 Dark Theme - Pure black with white accents
 colors:
   light:
     highlight-primary: "#1a1a1a"
@@ -50,18 +48,13 @@ colors:
     link: "#ffffff"
     link-hover: "#4a9eff"
 
-# Quick links in header
 links:
   - name: "GitHub"
     icon: "fab fa-github"
     url: "https://github.com"
     target: "_blank"
 
-# Service groups
 services:
-  # ============================================================================
-  # MONITORING & OBSERVABILITY
-  # ============================================================================
   - name: "Monitoring"
     icon: "fas fa-chart-line"
     items:
@@ -107,9 +100,6 @@ services:
         target: "_blank"
         type: "Scrutiny"
 
-  # ============================================================================
-  # MEDIA STREAMING
-  # ============================================================================
   - name: "Media"
     icon: "fas fa-film"
     items:
@@ -157,62 +147,16 @@ services:
         target: "_blank"
         type: "Ping"
 
-  # ============================================================================
-  # MEDIA AUTOMATION
-  # ============================================================================
   - name: "Automation"
     icon: "fas fa-robot"
     items:
-      - name: "Sonarr"
-        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/sonarr.png"
-        subtitle: "TV Shows"
-        url: "https://potatostack.tale-iwato.ts.net:8989"
-        target: "_blank"
-        type: "Sonarr"
-        apikey: "${SONARR_API_KEY:-}"
-
-      - name: "Radarr"
-        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/radarr.png"
-        subtitle: "Movies"
-        url: "https://potatostack.tale-iwato.ts.net:7878"
-        target: "_blank"
-        type: "Radarr"
-        apikey: "${RADARR_API_KEY:-}"
-
-      - name: "Lidarr"
-        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/lidarr.png"
-        subtitle: "Music"
-        url: "https://potatostack.tale-iwato.ts.net:8686"
-        target: "_blank"
-        type: "Lidarr"
-        apikey: "${LIDARR_API_KEY:-}"
-
-      - name: "Prowlarr"
-        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/prowlarr.png"
-        subtitle: "Indexer Manager"
-        url: "https://potatostack.tale-iwato.ts.net:9696"
-        target: "_blank"
-        type: "Prowlarr"
-        apikey: "${PROWLARR_API_KEY:-}"
-
-      - name: "Bazarr"
-        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/bazarr.png"
-        subtitle: "Subtitles"
-        url: "https://potatostack.tale-iwato.ts.net:6767"
+      - name: "Bookshelf"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/readarr.png"
+        subtitle: "Ebooks Manager"
+        url: "https://potatostack.tale-iwato.ts.net:8787"
         target: "_blank"
         type: "Ping"
 
-      - name: "Readarr"
-        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/readarr.png"
-        subtitle: "Books"
-        url: "https://potatostack.tale-iwato.ts.net:8787"
-        target: "_blank"
-        type: "Readarr"
-        apikey: "${READARR_API_KEY:-}"
-
-  # ============================================================================
-  # DOWNLOADS
-  # ============================================================================
   - name: "Downloads"
     icon: "fas fa-download"
     items:
@@ -244,9 +188,13 @@ services:
         target: "_blank"
         type: "Ping"
 
-  # ============================================================================
-  # PRODUCTIVITY & KNOWLEDGE
-  # ============================================================================
+      - name: "rdt-client"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/real-debrid.png"
+        subtitle: "Real-Debrid Client"
+        url: "https://potatostack.tale-iwato.ts.net:6500"
+        target: "_blank"
+        type: "Ping"
+
   - name: "Productivity"
     icon: "fas fa-lightbulb"
     items:
@@ -279,9 +227,6 @@ services:
         target: "_blank"
         type: "Ping"
 
-  # ============================================================================
-  # FILE MANAGEMENT
-  # ============================================================================
   - name: "Files"
     icon: "fas fa-folder-open"
     items:
@@ -306,9 +251,6 @@ services:
         target: "_blank"
         type: "Ping"
 
-  # ============================================================================
-  # DEVELOPMENT
-  # ============================================================================
   - name: "Development"
     icon: "fas fa-code"
     items:
@@ -326,9 +268,6 @@ services:
         target: "_blank"
         type: "Ping"
 
-  # ============================================================================
-  # SECURITY & ACCESS
-  # ============================================================================
   - name: "Security"
     icon: "fas fa-shield-alt"
     items:
@@ -346,9 +285,6 @@ services:
         target: "_blank"
         type: "Ping"
 
-  # ============================================================================
-  # UTILITIES
-  # ============================================================================
   - name: "Utilities"
     icon: "fas fa-tools"
     items:

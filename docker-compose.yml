@@ -341,6 +341,7 @@ services:
     logging: *default-logging
     ports:
       - "${HOST_BIND:-127.0.0.1}:8888:80"
+      - "${HOST_BIND:-127.0.0.1}:8090:80"
       - "${HOST_BIND:-127.0.0.1}:3012:3012"
     environment:
       <<: *common-env
@@ -482,11 +483,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.25"
-          memory: 128M
+          cpus: "0.5"
+          memory: 512M
         reservations:
-          cpus: "0.1"
-          memory: 128M
+          cpus: "0.25"
+          memory: 256M
     labels:
       - "autoheal=true"
       - "potatostack.alerts=critical"
@@ -555,8 +556,11 @@ services:
     deploy:
       resources:
         limits:
+          cpus: "0.5"
+          memory: 384M
+        reservations:
           cpus: "0.25"
-          memory: 192M
+          memory: 256M
 
   # Tailscale HTTPS Setup - Wraps HTTP ports with Tailscale TLS certificates
   tailscale-https-setup:
@@ -964,183 +968,183 @@ services:
   # MEDIA MANAGEMENT - *ARR STACK
   ################################################################################
 
-  # Prowlarr - Indexer manager
-  prowlarr:
-    image: lscr.io/linuxserver/prowlarr:${PROWLARR_TAG:-latest}
-    container_name: prowlarr
-    logging: *default-logging
-    network_mode: "service:gluetun"
-    environment:
-      <<: *common-env
-    volumes:
-      - prowlarr-config:/config
-    depends_on:
-      gluetun:
-        condition: service_healthy
-        restart: true
-      storage-init:
-        condition: service_completed_successfully
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:9696/ || exit 1"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 512M
-        reservations:
-          cpus: "0.1"
-          memory: 256M
-    labels:
-      - "autoheal=true"
+  # Prowlarr - Indexer manager (DISABLED)
+  # prowlarr:
+  #   image: lscr.io/linuxserver/prowlarr:${PROWLARR_TAG:-latest}
+  #   container_name: prowlarr
+  #   logging: *default-logging
+  #   network_mode: "service:gluetun"
+  #   environment:
+  #     <<: *common-env
+  #   volumes:
+  #     - prowlarr-config:/config
+  #   depends_on:
+  #     gluetun:
+  #       condition: service_healthy
+  #       restart: true
+  #     storage-init:
+  #       condition: service_completed_successfully
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -f http://127.0.0.1:9696/ || exit 1"]
+  #     interval: 60s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 30s
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.25"
+  #         memory: 512M
+  #       reservations:
+  #         cpus: "0.1"
+  #         memory: 256M
+  #   labels:
+  #     - "autoheal=true"
 
-  # FlareSolverr - Cloudflare bypass for Prowlarr
-  flaresolverr:
-    image: ghcr.io/flaresolverr/flaresolverr:${FLARESOLVERR_TAG:-latest}
-    container_name: flaresolverr
-    logging: *default-logging
-    network_mode: "service:gluetun"
-    environment:
-      <<: *common-env
-      LOG_LEVEL: info
-      LOG_HTML: "false"
-      CAPTCHA_SOLVER: none
-    depends_on:
-      gluetun:
-        condition: service_healthy
-        restart: true
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8191/health || exit 1"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 512M
-        reservations:
-          cpus: "0.1"
-          memory: 256M
-    labels:
-      - "autoheal=true"
+  # FlareSolverr - Cloudflare bypass for Prowlarr (DISABLED)
+  # flaresolverr:
+  #   image: ghcr.io/flaresolverr/flaresolverr:${FLARESOLVERR_TAG:-latest}
+  #   container_name: flaresolverr
+  #   logging: *default-logging
+  #   network_mode: "service:gluetun"
+  #   environment:
+  #     <<: *common-env
+  #     LOG_LEVEL: info
+  #     LOG_HTML: "false"
+  #     CAPTCHA_SOLVER: none
+  #   depends_on:
+  #     gluetun:
+  #       condition: service_healthy
+  #       restart: true
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -f http://127.0.0.1:8191/health || exit 1"]
+  #     interval: 60s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 30s
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.5"
+  #         memory: 512M
+  #       reservations:
+  #         cpus: "0.1"
+  #         memory: 256M
+  #   labels:
+  #     - "autoheal=true"
 
-  # Sonarr - TV show management
-  sonarr:
-    image: lscr.io/linuxserver/sonarr:${SONARR_TAG:-latest}
-    container_name: sonarr
-    logging: *default-logging
-    network_mode: "service:gluetun"
-    environment:
-      <<: *common-env
-    volumes:
-      - sonarr-config:/config
-      - /mnt/storage/media/tv:/tv
-      - /mnt/storage/downloads:/downloads
-      - /mnt/storage/downloads/incomplete/sonarr:/downloads/incomplete
-    depends_on:
-      gluetun:
-        condition: service_healthy
-        restart: true
-      storage-init:
-        condition: service_completed_successfully
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:8989/ping || exit 1"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 256M
-        reservations:
-          cpus: "0.25"
-          memory: 128M
-    labels:
-      - "autoheal=true"
+  # Sonarr - TV show management (DISABLED)
+  # sonarr:
+  #   image: lscr.io/linuxserver/sonarr:${SONARR_TAG:-latest}
+  #   container_name: sonarr
+  #   logging: *default-logging
+  #   network_mode: "service:gluetun"
+  #   environment:
+  #     <<: *common-env
+  #   volumes:
+  #     - sonarr-config:/config
+  #     - /mnt/storage/media/tv:/tv
+  #     - /mnt/storage/downloads:/downloads
+  #     - /mnt/storage/downloads/incomplete/sonarr:/downloads/incomplete
+  #   depends_on:
+  #     gluetun:
+  #       condition: service_healthy
+  #       restart: true
+  #     storage-init:
+  #       condition: service_completed_successfully
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -sf http://127.0.0.1:8989/ping || exit 1"]
+  #     interval: 60s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 30s
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "1.0"
+  #         memory: 256M
+  #       reservations:
+  #         cpus: "0.25"
+  #         memory: 128M
+  #   labels:
+  #     - "autoheal=true"
 
-  # Radarr - Movie management
-  radarr:
-    image: lscr.io/linuxserver/radarr:${RADARR_TAG:-latest}
-    container_name: radarr
-    logging: *default-logging
-    network_mode: "service:gluetun"
-    environment:
-      <<: *common-env
-    volumes:
-      - radarr-config:/config
-      - /mnt/storage/media/movies:/movies
-      - /mnt/storage/downloads:/downloads
-      - /mnt/storage/downloads/incomplete/radarr:/downloads/incomplete
-    depends_on:
-      gluetun:
-        condition: service_healthy
-        restart: true
-      storage-init:
-        condition: service_completed_successfully
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:7878/ || exit 1"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 256M
-        reservations:
-          cpus: "0.25"
-          memory: 128M
-    labels:
-      - "autoheal=true"
+  # Radarr - Movie management (DISABLED)
+  # radarr:
+  #   image: lscr.io/linuxserver/radarr:${RADARR_TAG:-latest}
+  #   container_name: radarr
+  #   logging: *default-logging
+  #   network_mode: "service:gluetun"
+  #   environment:
+  #     <<: *common-env
+  #   volumes:
+  #     - radarr-config:/config
+  #     - /mnt/storage/media/movies:/movies
+  #     - /mnt/storage/downloads:/downloads
+  #     - /mnt/storage/downloads/incomplete/radarr:/downloads/incomplete
+  #   depends_on:
+  #     gluetun:
+  #       condition: service_healthy
+  #       restart: true
+  #     storage-init:
+  #       condition: service_completed_successfully
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -f http://127.0.0.1:7878/ || exit 1"]
+  #     interval: 60s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 30s
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "1.0"
+  #         memory: 256M
+  #       reservations:
+  #         cpus: "0.25"
+  #         memory: 128M
+  #   labels:
+  #     - "autoheal=true"
 
-  # Lidarr - Music management
-  lidarr:
-    image: lscr.io/linuxserver/lidarr:${LIDARR_TAG:-latest}
-    container_name: lidarr
-    logging: *default-logging
-    network_mode: "service:gluetun"
-    environment:
-      <<: *common-env
-    volumes:
-      - lidarr-config:/config
-      - /mnt/storage/media/music:/music
-      - /mnt/storage/downloads:/downloads
-      - /mnt/storage/downloads/incomplete/lidarr:/downloads/incomplete
-    depends_on:
-      gluetun:
-        condition: service_healthy
-        restart: true
-      storage-init:
-        condition: service_completed_successfully
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8686/ || exit 1"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 256M
-        reservations:
-          cpus: "0.25"
-          memory: 128M
-    labels:
-      - "autoheal=true"
+  # Lidarr - Music management (DISABLED)
+  # lidarr:
+  #   image: lscr.io/linuxserver/lidarr:${LIDARR_TAG:-latest}
+  #   container_name: lidarr
+  #   logging: *default-logging
+  #   network_mode: "service:gluetun"
+  #   environment:
+  #     <<: *common-env
+  #   volumes:
+  #     - lidarr-config:/config
+  #     - /mnt/storage/media/music:/music
+  #     - /mnt/storage/downloads:/downloads
+  #     - /mnt/storage/downloads/incomplete/lidarr:/downloads/incomplete
+  #   depends_on:
+  #     gluetun:
+  #       condition: service_healthy
+  #       restart: true
+  #     storage-init:
+  #       condition: service_completed_successfully
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -f http://127.0.0.1:8686/ || exit 1"]
+  #     interval: 60s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 30s
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "1.0"
+  #         memory: 256M
+  #       reservations:
+  #         cpus: "0.25"
+  #         memory: 128M
+  #   labels:
+  #     - "autoheal=true"
 
   # Bookshelf - Ebook management (Readarr revival with working metadata)
   bookshelf:
@@ -1179,294 +1183,489 @@ services:
     labels:
       - "autoheal=true"
 
-  # Bazarr - Subtitle management
-  bazarr:
-    image: lscr.io/linuxserver/bazarr:${BAZARR_TAG:-latest}
-    container_name: bazarr
-    logging: *default-logging
-    network_mode: "service:gluetun"
-    environment:
-      <<: *common-env
-    volumes:
-      - bazarr-config:/config
-      - /mnt/storage/media/movies:/movies
-      - /mnt/storage/media/tv:/tv
-    tmpfs:
-      - /tmp:exec,mode=1777,size=500m
-    depends_on:
-      gluetun:
-        condition: service_healthy
-      storage-init:
-        condition: service_completed_successfully
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:6767/ || exit 1"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 384M
-        reservations:
-          cpus: "0.1"
-          memory: 192M
-    labels:
-      - "autoheal=true"
+  # Bazarr - Subtitle management (DISABLED)
+  # bazarr:
+  #   image: lscr.io/linuxserver/bazarr:${BAZARR_TAG:-latest}
+  #   container_name: bazarr
+  #   logging: *default-logging
+  #   network_mode: "service:gluetun"
+  #   environment:
+  #     <<: *common-env
+  #   volumes:
+  #     - bazarr-config:/config
+  #     - /mnt/storage/media/movies:/movies
+  #     - /mnt/storage/media/tv:/tv
+  #   tmpfs:
+  #     - /tmp:exec,mode=1777,size=500m
+  #   depends_on:
+  #     gluetun:
+  #       condition: service_healthy
+  #       restart: true
+  #     storage-init:
+  #       condition: service_completed_successfully
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -f http://127.0.0.1:6767/ || exit 1"]
+  #     interval: 60s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 30s
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.25"
+  #         memory: 384M
+  #       reservations:
+  #         cpus: "0.1"
+  #         memory: 192M
+  #   labels:
+  #     - "autoheal=true"
 
-  # Maintainerr - Rules-based media library cleanup
-  maintainerr:
-    image: jorenn92/maintainerr:${MAINTAINERR_TAG:-latest}
-    container_name: maintainerr
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-127.0.0.1}:6246:6246"
-    environment:
-      <<: *common-env
-    volumes:
-      - maintainerr-data:/opt/data
-    networks:
-      - potatostack
-    depends_on:
-      - sonarr
-      - radarr
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:6246/api/health || exit 1"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 256M
-        reservations:
-          cpus: "0.1"
-          memory: 128M
+  # Maintainerr - Rules-based media library cleanup (DISABLED)
+  # maintainerr:
+  #   image: jorenn92/maintainerr:${MAINTAINERR_TAG:-latest}
+  #   container_name: maintainerr
+  #   logging: *default-logging
+  #   ports:
+  #     - "${HOST_BIND:-127.0.0.1}:6246:6246"
+  #   environment:
+  #     <<: *common-env
+  #   volumes:
+  #     - maintainerr-data:/opt/data
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - sonarr
+  #     - radarr
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:6246/api/health || exit 1"]
+  #     interval: 60s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 30s
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.25"
+  #         memory: 256M
+  #       reservations:
+  #         cpus: "0.1"
+  #         memory: 128M
 
-  # Recyclarr - TRaSH Guides quality profile sync
-  recyclarr:
-    image: ghcr.io/recyclarr/recyclarr:${RECYCLARR_TAG:-latest}
-    container_name: recyclarr
-    logging: *default-logging
-    user: 1000:1000
-    environment:
-      <<: *common-env
-      RECYCLARR_CREATE_CONFIG: "true"
-    volumes:
-      - /mnt/ssd/docker-data/recyclarr:/config
-    networks:
-      - potatostack
-    depends_on:
-      - sonarr
-      - radarr
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 128M
-        reservations:
-          cpus: "0.05"
-          memory: 64M
+  # Recyclarr - TRaSH Guides quality profile sync (DISABLED)
+  # recyclarr:
+  #   image: ghcr.io/recyclarr/recyclarr:${RECYCLARR_TAG:-latest}
+  #   container_name: recyclarr
+  #   logging: *default-logging
+  #   user: 1000:1000
+  #   environment:
+  #     <<: *common-env
+  #     RECYCLARR_CREATE_CONFIG: "true"
+  #   volumes:
+  #     - /mnt/ssd/docker-data/recyclarr:/config
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - sonarr
+  #     - radarr
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.25"
+  #         memory: 128M
+  #       reservations:
+  #         cpus: "0.05"
+  #         memory: 64M
 
-  # Unpackerr - Extracts archived downloads for *arrs
-  unpackerr:
-    image: ghcr.io/hotio/unpackerr:${UNPACKERR_TAG:-latest}
-    container_name: unpackerr
-    logging: *default-logging
-    environment:
-      <<: *common-env
-      UMASK: "002"
-      # Sonarr config
-      UN_SONARR_0_URL: http://gluetun:8989
-      UN_SONARR_0_API_KEY: ${SONARR_API_KEY:-}
-      UN_SONARR_0_PATHS_0: /downloads/tv
-      UN_SONARR_0_PROTOCOLS: torrent
-      UN_SONARR_0_TIMEOUT: 10s
-      UN_SONARR_0_DELETE_DELAY: 5m
-      UN_SONARR_0_DELETE_ORIG: "false"
-      # Radarr config
-      UN_RADARR_0_URL: http://gluetun:7878
-      UN_RADARR_0_API_KEY: ${RADARR_API_KEY:-}
-      UN_RADARR_0_PATHS_0: /downloads/movies
-      UN_RADARR_0_PROTOCOLS: torrent
-      UN_RADARR_0_TIMEOUT: 10s
-      UN_RADARR_0_DELETE_DELAY: 5m
-      UN_RADARR_0_DELETE_ORIG: "false"
-      # Lidarr config
-      UN_LIDARR_0_URL: http://gluetun:8686
-      UN_LIDARR_0_API_KEY: ${LIDARR_API_KEY:-}
-      UN_LIDARR_0_PATHS_0: /downloads/music
-      UN_LIDARR_0_PROTOCOLS: torrent
-      UN_LIDARR_0_TIMEOUT: 10s
-      UN_LIDARR_0_DELETE_DELAY: 5m
-      UN_LIDARR_0_DELETE_ORIG: "false"
-    volumes:
-      - /mnt/storage/downloads:/downloads
-    networks:
-      - potatostack
-    depends_on:
-      - sonarr
-      - radarr
-      - lidarr
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 256M
-        reservations:
-          cpus: "0.1"
-          memory: 64M
+  # Unpackerr - Extracts archived downloads for *arrs (DISABLED)
+  # unpackerr:
+  #   image: ghcr.io/hotio/unpackerr:${UNPACKERR_TAG:-latest}
+  #   container_name: unpackerr
+  #   logging: *default-logging
+  #   environment:
+  #     <<: *common-env
+  #     UMASK: "002"
+  #     # Sonarr config
+  #     UN_SONARR_0_URL: http://gluetun:8989
+  #     UN_SONARR_0_API_KEY: ${SONARR_API_KEY:-}
+  #     UN_SONARR_0_PATHS_0: /downloads/tv
+  #     UN_SONARR_0_PROTOCOLS: torrent
+  #     UN_SONARR_0_TIMEOUT: 10s
+  #     UN_SONARR_0_DELETE_DELAY: 5m
+  #     UN_SONARR_0_DELETE_ORIG: "false"
+  #     # Radarr config
+  #     UN_RADARR_0_URL: http://gluetun:7878
+  #     UN_RADARR_0_API_KEY: ${RADARR_API_KEY:-}
+  #     UN_RADARR_0_PATHS_0: /downloads/movies
+  #     UN_RADARR_0_PROTOCOLS: torrent
+  #     UN_RADARR_0_TIMEOUT: 10s
+  #     UN_RADARR_0_DELETE_DELAY: 5m
+  #     UN_RADARR_0_DELETE_ORIG: "false"
+  #     # Lidarr config
+  #     UN_LIDARR_0_URL: http://gluetun:8686
+  #     UN_LIDARR_0_API_KEY: ${LIDARR_API_KEY:-}
+  #     UN_LIDARR_0_PATHS_0: /downloads/music
+  #     UN_LIDARR_0_PROTOCOLS: torrent
+  #     UN_LIDARR_0_TIMEOUT: 10s
+  #     UN_LIDARR_0_DELETE_DELAY: 5m
+  #     UN_LIDARR_0_DELETE_ORIG: "false"
+  #   volumes:
+  #     - /mnt/storage/downloads:/downloads
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - sonarr
+  #     - radarr
+  #     - lidarr
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.5"
+  #         memory: 256M
+  #       reservations:
+  #         cpus: "0.1"
+  #         memory: 64M
 
-  # Notifiarr - Unified notifications for *arr stack
-  notifiarr:
-    image: golift/notifiarr:${NOTIFIARR_TAG:-latest}
-    container_name: notifiarr
-    logging: *default-logging
-    hostname: potatostack
-    ports:
-      - "${HOST_BIND:-127.0.0.1}:5454:5454"
-    environment:
-      <<: *common-env
-      DN_API_KEY: ${NOTIFIARR_API_KEY:-}
-      DN_UI_PASSWORD: ${NOTIFIARR_UI_PASSWORD:-}
-      # Sonarr
-      DN_SONARR_0_URL: http://gluetun:8989
-      DN_SONARR_0_API_KEY: ${SONARR_API_KEY:-}
-      # Radarr
-      DN_RADARR_0_URL: http://gluetun:7878
-      DN_RADARR_0_API_KEY: ${RADARR_API_KEY:-}
-      # Lidarr
-      DN_LIDARR_0_URL: http://gluetun:8686
-      DN_LIDARR_0_API_KEY: ${LIDARR_API_KEY:-}
-      # Prowlarr
-      DN_PROWLARR_0_URL: http://gluetun:9696
-      DN_PROWLARR_0_API_KEY: ${PROWLARR_API_KEY:-}
-    volumes:
-      - /mnt/ssd/docker-data/notifiarr:/config
-      - /var/run/utmp:/var/run/utmp:ro
-    networks:
-      - potatostack
-    depends_on:
-      - sonarr
-      - radarr
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5454/"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 192M
-        reservations:
-          cpus: "0.05"
-          memory: 64M
+  # Notifiarr - Unified notifications for *arr stack (DISABLED)
+  # notifiarr:
+  #   image: golift/notifiarr:${NOTIFIARR_TAG:-latest}
+  #   container_name: notifiarr
+  #   logging: *default-logging
+  #   hostname: potatostack
+  #   ports:
+  #     - "${HOST_BIND:-127.0.0.1}:5454:5454"
+  #   environment:
+  #     <<: *common-env
+  #     DN_API_KEY: ${NOTIFIARR_API_KEY:-}
+  #     DN_UI_PASSWORD: ${NOTIFIARR_UI_PASSWORD:-}
+  #     # Sonarr
+  #     DN_SONARR_0_URL: http://gluetun:8989
+  #     DN_SONARR_0_API_KEY: ${SONARR_API_KEY:-}
+  #     # Radarr
+  #     DN_RADARR_0_URL: http://gluetun:7878
+  #     DN_RADARR_0_API_KEY: ${RADARR_API_KEY:-}
+  #     # Lidarr
+  #     DN_LIDARR_0_URL: http://gluetun:8686
+  #     DN_LIDARR_0_API_KEY: ${LIDARR_API_KEY:-}
+  #     # Prowlarr
+  #     DN_PROWLARR_0_URL: http://gluetun:9696
+  #     DN_PROWLARR_0_API_KEY: ${PROWLARR_API_KEY:-}
+  #   volumes:
+  #     - /mnt/ssd/docker-data/notifiarr:/config
+  #     - /var/run/utmp:/var/run/utmp:ro
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - sonarr
+  #     - radarr
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5454/"]
+  #     interval: 60s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 30s
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.25"
+  #         memory: 192M
+  #       reservations:
+  #         cpus: "0.05"
+  #         memory: 64M
 
-  # Exportarr - Prometheus metrics exporter for *arr stack
-  exportarr:
-    image: ghcr.io/onedr0p/exportarr:${EXPORTARR_TAG:-latest}
-    container_name: exportarr-sonarr
-    logging: *default-logging
-    command: ["sonarr"]
-    environment:
-      PORT: "9707"
-      URL: http://gluetun:8989
-      APIKEY: ${SONARR_API_KEY:-}
-      ENABLE_ADDITIONAL_METRICS: "true"
-      ENABLE_UNKNOWN_QUEUE_ITEMS: "true"
-    ports:
-      - "${HOST_BIND:-127.0.0.1}:9707:9707"
-    networks:
-      - potatostack
-    depends_on:
-      - sonarr
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.1"
-          memory: 64M
+  # Exportarr - Prometheus metrics exporter for *arr stack (DISABLED)
+  # exportarr:
+  #   image: ghcr.io/onedr0p/exportarr:${EXPORTARR_TAG:-latest}
+  #   container_name: exportarr-sonarr
+  #   logging: *default-logging
+  #   command: ["sonarr"]
+  #   environment:
+  #     PORT: "9707"
+  #     URL: http://gluetun:8989
+  #     APIKEY: ${SONARR_API_KEY:-}
+  #     ENABLE_ADDITIONAL_METRICS: "true"
+  #     ENABLE_UNKNOWN_QUEUE_ITEMS: "true"
+  #   ports:
+  #     - "${HOST_BIND:-127.0.0.1}:9707:9707"
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - sonarr
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.1"
+  #         memory: 64M
 
-  exportarr-radarr:
-    image: ghcr.io/onedr0p/exportarr:${EXPORTARR_TAG:-latest}
-    container_name: exportarr-radarr
-    logging: *default-logging
-    command: ["radarr"]
-    environment:
-      PORT: "9708"
-      URL: http://gluetun:7878
-      APIKEY: ${RADARR_API_KEY:-}
-      ENABLE_ADDITIONAL_METRICS: "true"
-      ENABLE_UNKNOWN_QUEUE_ITEMS: "true"
-    ports:
-      - "${HOST_BIND:-127.0.0.1}:9708:9708"
-    networks:
-      - potatostack
-    depends_on:
-      - radarr
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.1"
-          memory: 64M
+  # exportarr-radarr:
+  #   image: ghcr.io/onedr0p/exportarr:${EXPORTARR_TAG:-latest}
+  #   container_name: exportarr-radarr
+  #   logging: *default-logging
+  #   command: ["radarr"]
+  #   environment:
+  #     PORT: "9708"
+  #     URL: http://gluetun:7878
+  #     APIKEY: ${RADARR_API_KEY:-}
+  #     ENABLE_ADDITIONAL_METRICS: "true"
+  #     ENABLE_UNKNOWN_QUEUE_ITEMS: "true"
+  #   ports:
+  #     - "${HOST_BIND:-127.0.0.1}:9708:9708"
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - radarr
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.1"
+  #         memory: 64M
 
-  exportarr-lidarr:
-    image: ghcr.io/onedr0p/exportarr:${EXPORTARR_TAG:-latest}
-    container_name: exportarr-lidarr
-    logging: *default-logging
-    command: ["lidarr"]
-    environment:
-      PORT: "9709"
-      URL: http://gluetun:8686
-      APIKEY: ${LIDARR_API_KEY:-}
-      ENABLE_ADDITIONAL_METRICS: "true"
-      ENABLE_UNKNOWN_QUEUE_ITEMS: "true"
-    ports:
-      - "${HOST_BIND:-127.0.0.1}:9709:9709"
-    networks:
-      - potatostack
-    depends_on:
-      - lidarr
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.1"
-          memory: 64M
+  # exportarr-lidarr:
+  #   image: ghcr.io/onedr0p/exportarr:${EXPORTARR_TAG:-latest}
+  #   container_name: exportarr-lidarr
+  #   logging: *default-logging
+  #   command: ["lidarr"]
+  #   environment:
+  #     PORT: "9709"
+  #     URL: http://gluetun:8686
+  #     APIKEY: ${LIDARR_API_KEY:-}
+  #     ENABLE_ADDITIONAL_METRICS: "true"
+  #     ENABLE_UNKNOWN_QUEUE_ITEMS: "true"
+  #   ports:
+  #     - "${HOST_BIND:-127.0.0.1}:9709:9709"
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - lidarr
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.1"
+  #         memory: 64M
 
-  exportarr-prowlarr:
-    image: ghcr.io/onedr0p/exportarr:${EXPORTARR_TAG:-latest}
-    container_name: exportarr-prowlarr
-    logging: *default-logging
-    command: ["prowlarr"]
-    environment:
-      PORT: "9710"
-      URL: http://gluetun:9696
-      APIKEY: ${PROWLARR_API_KEY:-}
-      ENABLE_ADDITIONAL_METRICS: "true"
-    ports:
-      - "${HOST_BIND:-127.0.0.1}:9710:9710"
-    networks:
-      - potatostack
-    depends_on:
-      - prowlarr
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.1"
-          memory: 64M
+  # exportarr-prowlarr:
+  #   image: ghcr.io/onedr0p/exportarr:${EXPORTARR_TAG:-latest}
+  #   container_name: exportarr-prowlarr
+  #   logging: *default-logging
+  #   command: ["prowlarr"]
+  #   environment:
+  #     PORT: "9710"
+  #     URL: http://gluetun:9696
+  #     APIKEY: ${PROWLARR_API_KEY:-}
+  #     ENABLE_ADDITIONAL_METRICS: "true"
+  #   ports:
+  #     - "${HOST_BIND:-127.0.0.1}:9710:9710"
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - prowlarr
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.1"
+  #         memory: 64M
+
+  # Unpackerr - Extracts archived downloads for *arrs (DISABLED)
+  # unpackerr:
+  #   image: ghcr.io/hotio/unpackerr:${UNPACKERR_TAG:-latest}
+  #   container_name: unpackerr
+  #   logging: *default-logging
+  #   environment:
+  #     <<: *common-env
+  #     UMASK: "002"
+  #     # Sonarr config
+  #     UN_SONARR_0_URL: http://gluetun:8989
+  #     UN_SONARR_0_API_KEY: ${SONARR_API_KEY:-}
+  #     UN_SONARR_0_PATHS_0: /downloads/tv
+  #     UN_SONARR_0_PROTOCOLS: torrent
+  #     UN_SONARR_0_TIMEOUT: 10s
+  #     UN_SONARR_0_DELETE_DELAY: 5m
+  #     UN_SONARR_0_DELETE_ORIG: "false"
+  #     # Radarr config
+  #     UN_RADARR_0_URL: http://gluetun:7878
+  #     UN_RADARR_0_API_KEY: ${RADARR_API_KEY:-}
+  #     UN_RADARR_0_PATHS_0: /downloads/movies
+  #     UN_RADARR_0_PROTOCOLS: torrent
+  #     UN_RADARR_0_TIMEOUT: 10s
+  #     UN_RADARR_0_DELETE_DELAY: 5m
+  #     UN_RADARR_0_DELETE_ORIG: "false"
+  #     # Lidarr config
+  #     UN_LIDARR_0_URL: http://gluetun:8686
+  #     UN_LIDARR_0_API_KEY: ${LIDARR_API_KEY:-}
+  #     UN_LIDARR_0_PATHS_0: /downloads/music
+  #     UN_LIDARR_0_PROTOCOLS: torrent
+  #     UN_LIDARR_0_TIMEOUT: 10s
+  #     UN_LIDARR_0_DELETE_DELAY: 5m
+  #     UN_LIDARR_0_DELETE_ORIG: "false"
+  #   volumes:
+  #     - /mnt/storage/downloads:/downloads
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - sonarr
+  #     - radarr
+  #     - lidarr
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.5"
+  #         memory: 256M
+  #       reservations:
+  #         cpus: "0.1"
+  #         memory: 64M
+
+  # Notifiarr - Unified notifications for *arr stack (DISABLED)
+  # notifiarr:
+  #   image: golift/notifiarr:${NOTIFIARR_TAG:-latest}
+  #   container_name: notifiarr
+  #   logging: *default-logging
+  #   hostname: potatostack
+  #   ports:
+  #     - "${HOST_BIND:-127.0.0.1}:5454:5454"
+  #   environment:
+  #     <<: *common-env
+  #     DN_API_KEY: ${NOTIFIARR_API_KEY:-}
+  #     DN_UI_PASSWORD: ${NOTIFIARR_UI_PASSWORD:-}
+  #     # Sonarr
+  #     DN_SONARR_0_URL: http://gluetun:8989
+  #     DN_SONARR_0_API_KEY: ${SONARR_API_KEY:-}
+  #     # Radarr
+  #     DN_RADARR_0_URL: http://gluetun:7878
+  #     DN_RADARR_0_API_KEY: ${RADARR_API_KEY:-}
+  #     # Lidarr
+  #     DN_LIDARR_0_URL: http://gluetun:8686
+  #     DN_LIDARR_0_API_KEY: ${LIDARR_API_KEY:-}
+  #     # Prowlarr
+  #     DN_PROWLARR_0_URL: http://gluetun:9696
+  #     DN_PROWLARR_0_API_KEY: ${PROWLARR_API_KEY:-}
+  #   volumes:
+  #     - /mnt/ssd/docker-data/notifiarr:/config
+  #     - /var/run/utmp:/var/run/utmp:ro
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - sonarr
+  #     - radarr
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5454/"]
+  #     interval: 60s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 30s
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.25"
+  #         memory: 192M
+  #       reservations:
+  #         cpus: "0.05"
+  #         memory: 64M
+
+  # Exportarr - Prometheus metrics exporter for *arr stack (DISABLED)
+  # exportarr:
+  #   image: ghcr.io/onedr0p/exportarr:${EXPORTARR_TAG:-latest}
+  #   container_name: exportarr-sonarr
+  #   logging: *default-logging
+  #   command: ["sonarr"]
+  #   environment:
+  #     PORT: "9707"
+  #     URL: http://gluetun:8989
+  #     APIKEY: ${SONARR_API_KEY:-}
+  #     ENABLE_ADDITIONAL_METRICS: "true"
+  #     ENABLE_UNKNOWN_QUEUE_ITEMS: "true"
+  #   ports:
+  #     - "${HOST_BIND:-127.0.0.1}:9707:9707"
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - sonarr
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.1"
+  #         memory: 64M
+
+  # exportarr-radarr:
+  #   image: ghcr.io/onedr0p/exportarr:${EXPORTARR_TAG:-latest}
+  #   container_name: exportarr-radarr
+  #   logging: *default-logging
+  #   command: ["radarr"]
+  #   environment:
+  #     PORT: "9708"
+  #     URL: http://gluetun:7878
+  #     APIKEY: ${RADARR_API_KEY:-}
+  #     ENABLE_ADDITIONAL_METRICS: "true"
+  #     ENABLE_UNKNOWN_QUEUE_ITEMS: "true"
+  #   ports:
+  #     - "${HOST_BIND:-127.0.0.1}:9708:9708"
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - radarr
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.1"
+  #         memory: 64M
+
+  # exportarr-lidarr:
+  #   image: ghcr.io/onedr0p/exportarr:${EXPORTARR_TAG:-latest}
+  #   container_name: exportarr-lidarr
+  #   logging: *default-logging
+  #   command: ["lidarr"]
+  #   environment:
+  #     PORT: "9709"
+  #     URL: http://gluetun:8686
+  #     APIKEY: ${LIDARR_API_KEY:-}
+  #     ENABLE_ADDITIONAL_METRICS: "true"
+  #     ENABLE_UNKNOWN_QUEUE_ITEMS: "true"
+  #   ports:
+  #     - "${HOST_BIND:-127.0.0.1}:9709:9709"
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - lidarr
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.1"
+  #         memory: 64M
+
+  # exportarr-prowlarr:
+  #   image: ghcr.io/onedr0p/exportarr:${EXPORTARR_TAG:-latest}
+  #   container_name: exportarr-prowlarr
+  #   logging: *default-logging
+  #   command: ["prowlarr"]
+  #   environment:
+  #     PORT: "9710"
+  #     URL: http://gluetun:9696
+  #     APIKEY: ${PROWLARR_API_KEY:-}
+  #     ENABLE_ADDITIONAL_METRICS: "true"
+  #   ports:
+  #     - "${HOST_BIND:-127.0.0.1}:9710:9710"
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - prowlarr
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.1"
+  #         memory: 64M
 
   ################################################################################
   # MEDIA SERVERS & REQUEST MANAGEMENT
@@ -1793,11 +1992,11 @@ services:
     deploy:
       resources:
         limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
           cpus: "1.0"
           memory: 1G
-        reservations:
-          cpus: "0.25"
-          memory: 512M
     labels:
       - "autoheal=true"
 
@@ -2002,40 +2201,40 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.75"
-          memory: 384M
+          cpus: "1.5"
+          memory: 512M
         reservations:
-          cpus: "0.25"
-          memory: 192M
+          cpus: "0.5"
+          memory: 256M
     labels:
       - "autoheal=true"
       - "potatostack.alerts=critical"
 
-  # Soularr - Bridge between Lidarr and Soulseek (slskd)
-  soularr:
-    image: mrusse08/soularr:${SOULARR_TAG:-latest}
-    container_name: soularr
-    logging: *default-logging
-    environment:
-      <<: *common-env
-      SCRIPT_INTERVAL: 300
-    volumes:
-      - /mnt/ssd/docker-data/soularr:/data
-      - /mnt/storage/downloads/slskd:/downloads/slskd
-    networks:
-      - potatostack
-    depends_on:
-      - lidarr
-      - slskd
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 128M
-        reservations:
-          cpus: "0.05"
-          memory: 64M
+  # Soularr - Bridge between Lidarr and Soulseek (slskd) (DISABLED)
+  # soularr:
+  #   image: mrusse08/soularr:${SOULARR_TAG:-latest}
+  #   container_name: soularr
+  #   logging: *default-logging
+  #   environment:
+  #     <<: *common-env
+  #     SCRIPT_INTERVAL: 300
+  #   volumes:
+  #     - /mnt/ssd/docker-data/soularr:/data
+  #     - /mnt/storage/downloads/slskd:/downloads/slskd
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - lidarr
+  #     - slskd
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.5"
+  #         memory: 256M
+  #       reservations:
+  #         cpus: "0.25"
+  #         memory: 128M
 
   # pyLoad-ng - Web-based download manager (HTTP/FTP/etc)
   # WebUI: 8076 (external) -> 8000 (internal), Click'n'Load: 9666
@@ -3806,7 +4005,7 @@ services:
     environment:
       - GLUETUN_URL=http://gluetun:8008
       - CHECK_INTERVAL=${GLUETUN_CHECK_INTERVAL:-10}
-      - RESTART_CONTAINERS= prowlarr sonarr radarr lidarr bookshelf bazarr qbittorrent pyload slskd spotiflac stash rdt-client aria2
+      - RESTART_CONTAINERS= bookshelf qbittorrent pyload slskd spotiflac stash rdt-client aria2
       - RESTART_ON_STOP=${GLUETUN_RESTART_ON_STOP:-true}
       - RESTART_ON_FAILURE=${GLUETUN_RESTART_ON_FAILURE:-true}
       - RESTART_COOLDOWN=${GLUETUN_RESTART_COOLDOWN:-120}
