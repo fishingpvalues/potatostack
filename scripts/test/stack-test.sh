@@ -374,9 +374,6 @@ test_service_endpoints() {
 		fi
 	}
 
-	# Reverse Proxy & Core
-	grep -q "traefik" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Traefik Dashboard" "http://localhost:8088"
-
 	# Monitoring Stack
 	grep -q "grafana" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Grafana" "http://localhost:3000"
 	grep -q "prometheus" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Prometheus" "http://localhost:9090"

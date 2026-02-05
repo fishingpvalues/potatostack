@@ -12,14 +12,12 @@ declare -A SERVICE_PORTS=(
 	["redis-cache"]="6379"
 
 	# Reverse Proxy & Network
-	["traefik"]="80,443,8088"
 	["gluetun"]=""
 	["tailscale"]=""
 	["adguardhome"]="53,3000"
 
 	# Security
 	["crowdsec"]="6060"
-	["crowdsec-traefik-bouncer"]="8080"
 	["fail2ban"]=""
 	["vaultwarden"]="80"
 	["authentik-server"]="9000,9443"
@@ -102,7 +100,6 @@ declare -A SERVICE_TYPES=(
 	["redis-cache"]="database"
 
 	# Web services with HTTP endpoints
-	["traefik"]="http"
 	["grafana"]="http"
 	["prometheus"]="http"
 	["uptime-kuma"]="http"
@@ -151,7 +148,6 @@ declare -A SERVICE_TYPES=(
 
 	# Background services (no direct HTTP interface)
 	["crowdsec"]="background"
-	["crowdsec-traefik-bouncer"]="background"
 	["fail2ban"]="background"
 	["loki"]="background"
 	["alloy"]="background"

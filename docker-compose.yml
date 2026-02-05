@@ -230,14 +230,13 @@ services:
       - "${HOST_BIND:-127.0.0.1}:6060:6060" # Prometheus metrics
     environment:
       <<: *common-env
-      COLLECTIONS: "crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors crowdsecurity/nginx crowdsecurity/linux"
+      COLLECTIONS: "crowdsecurity/http-cve crowdsecurity/whitelist-good-actors crowdsecurity/nginx crowdsecurity/linux"
       GID: "1000"
       METRICS_ENABLED: "true"
     volumes:
       - /mnt/ssd/docker-data/crowdsec-db:/var/lib/crowdsec/data/
       - /mnt/ssd/docker-data/crowdsec-config:/etc/crowdsec/
       - /var/log:/var/log:ro
-      - traefik-logs:/logs:ro
     networks:
       - potatostack
     restart: unless-stopped
@@ -256,128 +255,6 @@ services:
           memory: 128M
     labels:
       - "wud.trigger.docker.update=false"
-
-  # CrowdSec Traefik Bouncer - Blocks malicious IPs at reverse proxy level
-  crowdsec-traefik-bouncer:
-    image: fbonalair/traefik-crowdsec-bouncer:${CROWDSEC_BOUNCER_TAG:-latest}
-    container_name: crowdsec-traefik-bouncer
-    logging: *default-logging
-    environment:
-      CROWDSEC_BOUNCER_API_KEY: ${CROWDSEC_BOUNCER_KEY}
-      CROWDSEC_AGENT_HOST: crowdsec:8080
-      GIN_MODE: release
-    networks:
-      - potatostack
-    depends_on:
-      - crowdsec
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.1"
-          memory: 64M
-
-  ################################################################################
-  # REVERSE PROXY & SSL
-  ################################################################################
-
-  # Traefik - Modern reverse proxy with automatic SSL (SOTA 2025)
-  traefik:
-    image: traefik:${TRAEFIK_TAG:-latest}
-    container_name: traefik
-    logging: *default-logging
-    security_opt:
-      - no-new-privileges:true
-    ports:
-      - "80:80"
-      - "443:443"
-      - "${HOST_BIND:-127.0.0.1}:8088:8080" # Dashboard (alt port to avoid conflicts)
-    environment:
-      <<: *common-env
-    command:
-      # Global
-      - "--global.checknewversion=false"
-      - "--global.sendanonymoususage=false"
-      # EntryPoints
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
-      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
-      - "--entrypoints.websecure.address=:443"
-      - "--entrypoints.websecure.http.tls=true"
-      - "--entrypoints.websecure.http.tls.options=default"
-      - "--entrypoints.traefik.address=:8080"
-      # Providers
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--providers.docker.network=potatostack_potatostack"
-      - "--providers.file.directory=/etc/traefik/dynamic"
-      - "--providers.file.watch=true"
-      # API & Dashboard
-      - "--api.dashboard=true"
-      - "--api.insecure=false"
-      - "--ping=true"
-      - "--ping.entrypoint=traefik"
-      # Observability
-      - "--log.level=INFO"
-      - "--accesslog=true"
-      - "--accesslog.filepath=/logs/access.log"
-      - "--accesslog.format=json"
-      - "--accesslog.fields.headers.defaultmode=drop"
-      - "--log.filepath=/logs/traefik.log"
-      - "--metrics.prometheus=true"
-      - "--metrics.prometheus.addServicesLabels=true"
-      - "--metrics.prometheus.addEntryPointsLabels=true"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./config/traefik:/etc/traefik/dynamic:ro
-      - ./config/traefik/certs:/etc/traefik/certs:ro
-      - traefik-certs:/letsencrypt
-      - traefik-logs:/logs
-    networks:
-      - potatostack
-    depends_on:
-      crowdsec-traefik-bouncer:
-        condition: service_started
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:8080/ping || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    labels:
-      - "potatostack.alerts=critical"
-      - "traefik.enable=true"
-      # Dashboard router
-      - "traefik.http.routers.traefik.rule=Host(`traefik.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.traefik.entrypoints=websecure"
-      - "traefik.http.routers.traefik.service=api@internal"
-      - "traefik.http.routers.traefik.tls=true"
-      - "traefik.http.routers.traefik.middlewares=sso-chain@docker"
-      - "traefik.http.routers.traefik-gui.rule=Host(`traefik-gui.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.traefik-gui.entrypoints=websecure"
-      - "traefik.http.routers.traefik-gui.service=api@internal"
-      - "traefik.http.routers.traefik-gui.tls=true"
-      - "traefik.http.routers.traefik-gui.middlewares=sso-chain@docker"
-      - "traefik.http.middlewares.sso-chain.chain.middlewares=security-headers"
-      # Security headers middleware
-      - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.X-Robots-Tag=noindex,nofollow,nosnippet,noarchive,notranslate,noimageindex"
-      - "traefik.http.middlewares.security-headers.headers.sslRedirect=true"
-      - "traefik.http.middlewares.security-headers.headers.stsSeconds=315360000"
-      - "traefik.http.middlewares.security-headers.headers.stsIncludeSubdomains=true"
-      - "traefik.http.middlewares.security-headers.headers.stsPreload=true"
-      - "traefik.http.middlewares.security-headers.headers.forceSTSHeader=true"
-      - "traefik.http.middlewares.security-headers.headers.frameDeny=true"
-      - "traefik.http.middlewares.security-headers.headers.contentTypeNosniff=true"
-      - "traefik.http.middlewares.security-headers.headers.browserXssFilter=true"
-      - "traefik.http.middlewares.security-headers.headers.referrerPolicy=no-referrer"
-      - "traefik.http.middlewares.security-headers.headers.permissionsPolicy=geolocation=(), microphone=(), camera=()"
-      - "wud.trigger.docker.update=false"
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 128M
 
   ################################################################################
   # AUTHENTICATION & SECURITY
@@ -428,12 +305,6 @@ services:
   #         cpus: "2.0"
   #         memory: 512M
   #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.authentik.rule=Host(`authentik.${HOST_DOMAIN:-local.domain}`)"
-  #     - "traefik.http.routers.authentik.entrypoints=websecure"
-  #     - "traefik.http.routers.authentik.tls=true"
-  #     - "traefik.http.services.authentik.loadbalancer.server.port=9000"
-  #     - "traefik.http.routers.authentik.middlewares=security-headers@docker"
 
   # authentik-worker:
   #   image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-latest}
@@ -498,13 +369,6 @@ services:
         limits:
           cpus: "0.25"
           memory: 128M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.vaultwarden.rule=Host(`vault.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.vaultwarden.entrypoints=websecure"
-      - "traefik.http.routers.vaultwarden.tls=true"
-      - "traefik.http.services.vaultwarden.loadbalancer.server.port=80"
-      - "traefik.http.routers.vaultwarden.middlewares=sso-chain@docker"
 
   ################################################################################
   # DNS & AD BLOCKING
@@ -543,12 +407,6 @@ services:
   #         cpus: "0.1"
   #         memory: 128M
   #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.adguard.rule=Host(`dns.${HOST_DOMAIN:-local.domain}`)"
-  #     - "traefik.http.routers.adguard.entrypoints=websecure"
-  #     - "traefik.http.routers.adguard.tls=true"
-  #     - "traefik.http.routers.adguard.middlewares=sso-chain@docker"
-  #     - "traefik.http.services.adguard.loadbalancer.server.port=80"
 
   ################################################################################
   # VPN & NETWORKING
@@ -632,86 +490,7 @@ services:
     labels:
       - "autoheal=true"
       - "potatostack.alerts=critical"
-      - "traefik.enable=true"
-      - "traefik.http.routers.gluetun.rule=Host(`gluetun.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.gluetun.entrypoints=websecure"
-      - "traefik.http.routers.gluetun.tls=true"
-      - "traefik.http.routers.gluetun.service=gluetun"
-      - "traefik.http.services.gluetun.loadbalancer.server.port=8008"
-      - "traefik.http.routers.gluetun.middlewares=sso-chain@docker"
-      - "traefik.http.routers.prowlarr.rule=Host(`prowlarr.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.prowlarr.entrypoints=websecure"
-      - "traefik.http.routers.prowlarr.tls=true"
-      - "traefik.http.routers.prowlarr.service=prowlarr"
-      - "traefik.http.services.prowlarr.loadbalancer.server.port=9696"
-      - "traefik.http.routers.prowlarr.middlewares=sso-chain@docker"
-      - "traefik.http.routers.sonarr.rule=Host(`sonarr.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.sonarr.entrypoints=websecure"
-      - "traefik.http.routers.sonarr.tls=true"
-      - "traefik.http.routers.sonarr.service=sonarr"
-      - "traefik.http.services.sonarr.loadbalancer.server.port=8989"
-      - "traefik.http.routers.sonarr.middlewares=sso-chain@docker"
-      - "traefik.http.routers.radarr.rule=Host(`radarr.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.radarr.entrypoints=websecure"
-      - "traefik.http.routers.radarr.tls=true"
-      - "traefik.http.routers.radarr.service=radarr"
-      - "traefik.http.services.radarr.loadbalancer.server.port=7878"
-      - "traefik.http.routers.radarr.middlewares=sso-chain@docker"
-      - "traefik.http.routers.lidarr.rule=Host(`lidarr.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.lidarr.entrypoints=websecure"
-      - "traefik.http.routers.lidarr.tls=true"
-      - "traefik.http.routers.lidarr.service=lidarr"
-      - "traefik.http.services.lidarr.loadbalancer.server.port=8686"
-      - "traefik.http.routers.lidarr.middlewares=sso-chain@docker"
-      - "traefik.http.routers.bookshelf.rule=Host(`bookshelf.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.bookshelf.entrypoints=websecure"
-      - "traefik.http.routers.bookshelf.tls=true"
-      - "traefik.http.routers.bookshelf.service=bookshelf"
-      - "traefik.http.services.bookshelf.loadbalancer.server.port=8787"
-      - "traefik.http.routers.bookshelf.middlewares=sso-chain@docker"
-      - "traefik.http.routers.bazarr.rule=Host(`bazarr.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.bazarr.entrypoints=websecure"
-      - "traefik.http.routers.bazarr.tls=true"
-      - "traefik.http.routers.bazarr.service=bazarr"
-      - "traefik.http.services.bazarr.loadbalancer.server.port=6767"
-      - "traefik.http.routers.bazarr.middlewares=sso-chain@docker"
-      - "traefik.http.routers.qbittorrent.rule=Host(`qbittorrent.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.qbittorrent.entrypoints=websecure"
-      - "traefik.http.routers.qbittorrent.tls=true"
-      - "traefik.http.routers.qbittorrent.service=qbittorrent"
-      - "traefik.http.services.qbittorrent.loadbalancer.server.port=8282"
-      - "traefik.http.routers.qbittorrent.middlewares=sso-chain@docker"
       # aria2 has no web UI - RPC only on port 6800
-      - "traefik.http.routers.slskd.rule=Host(`slskd.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.slskd.entrypoints=websecure"
-      - "traefik.http.routers.slskd.tls=true"
-      - "traefik.http.routers.slskd.service=slskd"
-      - "traefik.http.services.slskd.loadbalancer.server.port=2234"
-      - "traefik.http.routers.slskd.middlewares=sso-chain@docker"
-      # - "traefik.http.routers.pinchflat.rule=Host(`pinchflat.${HOST_DOMAIN:-local.domain}`)"
-      # - "traefik.http.routers.pinchflat.entrypoints=websecure"
-      # - "traefik.http.routers.pinchflat.tls=true"
-      # - "traefik.http.routers.pinchflat.service=pinchflat"
-      # - "traefik.http.services.pinchflat.loadbalancer.server.port=8945"
-      # - "traefik.http.routers.pinchflat.middlewares=sso-chain@docker"
-      - "traefik.http.routers.spotiflac.rule=Host(`spotiflac.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.spotiflac.entrypoints=websecure"
-      - "traefik.http.routers.spotiflac.tls=true"
-      - "traefik.http.routers.spotiflac.service=spotiflac"
-      - "traefik.http.services.spotiflac.loadbalancer.server.port=8080"
-      - "traefik.http.routers.spotiflac.middlewares=sso-chain@docker"
-      - "traefik.http.routers.pyload.rule=Host(`pyload.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.pyload.entrypoints=websecure"
-      - "traefik.http.routers.pyload.tls=true"
-      - "traefik.http.routers.pyload.service=pyload"
-      - "traefik.http.services.pyload.loadbalancer.server.port=8000"
-      - "traefik.http.routers.pyload.middlewares=sso-chain@docker"
-      - "traefik.http.routers.sabnzbd.rule=Host(`sabnzbd.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.sabnzbd.entrypoints=websecure"
-      - "traefik.http.routers.sabnzbd.tls=true"
-      - "traefik.http.routers.sabnzbd.service=sabnzbd"
-      - "traefik.http.services.sabnzbd.loadbalancer.server.port=8080"
-      - "traefik.http.routers.sabnzbd.middlewares=sso-chain@docker"
       - "wud.trigger.docker.update=false"
 
   # WireGuard - REMOVED (using Gluetun + Tailscale instead)
@@ -883,12 +662,6 @@ services:
   #         cpus: "1.0"
   #         memory: 128M
   #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.nextcloud-aio.rule=Host(`nextcloud.${HOST_DOMAIN:-local.domain}`)"
-  #     - "traefik.http.routers.nextcloud-aio.entrypoints=websecure"
-  #     - "traefik.http.routers.nextcloud-aio.tls=true"
-  #     - "traefik.http.services.nextcloud-aio.loadbalancer.server.port=11000"
-  #     - "traefik.http.routers.nextcloud-aio.middlewares=security-headers@docker"
 
   # Syncthing - P2P file sync
   syncthing:
@@ -923,11 +696,6 @@ services:
           cpus: "1.0"
           memory: 128M
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.syncthing.rule=Host(`syncthing.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.syncthing.entrypoints=websecure"
-      - "traefik.http.routers.syncthing.tls=true"
-      - "traefik.http.services.syncthing.loadbalancer.server.port=8384"
       - "wud.trigger.docker.update=true"
 
   # Filebrowser - Web-based file manager with full RW access
@@ -963,12 +731,6 @@ services:
           cpus: "0.25"
           memory: 64M
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.filebrowser.rule=Host(`filebrowser.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.filebrowser.entrypoints=websecure"
-      - "traefik.http.routers.filebrowser.tls=true"
-      - "traefik.http.services.filebrowser.loadbalancer.server.port=80"
-      - "traefik.http.routers.filebrowser.middlewares=sso-chain@docker"
       - "wud.trigger.docker.update=true"
 
   # Filestash - Advanced web file manager with multi-protocol support (SOTA 2025)
@@ -1014,13 +776,6 @@ services:
         reservations:
           cpus: "0.1"
           memory: 128M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.filestash.rule=Host(`filestash.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.filestash.entrypoints=websecure"
-      - "traefik.http.routers.filestash.tls=true"
-      - "traefik.http.services.filestash.loadbalancer.server.port=8334"
-      - "traefik.http.routers.filestash.middlewares=sso-chain@docker"
 
     ################################################################################
     # KNOWLEDGE MANAGEMENT
@@ -1059,12 +814,6 @@ services:
         reservations:
           cpus: "0.1"
           memory: 128M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.obsidian.rule=Host(`obsidian.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.obsidian.entrypoints=websecure"
-      - "traefik.http.routers.obsidian.tls=true"
-      - "traefik.http.services.obsidian.loadbalancer.server.port=5984"
 
   # Obsidian LiveSync Init - Single-node CouchDB bootstrap
   obsidian-livesync-init:
@@ -1137,11 +886,6 @@ services:
           cpus: "0.1"
           memory: 64M
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.miniflux.rule=Host(`rss.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.miniflux.entrypoints=websecure"
-      - "traefik.http.routers.miniflux.tls=true"
-      - "traefik.http.routers.miniflux.middlewares=sso-chain@docker"
       - "wud.trigger.docker.update=true"
 
   # Miniflux webhook to ntfy bridge
@@ -1171,12 +915,6 @@ services:
         reservations:
           cpus: "0.05"
           memory: 32M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.miniflux-webhook.rule=Host(`miniflux-webhook.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.miniflux-webhook.entrypoints=websecure"
-      - "traefik.http.routers.miniflux-webhook.tls=true"
-      - "traefik.http.services.miniflux-webhook.loadbalancer.server.port=8083"
 
   ################################################################################
   # RECIPE MANAGEMENT
@@ -1217,14 +955,7 @@ services:
         reservations:
           cpus: "0.1"
           memory: 128M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.actual.rule=Host(`budget.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.actual.entrypoints=websecure"
-      - "traefik.http.routers.actual.tls=true"
       # Use shared-array-chain for SharedArrayBuffer support (COOP/COEP headers)
-      - "traefik.http.routers.actual.middlewares=shared-array-chain@file"
-      - "traefik.http.services.actual.loadbalancer.server.port=5006"
 
   ################################################################################
   # MEDIA MANAGEMENT - *ARR STACK
@@ -1513,13 +1244,6 @@ services:
         reservations:
           cpus: "0.1"
           memory: 128M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.maintainerr.rule=Host(`maintainerr.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.maintainerr.entrypoints=websecure"
-      - "traefik.http.routers.maintainerr.tls=true"
-      - "traefik.http.services.maintainerr.loadbalancer.server.port=6246"
-      - "traefik.http.routers.maintainerr.middlewares=sso-chain@docker"
 
   # Recyclarr - TRaSH Guides quality profile sync
   recyclarr:
@@ -1644,13 +1368,6 @@ services:
         reservations:
           cpus: "0.05"
           memory: 64M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.notifiarr.rule=Host(`notifiarr.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.notifiarr.entrypoints=websecure"
-      - "traefik.http.routers.notifiarr.tls=true"
-      - "traefik.http.services.notifiarr.loadbalancer.server.port=5454"
-      - "traefik.http.routers.notifiarr.middlewares=sso-chain@docker"
 
   # Exportarr - Prometheus metrics exporter for *arr stack
   exportarr:
@@ -1805,12 +1522,6 @@ services:
           cpus: "1.0"
           memory: 1G
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.jellyfin.rule=Host(`jellyfin.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.jellyfin.entrypoints=websecure"
-      - "traefik.http.routers.jellyfin.tls=true"
-      - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
-      - "traefik.http.routers.jellyfin.middlewares=sso-chain@docker"
       - "wud.trigger.docker.update=true"
 
   # Jellyfin webhook to ntfy bridge
@@ -1840,12 +1551,6 @@ services:
         reservations:
           cpus: "0.05"
           memory: 32M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.jellyfin-webhook.rule=Host(`jellyfin-webhook.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.jellyfin-webhook.entrypoints=websecure"
-      - "traefik.http.routers.jellyfin-webhook.tls=true"
-      - "traefik.http.services.jellyfin-webhook.loadbalancer.server.port=8081"
 
   # Jellyseerr - Media request management for Jellyfin
   jellyseerr:
@@ -1871,13 +1576,6 @@ services:
         reservations:
           cpus: "0.1"
           memory: 128M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.jellyseerr.rule=Host(`jellyseerr.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.jellyseerr.entrypoints=websecure"
-      - "traefik.http.routers.jellyseerr.tls=true"
-      - "traefik.http.services.jellyseerr.loadbalancer.server.port=5055"
-      - "traefik.http.routers.jellyseerr.middlewares=sso-chain@docker"
 
   # Jellyseerr webhook to ntfy bridge
   jellyseerr-webhook:
@@ -1906,12 +1604,6 @@ services:
         reservations:
           cpus: "0.05"
           memory: 32M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.jellyseerr-webhook.rule=Host(`jellyseerr-webhook.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.jellyseerr-webhook.entrypoints=websecure"
-      - "traefik.http.routers.jellyseerr-webhook.tls=true"
-      - "traefik.http.services.jellyseerr-webhook.loadbalancer.server.port:8082"
 
   # Tdarr - Distributed transcoding system for optimizing media library
   # tdarr:
@@ -1962,12 +1654,6 @@ services:
   #         cpus: "0.5"
   #         memory: 512M
   #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.tdarr.rule=Host(`tdarr.${HOST_DOMAIN:-local.domain}`)"
-  #     - "traefik.http.routers.tdarr.entrypoints=websecure"
-  #     - "traefik.http.routers.tdarr.tls=true"
-  #     - "traefik.http.services.tdarr.loadbalancer.server.port=8265"
-  #     - "traefik.http.routers.tdarr.middlewares=sso-chain@docker"
 
   # Audiobookshelf - Audiobook and podcast server
   audiobookshelf:
@@ -1993,13 +1679,6 @@ services:
         limits:
           cpus: "1.0"
           memory: 512M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.audiobookshelf.rule=Host(`audiobooks.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.audiobookshelf.entrypoints=websecure"
-      - "traefik.http.routers.audiobookshelf.tls=true"
-      - "traefik.http.services.audiobookshelf.loadbalancer.server.port=80"
-      - "traefik.http.routers.audiobookshelf.middlewares=sso-chain@docker"
 
   # Navidrome - Music streaming server (Subsonic/Airsonic compatible)
   navidrome:
@@ -2037,13 +1716,6 @@ services:
         reservations:
           cpus: "0.25"
           memory: 128M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.navidrome.rule=Host(`music.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.navidrome.entrypoints=websecure"
-      - "traefik.http.routers.navidrome.tls=true"
-      - "traefik.http.services.navidrome.loadbalancer.server.port=4533"
-      - "traefik.http.routers.navidrome.middlewares=sso-chain@docker"
 
   # SpotiFLAC - Spotify to FLAC downloader (Tidal/Qobuz/Amazon sources)
   spotiflac:
@@ -2478,13 +2150,7 @@ services:
           cpus: "0.5"
           memory: 512M
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.immich.rule=Host(`immich.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.immich.entrypoints=websecure"
-      - "traefik.http.routers.immich.tls=true"
-      - "traefik.http.services.immich.loadbalancer.server.port=2283"
       - "wud.trigger.docker.update=false"
-      # - "traefik.http.routers.immich.middlewares=sso-chain@docker"  # Disabled for native app auth
 
   immich-machine-learning:
     image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_TAG:-release}
@@ -2602,12 +2268,6 @@ services:
           memory: 128M
     labels:
       - "potatostack.alerts=critical"
-      - "traefik.enable=true"
-      - "traefik.http.routers.prometheus.rule=Host(`prometheus.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.prometheus.entrypoints=websecure"
-      - "traefik.http.routers.prometheus.tls=true"
-      - "traefik.http.routers.prometheus.middlewares=sso-chain@docker"
-      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
       - "wud.trigger.docker.update=false"
 
   # Grafana - Metrics visualization and dashboards (SOTA 2025)
@@ -2656,12 +2316,6 @@ services:
           cpus: "0.25"
           memory: 128M
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=Host(`grafana.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.grafana.entrypoints=websecure"
-      - "traefik.http.routers.grafana.tls=true"
-      - "traefik.http.routers.grafana.middlewares=sso-chain@docker"
-      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
       - "wud.trigger.docker.update=false"
 
   # Node Exporter - Host metrics for Prometheus (SOTA 2025)
@@ -2821,12 +2475,6 @@ services:
   #         cpus: "0.1"
   #         memory: 64M
   #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.netdata.rule=Host(`netdata.${HOST_DOMAIN:-local.domain}`)"
-  #     - "traefik.http.routers.netdata.entrypoints=websecure"
-  #     - "traefik.http.routers.netdata.tls=true"
-  #     - "traefik.http.routers.netdata.middlewares=sso-chain@docker"
-  #     - "traefik.http.services.netdata.loadbalancer.server.port=19999"
 
   # Loki - Log aggregation
   loki:
@@ -2848,12 +2496,6 @@ services:
           cpus: "1.0"
           memory: 384M
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.loki.rule=Host(`loki.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.loki.entrypoints=websecure"
-      - "traefik.http.routers.loki.tls=true"
-      - "traefik.http.services.loki.loadbalancer.server.port=3100"
-      - "traefik.http.routers.loki.middlewares=sso-chain@docker"
       - "wud.trigger.docker.update=false"
 
   # Grafana Alloy - Unified collector (Promtail replacement)
@@ -2865,7 +2507,6 @@ services:
     volumes:
       - ./config/alloy:/etc/alloy
       - /var/log:/var/log:ro
-      - traefik-logs:/logs:ro
       - /mnt/cachehdd/slskd/logs:/slskd-logs:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - alloy-data:/var/lib/alloy
@@ -2907,12 +2548,6 @@ services:
   #         cpus: "0.5"
   #         memory: 256M
   #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.parseable.rule=Host(`parseable.${HOST_DOMAIN:-local.domain}`)"
-  #     - "traefik.http.routers.parseable.entrypoints=websecure"
-  #     - "traefik.http.routers.parseable.tls=true"
-  #     - "traefik.http.services.parseable.loadbalancer.server.port=8000"
-  #     - "traefik.http.routers.parseable.middlewares=sso-chain@docker"
 
   # Scrutiny - HDD SMART monitoring
   scrutiny:
@@ -2940,13 +2575,6 @@ services:
         limits:
           cpus: "0.25"
           memory: 192M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.scrutiny.rule=Host(`scrutiny.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.scrutiny.entrypoints=websecure"
-      - "traefik.http.routers.scrutiny.tls=true"
-      - "traefik.http.routers.scrutiny.middlewares=sso-chain@docker"
-      - "traefik.http.services.scrutiny.loadbalancer.server.port=8080"
 
   # Uptime Kuma - Uptime monitoring with Docker container support
   uptime-kuma:
@@ -2977,13 +2605,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.uptime.rule=Host(`uptime.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.uptime.entrypoints=websecure"
-      - "traefik.http.routers.uptime.tls=true"
-      - "traefik.http.routers.uptime.middlewares=sso-chain@docker"
-      - "traefik.http.services.uptime.loadbalancer.server.port=3001"
     deploy:
       resources:
         limits:
@@ -3075,13 +2696,6 @@ services:
         reservations:
           cpus: "0.1"
           memory: 128M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.healthchecks.rule=Host(`healthchecks.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.healthchecks.entrypoints=websecure"
-      - "traefik.http.routers.healthchecks.tls=true"
-      - "traefik.http.services.healthchecks.loadbalancer.server.port=8000"
-      - "traefik.http.routers.healthchecks.middlewares=sso-chain@docker"
 
   ################################################################################
   # UTILITIES & TOOLS
@@ -3117,12 +2731,6 @@ services:
           memory: 32M
     labels:
       - "autoheal=true"
-      - "traefik.enable=true"
-      - "traefik.http.routers.rustypaste.rule=PathPrefix(`/paste`)"
-      - "traefik.http.routers.rustypaste.entrypoints=websecure"
-      - "traefik.http.routers.rustypaste.tls=true"
-      - "traefik.http.routers.rustypaste.middlewares=sso-chain@docker"
-      - "traefik.http.services.rustypaste.loadbalancer.server.port=8000"
 
   # PairDrop - AirDrop alternative (P2P file sharing)
   pairdrop:
@@ -3156,12 +2764,6 @@ services:
           memory: 64M
     labels:
       - "autoheal=true"
-      - "traefik.enable=true"
-      - "traefik.http.routers.pairdrop.rule=PathPrefix(`/pairdrop`)"
-      - "traefik.http.routers.pairdrop.entrypoints=websecure"
-      - "traefik.http.routers.pairdrop.tls=true"
-      - "traefik.http.routers.pairdrop.middlewares=sso-chain@docker"
-      - "traefik.http.services.pairdrop.loadbalancer.server.port=3000"
 
   # Stirling-PDF - PDF tools
   # stirling-pdf:
@@ -3190,12 +2792,6 @@ services:
   #         cpus: "0.25"
   #         memory: 256M
   #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.stirling.rule=Host(`stirling.${HOST_DOMAIN:-local.domain}`)"
-  #     - "traefik.http.routers.stirling.entrypoints=websecure"
-  #     - "traefik.http.routers.stirling.tls=true"
-  #     - "traefik.http.services.stirling.loadbalancer.server.port=8080"
-  #     - "traefik.http.routers.stirling.middlewares=sso-chain@docker"
 
   ################################################################################
   # Karakeep - AI-powered bookmark manager (DISABLED - replaced by Homer dashboard)
@@ -3232,12 +2828,6 @@ services:
   #         cpus: "0.5"
   #         memory: 768M
   #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.karakeep.rule=Host(`karakeep.${HOST_DOMAIN:-local.domain}`)"
-  #     - "traefik.http.routers.karakeep.entrypoints=websecure"
-  #     - "traefik.http.routers.karakeep.tls=true"
-  #     - "traefik.http.services.karakeep.loadbalancer.server.port=3000"
-  #     - "traefik.http.routers.karakeep.middlewares=sso-chain@docker"
   #     - "wud.trigger.docker.update=true"
 
   # karakeep-chrome:
@@ -3307,13 +2897,6 @@ services:
   #         cpus: "2.0"
   #         memory: 384M
   #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.code-server.rule=Host(`code.${HOST_DOMAIN:-local.domain}`)"
-  #     - "traefik.http.routers.code-server.entrypoints=websecure"
-  #     - "traefik.http.routers.code-server.tls=true"
-  #     - "traefik.http.services.code-server.loadbalancer.server.port=8443"
-  #     - "traefik.http.services.code-server.loadbalancer.server.scheme=https"
-  #     - "traefik.http.routers.code-server.middlewares=sso-chain@docker"
 
   # Atuin - Shell history sync
   atuin:
@@ -3343,12 +2926,6 @@ services:
           cpus: "0.25"
           memory: 128M
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.atuin.rule=Host(`atuin.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.atuin.entrypoints=websecure"
-      - "traefik.http.routers.atuin.tls=true"
-      - "traefik.http.services.atuin.loadbalancer.server.port=8888"
-      - "traefik.http.routers.atuin.middlewares=sso-chain@docker"
       - "wud.trigger.docker.update=true"
 
   # IT-Tools - REMOVED: User requested removal
@@ -3374,12 +2951,6 @@ services:
   #         cpus: "0.25"
   #         memory: 128M
   #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.ittools.rule=Host(`tools.${HOST_DOMAIN:-local.domain}`)"
-  #     - "traefik.http.routers.ittools.entrypoints=websecure"
-  #     - "traefik.http.routers.ittools.tls=true"
-  #     - "traefik.http.routers.ittools.middlewares=sso-chain@docker"
-  #     - "traefik.http.services.ittools.loadbalancer.server.port=80"
 
   # DuckDB - Ad-hoc analytics container
   duckdb:
@@ -3449,12 +3020,6 @@ services:
   #         cpus: "0.5"
   #         memory: 768M
   #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.paperless.rule=Host(`docs.${HOST_DOMAIN:-local.domain}`)"
-  #     - "traefik.http.routers.paperless.entrypoints=websecure"
-  #     - "traefik.http.routers.paperless.tls=true"
-  #     - "traefik.http.routers.paperless.middlewares=sso-chain@docker"
-  #     - "traefik.http.services.paperless.loadbalancer.server.port=8000"
 
   # Pingvin Share - Secure file sharing (SOTA 2025)
   ################################################################################
@@ -3512,12 +3077,6 @@ services:
           cpus: "1.0"
           memory: 256M
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.gitea.rule=Host(`git.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.gitea.entrypoints=websecure"
-      - "traefik.http.routers.gitea.tls=true"
-      - "traefik.http.services.gitea.loadbalancer.server.port=3000"
-      - "traefik.http.routers.gitea.middlewares=sso-chain@docker"
       - "wud.trigger.docker.update=false"
 
   # Gitea Runner - CI/CD for Gitea
@@ -3576,13 +3135,6 @@ services:
         limits:
           cpus: "0.5"
           memory: 256M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.woodpecker.rule=Host(`ci.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.woodpecker.entrypoints=websecure"
-      - "traefik.http.routers.woodpecker.tls=true"
-      - "traefik.http.routers.woodpecker.middlewares=sso-chain@docker"
-      - "traefik.http.services.woodpecker.loadbalancer.server.port=8000"
 
   woodpecker-agent:
     image: woodpeckerci/woodpecker-agent:${WOODPECKER_AGENT_TAG:-latest}
@@ -3644,12 +3196,6 @@ services:
   #         cpus: "2.0"
   #         memory: 384M
   #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.open-webui.rule=Host(`openwebui.${HOST_DOMAIN:-local.domain}`)"
-  #     - "traefik.http.routers.open-webui.entrypoints=websecure"
-  #     - "traefik.http.routers.open-webui.tls=true"
-  #     - "traefik.http.services.open-webui.loadbalancer.server.port=8080"
-  #     - "traefik.http.routers.open-webui.middlewares=sso-chain@docker"
 
   # Pinchflat - YouTube downloader (disabled)
   # pinchflat:
@@ -3801,12 +3347,6 @@ services:
           cpus: "0.01"
           memory: 16M
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.homer.rule=Host(`home.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.homer.entrypoints=websecure"
-      - "traefik.http.routers.homer.tls=true"
-      - "traefik.http.routers.homer.middlewares=sso-chain@docker"
-      - "traefik.http.services.homer.loadbalancer.server.port=8080"
       - "wud.trigger.docker.update=true"
 
   # Homarr - DISABLED: Replaced by Homer (lighter weight, no DB dependency)
@@ -3861,12 +3401,6 @@ services:
   #         cpus: "0.25"
   #         memory: 256M
   #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.homarr.rule=Host(`home.${HOST_DOMAIN:-local.domain}`)"
-  #     - "traefik.http.routers.homarr.entrypoints=websecure"
-  #     - "traefik.http.routers.homarr.tls=true"
-  #     - "traefik.http.routers.homarr.middlewares=sso-chain@docker"
-  #     - "traefik.http.services.homarr.loadbalancer.server.port=7575"
   #     - "wud.trigger.docker.update=true"
 
   # Dockge - Modern Docker Compose stack manager (SOTA 2025)
@@ -3905,12 +3439,6 @@ services:
   #         cpus: "0.25"
   #         memory: 128M
   #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.infisical.rule=Host(`secrets.${HOST_DOMAIN:-local.domain}`)"
-  #     - "traefik.http.routers.infisical.entrypoints=websecure"
-  #     - "traefik.http.routers.infisical.tls=true"
-  #     - "traefik.http.services.infisical.loadbalancer.server.port=8080"
-  #     - "traefik.http.routers.infisical.middlewares=security-headers@docker"
 
   # fail2ban - REMOVED (using CrowdSec instead)
   # fail2ban:
@@ -3929,7 +3457,6 @@ services:
   #   volumes:
   #     - fail2ban-data:/data
   #     - /var/log:/var/log:ro
-  #     - traefik-logs:/logs:ro
   #   restart: unless-stopped
   #   deploy:
   #     resources:
@@ -3975,12 +3502,6 @@ services:
           memory: 64M
     labels:
       - "potatostack.alerts=critical"
-      - "traefik.enable=true"
-      - "traefik.http.routers.alertmanager.rule=Host(`alerts.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.alertmanager.entrypoints=websecure"
-      - "traefik.http.routers.alertmanager.tls=true"
-      - "traefik.http.routers.alertmanager.middlewares=sso-chain@docker"
-      - "traefik.http.services.alertmanager.loadbalancer.server.port=9093"
 
   # Alertmanager ntfy Formatter - Enterprise alert formatting -> ntfy
   alertmanager-ntfy:
@@ -4053,12 +3574,6 @@ services:
           cpus: "0.1"
           memory: 64M
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.ntfy.rule=Host(`ntfy.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.ntfy.entrypoints=websecure"
-      - "traefik.http.routers.ntfy.tls=true"
-      - "traefik.http.services.ntfy.loadbalancer.server.port=80"
-      - "traefik.http.routers.ntfy.middlewares=security-headers@docker"
       - "wud.trigger.docker.update=true"
 
   # What's Up Docker (WUD) - Docker Image Update Monitor with auto-update support
@@ -4093,12 +3608,6 @@ services:
         reservations:
           cpus: "0.1"
           memory: 128M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.wud.rule=Host(`wud.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.wud.entrypoints=websecure"
-      - "traefik.http.routers.wud.tls=true"
-      - "traefik.http.services.wud.loadbalancer.server.port=3000"
 
   # Autoheal - Container health recovery
   autoheal:
@@ -4334,35 +3843,6 @@ services:
       - potatostack
     restart: unless-stopped
 
-  # Traefik Log Monitor
-  traefik-log-monitor:
-    image: docker:${DOCKER_TAG:-cli}
-    container_name: traefik-log-monitor
-    logging: *default-logging
-    entrypoint: sh /traefik-log-monitor.sh
-    environment:
-      TRAEFIK_CONTAINER: traefik
-      TRAEFIK_LOG_CHECK_INTERVAL: ${TRAEFIK_LOG_CHECK_INTERVAL:-60}
-      TRAEFIK_LOG_PATTERNS: ${TRAEFIK_LOG_PATTERNS:-acme|certificate|x509|tls}
-      TRAEFIK_LOG_LEVEL_PATTERN: ${TRAEFIK_LOG_LEVEL_PATTERN:-level=error}
-      TRAEFIK_RESTART_ON_ERROR: ${TRAEFIK_RESTART_ON_ERROR:-false}
-      TRAEFIK_RESTART_COOLDOWN: ${TRAEFIK_RESTART_COOLDOWN:-300}
-      TRAEFIK_NOTIFY_COOLDOWN: ${TRAEFIK_NOTIFY_COOLDOWN:-300}
-      NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
-      NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
-      NTFY_TOKEN: ${NTFY_TOKEN:-}
-      NTFY_DEFAULT_TAGS: ${NTFY_DEFAULT_TAGS:-potatostack,monitor}
-      NTFY_DEFAULT_PRIORITY: ${NTFY_DEFAULT_PRIORITY:-default}
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./scripts/monitor/traefik-log-monitor.sh:/traefik-log-monitor.sh:ro
-      - ./scripts/monitor/notify.sh:/notify.sh:ro
-    depends_on:
-      - traefik
-    networks:
-      - potatostack
-    restart: unless-stopped
-
   # Backup Monitor
   backup-monitor:
     image: alpine:${ALPINE_TAG:-3.21}
@@ -4501,13 +3981,6 @@ services:
         limits:
           cpus: "0.5"
           memory: 128M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.velld-api.rule=Host(`velld-api.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.velld-api.entrypoints=websecure"
-      - "traefik.http.routers.velld-api.tls=true"
-      - "traefik.http.services.velld-api.loadbalancer.server.port=8080"
-      - "traefik.http.routers.velld-api.middlewares=sso-chain@docker"
 
   velld-web:
     image: ghcr.io/dendianugerah/velld/web:${VELLD_WEB_TAG:-latest}
@@ -4529,13 +4002,6 @@ services:
         limits:
           cpus: "0.25"
           memory: 64M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.velld.rule=Host(`velld.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.velld.entrypoints=websecure"
-      - "traefik.http.routers.velld.tls=true"
-      - "traefik.http.services.velld.loadbalancer.server.port=3000"
-      - "traefik.http.routers.velld.middlewares=sso-chain@docker"
 
   ################################################################################
   # Backrest - Restic Backup WebUI & Scheduler
@@ -4587,13 +4053,6 @@ services:
         reservations:
           cpus: "0.25"
           memory: 128M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.backrest.rule=Host(`backrest.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.backrest.entrypoints=websecure"
-      - "traefik.http.routers.backrest.tls=true"
-      - "traefik.http.services.backrest.loadbalancer.server.port=9898"
-      - "traefik.http.routers.backrest.middlewares=sso-chain@docker"
 
   # Snapshot Scheduler - Cron-based Kopia snapshots
   snapshot-scheduler:
@@ -4649,11 +4108,6 @@ services:
           cpus: "0.1"
           memory: 128M
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.searxng.rule=Host(`search.${HOST_DOMAIN:-local.domain}`)"
-      - "traefik.http.routers.searxng.entrypoints=websecure"
-      - "traefik.http.routers.searxng.tls=true"
-      - "traefik.http.routers.searxng.middlewares=sso-chain@docker"
       - "wud.trigger.docker.update=true"
 
 ################################################################################
@@ -4678,8 +4132,6 @@ volumes:
   authentik-media:
   authentik-custom-templates:
   authentik-certs:
-  # Reverse Proxy
-  traefik-certs:
 
   # VPN
   gluetun-config:
@@ -4750,7 +4202,6 @@ volumes:
   # Security
   crowdsec-db:
   crowdsec-config:
-  traefik-logs:
 
   # DNS & Ad Blocking (DISABLED)
   # adguard-work:

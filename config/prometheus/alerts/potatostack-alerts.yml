@@ -197,27 +197,6 @@ groups:
   - name: Security & Ingress
     interval: 60s
     rules:
-      - alert: TraefikDown
-        expr: up{job="traefik"} == 0
-        for: 2m
-        labels:
-          severity: critical
-          component: ingress
-        annotations:
-          summary: "🌍 Traefik DOWN - All services inaccessible!"
-          description: "Traefik reverse proxy is down. All HTTPS routes are inaccessible. Check: docker logs traefik"
-          runbook: "Restart: docker restart traefik"
-
-      - alert: TraefikHighErrorRate
-        expr: rate(traefik_service_requests_total{status_code=~"5.."}[5m]) / rate(traefik_service_requests_total[5m]) > 0.05
-        for: 5m
-        labels:
-          severity: warning
-          component: ingress
-        annotations:
-          summary: "❌ Traefik 5xx errors: {{ $value | humanizePercentage }}"
-          description: "Traefik is experiencing > 5% server errors. Check upstream service health and logs."
-
       - alert: CrowdSecDown
         expr: up{job="crowdsec"} == 0
         for: 2m

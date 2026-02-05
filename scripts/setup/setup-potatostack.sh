@@ -747,8 +747,6 @@ step_firewall_setup() {
 	echo "  sudo ufw-docker allow <container-name> <port>/<protocol>"
 	echo ""
 	echo "Example commands:"
-	echo "  sudo ufw-docker allow traefik 80"
-	echo "  sudo ufw-docker allow traefik 443"
 	echo "  sudo ufw-docker list          # List all rules"
 	echo "  sudo ufw-docker check          # Check rules"
 	echo ""

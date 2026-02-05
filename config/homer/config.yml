@@ -353,13 +353,6 @@ services:
         target: "_blank"
         type: "Ping"
 
-      - name: "Traefik"
-        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/traefik.png"
-        subtitle: "Reverse Proxy"
-        url: "https://potatostack.tale-iwato.ts.net:8088"
-        target: "_blank"
-        type: "Traefik"
-
   # ============================================================================
   # UTILITIES
   # ============================================================================

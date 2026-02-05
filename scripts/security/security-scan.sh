@@ -199,8 +199,8 @@ scan_with_trivy() {
 
 	# 4c. Scan a sample of critical images (if Docker available)
 	if command -v docker &>/dev/null && docker info &>/dev/null 2>&1; then
-		echo -e "  Scanning critical images (traefik, postgres, redis)..."
-		for img in traefik:latest postgres:16-alpine redis:alpine; do
+		echo -e "  Scanning critical images (postgres, redis)..."
+		for img in postgres:16-alpine redis:alpine; do
 			if docker image inspect "$img" &>/dev/null 2>&1; then
 				local img_vulns=$(trivy image --severity CRITICAL --quiet "$img" 2>/dev/null | grep -c "CRITICAL" || echo 0)
 				if [ "$img_vulns" -gt 0 ]; then

@@ -78,7 +78,7 @@ done
 # Phase 4: Start networking
 echo ""
 echo "[4/8] Starting Networking (Phase 2)..."
-docker compose up -d traefik gluetun adguardhome crowdsec 2>&1 | grep -v "^$"
+docker compose up -d gluetun adguardhome crowdsec 2>&1 | grep -v "^$"
 sleep 3
 
 # Phase 5: Start monitoring

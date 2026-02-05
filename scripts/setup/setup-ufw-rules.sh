@@ -136,19 +136,13 @@ apply_docker_rules() {
 	print_info "Installing ufw-docker integration..."
 	ufw-docker install
 
-	# Allow Traefik container explicitly
-	print_info "Allowing Traefik container..."
-	ufw-docker allow traefik 80 || print_info "Traefik port 80 rule may already exist"
-	ufw-docker allow traefik 443 || print_info "Traefik port 443 rule may already exist"
-
 	# Allow AdGuard Home explicitly
 	print_info "Allowing AdGuard Home container..."
 	ufw-docker allow adguardhome 53 || print_info "AdGuard Home DNS rule may already exist"
 
 	print_success "Docker container rules applied"
 	print_info ""
-	print_info "All other containers are protected and accessible only via:"
-	echo "  • Traefik reverse proxy (https://service.yourdomain.com)"
+	print_info "All containers are protected and accessible via:"
 	echo "  • Local network (HOST_BIND=${HOST_BIND:-192.168.178.158})"
 }
 
@@ -266,7 +260,6 @@ EXAMPLES:
   sudo bash scripts/setup/setup-ufw-rules.sh allow
 
   # Direct ufw-docker usage
-  sudo ufw-docker allow traefik 80
   sudo ufw-docker allow adguardhome 53
   sudo ufw-docker list
 
@@ -274,8 +267,6 @@ POTATOSTACK FIREWALL ARCHITECTURE:
   1. Default Policy: Deny all incoming, allow outgoing
   2. Essential Services:
      • SSH (22/tcp)
-     • HTTP (80/tcp) - Traefik reverse proxy
-     • HTTPS (443/tcp) - Traefik reverse proxy
      • DNS (53/tcp+udp) - AdGuard Home
 
   3. Service Access:

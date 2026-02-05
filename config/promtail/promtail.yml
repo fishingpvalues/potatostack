@@ -27,11 +27,3 @@ scrape_configs:
         target_label: "container"
       - source_labels: ["__meta_docker_container_log_stream"]
         target_label: "stream"
-
-  - job_name: traefik
-    static_configs:
-      - targets:
-          - localhost
-        labels:
-          job: traefik
-          __path__: /logs/*.log
