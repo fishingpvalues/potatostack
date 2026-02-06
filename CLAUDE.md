@@ -124,6 +124,40 @@ docker compose up -d --force-recreate \
 - PostgreSQL data: `/mnt/ssd/docker-data/postgres`
 - Password env var: `POSTGRES_SUPER_PASSWORD` in `.env`
 
+## Gluetun VPN Network Limitations
+
+Services using `network_mode: "service:gluetun"` have special networking constraints:
+
+**Problem:** Docker's internal DNS (container name resolution) doesn't work through gluetun's VPN network namespace. Services behind gluetun cannot resolve hostnames like `postgres` or `redis-cache`.
+
+**Solutions:**
+1. **Use container IPs directly** (current approach for bitmagnet):
+   ```yaml
+   POSTGRES_HOST: 172.22.0.15  # Get with: docker inspect postgres --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'
+   ```
+   - Fragile: IP changes if postgres is recreated
+   - After postgres restart, check IP and update if needed
+
+2. **Expose service on host** and use `host.docker.internal`:
+   - Requires binding to `0.0.0.0` (security implications)
+   - Add `extra_hosts: ["host.docker.internal:host-gateway"]` to gluetun
+
+**Required gluetun configuration:**
+```yaml
+# .env - Add ports for VPN firewall
+VPN_INPUT_PORTS=51413,50000,6888,3333,3334
+
+# docker-compose.yml - Allow Docker network traffic
+FIREWALL_OUTBOUND_SUBNETS: ${LAN_NETWORK:-192.168.178.0/24},172.16.0.0/12
+```
+
+**Services behind gluetun:** qbittorrent, slskd, aria2, pyload, spotiflac, stash, rdt-client, bookshelf, bitmagnet, tdl
+
+**Bitmagnet-specific:**
+- Uses postgres IP: `172.22.0.15` (check after postgres restart)
+- Redis cache disabled (not exposed on host)
+- DHT port 3334, WebUI port 3333
+
 ## Preferences
 
 - Prioritize code over documentation

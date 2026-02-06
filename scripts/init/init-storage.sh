@@ -279,7 +279,8 @@ mkdir -p \
 mkdir -p \
 	"${CACHE_BASE}/slskd/logs" \
 	"${CACHE_BASE}/backrest/cache" \
-	"${CACHE_BASE}/backrest/tmp"
+	"${CACHE_BASE}/backrest/tmp" \
+	"${CACHE_BASE}/bitmagnet"
 
 ################################################################################
 # SSD Directories (Databases and App Data)
@@ -530,6 +531,9 @@ chown -R 472:472 "${SSD_BASE}/grafana"
 
 # Notifiarr (UID 1000) - ensure proper ownership
 [ -d "${SSD_BASE}/notifiarr" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/notifiarr"
+
+# Bitmagnet (UID 1000) - DHT crawler (on cachehdd due to large DB growth)
+[ -d "${CACHE_BASE}/bitmagnet" ] && chown -R "${PUID}:${PGID}" "${CACHE_BASE}/bitmagnet"
 
 # Uptime-Kuma (UID 1000) - DISABLED
 # [ -d "${SSD_BASE}/uptime-kuma" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/uptime-kuma"

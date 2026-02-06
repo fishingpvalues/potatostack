@@ -158,3 +158,48 @@ config/<service>/ - Service-specific configuration files
 - `make resources` - Check resource usage (CPU/Memory)
 - `make fix-permissions` - Fix named volume permissions
 - `make recovery` - Full recovery after crash (fix Docker + start stack)
+
+## Gluetun VPN Network Constraints
+
+**IMPORTANT:** Services using `network_mode: "service:gluetun"` cannot resolve Docker container hostnames (e.g., `postgres`, `redis-cache`) because they use gluetun's VPN DNS, not Docker's internal DNS.
+
+### Affected Services
+qbittorrent, slskd, aria2, pyload, spotiflac, stash, rdt-client, bookshelf, bitmagnet, tdl
+
+### Workarounds
+
+1. **Use container IP directly** (current bitmagnet approach):
+   ```bash
+   # Get postgres IP
+   docker inspect postgres --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'
+   # Returns: 172.22.0.15
+   ```
+   Then use in docker-compose: `POSTGRES_HOST: 172.22.0.15`
+
+   **Caveat:** IP may change after container recreation - check and update if needed.
+
+2. **Expose service on host**: Bind to `0.0.0.0` and use `host.docker.internal` (security implications).
+
+### Required Configuration
+
+**In `.env`:**
+```bash
+VPN_INPUT_PORTS=51413,50000,6888,3333,3334  # Add ports for VPN firewall
+```
+
+**In `docker-compose.yml` (gluetun service):**
+```yaml
+FIREWALL_OUTBOUND_SUBNETS: ${LAN_NETWORK:-192.168.178.0/24},172.16.0.0/12
+extra_hosts:
+  - "host.docker.internal:host-gateway"
+```
+
+### After Postgres Restart
+If bitmagnet fails to connect after postgres restart:
+```bash
+# Check new IP
+docker inspect postgres --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'
+# Update POSTGRES_HOST in docker-compose.yml if changed
+# Restart bitmagnet
+docker compose up -d bitmagnet
+```

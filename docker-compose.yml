@@ -57,7 +57,7 @@ services:
       <<: *common-env
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-authentik,gitea,woodpecker,immich,calibre,karakeep,healthchecks,atuin,homarr,miniflux,grafana}
+      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-gitea,immich,healthchecks,atuin,miniflux,grafana,bitmagnet}
     entrypoint: sh /postgres-wrapper.sh
     command:
       - "postgres"
@@ -422,14 +422,11 @@ services:
       - NET_ADMIN
     devices:
       - /dev/net/tun:/dev/net/tun
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "${HOST_BIND:-127.0.0.1}:8008:8008" # Gluetun control (moved from 8000)
-      - "${HOST_BIND:-127.0.0.1}:8989:8989" # Sonarr
-      - "${HOST_BIND:-127.0.0.1}:7878:7878" # Radarr
-      - "${HOST_BIND:-127.0.0.1}:9696:9696" # Prowlarr
-      - "${HOST_BIND:-127.0.0.1}:6767:6767" # Bazarr
       - "${HOST_BIND:-127.0.0.1}:8787:8787" # Bookshelf (ebook manager)
-      - "${HOST_BIND:-127.0.0.1}:8686:8686" # Lidarr
       - "${HOST_BIND:-127.0.0.1}:8282:8282" # qBittorrent WebUI
       - "${HOST_BIND:-127.0.0.1}:51413:51413" # qBittorrent peer
       - "${HOST_BIND:-127.0.0.1}:51413:51413/udp"
@@ -444,8 +441,9 @@ services:
       - "${HOST_BIND:-127.0.0.1}:9666:9666" # pyLoad Click'n'Load
       - "${HOST_BIND:-127.0.0.1}:9900:9900" # Stash
       - "${HOST_BIND:-127.0.0.1}:6500:6500" # rdt-client WebUI
-      - "${HOST_BIND:-127.0.0.1}:8191:8191" # FlareSolverr
-      - "${HOST_BIND:-127.0.0.1}:8085:8080" # SABnzbd WebUI (internal 8080)
+      - "${HOST_BIND:-127.0.0.1}:3333:3333" # Bitmagnet WebUI
+      - "${HOST_BIND:-127.0.0.1}:3334:3334" # Bitmagnet DHT
+      - "${HOST_BIND:-127.0.0.1}:3334:3334/udp"
     environment:
       <<: *common-env
       VPN_SERVICE_PROVIDER: ${VPN_PROVIDER:-surfshark}
@@ -454,8 +452,8 @@ services:
       WIREGUARD_ADDRESSES: ${WIREGUARD_ADDRESSES}
       SERVER_COUNTRIES: ${VPN_COUNTRY:-Germany}
       LOG_LEVEL: ${VPN_LOG_LEVEL:-info}
-      FIREWALL_OUTBOUND_SUBNETS: ${LAN_NETWORK:-192.168.178.0/24}
-      FIREWALL_VPN_INPUT_PORTS: ${VPN_INPUT_PORTS:-51413,50000,6888}
+      FIREWALL_OUTBOUND_SUBNETS: ${LAN_NETWORK:-192.168.178.0/24},172.16.0.0/12
+      FIREWALL_VPN_INPUT_PORTS: ${VPN_INPUT_PORTS:-51413,50000,6888,3333,3334}
       FIREWALL: "on"
       DNS_ADDRESS: ${VPN_DNS:-1.1.1.1}
       DOT: "off"
@@ -484,7 +482,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 512M
+          memory: 384M
         reservations:
           cpus: "0.25"
           memory: 256M
@@ -573,7 +571,7 @@ services:
       TAILSCALE_CONTAINER: tailscale
       # All service ports to expose via HTTPS
       # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr
-      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,9925,5984,9898,8123,8191,6500"
+      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,9925,5984,9898,8123,8191,6500,3333"
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_MARKER_FILE: /https-marker/setup-complete
@@ -602,7 +600,7 @@ services:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
       # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr
-      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,9925,5984,9898,8123,8191,6500"
+      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,9925,5984,9898,8123,8191,6500,3333"
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_SERVE_LOOP: "true"
@@ -2000,41 +1998,41 @@ services:
     labels:
       - "autoheal=true"
 
-  # SABnzbd - Usenet download client (for Torbox/Eweka usenet)
-  sabnzbd:
-    image: lscr.io/linuxserver/sabnzbd:${SABNZBD_TAG:-latest}
-    container_name: sabnzbd
-    logging: *default-logging
-    network_mode: "service:gluetun"
-    environment:
-      <<: *common-env
-    volumes:
-      - sabnzbd-config:/config
-      - /mnt/storage/downloads:/downloads
-      - /mnt/storage/downloads/incomplete/sabnzbd:/incomplete-downloads
-    depends_on:
-      gluetun:
-        condition: service_healthy
-        restart: true
-      storage-init:
-        condition: service_completed_successfully
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8085/api?mode=version || exit 1"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 512M
-        reservations:
-          cpus: "0.25"
-          memory: 256M
-    labels:
-      - "autoheal=true"
+  # SABnzbd - Usenet download client (for Torbox/Eweka usenet) (DISABLED)
+  # sabnzbd:
+  #   image: lscr.io/linuxserver/sabnzbd:${SABNZBD_TAG:-latest}
+  #   container_name: sabnzbd
+  #   logging: *default-logging
+  #   network_mode: "service:gluetun"
+  #   environment:
+  #     <<: *common-env
+  #   volumes:
+  #     - sabnzbd-config:/config
+  #     - /mnt/storage/downloads:/downloads
+  #     - /mnt/storage/downloads/incomplete/sabnzbd:/incomplete-downloads
+  #   depends_on:
+  #     gluetun:
+  #       condition: service_healthy
+  #       restart: true
+  #     storage-init:
+  #       condition: service_completed_successfully
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -f http://127.0.0.1:8085/api?mode=version || exit 1"]
+  #     interval: 60s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 60s
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "1.0"
+  #         memory: 512M
+  #       reservations:
+  #         cpus: "0.25"
+  #         memory: 256M
+  #   labels:
+  #     - "autoheal=true"
 
   # rdt-client - Real-Debrid download client (qBittorrent API emulation)
   rdt-client:
@@ -2302,6 +2300,76 @@ services:
         condition: service_healthy
         restart: true
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
+
+  # Bitmagnet - DHT crawler and torrent indexer (SOTA 2026)
+  bitmagnet:
+    image: ghcr.io/bitmagnet-io/bitmagnet:${BITMAGNET_TAG:-latest}
+    container_name: bitmagnet
+    logging: *default-logging
+    network_mode: "service:gluetun"
+    command:
+      - worker
+      - run
+      - --keys=http_server
+      - --keys=queue_server
+      - --keys=dht_crawler
+    environment:
+      <<: *common-env
+      # Note: Using container IP because network_mode:service:gluetun can't resolve Docker DNS
+      # If postgres IP changes, update this or restart postgres first
+      POSTGRES_HOST: 172.22.0.15
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+      POSTGRES_DATABASE: bitmagnet
+      # Redis cache disabled - not exposed on host
+      # REDIS_ADDR: redis-cache:6379
+      REDIS_DB: "15"
+      # Lightweight crawl settings for mini PC
+      DHT_CRAWLER_SCALING_FACTOR: "5"
+      DHT_CRAWLER_SAVE_FILES_THRESHOLD: "50"
+      DHT_CRAWLER_SAVE_PIECES: "false"
+      # TMDB for movie/TV classification (20 req/sec with own key)
+      TMDB_ENABLED: "true"
+      TMDB_API_KEY: ${TMDB_API_KEY}
+      # Logging
+      LOG_LEVEL: info
+      LOG_JSON: "false"
+    volumes:
+      - /mnt/cachehdd/bitmagnet:/root/.config/bitmagnet
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        restart: true
+      postgres:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3333/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 384M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    labels:
+      - "autoheal=true"
+      - "wud.trigger.docker.update=true"
 
   ################################################################################
   # PHOTO MANAGEMENT
@@ -3320,64 +3388,64 @@ services:
           memory: 128M
 
   # Woodpecker CI - Gitea integrated CI/CD (SOTA 2025)
-  woodpecker-server:
-    image: woodpeckerci/woodpecker-server:${WOODPECKER_TAG:-latest}
-    container_name: woodpecker-server
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-127.0.0.1}:3006:8000"
-    environment:
-      <<: *common-env
-      WOODPECKER_HOST: https://ci.${HOST_DOMAIN:-local.domain}
-      WOODPECKER_SERVER_ADDR: :8000
-      WOODPECKER_GRPC_ADDR: :9000
-      WOODPECKER_AGENT_SECRET: ${WOODPECKER_AGENT_SECRET}
-      WOODPECKER_DATABASE_DRIVER: postgres
-      WOODPECKER_DATABASE_DATASOURCE: postgres://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/woodpecker?sslmode=disable
-      WOODPECKER_OPEN: "false"
-      WOODPECKER_ADMIN: ${WOODPECKER_ADMIN}
-      WOODPECKER_GITEA: "true"
-      WOODPECKER_GITEA_URL: http://gitea:3000
-      WOODPECKER_GITEA_CLIENT: ${WOODPECKER_GITEA_CLIENT}
-      WOODPECKER_GITEA_SECRET: ${WOODPECKER_GITEA_SECRET}
-    networks:
-      - potatostack
-    depends_on:
-      - postgres
-      - gitea
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 256M
+  # woodpecker-server:
+  #   image: woodpeckerci/woodpecker-server:${WOODPECKER_TAG:-latest}
+  #   container_name: woodpecker-server
+  #   logging: *default-logging
+  #   ports:
+  #     - "${HOST_BIND:-127.0.0.1}:3006:8000"
+  #   environment:
+  #     <<: *common-env
+  #     WOODPECKER_HOST: https://ci.${HOST_DOMAIN:-local.domain}
+  #     WOODPECKER_SERVER_ADDR: :8000
+  #     WOODPECKER_GRPC_ADDR: :9000
+  #     WOODPECKER_AGENT_SECRET: ${WOODPECKER_AGENT_SECRET}
+  #     WOODPECKER_DATABASE_DRIVER: postgres
+  #     WOODPECKER_DATABASE_DATASOURCE: postgres://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/woodpecker?sslmode=disable
+  #     WOODPECKER_OPEN: "false"
+  #     WOODPECKER_ADMIN: ${WOODPECKER_ADMIN}
+  #     WOODPECKER_GITEA: "true"
+  #     WOODPECKER_GITEA_URL: http://gitea:3000
+  #     WOODPECKER_GITEA_CLIENT: ${WOODPECKER_GITEA_CLIENT}
+  #     WOODPECKER_GITEA_SECRET: ${WOODPECKER_GITEA_SECRET}
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - postgres
+  #     - gitea
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.5"
+  #         memory: 256M
 
-  woodpecker-agent:
-    image: woodpeckerci/woodpecker-agent:${WOODPECKER_AGENT_TAG:-latest}
-    container_name: woodpecker-agent
-    logging: *default-logging
-    environment:
-      <<: *common-env
-      WOODPECKER_SERVER: woodpecker-server:9000
-      WOODPECKER_AGENT_SECRET: ${WOODPECKER_AGENT_SECRET}
-      WOODPECKER_BACKEND: docker
-      WOODPECKER_BACKEND_DOCKER_HOST: unix:///var/run/docker.sock
-      DOCKER_API_VERSION: "1.44"
-      WOODPECKER_BACKEND_DOCKER_NETWORK: potatostack
-      WOODPECKER_MAX_WORKFLOWS: ${WOODPECKER_MAX_WORKFLOWS:-2}
-      WOODPECKER_GRPC_SECURE: "false"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - potatostack
-    depends_on:
-      - woodpecker-server
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 256M
+  # woodpecker-agent:
+  #   image: woodpeckerci/woodpecker-agent:${WOODPECKER_AGENT_TAG:-latest}
+  #   container_name: woodpecker-agent
+  #   logging: *default-logging
+  #   environment:
+  #     <<: *common-env
+  #     WOODPECKER_SERVER: woodpecker-server:9000
+  #     WOODPECKER_AGENT_SECRET: ${WOODPECKER_AGENT_SECRET}
+  #     WOODPECKER_BACKEND: docker
+  #     WOODPECKER_BACKEND_DOCKER_HOST: unix:///var/run/docker.sock
+  #     DOCKER_API_VERSION: "1.44"
+  #     WOODPECKER_BACKEND_DOCKER_NETWORK: potatostack
+  #     WOODPECKER_MAX_WORKFLOWS: ${WOODPECKER_MAX_WORKFLOWS:-2}
+  #     WOODPECKER_GRPC_SECURE: "false"
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - woodpecker-server
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.5"
+  #         memory: 256M
 
   # Sentry - Error tracking
   ################################################################################
@@ -4005,7 +4073,7 @@ services:
     environment:
       - GLUETUN_URL=http://gluetun:8008
       - CHECK_INTERVAL=${GLUETUN_CHECK_INTERVAL:-10}
-      - RESTART_CONTAINERS= bookshelf qbittorrent pyload slskd spotiflac stash rdt-client aria2
+      - RESTART_CONTAINERS= bookshelf qbittorrent pyload slskd spotiflac stash rdt-client aria2 bitmagnet
       - RESTART_ON_STOP=${GLUETUN_RESTART_ON_STOP:-true}
       - RESTART_ON_FAILURE=${GLUETUN_RESTART_ON_FAILURE:-true}
       - RESTART_COOLDOWN=${GLUETUN_RESTART_COOLDOWN:-120}

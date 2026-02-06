@@ -195,6 +195,13 @@ services:
         target: "_blank"
         type: "Ping"
 
+      - name: "Bitmagnet"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/bittorrent.png"
+        subtitle: "DHT Torrent Indexer"
+        url: "https://potatostack.tale-iwato.ts.net:3333"
+        target: "_blank"
+        type: "Ping"
+
   - name: "Productivity"
     icon: "fas fa-lightbulb"
     items:
@@ -258,13 +265,6 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/gitea.png"
         subtitle: "Git Hosting"
         url: "https://potatostack.tale-iwato.ts.net:3004"
-        target: "_blank"
-        type: "Ping"
-
-      - name: "Woodpecker CI"
-        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/woodpecker-ci.png"
-        subtitle: "CI/CD Pipeline"
-        url: "https://potatostack.tale-iwato.ts.net:3006"
         target: "_blank"
         type: "Ping"
 
