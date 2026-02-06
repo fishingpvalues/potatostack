@@ -4073,7 +4073,7 @@ services:
     environment:
       - GLUETUN_URL=http://gluetun:8008
       - CHECK_INTERVAL=${GLUETUN_CHECK_INTERVAL:-10}
-      - RESTART_CONTAINERS= bookshelf qbittorrent pyload slskd spotiflac stash rdt-client aria2 bitmagnet
+      - RESTART_CONTAINERS= bookshelf qbittorrent pyload slskd spotiflac stash rdt-client aria2 bitmagnet tdl
       - RESTART_ON_STOP=${GLUETUN_RESTART_ON_STOP:-true}
       - RESTART_ON_FAILURE=${GLUETUN_RESTART_ON_FAILURE:-true}
       - RESTART_COOLDOWN=${GLUETUN_RESTART_COOLDOWN:-120}

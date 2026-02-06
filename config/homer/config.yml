@@ -62,6 +62,7 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/grafana.png"
         subtitle: "Dashboards & Visualization"
         url: "https://potatostack.tale-iwato.ts.net:3002"
+        endpoint: "http://grafana:3000/api/health"
         target: "_blank"
         type: "Ping"
 
@@ -69,6 +70,7 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/prometheus.png"
         subtitle: "Metrics Collection"
         url: "https://potatostack.tale-iwato.ts.net:9090"
+        endpoint: "http://prometheus:9090"
         target: "_blank"
         type: "Prometheus"
 
@@ -76,6 +78,7 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/healthchecks.png"
         subtitle: "Cron Job Monitoring"
         url: "https://potatostack.tale-iwato.ts.net:8001"
+        endpoint: "http://healthchecks:8000"
         target: "_blank"
         type: "Healthchecks"
 
@@ -83,6 +86,7 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/loki.png"
         subtitle: "Log Aggregation"
         url: "https://potatostack.tale-iwato.ts.net:3100"
+        endpoint: "http://loki:3100/ready"
         target: "_blank"
         type: "Ping"
 
@@ -90,6 +94,7 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/alertmanager.png"
         subtitle: "Alert Management"
         url: "https://potatostack.tale-iwato.ts.net:9093"
+        endpoint: "http://alertmanager:9093/-/healthy"
         target: "_blank"
         type: "Ping"
 
@@ -97,8 +102,9 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/scrutiny.png"
         subtitle: "Disk Health Monitoring"
         url: "https://potatostack.tale-iwato.ts.net:8087"
+        endpoint: "http://scrutiny:8080/api/health"
         target: "_blank"
-        type: "Scrutiny"
+        type: "Ping"
 
   - name: "Media"
     icon: "fas fa-film"
@@ -107,6 +113,7 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/jellyfin.png"
         subtitle: "Media Server"
         url: "https://potatostack.tale-iwato.ts.net:8096"
+        endpoint: "http://jellyfin:8096"
         target: "_blank"
         type: "Emby"
         apikey: "${JELLYFIN_API_KEY:-}"
@@ -115,6 +122,7 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/jellyseerr.png"
         subtitle: "Media Requests"
         url: "https://potatostack.tale-iwato.ts.net:5055"
+        endpoint: "http://jellyseerr:5055/api/v1/status"
         target: "_blank"
         type: "Ping"
 
@@ -122,6 +130,7 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/navidrome.png"
         subtitle: "Music Streaming"
         url: "https://potatostack.tale-iwato.ts.net:4533"
+        endpoint: "http://navidrome:4533/ping"
         target: "_blank"
         type: "Ping"
 
@@ -129,6 +138,7 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/audiobookshelf.png"
         subtitle: "Audiobooks & Podcasts"
         url: "https://potatostack.tale-iwato.ts.net:13378"
+        endpoint: "http://audiobookshelf:80/healthcheck"
         target: "_blank"
         type: "Ping"
 
@@ -136,14 +146,15 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/immich.png"
         subtitle: "Photo Management"
         url: "https://potatostack.tale-iwato.ts.net:2283"
+        endpoint: "http://immich-server:2283"
         target: "_blank"
-        type: "Immich"
-        apikey: "${IMMICH_API_KEY:-}"
+        type: "Ping"
 
       - name: "Stash"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/stash.png"
         subtitle: "Media Organizer"
         url: "https://potatostack.tale-iwato.ts.net:9900"
+        endpoint: "http://gluetun:9900"
         target: "_blank"
         type: "Ping"
 
@@ -154,6 +165,7 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/readarr.png"
         subtitle: "Ebooks Manager"
         url: "https://potatostack.tale-iwato.ts.net:8787"
+        endpoint: "http://gluetun:8787/ping"
         target: "_blank"
         type: "Ping"
 
@@ -164,13 +176,15 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/qbittorrent.png"
         subtitle: "Torrent Client"
         url: "https://potatostack.tale-iwato.ts.net:8282"
+        endpoint: "http://gluetun:8282"
         target: "_blank"
-        type: "qBittorrent"
+        type: "Ping"
 
       - name: "Slskd"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/slskd.png"
         subtitle: "Soulseek Client"
         url: "https://potatostack.tale-iwato.ts.net:2234"
+        endpoint: "http://gluetun:5030/health"
         target: "_blank"
         type: "Ping"
 
@@ -178,6 +192,7 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/pyload.png"
         subtitle: "Download Manager"
         url: "https://potatostack.tale-iwato.ts.net:8076"
+        endpoint: "http://gluetun:8076"
         target: "_blank"
         type: "Ping"
 
@@ -185,6 +200,7 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/spotify.png"
         subtitle: "Spotify Downloader"
         url: "https://potatostack.tale-iwato.ts.net:8097"
+        endpoint: "http://gluetun:8097"
         target: "_blank"
         type: "Ping"
 
@@ -192,6 +208,7 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/real-debrid.png"
         subtitle: "Real-Debrid Client"
         url: "https://potatostack.tale-iwato.ts.net:6500"
+        endpoint: "http://gluetun:6500"
         target: "_blank"
         type: "Ping"
 
@@ -199,6 +216,7 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/bittorrent.png"
         subtitle: "DHT Torrent Indexer"
         url: "https://potatostack.tale-iwato.ts.net:3333"
+        endpoint: "http://gluetun:3333"
         target: "_blank"
         type: "Ping"
 
@@ -209,14 +227,15 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/miniflux.png"
         subtitle: "RSS Reader"
         url: "https://potatostack.tale-iwato.ts.net:8093"
+        endpoint: "http://miniflux:8080/healthcheck"
         target: "_blank"
-        type: "Miniflux"
-        apikey: "${MINIFLUX_API_KEY:-}"
+        type: "Ping"
 
       - name: "Obsidian Sync"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/obsidian.png"
         subtitle: "Notes Sync"
         url: "https://potatostack.tale-iwato.ts.net:5984"
+        endpoint: "http://obsidian-couchdb:5984/_up"
         target: "_blank"
         type: "Ping"
 
@@ -224,6 +243,7 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/actual.png"
         subtitle: "Budgeting"
         url: "https://potatostack.tale-iwato.ts.net:5006"
+        endpoint: "http://actual:5006"
         target: "_blank"
         type: "Ping"
 
@@ -231,6 +251,7 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/atuin.png"
         subtitle: "Shell History Sync"
         url: "https://potatostack.tale-iwato.ts.net:8888"
+        endpoint: "http://atuin:8888"
         target: "_blank"
         type: "Ping"
 
@@ -241,6 +262,7 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/syncthing.png"
         subtitle: "File Sync"
         url: "https://potatostack.tale-iwato.ts.net:8384"
+        endpoint: "http://syncthing:8384/rest/noauth/health"
         target: "_blank"
         type: "Ping"
 
@@ -248,6 +270,7 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/filebrowser.png"
         subtitle: "Web File Manager"
         url: "https://potatostack.tale-iwato.ts.net:8086"
+        endpoint: "http://filebrowser:80/health"
         target: "_blank"
         type: "Ping"
 
@@ -255,6 +278,7 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/restic.png"
         subtitle: "Backup Management"
         url: "https://potatostack.tale-iwato.ts.net:9898"
+        endpoint: "http://backrest:9898"
         target: "_blank"
         type: "Ping"
 
@@ -265,6 +289,7 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/gitea.png"
         subtitle: "Git Hosting"
         url: "https://potatostack.tale-iwato.ts.net:3004"
+        endpoint: "http://gitea:3000/api/healthz"
         target: "_blank"
         type: "Ping"
 
@@ -274,7 +299,8 @@ services:
       - name: "Vaultwarden"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/bitwarden.png"
         subtitle: "Password Manager"
-        url: "https://potatostack.tale-iwato.ts.net:8888"
+        url: "https://potatostack.tale-iwato.ts.net:8222"
+        endpoint: "http://vaultwarden:80/alive"
         target: "_blank"
         type: "Ping"
 
@@ -282,6 +308,7 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/authentik.png"
         subtitle: "Identity Provider"
         url: "https://potatostack.tale-iwato.ts.net:9000"
+        endpoint: "http://authentik-server:9000/-/health/live/"
         target: "_blank"
         type: "Ping"
 
@@ -292,6 +319,7 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/searxng.png"
         subtitle: "Meta Search Engine"
         url: "https://potatostack.tale-iwato.ts.net:8180"
+        endpoint: "http://searxng:8080/healthz"
         target: "_blank"
         type: "Ping"
 
@@ -299,6 +327,7 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/ntfy.png"
         subtitle: "Push Notifications"
         url: "https://potatostack.tale-iwato.ts.net:8060"
+        endpoint: "http://ntfy:80/v1/health"
         target: "_blank"
         type: "Ping"
 
@@ -306,6 +335,7 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/gluetun.png"
         subtitle: "VPN Gateway"
         url: "https://potatostack.tale-iwato.ts.net:8008"
+        endpoint: "http://gluetun:8008/v1/vpn/status"
         target: "_blank"
         type: "Ping"
 
@@ -313,5 +343,6 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/home-assistant.png"
         subtitle: "Home Automation"
         url: "https://potatostack.tale-iwato.ts.net:8123"
+        endpoint: "http://home-assistant:8123/api/"
         target: "_blank"
-        type: "HomeAssistant"
+        type: "Ping"
