@@ -39,7 +39,6 @@ All services accessible via HTTPS using Tailscale certificates or Traefik revers
 | Lidarr | https://potatostack.tale-iwato.ts.net:8686 | https://lidarr.potatostack.tale-iwato.ts.net | Music |
 | Bazarr | https://potatostack.tale-iwato.ts.net:6767 | https://bazarr.potatostack.tale-iwato.ts.net | Subtitles |
 | Audiobookshelf | https://potatostack.tale-iwato.ts.net:13378 | https://audiobooks.potatostack.tale-iwato.ts.net | Audiobooks |
-| BookLogr | https://potatostack.tale-iwato.ts.net:5150 | https://books.potatostack.tale-iwato.ts.net | Book Tracker |
 | Navidrome | https://potatostack.tale-iwato.ts.net:4533 | https://music.potatostack.tale-iwato.ts.net | Music Streaming |
 | Stash | https://potatostack.tale-iwato.ts.net:9900 | - | Media Organizer (VPN only) |
 

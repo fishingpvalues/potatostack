@@ -124,8 +124,6 @@ Full tree:
 └── system/                    # System files (swap)
 ```
 
-**Note:** BookLogr uses `/mnt/storage/media/books/` directory for storing book files.
-
 **Note:** All incomplete downloads have been moved to `/mnt/storage/downloads/incomplete/<service>` for better data integrity and consistent backup patterns.
 
 ## Common Setup Scenarios

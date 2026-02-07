@@ -76,12 +76,6 @@ services:
         url: "https://potatostack.tale-iwato.ts.net:13378"
         target: "_blank"
 
-      - name: "BookLogr"
-        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/booklogr.png"
-        subtitle: "Book Tracker"
-        url: "https://potatostack.tale-iwato.ts.net:5150"
-        target: "_blank"
-
       - name: "Jellyseerr"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/jellyseerr.png"
         subtitle: "Media Requests"
