@@ -10,7 +10,7 @@
 # - /mnt/ssd/docker-data: SSD - databases and app configs
 #
 # Note: All incomplete downloads moved from cachehdd to storagehdd:
-#   /mnt/storage/downloads/incomplete/{sonarr,radarr,lidarr,bookshelf,qbittorrent,sabnzbd,aria2,slskd,pyload,pinchflat}
+#   /mnt/storage/downloads/incomplete/{sonarr,radarr,lidarr,qbittorrent,sabnzbd,aria2,slskd,pyload,pinchflat}
 ################################################################################
 
 set -eu
@@ -180,7 +180,6 @@ mkdir -p \
 	"${STORAGE_BASE}/downloads/incomplete/sonarr" \
 	"${STORAGE_BASE}/downloads/incomplete/radarr" \
 	"${STORAGE_BASE}/downloads/incomplete/lidarr" \
-	"${STORAGE_BASE}/downloads/incomplete/bookshelf" \
 	"${STORAGE_BASE}/downloads/incomplete/qbittorrent" \
 	"${STORAGE_BASE}/downloads/incomplete/sabnzbd" \
 	"${STORAGE_BASE}/downloads/incomplete/aria2" \

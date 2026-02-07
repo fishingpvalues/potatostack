@@ -227,12 +227,12 @@ Services outside VPN reach *arrs via gluetun container:
 
 ```bash
 # Check all arr services
-docker ps --filter "name=sonarr|radarr|lidarr|prowlarr|bookshelf|bazarr"
+docker ps --filter "name=sonarr|radarr|lidarr|prowlarr|bazarr"
 
 # View logs
 docker logs -f sonarr
 docker logs -f radarr
 
 # Restart arr stack
-docker compose restart prowlarr sonarr radarr lidarr bookshelf bazarr
+docker compose restart prowlarr sonarr radarr lidarr bazarr
 ```

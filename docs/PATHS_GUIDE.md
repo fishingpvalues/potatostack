@@ -78,7 +78,6 @@ Full tree:
 │   │   ├── sonarr/        # Sonarr incomplete
 │   │   ├── radarr/        # Radarr incomplete
 │   │   ├── lidarr/        # Lidarr incomplete
-│   │   ├── bookshelf/     # Bookshelf incomplete
 │   │   ├── qbittorrent/   # qBittorrent incomplete
 │   │   ├── sabnzbd/       # SABnzbd incomplete
 │   │   ├── aria2/         # Aria2 incomplete
@@ -124,6 +123,8 @@ Full tree:
 ├── sync/                      # Sync caches (syncthing-versions)
 └── system/                    # System files (swap)
 ```
+
+**Note:** BookLogr uses `/mnt/storage/media/books/` directory for storing book files.
 
 **Note:** All incomplete downloads have been moved to `/mnt/storage/downloads/incomplete/<service>` for better data integrity and consistent backup patterns.
 

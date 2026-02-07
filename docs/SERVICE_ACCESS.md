@@ -28,6 +28,7 @@ Your services are accessible at `192.168.178.158` or via Traefik at `*.danielhom
 | **Jellyfin** (Media Server) | https://jellyfin.danielhomelab.local | 192.168.178.158:8096 |
 | Jellyseerr (Requests) | https://jellyseerr.danielhomelab.local | 192.168.178.158:5055 |
 | Audiobookshelf | https://audiobookshelf.danielhomelab.local | 192.168.178.158:13378 |
+| BookLogr (Books) | https://booklogr.danielhomelab.local | 192.168.178.158:5150 |
 
 ### Media Management (Arr Stack)
 | Service | HTTPS URL | VPN Port |
@@ -37,7 +38,6 @@ Your services are accessible at `192.168.178.158` or via Traefik at `*.danielhom
 | Lidarr (Music) | https://lidarr.danielhomelab.local | Via Gluetun :8686 |
 | Prowlarr (Indexers) | https://prowlarr.danielhomelab.local | Via Gluetun :9696 |
 | Bazarr (Subtitles) | https://bazarr.danielhomelab.local | Via Gluetun :6767 |
-| Bookshelf (Ebooks) | https://bookshelf.danielhomelab.local | Via Gluetun :8787 |
 
 ### Downloads (VPN Protected)
 | Service | HTTPS URL | VPN Port |

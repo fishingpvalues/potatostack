@@ -31,7 +31,6 @@ VPN_DEPENDENT_SERVICES=(
 	"sonarr"
 	"radarr"
 	"lidarr"
-	"bookshelf"
 	"bazarr"
 	"spotiflac"
 	"qbittorrent"
@@ -40,9 +39,18 @@ VPN_DEPENDENT_SERVICES=(
 	"stash"
 )
 
-pass() { echo -e "  ${GREEN}✓${NC} $1"; PASSED=$((PASSED + 1)); }
-fail() { echo -e "  ${RED}✗${NC} $1"; FAILED=$((FAILED + 1)); }
-warn() { echo -e "  ${YELLOW}!${NC} $1"; WARNINGS=$((WARNINGS + 1)); }
+pass() {
+	echo -e "  ${GREEN}✓${NC} $1"
+	PASSED=$((PASSED + 1))
+}
+fail() {
+	echo -e "  ${RED}✗${NC} $1"
+	FAILED=$((FAILED + 1))
+}
+warn() {
+	echo -e "  ${YELLOW}!${NC} $1"
+	WARNINGS=$((WARNINGS + 1))
+}
 info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 
 get_running_services() {
@@ -81,11 +89,11 @@ get_public_ip() {
 
 # Extract VPN endpoint from iptables rules
 get_vpn_endpoint() {
-	docker exec gluetun iptables -L OUTPUT -n -v 2>/dev/null \
-		| grep 'udp.*dpt:51820\|udp.*dpt:1194' \
-		| grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' \
-		| grep -v '^0\.0\.0\.0$' \
-		| head -1
+	docker exec gluetun iptables -L OUTPUT -n -v 2>/dev/null |
+		grep 'udp.*dpt:51820\|udp.*dpt:1194' |
+		grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' |
+		grep -v '^0\.0\.0\.0$' |
+		head -1
 }
 
 # Ensure VPN is restored even if script is interrupted

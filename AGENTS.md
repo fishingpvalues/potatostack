@@ -164,7 +164,7 @@ config/<service>/ - Service-specific configuration files
 **IMPORTANT:** Services using `network_mode: "service:gluetun"` cannot resolve Docker container hostnames (e.g., `postgres`, `redis-cache`) because they use gluetun's VPN DNS, not Docker's internal DNS.
 
 ### Affected Services
-qbittorrent, slskd, aria2, pyload, spotiflac, stash, rdt-client, bookshelf, bitmagnet, tdl
+qbittorrent, slskd, aria2, pyload, spotiflac, stash, rdt-client, bitmagnet, tdl
 
 ### Workarounds
 
