@@ -62,13 +62,13 @@ services:
     command:
       - "postgres"
       - "-c"
-      - "shared_buffers=256MB"
+      - "shared_buffers=512MB"
       - "-c"
-      - "effective_cache_size=1GB"
+      - "effective_cache_size=768MB"
       - "-c"
-      - "work_mem=8MB"
+      - "work_mem=16MB"
       - "-c"
-      - "maintenance_work_mem=256MB"
+      - "maintenance_work_mem=512MB"
       - "-c"
       - "max_connections=200"
       - "-c"
@@ -107,11 +107,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.0"
-          memory: 512M
+          cpus: "1.5"
+          memory: 1536M
         reservations:
           cpus: "0.5"
-          memory: 512M
+          memory: 1024M
     labels:
       - "potatostack.alerts=critical"
       - "wud.trigger.docker.update=false"
@@ -426,7 +426,7 @@ services:
       - "host.docker.internal:host-gateway"
     ports:
       - "${HOST_BIND:-127.0.0.1}:8008:8008" # Gluetun control (moved from 8000)
-      - "${HOST_BIND:-127.0.0.1}:8787:8787" # Bookshelf (ebook manager)
+      # - "${HOST_BIND:-127.0.0.1}:8787:8787" # Bookshelf (ebook manager) - DISABLED
       - "${HOST_BIND:-127.0.0.1}:8282:8282" # qBittorrent WebUI
       - "${HOST_BIND:-127.0.0.1}:51413:51413" # qBittorrent peer
       - "${HOST_BIND:-127.0.0.1}:51413:51413/udp"
@@ -482,9 +482,9 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 384M
+          memory: 512M
         reservations:
-          cpus: "0.25"
+          cpus: "0.1"
           memory: 256M
     labels:
       - "autoheal=true"
@@ -569,9 +569,8 @@ services:
     environment:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
-      # All service ports to expose via HTTPS
-      # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr
-      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,9925,5984,9898,8123,8191,6500,3333"
+      # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191), booklogr (5150,5151) added; removed: karakeep (9091), homarr
+      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,5055,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,9925,5984,5150,5151,9898,8123,8191,6500,3333"
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_MARKER_FILE: /https-marker/setup-complete
@@ -599,8 +598,8 @@ services:
     environment:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
-      # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr
-      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,5055,8989,7878,8686,9696,6767,8787,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,9925,5984,9898,8123,8191,6500,3333"
+      # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191), booklogr (5150,5151) added; removed: karakeep (9091), homarr
+      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,5055,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,9925,5984,5150,5151,9898,8123,8191,6500,3333"
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_SERVE_LOOP: "true"
@@ -885,11 +884,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 128M
+          cpus: "0.25"
+          memory: 256M
         reservations:
           cpus: "0.1"
-          memory: 64M
+          memory: 128M
     labels:
       - "wud.trigger.docker.update=true"
 
@@ -1144,42 +1143,42 @@ services:
   #   labels:
   #     - "autoheal=true"
 
-  # Bookshelf - Ebook management (Readarr revival with working metadata)
-  bookshelf:
-    image: ghcr.io/pennydreadful/bookshelf:${BOOKSHELF_TAG:-hardcover}
-    container_name: bookshelf
-    logging: *default-logging
-    network_mode: "service:gluetun"
-    environment:
-      <<: *common-env
-    volumes:
-      - bookshelf-config:/config
-      - /mnt/storage/media/books:/books
-      - /mnt/storage/downloads:/downloads
-      - /mnt/storage/downloads/incomplete/bookshelf:/downloads/incomplete
-    depends_on:
-      gluetun:
-        condition: service_healthy
-        restart: true
-      storage-init:
-        condition: service_completed_successfully
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8787/ping || exit 1"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          cpus: "2.0"
-          memory: 1536M
-        reservations:
-          cpus: "0.5"
-          memory: 512M
-    labels:
-      - "autoheal=true"
+  # Bookshelf - Ebook management (Readarr revival with working metadata) (DISABLED)
+  # bookshelf:
+  #   image: ghcr.io/pennydreadful/bookshelf:${BOOKSHELF_TAG:-hardcover}
+  #   container_name: bookshelf
+  #   logging: *default-logging
+  #   network_mode: "service:gluetun"
+  #   environment:
+  #     <<: *common-env
+  #   volumes:
+  #     - bookshelf-config:/config
+  #     - /mnt/storage/media/books:/books
+  #     - /mnt/storage/downloads:/downloads
+  #     - /mnt/storage/downloads/incomplete/bookshelf:/downloads/incomplete
+  #   depends_on:
+  #     gluetun:
+  #       condition: service_healthy
+  #       restart: true
+  #     storage-init:
+  #       condition: service_completed_successfully
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8787/ping || exit 1"]
+  #     interval: 60s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 60s
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "2.0"
+  #         memory: 1536M
+  #       reservations:
+  #         cpus: "0.5"
+  #         memory: 512M
+  #   labels:
+  #     - "autoheal=true"
 
   # Bazarr - Subtitle management (DISABLED)
   # bazarr:
@@ -2068,10 +2067,10 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 256M
+          memory: 512M
         reservations:
           cpus: "0.1"
-          memory: 128M
+          memory: 256M
     labels:
       - "autoheal=true"
 
@@ -3514,6 +3513,7 @@ services:
     container_name: stash
     logging: *default-logging
     network_mode: "service:gluetun"
+    entrypoint: ["/init/stash-init.sh"]
     environment:
       <<: *common-env
       STASH_PORT: "9900"
@@ -3534,6 +3534,7 @@ services:
       - /mnt/ssd/docker-data/stash/metadata:/metadata
       - /mnt/cachehdd/stash/cache:/cache
       - /mnt/storage/media/adult:/data
+      - ./scripts/init/stash-init.sh:/init/stash-init.sh:ro
     depends_on:
       gluetun:
         condition: service_healthy
@@ -4073,7 +4074,7 @@ services:
     environment:
       - GLUETUN_URL=http://gluetun:8008
       - CHECK_INTERVAL=${GLUETUN_CHECK_INTERVAL:-10}
-      - RESTART_CONTAINERS= bookshelf qbittorrent pyload slskd spotiflac stash rdt-client aria2 bitmagnet tdl
+      - RESTART_CONTAINERS= qbittorrent pyload slskd spotiflac stash rdt-client aria2 bitmagnet tdl
       - RESTART_ON_STOP=${GLUETUN_RESTART_ON_STOP:-true}
       - RESTART_ON_FAILURE=${GLUETUN_RESTART_ON_FAILURE:-true}
       - RESTART_COOLDOWN=${GLUETUN_RESTART_COOLDOWN:-120}
@@ -4435,7 +4436,7 @@ volumes:
   sonarr-config:
   radarr-config:
   lidarr-config:
-  bookshelf-config:
+  # bookshelf-config:
   bazarr-config:
   maintainerr-data:
   jellyfin-config:
