@@ -540,6 +540,9 @@ chown -R 472:472 "${SSD_BASE}/grafana"
 # Velld (UID 1000)
 [ -d "${SSD_BASE}/velld" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/velld"
 
+# Incomplete download directories (for torrent/usenet clients)
+[ -d "${STORAGE_BASE}/downloads/incomplete" ] && chown -R "${PUID}:${PGID}" "${STORAGE_BASE}/downloads/incomplete"
+
 printf '%s\n' "✓ Service permissions set"
 
 ################################################################################

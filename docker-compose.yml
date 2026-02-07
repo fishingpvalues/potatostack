@@ -1977,8 +1977,8 @@ services:
       - qbittorrent-config:/config
       - /mnt/storage/downloads:/downloads
       - /mnt/storage/downloads/incomplete/qbittorrent:/incomplete
-      - ./scripts/init/qbittorrent-init.sh:/custom-cont-init.d/99-qb-init.sh:ro
-      - ./scripts/hooks/qbittorrent-post-torrent.sh:/hooks/post-torrent.sh:ro
+      - /home/daniel/potatostack/scripts/init/qbittorrent-init.sh:/custom-cont-init.d/99-qb-init.sh:ro
+      - /home/daniel/potatostack/scripts/hooks/qbittorrent-post-torrent.sh:/hooks/post-torrent.sh:ro
     depends_on:
       gluetun:
         condition: service_healthy
@@ -2054,8 +2054,8 @@ services:
       - rdt-client-data:/data/db
       - /mnt/storage/downloads/rdt-client:/downloads
       - /mnt/storage/media:/mnt/storage/media
-      - ./scripts/init/rdt-client-init.sh:/etc/cont-init.d/99-rdt-init.sh:ro
-      - ./scripts/hooks/rdt-client-post-download.sh:/hooks/post-download.sh:ro
+      - /home/daniel/potatostack/scripts/init/rdt-client-init.sh:/etc/cont-init.d/99-rdt-init.sh:ro
+      - /home/daniel/potatostack/scripts/hooks/rdt-client-post-download.sh:/hooks/post-download.sh:ro
     depends_on:
       gluetun:
         condition: service_healthy
@@ -2097,7 +2097,7 @@ services:
       - aria2-config:/config
       - /mnt/storage/downloads/aria2:/downloads
       - /mnt/storage/downloads/incomplete/aria2:/incomplete
-      - ./scripts/init/aria2-init.sh:/aria2-init.sh:ro
+      - /home/daniel/potatostack/scripts/init/aria2-init.sh:/aria2-init.sh:ro
       - shared-keys:/keys:ro
     depends_on:
       gluetun:
@@ -2182,7 +2182,7 @@ services:
       - /mnt/storage/downloads/incomplete/slskd:/var/slskd/incomplete
       - /mnt/storage/slskd-shared:/var/slskd/shared
       - shared-keys:/keys:ro
-      - ./scripts/init/slskd-init.sh:/init.sh:ro
+      - /home/daniel/potatostack/scripts/init/slskd-init.sh:/init.sh:ro
       # Share music and audiobook libraries
       - /mnt/storage/media/music:/music:ro
       - /mnt/storage/media/audiobooks:/audiobooks:ro
@@ -2259,7 +2259,7 @@ services:
       - pyload-config:/config
       - /mnt/storage/downloads/pyload:/downloads
       - /mnt/storage/downloads/incomplete/pyload:/incomplete
-      - ./scripts/init/pyload-init.sh:/pyload-init.sh:ro
+      - /home/daniel/potatostack/scripts/init/pyload-init.sh:/pyload-init.sh:ro
     depends_on:
       gluetun:
         condition: service_healthy
@@ -3546,7 +3546,7 @@ services:
       - /mnt/ssd/docker-data/stash/metadata:/metadata
       - /mnt/cachehdd/stash/cache:/cache
       - /mnt/storage/media/adult:/data
-      - ./scripts/init/stash-init.sh:/init/stash-init.sh:ro
+      - /home/daniel/potatostack/scripts/init/stash-init.sh:/init/stash-init.sh:ro
     depends_on:
       gluetun:
         condition: service_healthy
