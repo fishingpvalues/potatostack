@@ -2296,7 +2296,7 @@ services:
     container_name: tdl
     logging: *default-logging
     network_mode: "service:gluetun"
-    entrypoint: ["/bin/sh", "-c", "crond -b && tail -f /dev/null"]
+    entrypoint: ["/bin/sh", "-c", "crond -b && sh /etc/tdl/download-saved.sh >> /downloads/tdl-download.log 2>&1 & tail -f /dev/null"]
     environment:
       <<: *common-env
     volumes:
@@ -2304,8 +2304,9 @@ services:
       - /mnt/storage/downloads/telegram:/downloads
       - /mnt/storage/media/adult:/adult:ro
       - /mnt/storage/media/adult/telegram:/adult-telegram
-      - ./config/tdl/crontab:/etc/crontabs/root:ro
-      - ./config/tdl/download-saved.sh:/etc/tdl/download-saved.sh:ro
+      - /home/daniel/potatostack/config/tdl/crontab:/etc/crontabs/root:ro
+      - /home/daniel/potatostack/config/tdl/download-saved.sh:/etc/tdl/download-saved.sh:ro
+      - /home/daniel/potatostack/config/tdl/blocklist.txt:/etc/tdl/blocklist.txt:ro
     depends_on:
       gluetun:
         condition: service_healthy

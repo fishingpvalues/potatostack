@@ -1,2 +1,2 @@
-# Weekly download videos from Saved Messages (every Sunday 3am)
-0 3 * * 0 /bin/sh /etc/tdl/download-saved.sh >> /downloads/cron.log 2>&1
+# Download videos from Saved Messages daily at 3am (dedup makes reruns safe)
+0 3 * * * /bin/sh /etc/tdl/download-saved.sh >> /downloads/tdl-download.log 2>&1
