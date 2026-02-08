@@ -40,6 +40,9 @@ cat > "$ARIA_CONF" << EOF
 # Aria2 Configuration - PotatoStack
 # RPC endpoint: http://potatostack.tale-iwato.ts.net:6800/jsonrpc
 
+# Disable IPv6 (VPN compatibility)
+disable-ipv6=true
+
 # RPC Settings - allow external connections
 rpc-listen-all=true
 rpc-allow-origin-all=true

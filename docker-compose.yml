@@ -570,7 +570,7 @@ services:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
       # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr
-      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,5055,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,9925,5984,9898,8123,8191,6500,3333"
+      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,5055,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,9925,5984,9898,8123,8191,6500,3333, 5656"
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_MARKER_FILE: /https-marker/setup-complete
@@ -599,7 +599,7 @@ services:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
       # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr
-      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,5055,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,9925,5984,9898,8123,8191,6500,3333"
+      TAILSCALE_SERVE_PORTS: 7575,8088,3000,3001,3002,8086,8096,5055,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,9925,5984,9898,8123,8191,6500,3333, 5656"
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_SERVE_LOOP: "true"
@@ -1281,58 +1281,125 @@ services:
   #       reservations:
   #         cpus: "0.05"
   #         memory: 64M
-
-  # Unpackerr - Extracts archived downloads for *arrs (DISABLED)
-  # unpackerr:
-  #   image: ghcr.io/hotio/unpackerr:${UNPACKERR_TAG:-latest}
-  #   container_name: unpackerr
-  #   logging: *default-logging
-  #   environment:
-  #     <<: *common-env
-  #     UMASK: "002"
-  #     # Sonarr config
-  #     UN_SONARR_0_URL: http://gluetun:8989
-  #     UN_SONARR_0_API_KEY: ${SONARR_API_KEY:-}
-  #     UN_SONARR_0_PATHS_0: /downloads/tv
-  #     UN_SONARR_0_PROTOCOLS: torrent
-  #     UN_SONARR_0_TIMEOUT: 10s
-  #     UN_SONARR_0_DELETE_DELAY: 5m
-  #     UN_SONARR_0_DELETE_ORIG: "false"
-  #     # Radarr config
-  #     UN_RADARR_0_URL: http://gluetun:7878
-  #     UN_RADARR_0_API_KEY: ${RADARR_API_KEY:-}
-  #     UN_RADARR_0_PATHS_0: /downloads/movies
-  #     UN_RADARR_0_PROTOCOLS: torrent
-  #     UN_RADARR_0_TIMEOUT: 10s
-  #     UN_RADARR_0_DELETE_DELAY: 5m
-  #     UN_RADARR_0_DELETE_ORIG: "false"
-  #     # Lidarr config
-  #     UN_LIDARR_0_URL: http://gluetun:8686
-  #     UN_LIDARR_0_API_KEY: ${LIDARR_API_KEY:-}
-  #     UN_LIDARR_0_PATHS_0: /downloads/music
-  #     UN_LIDARR_0_PROTOCOLS: torrent
-  #     UN_LIDARR_0_TIMEOUT: 10s
-  #     UN_LIDARR_0_DELETE_DELAY: 5m
-  #     UN_LIDARR_0_DELETE_ORIG: "false"
-  #   volumes:
-  #     - /mnt/storage/downloads:/downloads
-  #   networks:
-  #     - potatostack
-  #   depends_on:
-  #     - sonarr
-  #     - radarr
-  #     - lidarr
-  #   restart: unless-stopped
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: "0.5"
-  #         memory: 256M
-  #       reservations:
-  #         cpus: "0.1"
-  #         memory: 64M
-
+  ################################################################################
+  # Unpackerr - Extracts archived downloads (standalone mode - no arr dependency)
+  ################################################################################
+  unpackerr:
+    image: ghcr.io/hotio/unpackerr:${UNPACKERR_TAG:-latest}
+    container_name: unpackerr
+    logging: *default-logging
+    environment:
+      <<: *common-env
+      UMASK: "002"
+      
+      # Global Settings - Lightweight, low I/O, crash-safe
+      UN_INTERVAL: "2m"
+      UN_START_DELAY: "5m"
+      UN_RETRY_DELAY: "5m"
+      UN_MAX_RETRIES: "3"
+      UN_PARALLEL: "1"
+      UN_FILE_MODE: "0644"
+      UN_DIR_MODE: "0755"
+      UN_LOG_LEVEL: "INFO"
+      
+      # Web UI - No password (LAN access only)
+      UN_WEBSERVER_METRICS: "false"
+      UN_WEBSERVER_LISTEN_ADDR: "0.0.0.0:5656"
+      
+      # Folder Watchers - All download folders (incomplete folders excluded)
+      # qBittorrent
+      UN_FOLDER_0_PATH: "/downloads/torrents"
+      UN_FOLDER_0_DELETE_ORIGINAL: "true"
+      UN_FOLDER_0_DELETE_AFTER: "5m"
+      UN_FOLDER_0_MOVE_BACK: "true"
+      UN_FOLDER_0_DELETE_FILES: "false"
+      UN_FOLDER_0_EXTRACT_ISOS: "false"
+      
+      # Aria2
+      UN_FOLDER_1_PATH: "/downloads/aria2"
+      UN_FOLDER_1_DELETE_ORIGINAL: "true"
+      UN_FOLDER_1_DELETE_AFTER: "5m"
+      UN_FOLDER_1_MOVE_BACK: "true"
+      UN_FOLDER_1_DELETE_FILES: "false"
+      UN_FOLDER_1_EXTRACT_ISOS: "false"
+      
+      # Slskd
+      UN_FOLDER_2_PATH: "/downloads/slskd"
+      UN_FOLDER_2_DELETE_ORIGINAL: "true"
+      UN_FOLDER_2_DELETE_AFTER: "5m"
+      UN_FOLDER_2_MOVE_BACK: "true"
+      UN_FOLDER_2_DELETE_FILES: "false"
+      UN_FOLDER_2_EXTRACT_ISOS: "false"
+      
+      # Pyload
+      UN_FOLDER_3_PATH: "/downloads/pyload"
+      UN_FOLDER_3_DELETE_ORIGINAL: "true"
+      UN_FOLDER_3_DELETE_AFTER: "5m"
+      UN_FOLDER_3_MOVE_BACK: "true"
+      UN_FOLDER_3_DELETE_FILES: "false"
+      UN_FOLDER_3_EXTRACT_ISOS: "false"
+      
+      # RDT Client
+      UN_FOLDER_4_PATH: "/downloads/rdt-client"
+      UN_FOLDER_4_DELETE_ORIGINAL: "true"
+      UN_FOLDER_4_DELETE_AFTER: "5m"
+      UN_FOLDER_4_MOVE_BACK: "true"
+      UN_FOLDER_4_DELETE_FILES: "false"
+      UN_FOLDER_4_EXTRACT_ISOS: "false"
+      
+      # TDL (Telegram)
+      UN_FOLDER_5_PATH: "/downloads/telegram"
+      UN_FOLDER_5_DELETE_ORIGINAL: "true"
+      UN_FOLDER_5_DELETE_AFTER: "5m"
+      UN_FOLDER_5_MOVE_BACK: "true"
+      UN_FOLDER_5_DELETE_FILES: "false"
+      UN_FOLDER_5_EXTRACT_ISOS: "false"
+      
+      # NTFY notification hook
+      NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
+      NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+      
+      # Command Hook for NTFY notifications
+      UN_CMDHOOK_0_NAME: "ntfy"
+      UN_CMDHOOK_0_COMMAND: "/hooks/post-extract.sh"
+      UN_CMDHOOK_0_SHELL: "true"
+      UN_CMDHOOK_0_SILENT: "false"
+      UN_CMDHOOK_0_EVENTS_0: "2"
+      UN_CMDHOOK_0_EVENTS_1: "3"
+      UN_CMDHOOK_0_EVENTS_2: "4"
+      UN_CMDHOOK_0_EVENTS_3: "5"
+      UN_CMDHOOK_0_TIMEOUT: "10s"
+    
+    volumes:
+      - unpackerr-config:/config
+      - /mnt/storage/downloads:/downloads
+      - /home/daniel/potatostack/scripts/hooks/unpackerr-post-extract.sh:/hooks/post-extract.sh:ro
+    networks:
+      - potatostack
+    depends_on:
+      - storage-init
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:5656/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+    labels:
+      - "autoheal=true"
+      - "wud.trigger.docker.update=true"
+  ################################################################################
   # Notifiarr - Unified notifications for *arr stack (DISABLED)
+  ################################################################################
   # notifiarr:
   #   image: golift/notifiarr:${NOTIFIARR_TAG:-latest}
   #   container_name: notifiarr
@@ -1475,58 +1542,9 @@ services:
   #       limits:
   #         cpus: "0.1"
   #         memory: 64M
-
-  # Unpackerr - Extracts archived downloads for *arrs (DISABLED)
-  # unpackerr:
-  #   image: ghcr.io/hotio/unpackerr:${UNPACKERR_TAG:-latest}
-  #   container_name: unpackerr
-  #   logging: *default-logging
-  #   environment:
-  #     <<: *common-env
-  #     UMASK: "002"
-  #     # Sonarr config
-  #     UN_SONARR_0_URL: http://gluetun:8989
-  #     UN_SONARR_0_API_KEY: ${SONARR_API_KEY:-}
-  #     UN_SONARR_0_PATHS_0: /downloads/tv
-  #     UN_SONARR_0_PROTOCOLS: torrent
-  #     UN_SONARR_0_TIMEOUT: 10s
-  #     UN_SONARR_0_DELETE_DELAY: 5m
-  #     UN_SONARR_0_DELETE_ORIG: "false"
-  #     # Radarr config
-  #     UN_RADARR_0_URL: http://gluetun:7878
-  #     UN_RADARR_0_API_KEY: ${RADARR_API_KEY:-}
-  #     UN_RADARR_0_PATHS_0: /downloads/movies
-  #     UN_RADARR_0_PROTOCOLS: torrent
-  #     UN_RADARR_0_TIMEOUT: 10s
-  #     UN_RADARR_0_DELETE_DELAY: 5m
-  #     UN_RADARR_0_DELETE_ORIG: "false"
-  #     # Lidarr config
-  #     UN_LIDARR_0_URL: http://gluetun:8686
-  #     UN_LIDARR_0_API_KEY: ${LIDARR_API_KEY:-}
-  #     UN_LIDARR_0_PATHS_0: /downloads/music
-  #     UN_LIDARR_0_PROTOCOLS: torrent
-  #     UN_LIDARR_0_TIMEOUT: 10s
-  #     UN_LIDARR_0_DELETE_DELAY: 5m
-  #     UN_LIDARR_0_DELETE_ORIG: "false"
-  #   volumes:
-  #     - /mnt/storage/downloads:/downloads
-  #   networks:
-  #     - potatostack
-  #   depends_on:
-  #     - sonarr
-  #     - radarr
-  #     - lidarr
-  #   restart: unless-stopped
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: "0.5"
-  #         memory: 256M
-  #       reservations:
-  #         cpus: "0.1"
-  #         memory: 64M
-
+  ################################################################################
   # Notifiarr - Unified notifications for *arr stack (DISABLED)
+  ################################################################################
   # notifiarr:
   #   image: golift/notifiarr:${NOTIFIARR_TAG:-latest}
   #   container_name: notifiarr
@@ -2343,7 +2361,7 @@ services:
       <<: *common-env
       # Note: Using container IP because network_mode:service:gluetun can't resolve Docker DNS
       # If postgres IP changes, update this or restart postgres first
-      POSTGRES_HOST: 172.22.0.2
+      POSTGRES_HOST: 172.22.0.15
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
       POSTGRES_DATABASE: bitmagnet
@@ -4472,7 +4490,8 @@ volumes:
   pyload-config:
   slskd-config:
   tdl-data:
-
+  unpackerr-config:
+  
   # Shared secrets
   shared-keys:
 

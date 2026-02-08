@@ -313,7 +313,8 @@ mkdir -p \
 	"${SSD_BASE}/backrest/data" \
 	"${SSD_BASE}/backrest/config" \
 	"${SSD_BASE}/recyclarr" \
-	"${SSD_BASE}/notifiarr"
+	"${SSD_BASE}/notifiarr" \
+	"${SSD_BASE}/unpackerr"
 # "${SSD_BASE}/uptime-kuma" # DISABLED
 
 # System directory on SSD (cron, etc)
@@ -531,6 +532,9 @@ chown -R 472:472 "${SSD_BASE}/grafana"
 
 # Notifiarr (UID 1000) - ensure proper ownership
 [ -d "${SSD_BASE}/notifiarr" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/notifiarr"
+
+# Unpackerr (UID 1000) - ensure proper ownership
+[ -d "${SSD_BASE}/unpackerr" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/unpackerr"
 
 # Bitmagnet (UID 1000) - DHT crawler (on cachehdd due to large DB growth)
 [ -d "${CACHE_BASE}/bitmagnet" ] && chown -R "${PUID}:${PGID}" "${CACHE_BASE}/bitmagnet"

@@ -54,7 +54,6 @@ All services accessible via HTTPS using Tailscale certificates or Traefik revers
 | slskd Peer | - | - | 50000 |
 | SpotiFLAC | https://potatostack.tale-iwato.ts.net:8097 | https://spotiflac.potatostack.tale-iwato.ts.net | Spotify Downloader |
 | rdt-client | https://potatostack.tale-iwato.ts.net:6500 | https://rdt-client.potatostack.tale-iwato.ts.net | Real-Debrid Downloads |
-| Prowlarr | https://potatostack.tale-iwato.ts.net:9696 | https://prowlarr.potatostack.tale-iwato.ts.net | Indexers |
 
 ## Files & Photos
 
@@ -95,7 +94,6 @@ All services accessible via HTTPS using Tailscale certificates or Traefik revers
 | Service | Port Link | Traefik Link | Description |
 |---------|-----------|-------------|-------------|
 | Obsidian LiveSync | https://potatostack.tale-iwato.ts.net:5984 | https://obsidian.potatostack.tale-iwato.ts.net | Notes Sync |
-| Karakeep | https://potatostack.tale-iwato.ts.net:9091 | https://karakeep.potatostack.tale-iwato.ts.net | Bookmarks |
 | Miniflux | https://potatostack.tale-iwato.ts.net:8093 | https://rss.potatostack.tale-iwato.ts.net | RSS Reader |
 | SearXNG | https://potatostack.tale-iwato.ts.net:8180 | https://search.potatostack.tale-iwato.ts.net | Metasearch Engine |
 | Actual Budget | https://potatostack.tale-iwato.ts.net:5006 | https://budget.potatostack.tale-iwato.ts.net | Finance |
