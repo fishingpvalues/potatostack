@@ -11,6 +11,7 @@ import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from html.parser import HTMLParser
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from xml.sax.saxutils import escape
@@ -266,8 +267,16 @@ def start_feed_server():
 # ---------------------------------------------------------------------------
 
 
+def _parse_pub_timestamp(pub_date_str):
+    """Parse RFC 2822 date string to UTC timestamp for sorting. Returns 0 on failure."""
+    try:
+        return parsedate_to_datetime(pub_date_str).timestamp()
+    except Exception:
+        return 0
+
+
 def add_feed_item(title, url, content, source, pub_date=None):
-    """Add an item to the combined feed."""
+    """Add an item to the combined feed, sorted by publication date (newest first)."""
     global _feed_items
 
     if url in _seen_urls:
@@ -285,10 +294,12 @@ def add_feed_item(title, url, content, source, pub_date=None):
         "source": source,
         "published": pub_date,
         "guid": make_guid(url),
+        "_ts": _parse_pub_timestamp(pub_date),
     }
 
     with _feed_lock:
-        _feed_items.insert(0, item)
+        _feed_items.append(item)
+        _feed_items.sort(key=lambda x: x["_ts"], reverse=True)
         if len(_feed_items) > _FEED_MAX:
             _feed_items[:] = _feed_items[:_FEED_MAX]
 

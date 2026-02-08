@@ -115,6 +115,15 @@ set_config "BitTorrent" "Session\\\\DefaultSavePath" "/downloads"
 set_config "BitTorrent" "Session\\\\TempPath" "/incomplete"
 set_config "BitTorrent" "Session\\\\TempPathEnabled" "true"
 
+# Fix ownership on downloads directory
+if [ -d "/downloads" ]; then
+	current_owner=$(stat -c "%u:%g" "/downloads" 2>/dev/null || echo "0:0")
+	if [ "$current_owner" != "${PUID}:${PGID}" ]; then
+		chown -R "${PUID}:${PGID}" "/downloads" 2>/dev/null || true
+	fi
+	chmod -R 755 "/downloads" 2>/dev/null || true
+fi
+
 # Auto-run hook
 set_config "AutoRun" "enabled" "true"
 set_config "AutoRun" "program" "/hooks/post-torrent.sh \\\"%N\\\" \\\"%C\\\" \\\"%F\\\" \\\"%D\\\" \\\"%G\\\""

@@ -170,7 +170,8 @@ mkdir -p \
 	"${STORAGE_BASE}/downloads/slskd" \
 	"${STORAGE_BASE}/downloads/rdt-client" \
 	"${STORAGE_BASE}/photos" \
-	"${STORAGE_BASE}/backrest/repos"
+	"${STORAGE_BASE}/backrest/repos" \
+	"${STORAGE_BASE}/pairdrop"
 
 ################################################################################
 # Service-Specific Incomplete Download Directories (moved from cachehdd)
@@ -542,6 +543,9 @@ chown -R 472:472 "${SSD_BASE}/grafana"
 
 # Incomplete download directories (for torrent/usenet clients)
 [ -d "${STORAGE_BASE}/downloads/incomplete" ] && chown -R "${PUID}:${PGID}" "${STORAGE_BASE}/downloads/incomplete"
+
+# PairDrop (UID 911 - LinuxServer.io image)
+[ -d "${STORAGE_BASE}/pairdrop" ] && chown -R 911:911 "${STORAGE_BASE}/pairdrop"
 
 printf '%s\n' "✓ Service permissions set"
 

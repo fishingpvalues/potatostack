@@ -127,12 +127,6 @@ services:
         url: "https://potatostack.tale-iwato.ts.net:8076"
         target: "_blank"
 
-      - name: "Bookshelf"
-        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/readarr.png"
-        subtitle: "Ebooks"
-        url: "https://potatostack.tale-iwato.ts.net:8787"
-        target: "_blank"
-
   - name: "Photos & Files"
     icon: "fas fa-images"
     items:
@@ -146,6 +140,12 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/filebrowser.png"
         subtitle: "File Manager"
         url: "https://potatostack.tale-iwato.ts.net:8086"
+        target: "_blank"
+
+      - name: "Filestash"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/filestash.png"
+        subtitle: "Advanced File Manager"
+        url: "https://potatostack.tale-iwato.ts.net:8095"
         target: "_blank"
 
       - name: "Syncthing"

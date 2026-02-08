@@ -752,6 +752,12 @@ services:
       # Disable cloud integrations
       GDRIVE_CLIENT_ID: ""
       DROPBOX_CLIENT_ID: ""
+    # Hardware acceleration for video playback
+    devices:
+      - /dev/dri/renderD128:/dev/dri/renderD128
+      - /dev/dri/card0:/dev/dri/card0
+    group_add:
+      - "109"
     volumes:
       # Full storage access (same as filebrowser)
       - /mnt/storage:/mnt/storage
@@ -1975,7 +1981,7 @@ services:
       NTFY_TOKEN: ${NTFY_TOKEN:-}
     volumes:
       - qbittorrent-config:/config
-      - /mnt/storage/downloads:/downloads
+      - /mnt/storage/downloads/torrents:/downloads
       - /mnt/storage/downloads/incomplete/qbittorrent:/incomplete
       - /home/daniel/potatostack/scripts/init/qbittorrent-init.sh:/custom-cont-init.d/99-qb-init.sh:ro
       - /home/daniel/potatostack/scripts/hooks/qbittorrent-post-torrent.sh:/hooks/post-torrent.sh:ro
@@ -3042,6 +3048,7 @@ services:
       DEBUG_MODE: ${PAIRDROP_DEBUG_MODE:-false}
     volumes:
       - /mnt/ssd/docker-data/pairdrop:/config
+      - /mnt/storage/pairdrop:/data
     networks:
       - potatostack
     depends_on:
