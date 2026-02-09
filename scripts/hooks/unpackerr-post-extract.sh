@@ -44,6 +44,18 @@ extract_error)
 	tags="unpackerr,extract,error"
 	priority="high"
 	;;
+extract_retries)
+	title="PotatoStack - Unpackerr: Retrying Extraction"
+	message="Retry attempt for: ${UN_ITEM}\nFolder: ${UN_FOLDER}\nAttempt: ${UN_RETRY_COUNT:-unknown}"
+	tags="unpackerr,retry"
+	priority="low"
+	;;
+extract_failed)
+	title="PotatoStack - Unpackerr: Extraction Failed"
+	message="Failed to extract: ${UN_ITEM}\nFolder: ${UN_FOLDER}\nError: ${UN_ERROR}"
+	tags="unpackerr,extract,error,failed"
+	priority="high"
+	;;
 *)
 	# Unknown event - ignore
 	exit 0
@@ -73,4 +85,30 @@ elif command -v wget >/dev/null 2>&1; then
 		headers="$headers --header=Authorization: Bearer $NTFY_TOKEN"
 	fi
 	wget -q -O- --post-data="$message" $headers "$url_target" >/dev/null 2>&1 || true
+fi
+
+# Ownership fix for crash safety
+if [ -n "${UN_PATH:-}" ] && [ -d "${UN_PATH}" ]; then
+	chown -R 1000:1000 "${UN_PATH}" 2>/dev/null || true
+	chmod -R 755 "${UN_PATH}" 2>/dev/null || true
+fi
+
+# Manual deletion for non-torrent folders (safety layer)
+# Note: Unpackerr's DELETE_ORIGINAL handles most cases
+# This is backup in case it fails
+if [ -n "${UN_PATH:-}" ] && [ -n "${UN_FOLDER:-}" ]; then
+	case "${UN_FOLDER}" in
+	torrents | /downloads/torrents)
+		# NEVER delete in torrents folder - preserve seeding
+		;;
+	*)
+		# Delete original archive after successful extraction
+		if [ -n "${UN_ITEM:-}" ]; then
+			# Try to find and delete the original archive
+			find "$(dirname "${UN_PATH}")" -maxdepth 1 \
+				\( -name "${UN_ITEM}" -o -name "${UN_ITEM}.part" -o -name "${UN_ITEM}.rar" -o -name "${UN_ITEM}.zip" \) \
+				-delete 2>/dev/null || true
+		fi
+		;;
+	esac
 fi

@@ -492,38 +492,7 @@ services:
       # aria2 has no web UI - RPC only on port 6800
       - "wud.trigger.docker.update=false"
 
-  # WireGuard - REMOVED (using Gluetun + Tailscale instead)
-  # wireguard:
-  #   image: lscr.io/linuxserver/wireguard:${WIREGUARD_TAG:-latest}
-  #   container_name: wireguard
-  #   logging: *default-logging
-  #   cap_add:
-  #     - NET_ADMIN
-  #     - SYS_MODULE
-  #   ports:
-  #     - "${HOST_BIND:-127.0.0.1}:${WIREGUARD_SERVERPORT:-51820}:51820/udp"
-  #   environment:
-  #     <<: *common-env
-  #     SERVERURL: ${WIREGUARD_SERVERURL:-auto}
-  #     SERVERPORT: ${WIREGUARD_SERVERPORT:-51820}
-  #     PEERS: ${WIREGUARD_PEERS:-vps,android,laptop,tablet,raspberry}
-  #     PEERDNS: ${WIREGUARD_PEERDNS:-auto}
-  #     INTERNAL_SUBNET: ${WIREGUARD_INTERNAL_SUBNET:-10.13.13.0/24}
-  #     ALLOWEDIPS: ${WIREGUARD_ALLOWEDIPS:-0.0.0.0/0}
-  #     LOG_CONFS: ${WIREGUARD_LOG_CONFS:-true}
-  #   volumes:
-  #     - /mnt/ssd/docker-data/wireguard:/config
-  #     - /lib/modules:/lib/modules:ro
-  #   sysctls:
-  #     - net.ipv4.conf.all.src_valid_mark=1
-  #   networks:
-  #     - potatostack
-  #   restart: unless-stopped
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: "0.25"
-  #         memory: 128M
+  
 
   # Tailscale - Mesh VPN for remote access (SOTA 2025 - easiest option)
   tailscale:
@@ -623,46 +592,6 @@ services:
   ################################################################################
   # CLOUD STORAGE & FILE SYNC
   ################################################################################
-
-  # # Nextcloud AIO - DISABLED
-  # nextcloud-aio:
-  #   image: nextcloud/all-in-one:${NEXTCLOUD_AIO_TAG:-latest}
-  #   container_name: nextcloud-aio-mastercontainer
-  #   logging: *default-logging
-  #   init: true
-  #   ports:
-  #     - "${HOST_BIND:-127.0.0.1}:8080:8080"
-  #   environment:
-  #     PUID: 1000
-  #     PGID: 1000
-  #     APACHE_PORT: 11000
-  #     APACHE_IP_BINDING: 0.0.0.0
-  #     NEXTCLOUD_DATADIR: /mnt/storage/nextcloud/data
-  #     NEXTCLOUD_MOUNT: /mnt/storage/nextcloud
-  #     NEXTCLOUD_UPLOAD_LIMIT: 10G
-  #     NEXTCLOUD_MAX_TIME: 3600
-  #     NEXTCLOUD_MEMORY_LIMIT: 512M
-  #     SKIP_DOMAIN_VALIDATION: "true"
-  #   dns:
-  #     - 100.100.100.100
-  #     - 1.1.1.1
-  #     - 8.8.8.8
-  #   volumes:
-  #     - nextcloud_aio_mastercontainer:/mnt/docker-aio-config
-  #     - /var/run/docker.sock:/var/run/docker.sock:ro
-  #     - /mnt/storage/nextcloud:/mnt/storage/nextcloud:rw
-  #   networks:
-  #     - potatostack
-  #   depends_on:
-  #     storage-init:
-  #       condition: service_completed_successfully
-  #   restart: unless-stopped
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: "1.0"
-  #         memory: 128M
-  #   labels:
 
   # Syncthing - P2P file sync
   syncthing:
@@ -927,12 +856,6 @@ services:
           memory: 32M
 
   ################################################################################
-  # RECIPE MANAGEMENT
-  ################################################################################
-  # RECIPE MANAGEMENT
-  ################################################################################
-
-  ################################################################################
   # FINANCE
   ################################################################################
 
@@ -1149,42 +1072,7 @@ services:
   #   labels:
   #     - "autoheal=true"
 
-  # Bookshelf - Ebook management (Readarr revival with working metadata) (DISABLED)
-  # bookshelf:
-  #   image: ghcr.io/pennydreadful/bookshelf:${BOOKSHELF_TAG:-hardcover}
-  #   container_name: bookshelf
-  #   logging: *default-logging
-  #   network_mode: "service:gluetun"
-  #   environment:
-  #     <<: *common-env
-  #   volumes:
-  #     - bookshelf-config:/config
-  #     - /mnt/storage/media/books:/books
-  #     - /mnt/storage/downloads:/downloads
-  #     - /mnt/storage/downloads/incomplete/bookshelf:/downloads/incomplete
-  #   depends_on:
-  #     gluetun:
-  #       condition: service_healthy
-  #       restart: true
-  #     storage-init:
-  #       condition: service_completed_successfully
-  #   restart: unless-stopped
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8787/ping || exit 1"]
-  #     interval: 60s
-  #     timeout: 10s
-  #     retries: 3
-  #     start_period: 60s
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: "2.0"
-  #         memory: 1536M
-  #       reservations:
-  #         cpus: "0.5"
-  #         memory: 512M
-  #   labels:
-  #     - "autoheal=true"
+  
 
   # Bazarr - Subtitle management (DISABLED)
   # bazarr:
@@ -1288,69 +1176,72 @@ services:
     image: ghcr.io/hotio/unpackerr:${UNPACKERR_TAG:-latest}
     container_name: unpackerr
     logging: *default-logging
+    entrypoint: ["/entrypoint.sh"]
     environment:
       <<: *common-env
-      UMASK: "002"
       
-      # Global Settings - Lightweight, low I/O, crash-safe
-      UN_INTERVAL: "2m"
-      UN_START_DELAY: "5m"
-      UN_RETRY_DELAY: "5m"
-      UN_MAX_RETRIES: "3"
-      UN_PARALLEL: "1"
-      UN_FILE_MODE: "0644"
+      # Global Settings - Lightweight, low I/O, crash-safe, immediate startup
+      UMASK: "022"
+      
+      UN_INTERVAL: "1m"
+      UN_START_DELAY: "0m"
+      UN_RETRY_DELAY: "2m"
+      UN_MAX_RETRIES: "5"
+      UN_PARALLEL: "2"
+      UN_FILE_MODE: "0755"
       UN_DIR_MODE: "0755"
       UN_LOG_LEVEL: "INFO"
       
       # Web UI - No password (LAN access only)
       UN_WEBSERVER_METRICS: "false"
+      UN_WEBSERVER_ENABLED: "true"
       UN_WEBSERVER_LISTEN_ADDR: "0.0.0.0:5656"
       
       # Folder Watchers - All download folders (incomplete folders excluded)
-      # qBittorrent
+      # qBittorrent - Extract but DON'T delete (preserve seeding)
       UN_FOLDER_0_PATH: "/downloads/torrents"
-      UN_FOLDER_0_DELETE_ORIGINAL: "true"
-      UN_FOLDER_0_DELETE_AFTER: "5m"
+      UN_FOLDER_0_DELETE_ORIGINAL: "false"
+      UN_FOLDER_0_DELETE_AFTER: "0s"
       UN_FOLDER_0_MOVE_BACK: "true"
       UN_FOLDER_0_DELETE_FILES: "false"
       UN_FOLDER_0_EXTRACT_ISOS: "false"
       
-      # Aria2
+      # Aria2 - Extract + delete (normal cleanup)
       UN_FOLDER_1_PATH: "/downloads/aria2"
       UN_FOLDER_1_DELETE_ORIGINAL: "true"
-      UN_FOLDER_1_DELETE_AFTER: "5m"
+      UN_FOLDER_1_DELETE_AFTER: "0s"
       UN_FOLDER_1_MOVE_BACK: "true"
       UN_FOLDER_1_DELETE_FILES: "false"
       UN_FOLDER_1_EXTRACT_ISOS: "false"
       
-      # Slskd
+      # Slskd - Extract + delete
       UN_FOLDER_2_PATH: "/downloads/slskd"
       UN_FOLDER_2_DELETE_ORIGINAL: "true"
-      UN_FOLDER_2_DELETE_AFTER: "5m"
+      UN_FOLDER_2_DELETE_AFTER: "0s"
       UN_FOLDER_2_MOVE_BACK: "true"
       UN_FOLDER_2_DELETE_FILES: "false"
       UN_FOLDER_2_EXTRACT_ISOS: "false"
       
-      # Pyload
+      # Pyload - Extract + delete
       UN_FOLDER_3_PATH: "/downloads/pyload"
       UN_FOLDER_3_DELETE_ORIGINAL: "true"
-      UN_FOLDER_3_DELETE_AFTER: "5m"
+      UN_FOLDER_3_DELETE_AFTER: "0s"
       UN_FOLDER_3_MOVE_BACK: "true"
       UN_FOLDER_3_DELETE_FILES: "false"
       UN_FOLDER_3_EXTRACT_ISOS: "false"
       
-      # RDT Client
+      # RDT Client - Extract + delete
       UN_FOLDER_4_PATH: "/downloads/rdt-client"
       UN_FOLDER_4_DELETE_ORIGINAL: "true"
-      UN_FOLDER_4_DELETE_AFTER: "5m"
+      UN_FOLDER_4_DELETE_AFTER: "0s"
       UN_FOLDER_4_MOVE_BACK: "true"
       UN_FOLDER_4_DELETE_FILES: "false"
       UN_FOLDER_4_EXTRACT_ISOS: "false"
       
-      # TDL (Telegram)
+      # TDL (Telegram) - Extract + delete
       UN_FOLDER_5_PATH: "/downloads/telegram"
       UN_FOLDER_5_DELETE_ORIGINAL: "true"
-      UN_FOLDER_5_DELETE_AFTER: "5m"
+      UN_FOLDER_5_DELETE_AFTER: "0s"
       UN_FOLDER_5_MOVE_BACK: "true"
       UN_FOLDER_5_DELETE_FILES: "false"
       UN_FOLDER_5_EXTRACT_ISOS: "false"
@@ -1360,8 +1251,8 @@ services:
       NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
       NTFY_TOKEN: ${NTFY_TOKEN:-}
       
-      # Command Hook for NTFY notifications
-      UN_CMDHOOK_0_NAME: "ntfy"
+      # Command Hook for NTFY notifications + ownership fix
+      UN_CMDHOOK_0_NAME: "ntfy-ownership"
       UN_CMDHOOK_0_COMMAND: "/hooks/post-extract.sh"
       UN_CMDHOOK_0_SHELL: "true"
       UN_CMDHOOK_0_SILENT: "false"
@@ -1369,33 +1260,37 @@ services:
       UN_CMDHOOK_0_EVENTS_1: "3"
       UN_CMDHOOK_0_EVENTS_2: "4"
       UN_CMDHOOK_0_EVENTS_3: "5"
-      UN_CMDHOOK_0_TIMEOUT: "10s"
+      UN_CMDHOOK_0_EVENTS_4: "6"
+      UN_CMDHOOK_0_EVENTS_5: "7"
+      UN_CMDHOOK_0_TIMEOUT: "30s"
     
     volumes:
       - unpackerr-config:/config
       - /mnt/storage/downloads:/downloads
       - /home/daniel/potatostack/scripts/hooks/unpackerr-post-extract.sh:/hooks/post-extract.sh:ro
+      - /home/daniel/potatostack/scripts/init/unpackerr-entrypoint.sh:/entrypoint.sh:ro
+      - /home/daniel/potatostack/scripts/init/unpackerr-cleanup.sh:/cleanup.sh:ro
+      - /home/daniel/potatostack/scripts/init/unpackerr-startup-scan.sh:/startup-scan.sh:ro
     networks:
       - potatostack
     depends_on:
       - storage-init
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:5656/ || exit 1"]
+      test: ["CMD-SHELL", "pgrep -f unpackerr || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 30s
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 256M
+          cpus: "1.0"
+          memory: 512M
         reservations:
-          cpus: "0.1"
-          memory: 64M
+          cpus: "0.25"
+          memory: 128M
     labels:
-      - "autoheal=true"
       - "wud.trigger.docker.update=true"
   ################################################################################
   # Notifiarr - Unified notifications for *arr stack (DISABLED)
@@ -1828,55 +1723,6 @@ services:
           cpus: "0.05"
           memory: 32M
 
-  # Tdarr - Distributed transcoding system for optimizing media library
-  # tdarr:
-  #   image: ghcr.io/haveagitgat/tdarr:${TDARR_TAG:-latest}
-  #   container_name: tdarr
-  #   logging: *default-logging
-  #   ports:
-  #     - "${HOST_BIND:-127.0.0.1}:8265:8265"
-  #     - "${HOST_BIND:-127.0.0.1}:8266:8266"
-  #   environment:
-  #     <<: *common-env
-  #     serverIP: 0.0.0.0
-  #     serverPort: 8266
-  #     webUIPort: 8265
-  #     internalNode: "true"
-  #     inContainer: "true"
-  #     ffmpegVersion: "6"
-  #     nodeName: potatostack-node
-  #   devices:
-  #     - /dev/dri/renderD128:/dev/dri/renderD128
-  #     - /dev/dri/card0:/dev/dri/card0
-  #   group_add:
-  #     - "109"
-  #   volumes:
-  #     - /mnt/ssd/docker-data/tdarr/server:/app/server
-  #     - /mnt/ssd/docker-data/tdarr/configs:/app/configs
-  #     - /mnt/ssd/docker-data/tdarr/logs:/app/logs
-  #     - /mnt/cachehdd/tdarr/transcode_cache:/temp
-  #     - /mnt/storage/media/movies:/media/movies
-  #     - /mnt/storage/media/tv:/media/tv
-  #   networks:
-  #     - potatostack
-  #   depends_on:
-  #     - storage-init
-  #   restart: unless-stopped
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "curl -f http://127.0.0.1:8265/ || exit 1"]
-  #     interval: 60s
-  #     timeout: 10s
-  #     retries: 3
-  #     start_period: 60s
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: "2.0"
-  #         memory: 2G
-  #       reservations:
-  #         cpus: "0.5"
-  #         memory: 512M
-  #   labels:
 
   # Audiobookshelf - Audiobook and podcast server
   audiobookshelf:
@@ -1962,11 +1808,11 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8080/ || exit 1"]
+      test: ["CMD-SHELL", "pgrep -f spotiflac || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 30s
     deploy:
       resources:
         limits:
@@ -2026,42 +1872,6 @@ services:
           memory: 1G
     labels:
       - "autoheal=true"
-
-  # SABnzbd - Usenet download client (for Torbox/Eweka usenet) (DISABLED)
-  # sabnzbd:
-  #   image: lscr.io/linuxserver/sabnzbd:${SABNZBD_TAG:-latest}
-  #   container_name: sabnzbd
-  #   logging: *default-logging
-  #   network_mode: "service:gluetun"
-  #   environment:
-  #     <<: *common-env
-  #   volumes:
-  #     - sabnzbd-config:/config
-  #     - /mnt/storage/downloads:/downloads
-  #     - /mnt/storage/downloads/incomplete/sabnzbd:/incomplete-downloads
-  #   depends_on:
-  #     gluetun:
-  #       condition: service_healthy
-  #       restart: true
-  #     storage-init:
-  #       condition: service_completed_successfully
-  #   restart: unless-stopped
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "curl -f http://127.0.0.1:8085/api?mode=version || exit 1"]
-  #     interval: 60s
-  #     timeout: 10s
-  #     retries: 3
-  #     start_period: 60s
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: "1.0"
-  #         memory: 512M
-  #       reservations:
-  #         cpus: "0.25"
-  #         memory: 256M
-  #   labels:
-  #     - "autoheal=true"
 
   # rdt-client - Real-Debrid download client (qBittorrent API emulation)
   rdt-client:
@@ -2147,23 +1957,6 @@ services:
     labels:
       - "autoheal=true"
 
-  # AriaNg - REMOVED
-  # ariang:
-  #   image: p3terx/ariang:${ARIANG_TAG:-latest}
-  #   container_name: ariang
-  #   logging: *default-logging
-  #   network_mode: "service:gluetun"
-  #   command: --port 80
-  #   depends_on:
-  #     - aria2
-  #   restart: unless-stopped
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: "0.1"
-  #         memory: 64M
-
-  # slskd - Soulseek P2P client for music sharing (SOTA 2025)
   slskd:
     image: ghcr.io/slskd/slskd:${SLSKD_TAG:-latest}
     container_name: slskd
