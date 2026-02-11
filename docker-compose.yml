@@ -2418,28 +2418,29 @@ services:
       - "wud.trigger.docker.update=false"
 
   # Node Exporter - Host metrics for Prometheus (SOTA 2025)
-  node-exporter:
-    image: prom/node-exporter:${NODE_EXPORTER_TAG:-latest}
-    container_name: node-exporter
-    logging: *default-logging
-    command:
-      - "--path.rootfs=/host"
-      - "--path.procfs=/host/proc"
-      - "--path.sysfs=/host/sys"
-      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|run|var/lib/docker/.+)($|/)"
-    volumes:
-      - /:/host:ro,rslave
-    networks:
-      - potatostack
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 128M
-        reservations:
-          cpus: "0.1"
-          memory: 64M
+  # TEMPORARILY DISABLED - corrupted image layer
+  # node-exporter:
+  #   image: prom/node-exporter:${NODE_EXPORTER_TAG:-latest}
+  #   container_name: node-exporter
+  #   logging: *default-logging
+  #   command:
+  #     - "--path.rootfs=/host"
+  #     - "--path.procfs=/host/proc"
+  #     - "--path.sysfs=/host/sys"
+  #     - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|run|var/lib/docker/.+)($|/)"
+  #   volumes:
+  #     - /:/host:ro,rslave
+  #   networks:
+  #     - potatostack
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.25"
+  #         memory: 128M
+  #       reservations:
+  #         cpus: "0.1"
+  #         memory: 64M
 
   # Postgres Exporter - PostgreSQL metrics
   postgres-exporter:
@@ -2820,13 +2821,16 @@ services:
     container_name: rustypaste
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-127.0.0.1}:8788:8000"
+      - "${HOST_BIND:-127.0.0.1}:${RUSTYPASTE_PORT:-8788}:${RUSTYPASTE_SERVER_PORT:-8000}"
     environment:
       <<: *common-env
       CONFIG: /config/config.toml
+      RUST_LOG: ${RUSTYPASTE_LOG_LEVEL:-info}
     volumes:
       - /mnt/storage/rustypaste:/data
       - ./config/rustypaste/config.toml:/config/config.toml:ro
+      - ./config/rustypaste/landing_page.html:/config/landing_page.html:ro
+      - ./config/rustypaste/index.html:/config/index.html:ro
     networks:
       - potatostack
     depends_on:
@@ -2837,11 +2841,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.25"
-          memory: 64M
+          cpus: "${RUSTYPASTE_MAX_CPUS:-0.25}"
+          memory: "${RUSTYPASTE_MAX_MEMORY:-64M}"
         reservations:
-          cpus: "0.1"
-          memory: 32M
+          cpus: "${RUSTYPASTE_MIN_CPUS:-0.1}"
+          memory: "${RUSTYPASTE_MIN_MEMORY:-32M}"
     labels:
       - "autoheal=true"
 
@@ -3026,7 +3030,7 @@ services:
       ATUIN_HOST: "0.0.0.0"
       ATUIN_PORT: "8888"
       ATUIN_OPEN_REGISTRATION: ${ATUIN_OPEN_REGISTRATION:-false}
-    command: server start
+    command: ["start"]
     volumes:
       - atuin-config:/config
     networks:

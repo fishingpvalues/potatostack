@@ -1,0 +1,37 @@
+[config]
+refresh_rate = "1s"
+
+[server]
+address = "127.0.0.1:8000"
+#url = "https://paste.example.com"
+#workers=4
+max_content_length = "10MB"
+upload_path = "./upload"
+timeout = "30s"
+expose_version = false
+
+[landing_page]
+file = "landing_page.html"
+content_type = "text/html; charset=utf-8"
+
+[paste]
+random_url = { type = "petname", words = 2, separator = "-" }
+#random_url = { type = "alphanumeric", length = 8 }
+default_extension = "txt"
+mime_override = [
+  { mime = "image/jpeg", regex = "^.*\\.jpg$" },
+  { mime = "image/png", regex = "^.*\\.png$" },
+  { mime = "image/svg+xml", regex = "^.*\\.svg$" },
+  { mime = "video/webm", regex = "^.*\\.webm$" },
+  { mime = "video/x-matroska", regex = "^.*\\.mkv$" },
+  { mime = "application/octet-stream", regex = "^.*\\.bin$" },
+  { mime = "text/plain", regex = "^.*\\.(log|txt|diff|sh|rs|toml)$" },
+]
+mime_blacklist = [
+  "application/x-dosexec",
+  "application/java-archive",
+  "application/java-vm",
+]
+duplicate_files = true
+# default_expiry = "1h"
+delete_expired_files = { enabled = true, interval = "1h" }
