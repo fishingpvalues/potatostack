@@ -2164,10 +2164,11 @@ services:
       <<: *common-env
       # Note: Using container IP because network_mode:service:gluetun can't resolve Docker DNS
       # If postgres IP changes, update this or restart postgres first
-      POSTGRES_HOST: 172.22.0.15
+      POSTGRES_HOST: 172.22.0.13
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
       POSTGRES_DATABASE: bitmagnet
+      POSTGRES_SSL_MODE: disable
       # Redis cache disabled - not exposed on host
       # REDIS_ADDR: redis-cache:6379
       REDIS_DB: "15"

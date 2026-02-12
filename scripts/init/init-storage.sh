@@ -465,11 +465,13 @@ for item in "${CACHE_BASE}"/*; do
 done
 
 if [ -f "$SWAP_FILE" ]; then
-	chown root:root "$SWAP_FILE"
-	chmod 600 "$SWAP_FILE"
+	if ! swapon --show 2>/dev/null | grep -q "$SWAP_FILE" && ! grep -q "$SWAP_FILE" /proc/swaps 2>/dev/null; then
+		chown root:root "$SWAP_FILE" 2>/dev/null || true
+		chmod 600 "$SWAP_FILE" 2>/dev/null || true
+	fi
 fi
 
-chmod 775 "${CACHE_BASE}/sync/syncthing-versions"
+chmod 775 "${CACHE_BASE}/sync/syncthing-versions" 2>/dev/null || true
 
 ################################################################################
 # Fix Gluetun post-rules.txt directory issue
@@ -499,59 +501,60 @@ fi
 printf '%s\n' "Setting service-specific permissions..."
 
 # PostgreSQL (UID 999)
-[ -d "${SSD_BASE}/postgres" ] && chown -R 999:999 "${SSD_BASE}/postgres" && chmod -R 700 "${SSD_BASE}/postgres"
+[ -d "${SSD_BASE}/postgres" ] && chown -R 999:999 "${SSD_BASE}/postgres" 2>/dev/null || true
+[ -d "${SSD_BASE}/postgres" ] && chmod -R 700 "${SSD_BASE}/postgres" 2>/dev/null || true
 
 # Obsidian LiveSync CouchDB (UID 5984)
-[ -d "${STORAGE_BASE}/obsidian-couchdb" ] && chown -R 5984:5984 "${STORAGE_BASE}/obsidian-couchdb"
+[ -d "${STORAGE_BASE}/obsidian-couchdb" ] && chown -R 5984:5984 "${STORAGE_BASE}/obsidian-couchdb" 2>/dev/null || true
 
 # Redis (UID 999, GID 1000)
-[ -d "${SSD_BASE}/redis-cache" ] && chown -R 999:1000 "${SSD_BASE}/redis-cache"
+[ -d "${SSD_BASE}/redis-cache" ] && chown -R 999:1000 "${SSD_BASE}/redis-cache" 2>/dev/null || true
 
 # Prometheus (UID 65534 - nobody)
-[ -d "${CACHE_BASE}/observability/prometheus" ] && chown -R 65534:65534 "${CACHE_BASE}/observability/prometheus"
+[ -d "${CACHE_BASE}/observability/prometheus" ] && chown -R 65534:65534 "${CACHE_BASE}/observability/prometheus" 2>/dev/null || true
 
 # Loki (UID 10001)
-[ -d "${CACHE_BASE}/observability/loki" ] && chown -R 10001:10001 "${CACHE_BASE}/observability/loki"
+[ -d "${CACHE_BASE}/observability/loki" ] && chown -R 10001:10001 "${CACHE_BASE}/observability/loki" 2>/dev/null || true
 
 # Grafana (UID 472) - ensure plugins dir exists
 mkdir -p "${SSD_BASE}/grafana/plugins"
-chown -R 472:472 "${SSD_BASE}/grafana"
+chown -R 472:472 "${SSD_BASE}/grafana" 2>/dev/null || true
 
 # Alertmanager (UID 65534)
-[ -d "${CACHE_BASE}/observability/alertmanager" ] && chown -R 65534:65534 "${CACHE_BASE}/observability/alertmanager"
+[ -d "${CACHE_BASE}/observability/alertmanager" ] && chown -R 65534:65534 "${CACHE_BASE}/observability/alertmanager" 2>/dev/null || true
 
 # Homarr (UID 1000)
-[ -d "${SSD_BASE}/homarr" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/homarr"
+[ -d "${SSD_BASE}/homarr" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/homarr" 2>/dev/null || true
 
 # Authentik (UID 1000)
-[ -d "${SSD_BASE}/authentik" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/authentik"
+[ -d "${SSD_BASE}/authentik" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/authentik" 2>/dev/null || true
 
 # Code-server (UID 1000)
-[ -d "${SSD_BASE}/code-server" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/code-server"
+[ -d "${SSD_BASE}/code-server" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/code-server" 2>/dev/null || true
 
 # Recyclarr (UID 1000) - needs PUID/PGID ownership for /config/cache
-[ -d "${SSD_BASE}/recyclarr" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/recyclarr"
+[ -d "${SSD_BASE}/recyclarr" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/recyclarr" 2>/dev/null || true
 
 # Notifiarr (UID 1000) - ensure proper ownership
-[ -d "${SSD_BASE}/notifiarr" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/notifiarr"
+[ -d "${SSD_BASE}/notifiarr" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/notifiarr" 2>/dev/null || true
 
 # Unpackerr (UID 1000) - ensure proper ownership
-[ -d "${SSD_BASE}/unpackerr" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/unpackerr"
+[ -d "${SSD_BASE}/unpackerr" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/unpackerr" 2>/dev/null || true
 
 # Bitmagnet (UID 1000) - DHT crawler (on cachehdd due to large DB growth)
-[ -d "${CACHE_BASE}/bitmagnet" ] && chown -R "${PUID}:${PGID}" "${CACHE_BASE}/bitmagnet"
+[ -d "${CACHE_BASE}/bitmagnet" ] && chown -R "${PUID}:${PGID}" "${CACHE_BASE}/bitmagnet" 2>/dev/null || true
 
 # Uptime-Kuma (UID 1000) - DISABLED
 # [ -d "${SSD_BASE}/uptime-kuma" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/uptime-kuma"
 
 # Velld (UID 1000)
-[ -d "${SSD_BASE}/velld" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/velld"
+[ -d "${SSD_BASE}/velld" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/velld" 2>/dev/null || true
 
 # Incomplete download directories (for torrent/usenet clients)
-[ -d "${STORAGE_BASE}/downloads/incomplete" ] && chown -R "${PUID}:${PGID}" "${STORAGE_BASE}/downloads/incomplete"
+[ -d "${STORAGE_BASE}/downloads/incomplete" ] && chown -R "${PUID}:${PGID}" "${STORAGE_BASE}/downloads/incomplete" 2>/dev/null || true
 
 # PairDrop (UID 911 - LinuxServer.io image)
-[ -d "${STORAGE_BASE}/pairdrop" ] && chown -R 911:911 "${STORAGE_BASE}/pairdrop"
+[ -d "${STORAGE_BASE}/pairdrop" ] && chown -R 911:911 "${STORAGE_BASE}/pairdrop" 2>/dev/null || true
 
 printf '%s\n' "✓ Service permissions set"
 
