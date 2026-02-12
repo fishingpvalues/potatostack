@@ -115,6 +115,15 @@ set_config "BitTorrent" "Session\\\\DefaultSavePath" "/downloads"
 set_config "BitTorrent" "Session\\\\TempPath" "/incomplete"
 set_config "BitTorrent" "Session\\\\TempPathEnabled" "true"
 
+# Fix ownership on adult directory
+if [ -d "/adult" ]; then
+	current_owner=$(stat -c "%u:%g" "/adult" 2>/dev/null || echo "0:0")
+	if [ "$current_owner" != "${PUID}:${PGID}" ]; then
+		chown -R "${PUID}:${PGID}" "/adult" 2>/dev/null || true
+	fi
+	chmod -R 755 "/adult" 2>/dev/null || true
+fi
+
 # Fix ownership on downloads directory
 if [ -d "/downloads" ]; then
 	current_owner=$(stat -c "%u:%g" "/downloads" 2>/dev/null || echo "0:0")

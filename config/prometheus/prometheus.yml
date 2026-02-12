@@ -104,4 +104,3 @@ scrape_configs:
     static_configs:
       - targets: ["gluetun:3333"]
     metrics_path: "/metrics"
-

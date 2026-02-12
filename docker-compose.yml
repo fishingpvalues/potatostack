@@ -492,8 +492,6 @@ services:
       # aria2 has no web UI - RPC only on port 6800
       - "wud.trigger.docker.update=false"
 
-  
-
   # Tailscale - Mesh VPN for remote access (SOTA 2025 - easiest option)
   tailscale:
     image: tailscale/tailscale:${TAILSCALE_TAG:-latest}
@@ -1072,8 +1070,6 @@ services:
   #   labels:
   #     - "autoheal=true"
 
-  
-
   # Bazarr - Subtitle management (DISABLED)
   # bazarr:
   #   image: lscr.io/linuxserver/bazarr:${BAZARR_TAG:-latest}
@@ -1179,10 +1175,10 @@ services:
     entrypoint: ["/entrypoint.sh"]
     environment:
       <<: *common-env
-      
+
       # Global Settings - Lightweight, low I/O, crash-safe, immediate startup
       UMASK: "022"
-      
+
       UN_INTERVAL: "1m"
       UN_START_DELAY: "0m"
       UN_RETRY_DELAY: "2m"
@@ -1191,12 +1187,12 @@ services:
       UN_FILE_MODE: "0755"
       UN_DIR_MODE: "0755"
       UN_LOG_LEVEL: "INFO"
-      
+
       # Web UI - No password (LAN access only)
       UN_WEBSERVER_METRICS: "false"
       UN_WEBSERVER_ENABLED: "true"
       UN_WEBSERVER_LISTEN_ADDR: "0.0.0.0:5656"
-      
+
       # Folder Watchers - All download folders (incomplete folders excluded)
       # qBittorrent - Extract but DON'T delete (preserve seeding)
       UN_FOLDER_0_PATH: "/downloads/torrents"
@@ -1205,52 +1201,60 @@ services:
       UN_FOLDER_0_MOVE_BACK: "true"
       UN_FOLDER_0_DELETE_FILES: "false"
       UN_FOLDER_0_EXTRACT_ISOS: "false"
-      
-      # Aria2 - Extract + delete (normal cleanup)
-      UN_FOLDER_1_PATH: "/downloads/aria2"
-      UN_FOLDER_1_DELETE_ORIGINAL: "true"
+
+      # qBittorrent (adult) - Extract but DON'T delete (preserve seeding)
+      UN_FOLDER_1_PATH: "/adult"
+      UN_FOLDER_1_DELETE_ORIGINAL: "false"
       UN_FOLDER_1_DELETE_AFTER: "0s"
       UN_FOLDER_1_MOVE_BACK: "true"
       UN_FOLDER_1_DELETE_FILES: "false"
       UN_FOLDER_1_EXTRACT_ISOS: "false"
-      
-      # Slskd - Extract + delete
-      UN_FOLDER_2_PATH: "/downloads/slskd"
+
+      # Aria2 - Extract + delete (normal cleanup)
+      UN_FOLDER_2_PATH: "/downloads/aria2"
       UN_FOLDER_2_DELETE_ORIGINAL: "true"
       UN_FOLDER_2_DELETE_AFTER: "0s"
       UN_FOLDER_2_MOVE_BACK: "true"
       UN_FOLDER_2_DELETE_FILES: "false"
       UN_FOLDER_2_EXTRACT_ISOS: "false"
-      
-      # Pyload - Extract + delete
-      UN_FOLDER_3_PATH: "/downloads/pyload"
+
+      # Slskd - Extract + delete
+      UN_FOLDER_3_PATH: "/downloads/slskd"
       UN_FOLDER_3_DELETE_ORIGINAL: "true"
       UN_FOLDER_3_DELETE_AFTER: "0s"
       UN_FOLDER_3_MOVE_BACK: "true"
       UN_FOLDER_3_DELETE_FILES: "false"
       UN_FOLDER_3_EXTRACT_ISOS: "false"
-      
-      # RDT Client - Extract + delete
-      UN_FOLDER_4_PATH: "/downloads/rdt-client"
+
+      # Pyload - Extract + delete
+      UN_FOLDER_4_PATH: "/downloads/pyload"
       UN_FOLDER_4_DELETE_ORIGINAL: "true"
       UN_FOLDER_4_DELETE_AFTER: "0s"
       UN_FOLDER_4_MOVE_BACK: "true"
       UN_FOLDER_4_DELETE_FILES: "false"
       UN_FOLDER_4_EXTRACT_ISOS: "false"
-      
-      # TDL (Telegram) - Extract + delete
-      UN_FOLDER_5_PATH: "/downloads/telegram"
+
+      # RDT Client - Extract + delete
+      UN_FOLDER_5_PATH: "/downloads/rdt-client"
       UN_FOLDER_5_DELETE_ORIGINAL: "true"
       UN_FOLDER_5_DELETE_AFTER: "0s"
       UN_FOLDER_5_MOVE_BACK: "true"
       UN_FOLDER_5_DELETE_FILES: "false"
       UN_FOLDER_5_EXTRACT_ISOS: "false"
-      
+
+      # TDL (Telegram) - Extract + delete
+      UN_FOLDER_6_PATH: "/downloads/telegram"
+      UN_FOLDER_6_DELETE_ORIGINAL: "true"
+      UN_FOLDER_6_DELETE_AFTER: "0s"
+      UN_FOLDER_6_MOVE_BACK: "true"
+      UN_FOLDER_6_DELETE_FILES: "false"
+      UN_FOLDER_6_EXTRACT_ISOS: "false"
+
       # NTFY notification hook
       NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
       NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
       NTFY_TOKEN: ${NTFY_TOKEN:-}
-      
+
       # Command Hook for NTFY notifications + ownership fix
       UN_CMDHOOK_0_NAME: "ntfy-ownership"
       UN_CMDHOOK_0_COMMAND: "/hooks/post-extract.sh"
@@ -1263,10 +1267,11 @@ services:
       UN_CMDHOOK_0_EVENTS_4: "6"
       UN_CMDHOOK_0_EVENTS_5: "7"
       UN_CMDHOOK_0_TIMEOUT: "30s"
-    
+
     volumes:
       - unpackerr-config:/config
       - /mnt/storage/downloads:/downloads
+      - /mnt/storage/media/adult:/adult
       - /home/daniel/potatostack/scripts/hooks/unpackerr-post-extract.sh:/hooks/post-extract.sh:ro
       - /home/daniel/potatostack/scripts/init/unpackerr-entrypoint.sh:/entrypoint.sh:ro
       - /home/daniel/potatostack/scripts/init/unpackerr-cleanup.sh:/cleanup.sh:ro
@@ -1723,7 +1728,6 @@ services:
           cpus: "0.05"
           memory: 32M
 
-
   # Audiobookshelf - Audiobook and podcast server
   audiobookshelf:
     image: ghcr.io/advplyr/audiobookshelf:${AUDIOBOOKSHELF_TAG:-latest}
@@ -1846,6 +1850,7 @@ services:
     volumes:
       - qbittorrent-config:/config
       - /mnt/storage/downloads/torrents:/downloads
+      - /mnt/storage/media/adult:/adult
       - /mnt/storage/downloads/incomplete/qbittorrent:/incomplete
       - /home/daniel/potatostack/scripts/init/qbittorrent-init.sh:/custom-cont-init.d/99-qb-init.sh:ro
       - /home/daniel/potatostack/scripts/hooks/qbittorrent-post-torrent.sh:/hooks/post-torrent.sh:ro
@@ -2107,7 +2112,12 @@ services:
     container_name: tdl
     logging: *default-logging
     network_mode: "service:gluetun"
-    entrypoint: ["/bin/sh", "-c", "crond -b && sh /etc/tdl/download-saved.sh >> /downloads/tdl-download.log 2>&1 & tail -f /dev/null"]
+    entrypoint:
+      [
+        "/bin/sh",
+        "-c",
+        "crond -b && sh /etc/tdl/download-saved.sh >> /downloads/tdl-download.log 2>&1 & tail -f /dev/null",
+      ]
     environment:
       <<: *common-env
     volumes:
@@ -3326,7 +3336,7 @@ services:
   #   volumes:
   #     - pinchflat-config:/config
   #     - /mnt/storage/media/youtube:/downloads
-    #     - /mnt/storage/downloads/incomplete/pinchflat:/incomplete
+  #     - /mnt/storage/downloads/incomplete/pinchflat:/incomplete
   #   depends_on:
   #     gluetun:
   #       condition: service_healthy
@@ -4288,7 +4298,7 @@ volumes:
   slskd-config:
   tdl-data:
   unpackerr-config:
-  
+
   # Shared secrets
   shared-keys:
 

@@ -213,6 +213,7 @@ mkdir -p \
 	"${STORAGE_BASE}/media/audiobooks" \
 	"${STORAGE_BASE}/media/podcasts" \
 	"${STORAGE_BASE}/media/books" \
+	"${STORAGE_BASE}/media/adult" \
 	"${STORAGE_BASE}/media/youtube"
 
 ################################################################################
@@ -258,7 +259,8 @@ printf '%s\n' "Creating cache directories with normalized namespace..."
 mkdir -p \
 	"${CACHE_BASE}/media/jellyfin" \
 	"${CACHE_BASE}/media/audiobookshelf" \
-	"${CACHE_BASE}/media/immich-ml"
+	"${CACHE_BASE}/media/immich-ml" \
+	"${CACHE_BASE}/stash"
 
 # Observability stack
 mkdir -p \
