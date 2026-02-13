@@ -64,10 +64,10 @@ services:
         url: "https://potatostack.tale-iwato.ts.net:8096"
         target: "_blank"
 
-      - name: "Navidrome"
-        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/navidrome.png"
-        subtitle: "Music"
-        url: "https://potatostack.tale-iwato.ts.net:4533"
+      - name: "Jellyseerr"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/jellyseerr.png"
+        subtitle: "Media Requests"
+        url: "https://potatostack.tale-iwato.ts.net:5055"
         target: "_blank"
 
       - name: "Audiobookshelf"
@@ -76,10 +76,10 @@ services:
         url: "https://potatostack.tale-iwato.ts.net:13378"
         target: "_blank"
 
-      - name: "Jellyseerr"
-        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/jellyseerr.png"
-        subtitle: "Media Requests"
-        url: "https://potatostack.tale-iwato.ts.net:5055"
+      - name: "Navidrome"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/navidrome.png"
+        subtitle: "Music"
+        url: "https://potatostack.tale-iwato.ts.net:4533"
         target: "_blank"
 
       - name: "Stash"
@@ -109,13 +109,13 @@ services:
         url: "https://potatostack.tale-iwato.ts.net:6500"
         target: "_blank"
 
-      - name: "Slskd"
+      - name: "slskd"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/slskd.png"
         subtitle: "Soulseek"
         url: "https://potatostack.tale-iwato.ts.net:2234"
         target: "_blank"
 
-      - name: "SpotiFlac"
+      - name: "SpotiFLAC"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/spotify.png"
         subtitle: "Spotify Ripper"
         url: "https://potatostack.tale-iwato.ts.net:8097"
@@ -125,6 +125,12 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/pyload.png"
         subtitle: "Direct Downloads"
         url: "https://potatostack.tale-iwato.ts.net:8076"
+        target: "_blank"
+
+      - name: "Unpackerr"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/unpackerr.png"
+        subtitle: "Archive Extractor"
+        url: "https://potatostack.tale-iwato.ts.net:5656"
         target: "_blank"
 
   - name: "Photos & Files"
@@ -158,6 +164,12 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/restic.png"
         subtitle: "Backups"
         url: "https://potatostack.tale-iwato.ts.net:9898"
+        target: "_blank"
+
+      - name: "Velld"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/database.png"
+        subtitle: "Database Backups"
+        url: "https://potatostack.tale-iwato.ts.net:3010"
         target: "_blank"
 
   - name: "Productivity"
@@ -211,7 +223,7 @@ services:
       - name: "Atuin"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/atuin.png"
         subtitle: "Shell History"
-        url: "https://potatostack.tale-iwato.ts.net:8888"
+        url: "https://potatostack.tale-iwato.ts.net:8889"
         target: "_blank"
 
   - name: "Monitoring"
@@ -259,17 +271,32 @@ services:
       - name: "Vaultwarden"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/bitwarden.png"
         subtitle: "Passwords"
-        url: "https://potatostack.tale-iwato.ts.net:8222"
-        target: "_blank"
-
-      - name: "Authentik"
-        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/authentik.png"
-        subtitle: "SSO / Identity"
-        url: "https://potatostack.tale-iwato.ts.net:9000"
+        url: "https://potatostack.tale-iwato.ts.net:8888"
         target: "_blank"
 
       - name: "Gitea"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/gitea.png"
         subtitle: "Git Hosting"
         url: "https://potatostack.tale-iwato.ts.net:3004"
+        target: "_blank"
+
+  - name: "Utilities"
+    icon: "fas fa-tools"
+    items:
+      - name: "Rustypaste"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/rustypaste.png"
+        subtitle: "Pastebin"
+        url: "https://potatostack.tale-iwato.ts.net:8788"
+        target: "_blank"
+
+      - name: "PairDrop"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/pairdrop.png"
+        subtitle: "P2P File Sharing"
+        url: "https://potatostack.tale-iwato.ts.net:3013"
+        target: "_blank"
+
+      - name: "WUD"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/whats-up-docker.png"
+        subtitle: "Docker Updates"
+        url: "https://potatostack.tale-iwato.ts.net:3000"
         target: "_blank"
