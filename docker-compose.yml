@@ -1850,8 +1850,8 @@ services:
     volumes:
       - qbittorrent-config:/config
       - /mnt/storage/downloads/torrents:/downloads
-      - /mnt/storage/media/adult:/adult
       - /mnt/storage/downloads/incomplete/qbittorrent:/incomplete
+      - /mnt/storage/media:/media
       - /home/daniel/potatostack/scripts/init/qbittorrent-init.sh:/custom-cont-init.d/99-qb-init.sh:ro
       - /home/daniel/potatostack/scripts/hooks/qbittorrent-post-torrent.sh:/hooks/post-torrent.sh:ro
     depends_on:

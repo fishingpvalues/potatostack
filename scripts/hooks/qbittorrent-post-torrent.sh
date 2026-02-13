@@ -22,6 +22,24 @@ log() {
 
 log "Torrent finished: ${TORRENT_NAME} | category=${CATEGORY} | tags=${TAGS} | path=${CONTENT_PATH}"
 
+# Move files based on tag if no category is set (tag-based sorting fallback)
+# Tags can be: movies, tv, music, audiobooks, books, adult, podcasts, youtube
+if [ -z "$CATEGORY" ] && [ -n "$TAGS" ]; then
+	# Use first matching tag as the target media folder
+	TARGET=""
+	for tag in $(echo "$TAGS" | tr ',' ' '); do
+		tag=$(echo "$tag" | tr -d ' ')
+		if [ -d "/media/${tag}" ]; then
+			TARGET="/media/${tag}"
+			break
+		fi
+	done
+	if [ -n "$TARGET" ] && [ -e "$CONTENT_PATH" ]; then
+		log "Moving ${CONTENT_PATH} -> ${TARGET}/"
+		mv "$CONTENT_PATH" "$TARGET/" 2>&1 | tee -a "$LOG_FILE" || log "Move failed for ${CONTENT_PATH}"
+	fi
+fi
+
 # Send ntfy notification
 if command -v curl >/dev/null 2>&1; then
 	auth_header=""

@@ -115,23 +115,32 @@ set_config "BitTorrent" "Session\\\\DefaultSavePath" "/downloads"
 set_config "BitTorrent" "Session\\\\TempPath" "/incomplete"
 set_config "BitTorrent" "Session\\\\TempPathEnabled" "true"
 
-# Fix ownership on adult directory
-if [ -d "/adult" ]; then
-	current_owner=$(stat -c "%u:%g" "/adult" 2>/dev/null || echo "0:0")
-	if [ "$current_owner" != "${PUID}:${PGID}" ]; then
-		chown -R "${PUID}:${PGID}" "/adult" 2>/dev/null || true
+# Fix ownership on media and downloads directories
+for dir in /media /downloads /incomplete; do
+	if [ -d "$dir" ]; then
+		current_owner=$(stat -c "%u:%g" "$dir" 2>/dev/null || echo "0:0")
+		if [ "$current_owner" != "${PUID}:${PGID}" ]; then
+			chown "${PUID}:${PGID}" "$dir" 2>/dev/null || true
+		fi
+		chmod 755 "$dir" 2>/dev/null || true
 	fi
-	chmod -R 755 "/adult" 2>/dev/null || true
-fi
+done
 
-# Fix ownership on downloads directory
-if [ -d "/downloads" ]; then
-	current_owner=$(stat -c "%u:%g" "/downloads" 2>/dev/null || echo "0:0")
-	if [ "$current_owner" != "${PUID}:${PGID}" ]; then
-		chown -R "${PUID}:${PGID}" "/downloads" 2>/dev/null || true
-	fi
-	chmod -R 755 "/downloads" 2>/dev/null || true
-fi
+# Create categories with save paths matching media folders
+CATEGORIES_FILE="${CONFIG_DIR}/categories.json"
+cat > "$CATEGORIES_FILE" <<'CATEOF'
+{
+    "movies": {"save_path": "/media/movies"},
+    "tv": {"save_path": "/media/tv"},
+    "music": {"save_path": "/media/music"},
+    "audiobooks": {"save_path": "/media/audiobooks"},
+    "books": {"save_path": "/media/books"},
+    "adult": {"save_path": "/media/adult"},
+    "podcasts": {"save_path": "/media/podcasts"},
+    "youtube": {"save_path": "/media/youtube"}
+}
+CATEOF
+chown "${PUID}:${PGID}" "$CATEGORIES_FILE" 2>/dev/null || true
 
 # Auto-run hook
 set_config "AutoRun" "enabled" "true"
