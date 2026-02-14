@@ -537,7 +537,7 @@ services:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
       # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr
-      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,5055,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,9925,5984,9898,8123,8191,6500,3333, 5656"
+      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,5055,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,9925,5984,9898,8123,8191,6500,3333,5656,53842"
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_MARKER_FILE: /https-marker/setup-complete
@@ -566,7 +566,7 @@ services:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
       # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr
-      TAILSCALE_SERVE_PORTS: 7575,8088,3000,3001,3002,8086,8096,5055,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,9925,5984,9898,8123,8191,6500,3333, 5656"
+      TAILSCALE_SERVE_PORTS: 7575,8088,3000,3001,3002,8086,8096,5055,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,9925,5984,9898,8123,8191,6500,3333,5656,53842"
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_SERVE_LOOP: "true"
@@ -713,6 +713,60 @@ services:
         reservations:
           cpus: "0.1"
           memory: 128M
+
+  # Gokapi - Lightweight file sharing with expiring links
+  # Docs: https://github.com/Forceu/Gokapi
+  gokapi:
+    image: f0rc3/gokapi:${GOKAPI_TAG:-latest}
+    container_name: gokapi
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:53842:53842"
+    environment:
+      <<: *common-env
+    volumes:
+      - /mnt/ssd/docker-data/gokapi:/app/data
+      - /mnt/storage:/mnt/storage:ro
+    networks:
+      - potatostack
+    depends_on:
+      - storage-init
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:53842/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+
+  # Cloudflared - Tunnel for public access to Gokapi
+  # Get public URL: docker logs cloudflared 2>&1 | grep trycloudflare.com
+  cloudflared:
+    image: cloudflare/cloudflared:${CLOUDFLARED_TAG:-latest}
+    container_name: cloudflared
+    logging: *default-logging
+    command: tunnel --no-autoupdate --url http://gokapi:53842
+    networks:
+      - potatostack
+    depends_on:
+      - gokapi
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
 
     ################################################################################
     # KNOWLEDGE MANAGEMENT

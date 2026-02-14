@@ -7,4 +7,4 @@
 - add and fully integrate 
 freqtrade + kraken
 search plan execute the github docs 
-add Ghostfolio as well and fully integrate 
+add Ghostfolio as well and fully integrate i want to use csv import of my financiial data

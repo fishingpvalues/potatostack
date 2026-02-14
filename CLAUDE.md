@@ -1,7 +1,9 @@
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
+EXPLORE: USE HAIKU
+PLAN: USE OPUS
+EXECUTE: USE SONNET
 ## Project Overview
 
 PotatoStack is a Docker Compose-based self-hosted infrastructure stack with 100 services, optimized for low-power hardware (Intel N250 Mini PC, 16GB RAM). Uses SOTA 2025 standards.

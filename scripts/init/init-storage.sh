@@ -311,6 +311,7 @@ mkdir -p \
 	"${SSD_BASE}/code-server" \
 	"${SSD_BASE}/filebrowser" \
 	"${SSD_BASE}/filestash" \
+	"${SSD_BASE}/gokapi" \
 	"${SSD_BASE}/jellyseerr" \
 	"${SSD_BASE}/backrest/data" \
 	"${SSD_BASE}/backrest/config" \
