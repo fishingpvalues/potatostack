@@ -209,10 +209,10 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 512M
+          memory: 256M
         reservations:
           cpus: "0.25"
-          memory: 512M
+          memory: 128M
     labels:
       - "potatostack.alerts=critical"
       - "wud.trigger.docker.update=false"
@@ -482,10 +482,10 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 512M
+          memory: 256M
         reservations:
           cpus: "0.1"
-          memory: 256M
+          memory: 128M
     labels:
       - "autoheal=true"
       - "potatostack.alerts=critical"
@@ -742,10 +742,10 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 256M
+          memory: 64M
         reservations:
           cpus: "0.1"
-          memory: 128M
+          memory: 32M
 
   # Cloudflared - Tunnel for public access to Gokapi
   # Get public URL: docker logs cloudflared 2>&1 | grep trycloudflare.com
@@ -872,10 +872,10 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 256M
+          memory: 128M
         reservations:
           cpus: "0.1"
-          memory: 128M
+          memory: 64M
     labels:
       - "wud.trigger.docker.update=true"
 
@@ -1337,10 +1337,10 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 512M
+          memory: 128M
         reservations:
           cpus: "0.25"
-          memory: 128M
+          memory: 64M
     labels:
       - "wud.trigger.docker.update=true"
   ################################################################################
@@ -1744,7 +1744,7 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 512M
+          memory: 256M
 
   # Navidrome - Music streaming server (Subsonic/Airsonic compatible)
   navidrome:
@@ -1778,10 +1778,10 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 256M
+          memory: 128M
         reservations:
           cpus: "0.25"
-          memory: 128M
+          memory: 64M
 
   # SpotiFLAC - Spotify to FLAC downloader (Tidal/Qobuz/Amazon sources)
   spotiflac:
@@ -2771,10 +2771,10 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 256M
+          memory: 128M
         reservations:
           cpus: "0.1"
-          memory: 128M
+          memory: 64M
 
   ################################################################################
   # UTILITIES & TOOLS
@@ -3836,7 +3836,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 256M
+          memory: 128M
         reservations:
           cpus: "0.1"
           memory: 64M
