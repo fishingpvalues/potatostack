@@ -26,7 +26,7 @@ The `/repos` path maps to `/mnt/storage/backrest/repos` on the host HDD.
 |---|---|---|---|
 | `/data` | `/mnt/ssd/docker-data/backrest/data` | SSD | Database |
 | `/config` | `/mnt/ssd/docker-data/backrest/config` | SSD | Configuration |
-| `/cache` | `/mnt/cachehdd/backrest/cache` | HDD | Cache |
+| `/cache` | `/mnt/ssd/docker-data/backrest/cache` | SSD | Cache (moved from HDD to avoid spin-up I/O errors) |
 | `/repos` | `/mnt/storage/backrest/repos` | HDD | Backup repositories |
 
 ## Creating a Plan
@@ -40,3 +40,67 @@ The `/repos` path maps to `/mnt/storage/backrest/repos` on the host HDD.
 ## Backup Configuration
 
 Back up `/mnt/ssd/docker-data/backrest/config/config.json` -- it contains all repo definitions, plans, and encryption passwords.
+
+Here's what's worth backing up with your 1TB budget:                                                             
+             
+  Must backup (~10GB)                                                                                              
+                                                                                                                 
+  ┌───────────────────────────────┬────────────┬─────────────────────────────────┐                                 
+  │             Path              │    Size    │               Why               │                               
+  ├───────────────────────────────┼────────────┼─────────────────────────────────┤                                 
+  │ /mnt/ssd/docker-data/         │ ~6GB       │ All service configs, DBs, state │                                 
+  ├───────────────────────────────┼────────────┼─────────────────────────────────┤                                 
+  │ /home/daniel/potatostack/     │ 11MB       │ Stack config, .env, compose     │                                 
+  ├───────────────────────────────┼────────────┼─────────────────────────────────┤                                 
+  │ /home/daniel/potatostack/.env │ (in above) │ All passwords & secrets         │                                 
+  └───────────────────────────────┴────────────┴─────────────────────────────────┘
+
+  Strongly recommended (~8GB)
+
+  ┌────────────────────────────────────────┬───────┬───────────────────────────────┐
+  │                  Path                  │ Size  │              Why              │
+  ├────────────────────────────────────────┼───────┼───────────────────────────────┤
+  │ /mnt/storage/photos/                   │ 7.5GB │ Irreplaceable personal photos │
+  ├────────────────────────────────────────┼───────┼───────────────────────────────┤
+  │ /mnt/storage/syncthing/Obsidian-Vault/ │ 180MB │ Your knowledge base           │
+  ├────────────────────────────────────────┼───────┼───────────────────────────────┤
+  │ /mnt/storage/syncthing/Privates/       │ 398MB │ Personal documents            │
+  └────────────────────────────────────────┴───────┴───────────────────────────────┘
+
+  Optional if space allows (~27GB)
+
+  ┌───────────────────────────────────┬──────┬───────────┐
+  │               Path                │ Size │    Why    │
+  ├───────────────────────────────────┼──────┼───────────┤
+  │ /mnt/storage/syncthing/Dokumente/ │ 27GB │ Documents │
+  └───────────────────────────────────┴──────┴───────────┘
+
+  Skip (replaceable/huge)
+
+  ┌─────────────────────────────────────┬───────┬───────────────────────────────────────────────┐
+  │                Path                 │ Size  │                      Why                      │
+  ├─────────────────────────────────────┼───────┼───────────────────────────────────────────────┤
+  │ /mnt/storage/downloads/             │ 2TB   │ Re-downloadable                               │
+  ├─────────────────────────────────────┼───────┼───────────────────────────────────────────────┤
+  │ /mnt/storage/media/                 │ 1.2TB │ Re-downloadable                               │
+  ├─────────────────────────────────────┼───────┼───────────────────────────────────────────────┤
+  │ /mnt/storage/syncthing/Berufliches/ │ 215GB │ Already synced via Syncthing to other devices │
+  ├─────────────────────────────────────┼───────┼───────────────────────────────────────────────┤
+  │ /mnt/storage/onedrive-temp/         │ 267GB │ Temp/already in OneDrive                      │
+  ├─────────────────────────────────────┼───────┼───────────────────────────────────────────────┤
+  │ /mnt/ssd/docker-data/stash/         │ 4.6GB │ Regeneratable (thumbnails/cache)              │
+  └─────────────────────────────────────┴───────┴───────────────────────────────────────────────┘
+
+  Backrest exclude patterns for docker-data
+
+  /mnt/ssd/docker-data/stash/cache/**
+  /mnt/ssd/docker-data/stash/generated/**
+  /mnt/ssd/docker-data/redis-cache/**
+  /mnt/ssd/docker-data/crowdsec-db/**
+
+  Total estimate: ~45GB — fits easily in 1TB with tons of room for history/snapshots.
+
+  Note on Postgres: the DB is ~9GB (mostly bitmagnet which is regeneratable). It's inside the docker volume, not
+  /mnt/ssd/docker-data/postgres/. You should add a pg_dump cron job to back up to a file that Backrest can pick up:
+
+  docker exec postgres pg_dumpall -U postgres | gzip > /mnt/ssd/docker-data/backrest/pgdump.sql.gz

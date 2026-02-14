@@ -6,9 +6,10 @@
 set -eu
 
 BACKUP_PATHS="${BACKUP_MONITOR_PATHS:-/mnt/storage/stack-snapshot.log /mnt/storage/velld/backups /mnt/storage/backrest/repos}"
-MAX_AGE_HOURS="${BACKUP_MAX_AGE_HOURS:-48}"
+MAX_AGE_HOURS="${BACKUP_MAX_AGE_HOURS:-24}"
 CHECK_INTERVAL="${BACKUP_MONITOR_INTERVAL:-3600}"
 NTFY_TAGS="${BACKUP_MONITOR_NTFY_TAGS:-backup,storage}"
+NTFY_URL="${NTFY_INTERNAL_URL:-http://ntfy:80}"
 
 if [ -f /notify.sh ]; then
 	# shellcheck disable=SC1091
@@ -37,6 +38,7 @@ STATE_FILE="/tmp/backup-monitor-state"
 touch "$STATE_FILE"
 
 while true; do
+	now=$(date +%s)
 	now=$(date +%s)
 	for path in $BACKUP_PATHS; do
 		if [ -f "$path" ]; then

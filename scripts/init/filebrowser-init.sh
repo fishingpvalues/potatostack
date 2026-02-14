@@ -42,14 +42,14 @@ fi
 
 # Create admin user if specified in environment variables
 if [ -n "${FILEBROWSER_USER:-}" ] && [ -n "${FILEBROWSER_PASSWORD:-}" ]; then
-	# Only create user if database doesn't exist yet (first run)
 	if [ ! -f "$DB_FILE" ]; then
-		echo "Creating Filebrowser admin user..."
+		echo "Initializing database and creating admin user..."
 		/bin/filebrowser config init --database "$DB_FILE"
-		/bin/filebrowser users add "$FILEBROWSER_USER" "$FILEBROWSER_PASSWORD" --perm.admin --database "$DB_FILE"
+	fi
+	if /bin/filebrowser users add "$FILEBROWSER_USER" "$FILEBROWSER_PASSWORD" --perm.admin --database "$DB_FILE" 2>/dev/null; then
 		echo "✓ Admin user '$FILEBROWSER_USER' created with admin permissions"
 	else
-		echo "Database exists, skipping user creation"
+		echo "ℹ Admin user '$FILEBROWSER_USER' may already exist"
 	fi
 else
 	echo "⚠ FILEBROWSER_USER and/or FILEBROWSER_PASSWORD not set - skipping user creation"

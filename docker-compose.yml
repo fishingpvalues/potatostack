@@ -35,7 +35,6 @@ services:
       SNAPSHOT_LOG_FILE: ${SNAPSHOT_LOG_FILE:-/mnt/storage/stack-snapshot.log}
     volumes:
       - /mnt/storage:/mnt/storage
-      - /mnt/cachehdd:/mnt/cachehdd
       - /mnt/ssd/docker-data:/mnt/ssd/docker-data
       - ./scripts/init/init-storage.sh:/init-storage.sh:ro
       - ./scripts/backup/stack-snapshot.sh:/stack-snapshot.sh:ro
@@ -147,6 +146,7 @@ services:
           memory: 64M
     labels:
       - "potatostack.alerts=critical"
+      - "wud.trigger.docker.update=false"
 
   # MongoDB - Document database (SOTA 2025)
   mongo:
@@ -359,6 +359,8 @@ services:
       - /mnt/ssd/docker-data/vaultwarden:/data
     networks:
       - potatostack
+    labels:
+      - "wud.trigger.docker.update=true"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://127.0.0.1:80/alive || exit 1"]
@@ -511,6 +513,8 @@ services:
       - NET_ADMIN
       - SYS_MODULE
     network_mode: host
+    labels:
+      - "wud.trigger.docker.update=false"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", 'tailscale status --json 2>/dev/null | grep -q ''"Self"'' || exit 1']
@@ -610,7 +614,7 @@ services:
     volumes:
       - syncthing-config:/config
       - /mnt/storage/syncthing:/data
-      - /mnt/cachehdd/sync/syncthing-versions:/data/.stversions
+      - /mnt/storage/cache/syncthing-versions:/data/.stversions
       - shared-keys:/keys:ro
       - ./scripts/init/syncthing-init.sh:/syncthing-init.sh:ro
     networks:
@@ -638,10 +642,11 @@ services:
       - "${HOST_BIND:-127.0.0.1}:8086:80"
     environment:
       <<: *common-env
+      FILEBROWSER_USER: ${FILEBROWSER_USER:-admin}
+      FILEBROWSER_PASSWORD: ${FILEBROWSER_PASSWORD:-change_this}
     entrypoint: sh /filebrowser-init.sh
     volumes:
       - /mnt/storage:/srv/storage
-      - /mnt/cachehdd:/srv/cachehdd
       - /mnt/ssd/docker-data:/srv/docker-data
       - /mnt/ssd/docker-data/filebrowser:/config
       - ./scripts/init/filebrowser-init.sh:/filebrowser-init.sh:ro
@@ -688,7 +693,6 @@ services:
     volumes:
       # Full storage access (same as filebrowser)
       - /mnt/storage:/mnt/storage
-      - /mnt/cachehdd:/mnt/cachehdd
       - /mnt/ssd/docker-data:/mnt/docker-data:ro
       # Config persistence
       - /mnt/ssd/docker-data/filestash:/app/data/state
@@ -698,6 +702,8 @@ services:
       - potatostack
     depends_on:
       - storage-init
+    labels:
+      - "wud.trigger.docker.update=true"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://127.0.0.1:8334/ || exit 1"]
@@ -726,11 +732,14 @@ services:
       <<: *common-env
     volumes:
       - /mnt/ssd/docker-data/gokapi:/app/data
-      - /mnt/storage:/mnt/storage:ro
+      - /mnt/ssd/docker-data/gokapi:/app/config
+      - /mnt/storage:/mnt/storage
     networks:
       - potatostack
     depends_on:
       - storage-init
+    labels:
+      - "wud.trigger.docker.update=true"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://127.0.0.1:53842/ || exit 1"]
@@ -758,6 +767,8 @@ services:
       - potatostack
     depends_on:
       - gokapi
+    labels:
+      - "wud.trigger.docker.update=true"
     restart: unless-stopped
     deploy:
       resources:
@@ -791,6 +802,8 @@ services:
       - potatostack
     depends_on:
       - storage-init
+    labels:
+      - "wud.trigger.docker.update=true"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -f -u $$COUCHDB_USER:$$COUCHDB_PASSWORD http://127.0.0.1:5984/_up || exit 1"]
@@ -926,6 +939,8 @@ services:
       - /mnt/ssd/docker-data/actual-budget:/data
     networks:
       - potatostack
+    labels:
+      - "wud.trigger.docker.update=true"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "timeout 5 bash -c 'cat < /dev/null > /dev/tcp/127.0.0.1/5006' || exit 1"]
@@ -1667,7 +1682,7 @@ services:
       - /mnt/storage/media/movies:/data/movies
       - /mnt/storage/media/music:/data/music
       - /mnt/storage/media/audiobooks:/data/audiobooks
-      - /mnt/cachehdd/media/jellyfin:/cache
+      - /mnt/storage/cache/jellyfin:/cache
     tmpfs:
       - /tmp:exec,mode=1777,size=500m
       - /transcode:exec,mode=1777,size=2g
@@ -1732,13 +1747,15 @@ services:
       <<: *common-env
     volumes:
       - audiobookshelf-config:/config
-      - /mnt/cachehdd/media/audiobookshelf/metadata:/metadata
+      - /mnt/storage/cache/audiobookshelf/metadata:/metadata
       - /mnt/storage/media/audiobooks:/audiobooks
       - /mnt/storage/media/podcasts:/podcasts
     networks:
       - potatostack
     depends_on:
       - storage-init
+    labels:
+      - "wud.trigger.docker.update=true"
     restart: unless-stopped
     deploy:
       resources:
@@ -1768,6 +1785,8 @@ services:
       - potatostack
     depends_on:
       - storage-init
+    labels:
+      - "wud.trigger.docker.update=true"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:4533/ping || exit 1"]
@@ -1870,6 +1889,7 @@ services:
           memory: 1G
     labels:
       - "autoheal=true"
+      - "wud.trigger.docker.update=true"
 
   # Aria2 - High-performance download client (RPC on port 6800)
   aria2:
@@ -1951,7 +1971,7 @@ services:
       SLSKD_METRICS_PASSWORD: ${SLSKD_METRICS_PASSWORD:-slskd}
     volumes:
       - slskd-config:/app
-      - /mnt/cachehdd/slskd/logs:/app/logs
+      - /mnt/ssd/docker-data/slskd/logs:/app/logs
       - /mnt/storage/downloads/slskd:/var/slskd/downloads
       - /mnt/storage/downloads/incomplete/slskd:/var/slskd/incomplete
       - /mnt/storage/slskd-shared:/var/slskd/shared
@@ -1986,6 +2006,7 @@ services:
     labels:
       - "autoheal=true"
       - "potatostack.alerts=critical"
+      - "wud.trigger.docker.update=true"
 
   # Soularr - Bridge between Lidarr and Soulseek (slskd) (DISABLED)
   # soularr:
@@ -2059,6 +2080,7 @@ services:
           memory: 128M
     labels:
       - "autoheal=true"
+      - "wud.trigger.docker.update=true"
 
   # tdl - Telegram downloader toolkit
   tdl:
@@ -2137,7 +2159,7 @@ services:
       LOG_LEVEL: info
       LOG_JSON: "false"
     volumes:
-      - /mnt/cachehdd/bitmagnet:/root/.config/bitmagnet
+      - /mnt/ssd/docker-data/bitmagnet:/root/.config/bitmagnet
     depends_on:
       gluetun:
         condition: service_healthy
@@ -2223,7 +2245,7 @@ services:
     environment:
       <<: *common-env
     volumes:
-      - /mnt/cachehdd/media/immich-ml:/cache
+      - /mnt/storage/cache/immich-ml:/cache
     networks:
       - potatostack
     depends_on:
@@ -2313,7 +2335,7 @@ services:
       <<: *common-env
     volumes:
       - ./config/prometheus:/etc/prometheus:ro
-      - /mnt/cachehdd/observability/prometheus:/prometheus
+      - /mnt/ssd/docker-data/prometheus:/prometheus
     networks:
       - potatostack
     restart: unless-stopped
@@ -2565,7 +2587,7 @@ services:
     command: -config.file=/etc/loki/loki.yml -target=all
     volumes:
       - ./config/loki:/etc/loki
-      - /mnt/cachehdd/observability/loki/data:/loki
+      - /mnt/ssd/docker-data/loki:/loki
     networks:
       - potatostack
     restart: unless-stopped
@@ -2586,13 +2608,15 @@ services:
     volumes:
       - ./config/alloy:/etc/alloy
       - /var/log:/var/log:ro
-      - /mnt/cachehdd/slskd/logs:/slskd-logs:ro
+      - /mnt/ssd/docker-data/slskd/logs:/slskd-logs:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - alloy-data:/var/lib/alloy
     networks:
       - potatostack
     depends_on:
       - loki
+    labels:
+      - "wud.trigger.docker.update=false"
     restart: unless-stopped
     deploy:
       resources:
@@ -2641,13 +2665,15 @@ services:
     volumes:
       - /run/udev:/run/udev:ro
       - /mnt/ssd/docker-data/scrutiny/config:/opt/scrutiny/config
-      - /mnt/cachehdd/observability/scrutiny:/opt/scrutiny/influxdb
+      - /mnt/ssd/docker-data/scrutiny/influxdb:/opt/scrutiny/influxdb
     devices:
       - "${SCRUTINY_DEVICE_1:-/dev/sda}"
     networks:
       - potatostack
     depends_on:
       - storage-init
+    labels:
+      - "wud.trigger.docker.update=true"
     restart: unless-stopped
     deploy:
       resources:
@@ -2766,15 +2792,17 @@ services:
       - potatostack
     depends_on:
       - postgres
+    labels:
+      - "wud.trigger.docker.update=true"
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          cpus: "0.25"
-          memory: 128M
+          cpus: "0.5"
+          memory: 256M
         reservations:
           cpus: "0.1"
-          memory: 64M
+          memory: 128M
 
   ################################################################################
   # UTILITIES & TOOLS
@@ -2813,6 +2841,7 @@ services:
           memory: "${RUSTYPASTE_MIN_MEMORY:-32M}"
     labels:
       - "autoheal=true"
+      - "wud.trigger.docker.update=true"
 
   # PairDrop - AirDrop alternative (P2P file sharing)
   pairdrop:
@@ -2847,6 +2876,7 @@ services:
           memory: 64M
     labels:
       - "autoheal=true"
+      - "wud.trigger.docker.update=true"
 
   # Stirling-PDF - PDF tools
   # stirling-pdf:
@@ -3042,7 +3072,7 @@ services:
     logging: *default-logging
     entrypoint: ["/bin/sh", "-c", "tail -f /dev/null"]
     volumes:
-      - /mnt/cachehdd/duckdb:/data
+      - /mnt/ssd/docker-data/duckdb:/data
     networks:
       - potatostack
     depends_on:
@@ -3332,7 +3362,7 @@ services:
       - /mnt/ssd/docker-data/stash/config:/root/.stash
       - /mnt/ssd/docker-data/stash/generated:/generated
       - /mnt/ssd/docker-data/stash/metadata:/metadata
-      - /mnt/cachehdd/stash/cache:/cache
+      - /mnt/ssd/docker-data/stash/cache:/cache
       - /mnt/storage/media/adult:/data
       - /home/daniel/potatostack/scripts/init/stash-init.sh:/init/stash-init.sh:ro
     depends_on:
@@ -3389,6 +3419,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - potatostack
+    labels:
+      - "wud.trigger.docker.update=false"
     restart: unless-stopped
     read_only: true
     tmpfs:
@@ -3588,6 +3620,7 @@ services:
           memory: 64M
     labels:
       - "potatostack.alerts=critical"
+      - "wud.trigger.docker.update=false"
 
   # Alertmanager ntfy Formatter - Enterprise alert formatting -> ntfy
   alertmanager-ntfy:
@@ -3689,6 +3722,8 @@ services:
       - potatostack
     depends_on:
       - ntfy
+    labels:
+      - "wud.trigger.docker.update=true"
     restart: unless-stopped
     deploy:
       resources:
@@ -3713,6 +3748,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - potatostack
+    labels:
+      - "wud.trigger.docker.update=true"
     restart: unless-stopped
     deploy:
       resources:
@@ -3747,11 +3784,12 @@ services:
     volumes:
       - openssh-config:/config
       - /mnt/storage:/data/storage
-      - /mnt/cachehdd:/data/cachehdd
     networks:
       - potatostack
     depends_on:
       - storage-init
+    labels:
+      - "wud.trigger.docker.update=true"
     restart: unless-stopped
     deploy:
       resources:
@@ -3810,24 +3848,14 @@ services:
         client min protocol = SMB2_10
         server smb encrypt = desired
         client smb encrypt = desired
+        server signing = auto
+        client signing = auto
       # User configuration - use quoted password for special characters
       ACCOUNT_daniel: "${SAMBA_PASSWORD:-changeme}"
       UID_daniel: "${PUID:-1000}"
       SAMBA_VOLUME_CONFIG_storage: |
         [storage]
         path = /mnt/storage
-        browsable = yes
-        writable = yes
-        read only = no
-        guest ok = no
-        valid users = daniel
-        force user = daniel
-        force group = daniel
-        create mask = 0777
-        directory mask = 0777
-      SAMBA_VOLUME_CONFIG_cachehdd: |
-        [cachehdd]
-        path = /mnt/cachehdd
         browsable = yes
         writable = yes
         read only = no
@@ -3851,11 +3879,12 @@ services:
         directory mask = 0777
     volumes:
       - /mnt/storage:/mnt/storage
-      - /mnt/cachehdd:/mnt/cachehdd
       - samba-lib:/var/lib/samba
       - samba-cache:/var/cache/samba
     tmpfs:
       - /run/samba:uid=0,gid=0
+    labels:
+      - "wud.trigger.docker.update=true"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "smbclient -L localhost -U% || exit 1"]
@@ -3922,7 +3951,7 @@ services:
     logging: *default-logging
     entrypoint: sh /disk-space-monitor.sh
     environment:
-      DISK_MONITOR_PATHS: ${DISK_MONITOR_PATHS:-/mnt/storage /mnt/ssd /mnt/cachehdd}
+      DISK_MONITOR_PATHS: ${DISK_MONITOR_PATHS:-/mnt/storage /mnt/ssd}
       DISK_MONITOR_INTERVAL: ${DISK_MONITOR_INTERVAL:-300}
       DISK_MONITOR_WARN: ${DISK_MONITOR_WARN:-80}
       DISK_MONITOR_CRIT: ${DISK_MONITOR_CRIT:-90}
@@ -3933,7 +3962,6 @@ services:
       NTFY_DEFAULT_PRIORITY: ${NTFY_DEFAULT_PRIORITY:-default}
     volumes:
       - /mnt/storage:/mnt/storage:ro
-      - /mnt/cachehdd:/mnt/cachehdd:ro
       - /mnt/ssd:/mnt/ssd:ro
       - ./scripts/monitor/disk-space-monitor.sh:/disk-space-monitor.sh:ro
       - ./scripts/monitor/notify.sh:/notify.sh:ro
@@ -3949,7 +3977,7 @@ services:
     entrypoint: sh /backup-monitor.sh
     environment:
       BACKUP_MONITOR_PATHS: ${BACKUP_MONITOR_PATHS:-/mnt/storage/stack-snapshot.log /mnt/storage/velld/backups}
-      BACKUP_MAX_AGE_HOURS: ${BACKUP_MAX_AGE_HOURS:-48}
+      BACKUP_MAX_AGE_HOURS: ${BACKUP_MAX_AGE_HOURS:-24}
       BACKUP_MONITOR_INTERVAL: ${BACKUP_MONITOR_INTERVAL:-3600}
       NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
       NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
@@ -4138,6 +4166,8 @@ services:
     container_name: backrest
     hostname: backrest
     logging: *default-logging
+    extra_hosts:
+      - "u546612.your-storagebox.de:91.98.255.98"
     ports:
       - "${HOST_BIND:-127.0.0.1}:9898:9898"
     environment:
@@ -4147,19 +4177,27 @@ services:
       XDG_CACHE_HOME: /cache
       TMPDIR: /tmp/backrest
       BACKREST_PORT: "0.0.0.0:9898"
+      NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
+      NTFY_TOPIC_INFO: ${NTFY_TOPIC_INFO:-potatostack-info}
+      NTFY_TOPIC_WARNING: ${NTFY_TOPIC_WARNING:-potatostack-warning}
+      NTFY_TOPIC_CRITICAL: ${NTFY_TOPIC_CRITICAL:-potatostack-critical}
+      NTFY_DEFAULT_TAGS: ${NTFY_DEFAULT_TAGS:-potatostack,backup}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
     volumes:
       # Config & database on SSD
       - /mnt/ssd/docker-data/backrest/data:/data
       - /mnt/ssd/docker-data/backrest/config:/config
-      # Cache on cache HDD
-      - /mnt/cachehdd/backrest/cache:/cache
-      - /mnt/cachehdd/backrest/tmp:/tmp/backrest
+      - /mnt/ssd/docker-data/backrest/ssh:/root/.ssh
+      - ./scripts/hooks/backrest-notify.sh:/hooks/backrest-notify.sh:ro
+      # Cache on SSD (faster, avoids HDD spin-up I/O errors)
+      - /mnt/ssd/docker-data/backrest/cache:/cache
+      - /mnt/ssd/docker-data/backrest/tmp:/tmp/backrest
       # Repos on HDD (large backup data)
       - /mnt/storage/backrest/repos:/repos
       # Read-write access to ALL data for backing up
       - /mnt/storage:/mnt/storage
       - /mnt/ssd/docker-data:/mnt/ssd/docker-data
-      - /mnt/cachehdd:/mnt/cachehdd
+      - /home/daniel/potatostack:/mnt/potatostack
     networks:
       - potatostack
     depends_on:
@@ -4294,7 +4332,7 @@ volumes:
   shared-keys:
 
   # Monitoring
-  # prometheus uses bind mount to /mnt/cachehdd/observability/prometheus
+  # prometheus uses bind mount to /mnt/ssd/docker-data/prometheus
   netdata-config:
   netdata-lib:
   netdata-cache:
