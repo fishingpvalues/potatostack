@@ -3983,6 +3983,35 @@ services:
           cpus: "0.05"
           memory: 32M
 
+  # OOM Kill Watcher - detects OOM kills and sends ntfy notifications
+  oom-watcher:
+    image: docker:${DOCKER_TAG:-cli}
+    container_name: oom-watcher
+    logging: *default-logging
+    entrypoint: sh /oom-watcher.sh
+    environment:
+      OOM_NOTIFY_COOLDOWN: ${OOM_NOTIFY_COOLDOWN:-300}
+      NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
+      NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+      NTFY_DEFAULT_TAGS: ${NTFY_DEFAULT_TAGS:-potatostack,monitor}
+      NTFY_DEFAULT_PRIORITY: ${NTFY_DEFAULT_PRIORITY:-default}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./scripts/monitor/oom-watcher.sh:/oom-watcher.sh:ro
+      - ./scripts/monitor/notify.sh:/notify.sh:ro
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.05"
+          memory: 16M
+        reservations:
+          cpus: "0.05"
+          memory: 8M
+
   # Tailscale Connectivity Monitor
   tailscale-connectivity-monitor:
     image: docker:${DOCKER_TAG:-cli}
