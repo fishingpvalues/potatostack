@@ -6,6 +6,8 @@
 PYLOAD_USER="${PYLOAD_USER:-pyload}"
 PYLOAD_PASSWORD="${PYLOAD_PASSWORD:-}"
 DB_FILE="/config/data/pyload.db"
+REALDEBRID_API_KEY="${REALDEBRID_API_KEY:-}"
+TORBOX_API_KEY="${TORBOX_API_KEY:-}"
 NTFY_INTERNAL_URL="${NTFY_INTERNAL_URL:-http://ntfy:80}"
 NTFY_TOPIC="${NTFY_TOPIC:-potatostack}"
 NTFY_TOKEN="${NTFY_TOKEN:-}"
@@ -116,9 +118,41 @@ else
 	echo "  Default login: pyload / pyload"
 fi
 
+################################################################################
+# Debrid Account Setup (Real-Debrid, Torbox)
+################################################################################
+setup_debrid_accounts() {
+	if [ ! -f "$DB_FILE" ]; then
+		echo "⚠ Database not available, skipping debrid account setup"
+		return
+	fi
+
+	# Real-Debrid: plugin name is "RealDebridCom"
+	if [ -n "$REALDEBRID_API_KEY" ]; then
+		ACCOUNT_EXISTS=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM accounts WHERE plugin='RealDebridCom' AND loginname='api';" 2>/dev/null || echo "0")
+		if [ "$ACCOUNT_EXISTS" = "0" ]; then
+			sqlite3 "$DB_FILE" "INSERT INTO accounts (plugin, loginname, owner, activated, password, shared) VALUES ('RealDebridCom', 'api', 1, 1, '$REALDEBRID_API_KEY', 0);" 2>/dev/null && \
+				echo "✓ Real-Debrid account added" || echo "⚠ Failed to add Real-Debrid account"
+		else
+			sqlite3 "$DB_FILE" "UPDATE accounts SET password='$REALDEBRID_API_KEY', activated=1 WHERE plugin='RealDebridCom' AND loginname='api';" 2>/dev/null && \
+				echo "✓ Real-Debrid account updated" || echo "⚠ Failed to update Real-Debrid account"
+		fi
+	fi
+
+	# Torbox: no pyload-ng plugin yet (https://github.com/pyload/pyload/issues/4578)
+	if [ -n "$TORBOX_API_KEY" ]; then
+		echo "⚠ Torbox: pyload-ng plugin not yet available (github.com/pyload/pyload/issues/4578)"
+		echo "  API key stored — will auto-configure when plugin is released"
+	fi
+}
+
+setup_debrid_accounts
+
 echo "✓ pyLoad configured"
 echo "  WebUI: http://localhost:8000"
 echo "  User: $PYLOAD_USER"
+[ -n "$REALDEBRID_API_KEY" ] && echo "  Real-Debrid: enabled"
+[ -n "$TORBOX_API_KEY" ] && echo "  Torbox: pending plugin support"
 
 # Continue with normal startup
 exec /init "$@"

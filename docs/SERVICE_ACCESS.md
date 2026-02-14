@@ -26,7 +26,7 @@ Your services are accessible at `192.168.178.158` or via Traefik at `*.danielhom
 | Service | HTTPS URL | Direct IP:Port |
 |---------|-----------|----------------|
 | **Jellyfin** (Media Server) | https://jellyfin.danielhomelab.local | 192.168.178.158:8096 |
-| Jellyseerr (Requests) | https://jellyseerr.danielhomelab.local | 192.168.178.158:5055 |
+
 | Audiobookshelf | https://audiobookshelf.danielhomelab.local | 192.168.178.158:13378 |
 
 ### Media Management (Arr Stack)

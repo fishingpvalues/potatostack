@@ -26,9 +26,9 @@ All *arr services run behind Gluetun VPN (`network_mode: "service:gluetun"`).
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
 │  │                      DOWNLOAD CLIENTS                                │   │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐ │   │
-│  │  │ rdt-client  │  │ qBittorrent │  │    slskd    │  │    aria2    │ │   │
-│  │  │   :6500     │  │   :8282     │  │   :2234     │  │   :6800     │ │   │
-│  │  │   Debrid    │  │   Torrent   │  │  Soulseek   │  │  HTTP/FTP   │ │   │
+│  │  │   pyLoad    │  │ qBittorrent │  │    slskd    │  │    aria2    │ │   │
+│  │  │   :8076     │  │   :8282     │  │   :2234     │  │   :6800     │ │   │
+│  │  │ DDL/Debrid  │  │   Torrent   │  │  Soulseek   │  │  HTTP/FTP   │ │   │
 │  │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘ │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -39,11 +39,11 @@ All *arr services run behind Gluetun VPN (`network_mode: "service:gluetun"`).
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                         MEDIA SERVERS & SUPPORT                             │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌──────────────────┐   │
-│  │  Jellyfin   │  │ Jellyseerr  │  │   Bazarr    │  │ Audiobookshelf   │   │
-│  │   :8096     │  │   :5055     │  │   :6767     │  │     :13378       │   │
-│  │   Stream    │  │  Requests   │  │  Subtitles  │  │ Audiobooks/Pods  │   │
-│  └─────────────┘  └─────────────┘  └─────────────┘  └──────────────────┘   │
+│  ┌─────────────┐  ┌─────────────┐  ┌──────────────────┐                     │
+│  │  Jellyfin   │  │   Bazarr    │  │ Audiobookshelf   │                     │
+│  │   :8096     │  │   :6767     │  │     :13378       │                     │
+│  │   Stream    │  │  Subtitles  │  │ Audiobooks/Pods  │                     │
+│  └─────────────┘  └─────────────┘  └──────────────────┘                     │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -69,18 +69,17 @@ All *arr services run behind Gluetun VPN (`network_mode: "service:gluetun"`).
 
 | Service | Port | Type | Use Case |
 |---------|------|------|----------|
-| **rdt-client** | 6500 | Debrid | Real-Debrid/TorBox - instant cached downloads |
+| **pyLoad** | 8076 | DDL/Debrid | File hosters, Real-Debrid, Torbox |
 | **qBittorrent** | 8282 | Torrent | Traditional torrenting |
 | **slskd** | 2234 | P2P | Soulseek - rare music |
 | **aria2** | 6800 | HTTP/FTP | Direct downloads |
-| **pyLoad** | 8076 | DDL | File hosters (1fichier, etc) |
 
 ### Media Servers & Support
 
 | Service | Port | Purpose |
 |---------|------|---------|
 | **Jellyfin** | 8096 | Media streaming (movies, TV, music) |
-| **Jellyseerr** | 5055 | Request management UI |
+
 | **Bazarr** | 6767 | Automatic subtitle downloads |
 | **Audiobookshelf** | 13378 | Audiobooks & podcasts |
 
@@ -129,14 +128,6 @@ When adding Cloudflare-protected indexers (1337x, etc):
 
 ### 2. Configure Download Clients (in each *arr app)
 
-**For rdt-client (Debrid - recommended):**
-```
-Settings > Download Clients > Add > qBittorrent
-Host: 127.0.0.1
-Port: 6500
-Category: sonarr (or radarr, lidarr, etc)
-```
-
 **For qBittorrent (traditional torrents):**
 ```
 Settings > Download Clients > Add > qBittorrent
@@ -163,12 +154,6 @@ In each *arr app, set the root folder:
    - TV Shows: `/mnt/storage/media/tv`
    - Music: `/mnt/storage/media/music`
 
-### 5. Configure Jellyseerr
-
-1. Open `http://localhost:5055`
-2. Connect to Jellyfin
-3. Add Sonarr: `http://gluetun:8989` (arr apps share gluetun's network)
-4. Add Radarr: `http://gluetun:7878`
 
 ### 6. Configure Bazarr
 
@@ -182,7 +167,7 @@ In each *arr app, set the root folder:
 ```
 /mnt/storage/
 ├── downloads/
-│   ├── rdt-client/      # Debrid downloads
+│   ├── pyload/          # DDL/Debrid downloads
 │   ├── qbittorrent/     # Torrent downloads
 │   ├── aria2/           # HTTP downloads
 │   └── slskd/           # Soulseek downloads
@@ -197,9 +182,9 @@ In each *arr app, set the root folder:
 
 ## Typical Workflow
 
-1. **Request**: User requests movie/show via Jellyseerr
+1. **Request**: User searches for movie/show
 2. **Search**: Sonarr/Radarr searches Prowlarr indexers
-3. **Download**: Sends to rdt-client (debrid) or qBittorrent
+3. **Download**: Sends to qBittorrent (or pyLoad for debrid links)
 4. **Import**: *arr imports and renames to library folder
 5. **Subtitles**: Bazarr fetches subtitles
 6. **Stream**: Watch on Jellyfin
@@ -210,7 +195,6 @@ All VPN services communicate via `127.0.0.1` (same gluetun network namespace):
 
 | From | To | Address |
 |------|-----|---------|
-| Sonarr | rdt-client | `127.0.0.1:6500` |
 | Sonarr | qBittorrent | `127.0.0.1:8282` |
 | Prowlarr | Sonarr | `127.0.0.1:8989` |
 | Prowlarr | FlareSolverr | `127.0.0.1:8191` |
@@ -219,7 +203,7 @@ Services outside VPN reach *arrs via gluetun container:
 
 | From | To | Address |
 |------|-----|---------|
-| Jellyseerr | Sonarr | `gluetun:8989` |
+
 | Bazarr | Radarr | `gluetun:7878` |
 | Jellyfin | - | Direct library access via bind mounts |
 

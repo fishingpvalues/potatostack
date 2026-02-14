@@ -44,7 +44,7 @@ declare -A SERVICE_PORTS=(
 	["bazarr"]="6767"
 	["prowlarr"]="9696"
 	["jellyfin"]="8096"
-	["jellyseerr"]="5055"
+
 	["qbittorrent"]="8282"
 	["aria2"]="6800"
 	["ariang"]="6880"
@@ -122,7 +122,7 @@ declare -A SERVICE_TYPES=(
 	["miniflux"]="http"
 	["actual-budget"]="http"
 	["vaultwarden"]="http"
-	["jellyseerr"]="http"
+
 	["syncthing"]="http"
 	["healthchecks"]="http"
 	["it-tools"]="http"

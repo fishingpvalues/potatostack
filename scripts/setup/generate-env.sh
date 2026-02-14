@@ -401,7 +401,7 @@ INTERNET_CHECK_URLS=https://1.1.1.1 https://www.google.com/generate_204 https://
 	NTFY_TIMEOUT=10
 
 	JELLYFIN_NTFY_PORT=8081
-	JELLYSEERR_NTFY_PORT=8082
+
 	MINIFLUX_NTFY_PORT=8083
 
 ################################################################################
@@ -647,7 +647,7 @@ BAZARR_TAG=latest
 MAINTAINERR_TAG=latest
 BOOKSHELF_TAG=hardcover
 JELLYFIN_TAG=latest
-JELLYSEERR_TAG=latest
+
 OVERSEERR_TAG=latest
 AUDIOBOOKSHELF_TAG=latest
 NAVIDROME_TAG=latest

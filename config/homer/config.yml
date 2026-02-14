@@ -64,11 +64,6 @@ services:
         url: "https://potatostack.tale-iwato.ts.net:8096"
         target: "_blank"
 
-      - name: "Jellyseerr"
-        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/jellyseerr.png"
-        subtitle: "Media Requests"
-        url: "https://potatostack.tale-iwato.ts.net:5055"
-        target: "_blank"
 
       - name: "Audiobookshelf"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/audiobookshelf.png"
@@ -103,11 +98,6 @@ services:
         url: "https://potatostack.tale-iwato.ts.net:3333"
         target: "_blank"
 
-      - name: "rdt-client"
-        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/real-debrid.png"
-        subtitle: "Real-Debrid"
-        url: "https://potatostack.tale-iwato.ts.net:6500"
-        target: "_blank"
 
       - name: "slskd"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/slskd.png"

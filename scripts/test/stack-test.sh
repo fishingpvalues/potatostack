@@ -391,7 +391,7 @@ test_service_endpoints() {
 	grep -q "bazarr" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Bazarr" "http://localhost:6767"
 	grep -q "prowlarr" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Prowlarr" "http://localhost:9696"
 	grep -q "jellyfin" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Jellyfin" "http://localhost:8096"
-	grep -q "jellyseerr" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Jellyseerr" "http://localhost:5055"
+
 	grep -q "qbittorrent" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "qBittorrent" "http://localhost:8282"
 	grep -q "ariang" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "AriaNg" "http://localhost:6880"
 	grep -q "audiobookshelf" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Audiobookshelf" "http://localhost:13378"

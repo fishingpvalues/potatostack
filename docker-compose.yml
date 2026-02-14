@@ -440,7 +440,7 @@ services:
       - "${HOST_BIND:-127.0.0.1}:8076:8000" # pyLoad WebUI (internal 8000)
       - "${HOST_BIND:-127.0.0.1}:9666:9666" # pyLoad Click'n'Load
       - "${HOST_BIND:-127.0.0.1}:9900:9900" # Stash
-      - "${HOST_BIND:-127.0.0.1}:6500:6500" # rdt-client WebUI
+
       - "${HOST_BIND:-127.0.0.1}:3333:3333" # Bitmagnet WebUI
       - "${HOST_BIND:-127.0.0.1}:3334:3334" # Bitmagnet DHT
       - "${HOST_BIND:-127.0.0.1}:3334:3334/udp"
@@ -500,7 +500,7 @@ services:
     hostname: potatostack
     environment:
       <<: *common-env
-      TS_AUTHKEY: ${TAILSCALE_AUTHKEY}
+      TS_AUTHKEY: ${TAILSCALE_AUTHKEY:-}
       TS_STATE_DIR: /var/lib/tailscale
       TS_USERSPACE: "false"
     volumes:
@@ -537,7 +537,7 @@ services:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
       # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr
-      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,5055,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,9925,5984,9898,8123,8191,6500,3333,5656,53842"
+      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,9925,5984,9898,8123,8191,3333,5656,53842"
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_MARKER_FILE: /https-marker/setup-complete
@@ -566,7 +566,7 @@ services:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
       # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr
-      TAILSCALE_SERVE_PORTS: 7575,8088,3000,3001,3002,8086,8096,5055,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,9925,5984,9898,8123,8191,6500,3333,5656,53842"
+      TAILSCALE_SERVE_PORTS: 7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,9925,5984,9898,8123,8191,3333,5656,53842"
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_SERVE_LOOP: "true"
@@ -1288,21 +1288,13 @@ services:
       UN_FOLDER_4_DELETE_FILES: "false"
       UN_FOLDER_4_EXTRACT_ISOS: "false"
 
-      # RDT Client - Extract + delete
-      UN_FOLDER_5_PATH: "/downloads/rdt-client"
+      # TDL (Telegram) - Extract + delete
+      UN_FOLDER_5_PATH: "/downloads/telegram"
       UN_FOLDER_5_DELETE_ORIGINAL: "true"
       UN_FOLDER_5_DELETE_AFTER: "0s"
       UN_FOLDER_5_MOVE_BACK: "true"
       UN_FOLDER_5_DELETE_FILES: "false"
       UN_FOLDER_5_EXTRACT_ISOS: "false"
-
-      # TDL (Telegram) - Extract + delete
-      UN_FOLDER_6_PATH: "/downloads/telegram"
-      UN_FOLDER_6_DELETE_ORIGINAL: "true"
-      UN_FOLDER_6_DELETE_AFTER: "0s"
-      UN_FOLDER_6_MOVE_BACK: "true"
-      UN_FOLDER_6_DELETE_FILES: "false"
-      UN_FOLDER_6_EXTRACT_ISOS: "false"
 
       # NTFY notification hook
       NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
@@ -1729,59 +1721,6 @@ services:
           cpus: "0.05"
           memory: 32M
 
-  # Jellyseerr - Media request management for Jellyfin
-  jellyseerr:
-    image: fallenbagel/jellyseerr:${JELLYSEERR_TAG:-latest}
-    container_name: jellyseerr
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-127.0.0.1}:5055:5055"
-    environment:
-      <<: *common-env
-    volumes:
-      - /mnt/ssd/docker-data/jellyseerr:/app/config
-    networks:
-      - potatostack
-    depends_on:
-      - storage-init
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 256M
-        reservations:
-          cpus: "0.1"
-          memory: 128M
-
-  # Jellyseerr webhook to ntfy bridge
-  jellyseerr-webhook:
-    image: python:3.12-alpine
-    container_name: jellyseerr-webhook
-    logging: *default-logging
-    command: ["python", "/app/jellyseerr-webhook.py"]
-    environment:
-      <<: *common-env
-      JELLYSEERR_NTFY_PORT: 8082
-      NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
-      NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
-      NTFY_TOKEN: ${NTFY_TOKEN:-}
-    volumes:
-      - ./scripts/webhooks/jellyseerr-webhook.py:/app/jellyseerr-webhook.py:ro
-    networks:
-      - potatostack
-    depends_on:
-      - ntfy
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.1"
-          memory: 64M
-        reservations:
-          cpus: "0.05"
-          memory: 32M
-
   # Audiobookshelf - Audiobook and podcast server
   audiobookshelf:
     image: ghcr.io/advplyr/audiobookshelf:${AUDIOBOOKSHELF_TAG:-latest}
@@ -1929,47 +1868,6 @@ services:
         reservations:
           cpus: "1.0"
           memory: 1G
-    labels:
-      - "autoheal=true"
-
-  # rdt-client - Real-Debrid download client (qBittorrent API emulation)
-  rdt-client:
-    image: rogerfar/rdtclient:${RDT_CLIENT_TAG:-latest}
-    container_name: rdt-client
-    logging: *default-logging
-    network_mode: "service:gluetun"
-    environment:
-      <<: *common-env
-      NTFY_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
-      NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
-      NTFY_TOKEN: ${NTFY_TOKEN:-}
-    volumes:
-      - rdt-client-data:/data/db
-      - /mnt/storage/downloads/rdt-client:/downloads
-      - /mnt/storage/media:/mnt/storage/media
-      - /home/daniel/potatostack/scripts/init/rdt-client-init.sh:/etc/cont-init.d/99-rdt-init.sh:ro
-      - /home/daniel/potatostack/scripts/hooks/rdt-client-post-download.sh:/hooks/post-download.sh:ro
-    depends_on:
-      gluetun:
-        condition: service_healthy
-        restart: true
-      storage-init:
-        condition: service_completed_successfully
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8000/ || exit 1"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 512M
-        reservations:
-          cpus: "0.1"
-          memory: 256M
     labels:
       - "autoheal=true"
 
@@ -2128,6 +2026,8 @@ services:
       PYLOAD_USER: ${PYLOAD_USER:-pyload}
       PYLOAD_PASSWORD: ${PYLOAD_PASSWORD:-}
       PYLOAD_ENABLE_NTFY_HOOKS: ${PYLOAD_ENABLE_NTFY_HOOKS:-true}
+      REALDEBRID_API_KEY: ${REALDEBRID_API_KEY:-}
+      TORBOX_API_KEY: ${TORBOX_API_KEY:-}
       NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
       NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
       NTFY_TOKEN: ${NTFY_TOKEN:-}
@@ -2698,7 +2598,7 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 192M
+          memory: 384M
 
   # Parseable - REMOVED (using Loki instead)
   # parseable:
@@ -3953,7 +3853,7 @@ services:
     environment:
       - GLUETUN_URL=http://gluetun:8008
       - CHECK_INTERVAL=${GLUETUN_CHECK_INTERVAL:-10}
-      - RESTART_CONTAINERS= qbittorrent pyload slskd spotiflac stash rdt-client aria2 bitmagnet tdl
+      - RESTART_CONTAINERS= qbittorrent pyload slskd spotiflac stash aria2 bitmagnet tdl
       - RESTART_ON_STOP=${GLUETUN_RESTART_ON_STOP:-true}
       - RESTART_ON_FAILURE=${GLUETUN_RESTART_ON_FAILURE:-true}
       - RESTART_COOLDOWN=${GLUETUN_RESTART_COOLDOWN:-120}
@@ -4319,11 +4219,10 @@ volumes:
   bazarr-config:
   maintainerr-data:
   jellyfin-config:
-  jellyseerr-config:
+
   audiobookshelf-config:
 
   # Downloads
-  rdt-client-data:
   qbittorrent-config:
   sabnzbd-config:
   aria2-config:

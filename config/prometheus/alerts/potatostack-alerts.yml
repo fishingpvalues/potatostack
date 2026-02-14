@@ -339,16 +339,6 @@ groups:
           summary: "⚡ Jellyfin high CPU usage"
           description: "Jellyfin has sustained CPU usage > 80% for 15 minutes. Consider hardware acceleration or reduce transcoding."
 
-      - alert: JellyseerrDown
-        expr: time() - container_last_seen{container_label_com_docker_compose_service="jellyseerr"} > 120
-        for: 2m
-        labels:
-          severity: warning
-          component: media
-        annotations:
-          summary: "📋 Jellyseerr DOWN"
-          description: "Jellyseerr media request service container has not been seen for > 2 minutes."
-          runbook: "Check: docker logs jellyseerr"
 
   - name: RSS Reader Health
     interval: 60s

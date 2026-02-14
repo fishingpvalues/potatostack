@@ -32,7 +32,7 @@ All services accessible via HTTPS using Tailscale certificates or Traefik revers
 |---------|-----------|-------------|-------------|
 | Jellyfin | https://potatostack.tale-iwato.ts.net:8096 | https://jellyfin.potatostack.tale-iwato.ts.net | Media Server |
 | Jellyfin HTTPS | https://potatostack.tale-iwato.ts.net:8920 | - | Media Server (HTTPS) |
-| Jellyseerr | https://potatostack.tale-iwato.ts.net:5055 | https://jellyseerr.potatostack.tale-iwato.ts.net | Media Requests |
+
 | Audiobookshelf | https://potatostack.tale-iwato.ts.net:13378 | https://audiobooks.potatostack.tale-iwato.ts.net | Audiobooks |
 | Navidrome | https://potatostack.tale-iwato.ts.net:4533 | https://music.potatostack.tale-iwato.ts.net | Music Streaming |
 | Stash | https://potatostack.tale-iwato.ts.net:9900 | - | Media Organizer (VPN only) |
@@ -43,7 +43,7 @@ All services accessible via HTTPS using Tailscale certificates or Traefik revers
 |---------|-----------|-------------|-------------|
 | qBittorrent | https://potatostack.tale-iwato.ts.net:8282 | https://qbittorrent.potatostack.tale-iwato.ts.net | Torrents |
 | qBittorrent Peer | - | - | 51413/tcp, 51413/udp |
-| rdt-client | https://potatostack.tale-iwato.ts.net:6500 | https://rdt-client.potatostack.tale-iwato.ts.net | Real-Debrid Downloads |
+
 | aria2 RPC | - | - | 6800 (internal) |
 | aria2 BT Peer | - | - | 6888/tcp, 6888/udp |
 | pyLoad-ng | https://potatostack.tale-iwato.ts.net:8076 | https://pyload.potatostack.tale-iwato.ts.net | Download Manager |
@@ -166,8 +166,6 @@ open https://home.potatostack.tale-iwato.ts.net
 # Media
 open https://potatostack.tale-iwato.ts.net:8096
 open https://jellyfin.potatostack.tale-iwato.ts.net
-open https://potatostack.tale-iwato.ts.net:5055
-open https://jellyseerr.potatostack.tale-iwato.ts.net
 
 # Files & Photos
 open https://potatostack.tale-iwato.ts.net:2283
@@ -194,8 +192,7 @@ open https://prometheus.potatostack.tale-iwato.ts.net
 # Downloads (VPN)
 open https://potatostack.tale-iwato.ts.net:8282
 open https://qbittorrent.potatostack.tale-iwato.ts.net
-open https://potatostack.tale-iwato.ts.net:6500
-open https://rdt-client.potatostack.tale-iwato.ts.net
+
 open https://potatostack.tale-iwato.ts.net:3333
 open https://potatostack.tale-iwato.ts.net:2234
 open https://slskd.potatostack.tale-iwato.ts.net
@@ -227,7 +224,7 @@ open https://backrest.potatostack.tale-iwato.ts.net
 ### VPN-Tunnelled Services
 Some services run behind Gluetun VPN for privacy:
 - Sonarr, Radarr, Lidarr, Bazarr, Bookshelf
-- qBittorrent, rdt-client, pyLoad, slskd
+- qBittorrent, pyLoad, slskd
 - SpotiFLAC, Stash
 
 Access these via:

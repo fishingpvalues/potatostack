@@ -168,7 +168,6 @@ mkdir -p \
 	"${STORAGE_BASE}/velld/backups" \
 	"${STORAGE_BASE}/rustypaste/uploads" \
 	"${STORAGE_BASE}/downloads/slskd" \
-	"${STORAGE_BASE}/downloads/rdt-client" \
 	"${STORAGE_BASE}/photos" \
 	"${STORAGE_BASE}/backrest/repos" \
 	"${STORAGE_BASE}/pairdrop"
@@ -312,7 +311,7 @@ mkdir -p \
 	"${SSD_BASE}/filebrowser" \
 	"${SSD_BASE}/filestash" \
 	"${SSD_BASE}/gokapi" \
-	"${SSD_BASE}/jellyseerr" \
+
 	"${SSD_BASE}/backrest/data" \
 	"${SSD_BASE}/backrest/config" \
 	"${SSD_BASE}/recyclarr" \

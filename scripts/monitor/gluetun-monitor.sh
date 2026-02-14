@@ -16,7 +16,7 @@ fi
 
 GLUETUN_URL="${GLUETUN_URL:-http://gluetun:8008}"
 CHECK_INTERVAL="${CHECK_INTERVAL:-10}"
-RESTART_CONTAINERS="${RESTART_CONTAINERS:-prowlarr sonarr radarr lidarr bazarr qbittorrent slskd pyload spotiflac stash rdt-client aria2}"
+RESTART_CONTAINERS="${RESTART_CONTAINERS:-prowlarr sonarr radarr lidarr bazarr qbittorrent slskd pyload spotiflac stash aria2}"
 RESTART_ON_STOP="${RESTART_ON_STOP:-true}"
 RESTART_ON_FAILURE="${RESTART_ON_FAILURE:-true}"
 RESTART_COOLDOWN="${RESTART_COOLDOWN:-120}"

@@ -174,29 +174,7 @@ Prometheus → Alertmanager → alertmanager-ntfy.py → ntfy → Clients
 - Updates: Version info
 - New content: Title and type
 
-#### 2. Jellyseerr Webhook Bridge
-**Service:** `jellyseerr-webhook`
-**Port:** 8082
-**Script:** `scripts/webhooks/jellyseerr-webhook.py`
-
-**Setup in Jellyseerr:**
-1. Access Jellyseerr at `https://jellyseerr.yourdomain.com`
-2. Go to Settings → General → Webhooks
-3. Click "Add Webhook"
-4. Configure:
-   - **Name**: ntfy notifications
-   - **URL**: `https://jellyseerr-webhook.yourdomain.com`
-   - **Events**: Request created, approved, declined, available
-   - **User filter**: All users or specific
-5. Save and test
-
-**Notifications:**
-- New requests: Title, media type (TV/Movie), user
-- Approved: By whom, what was approved
-- Available: Media ready for download
-- Declined: Reason for rejection
-
-#### 3. Miniflux Webhook Bridge
+#### 2. Miniflux Webhook Bridge
 **Service:** `miniflux-webhook`
 **Port:** 8083
 **Script:** `scripts/webhooks/miniflux-webhook.py`
@@ -251,7 +229,7 @@ Prometheus → Alertmanager → alertmanager-ntfy.py → ntfy → Clients
 
 8. **Media Server Health** (NEW)
    - Jellyfin down, high CPU
-   - Jellyseerr down
+
 
 9. **RSS Reader Health** (NEW)
    - Miniflux metrics down

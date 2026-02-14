@@ -85,8 +85,7 @@ Full tree:
 │   │   └── pyload/        # pyLoad incomplete
 │   ├── torrent/           # Completed torrent downloads
 │   ├── slskd/             # Soulseek shared files
-│   ├── pyload/            # pyLoad downloads
-│   └── rdt-client/        # Real-Debrid downloads
+│   └── pyload/            # pyLoad/Debrid downloads
 ├── media/                 # Media library (TV, movies, music, etc.)
 ├── photos/                # Immich photos
 ├── syncthing/             # P2P sync folders

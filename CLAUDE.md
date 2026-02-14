@@ -153,7 +153,7 @@ VPN_INPUT_PORTS=51413,50000,6888,3333,3334
 FIREWALL_OUTBOUND_SUBNETS: ${LAN_NETWORK:-192.168.178.0/24},172.16.0.0/12
 ```
 
-**Services behind gluetun:** qbittorrent, slskd, aria2, pyload, spotiflac, stash, rdt-client, bitmagnet, tdl
+**Services behind gluetun:** qbittorrent, slskd, aria2, pyload, spotiflac, stash, bitmagnet, tdl
 
 **Bitmagnet-specific:**
 - Uses postgres IP: `172.22.0.15` (check after postgres restart)
