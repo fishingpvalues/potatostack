@@ -3763,10 +3763,35 @@ services:
           memory: 64M
 
   # Samba - Windows file sharing for HDD access
+  samba-init:
+    image: ghcr.io/servercontainers/samba:${SAMBA_TAG:-latest}
+    container_name: samba-init
+    logging: *default-logging
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        chown -R root:root /var/lib/samba /var/cache/samba
+        chmod 700 /var/lib/samba/private 2>/dev/null || true
+        chmod 700 /var/lib/samba/private/msg.sock 2>/dev/null || true
+        chmod 755 /var/cache/samba/msg.lock 2>/dev/null || true
+        echo "samba-init: permissions fixed"
+    volumes:
+      - samba-lib:/var/lib/samba
+      - samba-cache:/var/cache/samba
+    restart: "no"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 32M
+
   samba:
     image: ghcr.io/servercontainers/samba:${SAMBA_TAG:-latest}
     container_name: samba
     logging: *default-logging
+    depends_on:
+      samba-init:
+        condition: service_completed_successfully
     network_mode: host
     cap_add:
       - NET_ADMIN
@@ -3781,6 +3806,10 @@ services:
         dns proxy = no
         security = user
         map to guest = Never
+        server min protocol = SMB2_10
+        client min protocol = SMB2_10
+        server smb encrypt = desired
+        client smb encrypt = desired
       # User configuration - use quoted password for special characters
       ACCOUNT_daniel: "${SAMBA_PASSWORD:-changeme}"
       UID_daniel: "${PUID:-1000}"
@@ -3825,7 +3854,8 @@ services:
       - /mnt/cachehdd:/mnt/cachehdd
       - samba-lib:/var/lib/samba
       - samba-cache:/var/cache/samba
-      - samba-run:/run/samba
+    tmpfs:
+      - /run/samba:uid=0,gid=0
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "smbclient -L localhost -U% || exit 1"]
@@ -4318,7 +4348,6 @@ volumes:
   openssh-config:
   samba-lib:
   samba-cache:
-  samba-run:
 
   # Enterprise Security & Secrets
   fail2ban-data:
