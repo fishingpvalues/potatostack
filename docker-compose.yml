@@ -3941,28 +3941,6 @@ services:
           cpus: "0.1"
           memory: 64M
 
-  # Home Assistant - Smart home automation with BLE/mDNS discovery
-  home-assistant:
-    image: ghcr.io/home-assistant/home-assistant:${HA_TAG:-stable}
-    container_name: home-assistant
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-127.0.0.1}:8123:8123"
-    environment:
-      <<: *common-env
-    volumes:
-      - /mnt/ssd/docker-data/home-assistant:/config
-      - /etc/localtime:/etc/localtime:ro
-      - /run/dbus:/run/dbus:ro
-    network_mode: host
-    privileged: true
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 1G
-
   ################################################################################
   # Gluetun Monitor - VPN Connection Monitor & Auto-Restart
   ################################################################################

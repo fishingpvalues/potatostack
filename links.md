@@ -73,12 +73,6 @@ All services accessible via HTTPS using Tailscale certificates or Traefik revers
 | Gitea | https://potatostack.tale-iwato.ts.net:3004 | https://git.potatostack.tale-iwato.ts.net | Git Server |
 | Gitea SSH | ssh://potatostack.tale-iwato.ts.net:2223 | ssh://git.potatostack.tale-iwato.ts.net:2223 | Git SSH |
 
-## Home Automation
-
-| Service | Port Link | Traefik Link | Description |
-|---------|-----------|-------------|-------------|
-| Home Assistant | https://potatostack.tale-iwato.ts.net:8123 | - | Smart Home (host network) |
-
 ## Automation & Workflows
 
 | Service | Port Link | Traefik Link | Description |
@@ -188,9 +182,6 @@ open https://syncthing.potatostack.tale-iwato.ts.net
 # Development
 open https://potatostack.tale-iwato.ts.net:3004
 open https://git.potatostack.tale-iwato.ts.net
-
-# Home Automation
-open https://potatostack.tale-iwato.ts.net:8123
 
 # Monitoring
 open https://potatostack.tale-iwato.ts.net:3002

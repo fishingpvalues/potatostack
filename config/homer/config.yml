@@ -154,6 +154,12 @@ services:
         url: "https://potatostack.tale-iwato.ts.net:8095"
         target: "_blank"
 
+      - name: "Gokapi"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/gokapi.png"
+        subtitle: "File Sharing"
+        url: "https://potatostack.tale-iwato.ts.net:53842"
+        target: "_blank"
+
       - name: "Syncthing"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/syncthing.png"
         subtitle: "File Sync"
@@ -202,12 +208,6 @@ services:
   - name: "Home & Infra"
     icon: "fas fa-home"
     items:
-      - name: "Home Assistant"
-        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/home-assistant.png"
-        subtitle: "Automation"
-        url: "https://potatostack.tale-iwato.ts.net:8123"
-        target: "_blank"
-
       - name: "Gluetun"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/gluetun.png"
         subtitle: "VPN Gateway"

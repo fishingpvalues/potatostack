@@ -411,28 +411,6 @@ swapon --show 2>/dev/null || free -h | grep -i swap
 # Permissions
 ################################################################################
 printf '%s\n' "Setting ownership to ${PUID}:${PGID}..."
-################################################################################
-# Home Assistant - Ensure http config for Tailscale access
-################################################################################
-printf '%s\n' "Configuring Home Assistant http settings..."
-HA_CONFIG="${SSD_BASE}/home-assistant/configuration.yaml"
-if [ -f "$HA_CONFIG" ]; then
-	if ! grep -q "^http:" "$HA_CONFIG"; then
-		cat >>"$HA_CONFIG" <<HAEOF
-
-http:
-  use_x_forwarded_for: true
-  trusted_proxies:
-    - 127.0.0.1
-    - 100.64.0.0/10
-  server_host: 127.0.0.1
-HAEOF
-		printf '%s\n' "✓ Home Assistant http config added"
-	else
-		printf '%s\n' "✓ Home Assistant http config already exists"
-	fi
-fi
-
 # Exclude docker directory (overlay2 data) from recursive operations
 # Check if ownership is already correct before running chown
 set_ownership() {
