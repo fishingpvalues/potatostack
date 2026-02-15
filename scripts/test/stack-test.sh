@@ -404,6 +404,8 @@ test_service_endpoints() {
 	grep -q "karakeep" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Karakeep" "http://localhost:9091"
 	grep -q "miniflux" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Miniflux" "http://localhost:8080"
 	grep -q "actual-budget" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Actual Budget" "http://localhost:5006"
+	grep -q "freqtrade-bot" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Freqtrade" "http://localhost:8181"
+	grep -q "ghostfolio" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Ghostfolio" "http://localhost:3335"
 	grep -q "stirling-pdf" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Stirling PDF" "http://localhost:8080"
 	grep -q "it-tools" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "IT Tools" "http://localhost:8080"
 

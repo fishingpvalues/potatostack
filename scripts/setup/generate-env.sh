@@ -284,7 +284,7 @@ SAMBA_PASSWORD=${SAMBA_PASSWORD}
 # CORE DATABASES
 ################################################################################
 POSTGRES_SUPER_PASSWORD=${POSTGRES_SUPER_PASSWORD}
-POSTGRES_DATABASES=authentik,gitea,woodpecker,immich,calibre,karakeep,healthchecks,atuin,homarr,miniflux,grafana,infisical
+POSTGRES_DATABASES=authentik,gitea,woodpecker,immich,calibre,karakeep,healthchecks,atuin,homarr,miniflux,grafana,infisical,freqtrade,ghostfolio
 MONGO_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
 
 ################################################################################

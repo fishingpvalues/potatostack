@@ -429,3 +429,39 @@ groups:
           summary: "🐙 Gitea DOWN - Git repository service unavailable"
           description: "Gitea git server container has not been seen for > 2 minutes. Push/pull operations will fail."
           runbook: "Check: docker logs gitea"
+
+  - name: Finance Services Health
+    interval: 60s
+    rules:
+      - alert: FreqtradeBotDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="freqtrade-bot"} > 120
+        for: 2m
+        labels:
+          severity: critical
+          component: finance
+        annotations:
+          summary: "📈 Freqtrade Bot DOWN - Trading bot offline!"
+          description: "Freqtrade trading bot has not been seen for > 2 minutes. Active trades may be unmanaged."
+          runbook: "Check: docker logs freqtrade-bot"
+
+      - alert: RegimeClassifierDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="regime-classifier"} > 120
+        for: 5m
+        labels:
+          severity: warning
+          component: finance
+        annotations:
+          summary: "🔬 Regime Classifier DOWN"
+          description: "Regime classifier service has not been seen for > 5 minutes. Freqtrade will use stale regime data."
+          runbook: "Check: docker logs regime-classifier"
+
+      - alert: GhostfolioDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="ghostfolio"} > 120
+        for: 2m
+        labels:
+          severity: warning
+          component: finance
+        annotations:
+          summary: "💰 Ghostfolio DOWN"
+          description: "Ghostfolio portfolio tracker has not been seen for > 2 minutes."
+          runbook: "Check: docker logs ghostfolio"

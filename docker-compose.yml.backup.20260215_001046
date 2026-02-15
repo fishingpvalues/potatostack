@@ -60,7 +60,7 @@ services:
       <<: *common-env
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-gitea,immich,healthchecks,atuin,miniflux,grafana,bitmagnet,freqtrade,ghostfolio}
+      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-gitea,immich,healthchecks,atuin,miniflux,grafana,bitmagnet}
     entrypoint: sh /postgres-wrapper.sh
     command:
       - "postgres"
@@ -545,7 +545,7 @@ services:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
       # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr
-      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,8181,9925,5984,9898,8123,8191,3333,3335,5656"
+      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,9925,5984,9898,8123,8191,3333,5656,53842"
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_MARKER_FILE: /https-marker/setup-complete
@@ -574,7 +574,7 @@ services:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
       # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr
-      TAILSCALE_SERVE_PORTS: 7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,8181,9925,5984,9898,8123,8191,3333,3335,5656
+      TAILSCALE_SERVE_PORTS: 7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,9925,5984,9898,8123,8191,3333,5656,53842"
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_SERVE_LOOP: "true"
@@ -724,17 +724,53 @@ services:
           cpus: "0.1"
           memory: 128M
 
-  # Cloudflared - Quick tunnel for public access to FileBrowser
+  # Gokapi - Lightweight file sharing with expiring links
+  # Docs: https://github.com/Forceu/Gokapi
+  gokapi:
+    image: f0rc3/gokapi:${GOKAPI_TAG:-latest}
+    container_name: gokapi
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:53842:53842"
+    environment:
+      <<: *common-env
+    volumes:
+      - /mnt/ssd/docker-data/gokapi:/app/data
+      - /mnt/ssd/docker-data/gokapi:/app/config
+      - /mnt/storage:/mnt/storage
+    networks:
+      - potatostack
+    depends_on:
+      - storage-init
+    labels:
+      - "wud.trigger.docker.update=true"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:53842/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 64M
+        reservations:
+          cpus: "0.1"
+          memory: 32M
+
+  # Cloudflared - Tunnel for public access to Gokapi
   # Get public URL: docker logs cloudflared 2>&1 | grep trycloudflare.com
   cloudflared:
     image: cloudflare/cloudflared:${CLOUDFLARED_TAG:-latest}
     container_name: cloudflared
     logging: *default-logging
-    command: tunnel --no-autoupdate --url http://filebrowser:80
+    command: tunnel --no-autoupdate --url http://gokapi:53842
     networks:
       - potatostack
     depends_on:
-      - filebrowser
+      - gokapi
     labels:
       - "wud.trigger.docker.update=true"
     restart: unless-stopped
@@ -924,146 +960,6 @@ services:
           cpus: "0.1"
           memory: 128M
       # Use shared-array-chain for SharedArrayBuffer support (COOP/COEP headers)
-
-  # Freqtrade - Algorithmic trading bot with Adaptive Regime Strategy
-  freqtrade-bot:
-    build:
-      context: ${FREQTRADE_STRATEGY_PATH:-./.related_deps/freqtrader-strategy}
-      dockerfile: Dockerfile
-      target: runtime
-    image: freqtrader-strategy:runtime
-    container_name: freqtrade-bot
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-127.0.0.1}:8181:8080"
-    command: ["freqtrade", "trade", "--config", "/app/config.json", "--strategy", "AdaptiveRegimeStrategy", "--strategy-path", "/app/strategies/"]
-    environment:
-      <<: *common-env
-      DATABASE_URL: postgresql://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/freqtrade
-      REDIS_URL: redis://redis-cache:6379/10
-      NTFY_URL: http://ntfy:80
-      NTFY_TOPIC: ${FREQTRADE_NTFY_TOPIC:-freqtrade-regime}
-      KRAKEN_API_KEY: ${FREQTRADE_KRAKEN_API_KEY:-}
-      KRAKEN_API_SECRET: ${FREQTRADE_KRAKEN_API_SECRET:-}
-      FRED_API_KEY: ${FREQTRADE_FRED_API_KEY:-}
-      COINMETRICS_API_KEY: ${FREQTRADE_COINMETRICS_API_KEY:-}
-      SOSOVALUE_API_KEY: ${FREQTRADE_SOSOVALUE_API_KEY:-}
-      COINGLASS_API_KEY: ${FREQTRADE_COINGLASS_API_KEY:-}
-      REGIME_UPDATE_INTERVAL_SEC: ${FREQTRADE_REGIME_UPDATE_INTERVAL_SEC:-300}
-      REGIME_LAZINESS_WINDOW: ${FREQTRADE_REGIME_LAZINESS_WINDOW:-5}
-    volumes:
-      - ${FREQTRADE_STRATEGY_PATH:-./.related_deps/freqtrader-strategy}/config.json:/app/config.json:ro
-      - ${FREQTRADE_STRATEGY_PATH:-./.related_deps/freqtrader-strategy}/strategies:/app/strategies:ro
-      - /mnt/ssd/docker-data/freqtrade/user_data:/app/user_data
-    networks:
-      - potatostack
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis-cache:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "timeout 5 bash -c 'cat < /dev/null > /dev/tcp/127.0.0.1/8080' || exit 1"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 512M
-        reservations:
-          cpus: "0.25"
-          memory: 256M
-    labels:
-      - "wud.trigger.docker.update=false"
-
-  # Regime Classifier - Companion daemon for freqtrade regime detection
-  regime-classifier:
-    build:
-      context: ${FREQTRADE_STRATEGY_PATH:-./.related_deps/freqtrader-strategy}
-      dockerfile: Dockerfile
-      target: runtime
-    image: freqtrader-strategy:runtime
-    container_name: regime-classifier
-    logging: *default-logging
-    command: ["python", "-m", "services.classifier_service"]
-    environment:
-      <<: *common-env
-      DATABASE_URL: postgresql://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/freqtrade
-      REDIS_URL: redis://redis-cache:6379/10
-      NTFY_URL: http://ntfy:80
-      NTFY_TOPIC: ${FREQTRADE_NTFY_TOPIC:-freqtrade-regime}
-      KRAKEN_API_KEY: ${FREQTRADE_KRAKEN_API_KEY:-}
-      KRAKEN_API_SECRET: ${FREQTRADE_KRAKEN_API_SECRET:-}
-      FRED_API_KEY: ${FREQTRADE_FRED_API_KEY:-}
-      COINMETRICS_API_KEY: ${FREQTRADE_COINMETRICS_API_KEY:-}
-      SOSOVALUE_API_KEY: ${FREQTRADE_SOSOVALUE_API_KEY:-}
-      COINGLASS_API_KEY: ${FREQTRADE_COINGLASS_API_KEY:-}
-      REGIME_UPDATE_INTERVAL_SEC: ${FREQTRADE_REGIME_UPDATE_INTERVAL_SEC:-300}
-      REGIME_LAZINESS_WINDOW: ${FREQTRADE_REGIME_LAZINESS_WINDOW:-5}
-    networks:
-      - potatostack
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis-cache:
-        condition: service_healthy
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 512M
-        reservations:
-          cpus: "0.25"
-          memory: 256M
-    labels:
-      - "wud.trigger.docker.update=false"
-
-  # Ghostfolio - Wealth management & portfolio tracker
-  ghostfolio:
-    image: ghostfolio/ghostfolio:${GHOSTFOLIO_TAG:-latest}
-    container_name: ghostfolio
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-127.0.0.1}:3335:3333"
-    environment:
-      <<: *common-env
-      NODE_ENV: production
-      DATABASE_URL: postgresql://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/ghostfolio
-      REDIS_HOST: redis-cache
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ""
-      REDIS_DB: 11
-      ACCESS_TOKEN_SALT: ${GHOSTFOLIO_ACCESS_TOKEN_SALT}
-      JWT_SECRET_KEY: ${GHOSTFOLIO_JWT_SECRET_KEY}
-    volumes:
-      - /mnt/storage/financial-data:/import:ro
-    networks:
-      - potatostack
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis-cache:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3333/api/v1/health || exit 1"]
-      interval: 60s
-      timeout: 10s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 256M
-        reservations:
-          cpus: "0.1"
-          memory: 128M
-    labels:
-      - "wud.trigger.docker.update=true"
 
   ################################################################################
   # MEDIA MANAGEMENT - *ARR STACK
@@ -2287,10 +2183,10 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 1024M
+          memory: 384M
         reservations:
           cpus: "0.25"
-          memory: 256M
+          memory: 128M
     labels:
       - "autoheal=true"
       - "wud.trigger.docker.update=true"

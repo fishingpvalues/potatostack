@@ -5,7 +5,7 @@
 	fix-docker harden recovery \
 	firewall firewall-status firewall-install firewall-apply firewall-list firewall-reset firewall-allow firewall-deny \
 	tailscale-https tailscale-https-setup tailscale-https-monitor \
-	apply-fixes install-autofix uninstall-autofix
+	apply-fixes install-autofix uninstall-autofix share-url
 
 # Detect OS and set appropriate docker command
 ifeq ($(shell test -d /data/data/com.termux && echo yes),yes)
@@ -27,6 +27,16 @@ help: ## Show this help message
 	@echo "===================="
 	@echo ""
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+share-url: ## Get the public FileBrowser URL (Cloudflare tunnel)
+	@URL=$$($(DOCKER_CMD) logs cloudflared 2>&1 | grep -o 'https://[^ ]*trycloudflare.com' | tail -1); \
+	if [ -n "$$URL" ]; then \
+		echo "$$URL"; \
+	else \
+		echo "Cloudflared not running or no tunnel URL found"; \
+		echo "Start with: make up"; \
+		exit 1; \
+	fi
 
 up: ## Start all services (init containers always re-run)
 	@echo "Running init containers..."

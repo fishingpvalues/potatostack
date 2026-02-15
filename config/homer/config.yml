@@ -144,10 +144,10 @@ services:
         url: "https://potatostack.tale-iwato.ts.net:8095"
         target: "_blank"
 
-      - name: "Gokapi"
-        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/gokapi.png"
-        subtitle: "File Sharing"
-        url: "https://potatostack.tale-iwato.ts.net:53842"
+      - name: "FileBrowser (Public)"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/filebrowser.png"
+        subtitle: "File Sharing via Cloudflare"
+        url: "https://holes-gratis-chrome-examinations.trycloudflare.com"
         target: "_blank"
 
       - name: "Syncthing"
@@ -183,16 +183,31 @@ services:
         url: "https://potatostack.tale-iwato.ts.net:5984"
         target: "_blank"
 
+      - name: "SearXNG"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/searxng.png"
+        subtitle: "Search Engine"
+        url: "https://potatostack.tale-iwato.ts.net:8180"
+        target: "_blank"
+
+  - name: "Finance"
+    icon: "fas fa-chart-pie"
+    items:
       - name: "Actual Budget"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/actual.png"
         subtitle: "Budgeting"
         url: "https://potatostack.tale-iwato.ts.net:5006"
         target: "_blank"
 
-      - name: "SearXNG"
-        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/searxng.png"
-        subtitle: "Search Engine"
-        url: "https://potatostack.tale-iwato.ts.net:8180"
+      - name: "Ghostfolio"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/ghostfolio.png"
+        subtitle: "Portfolio Tracker"
+        url: "https://potatostack.tale-iwato.ts.net:3335"
+        target: "_blank"
+
+      - name: "Freqtrade"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/freqtrade.png"
+        subtitle: "Algo Trading"
+        url: "https://potatostack.tale-iwato.ts.net:8181"
         target: "_blank"
 
   - name: "Home & Infra"

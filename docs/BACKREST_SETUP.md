@@ -104,3 +104,129 @@ Here's what's worth backing up with your 1TB budget:
   /mnt/ssd/docker-data/postgres/. You should add a pg_dump cron job to back up to a file that Backrest can pick up:
 
   docker exec postgres pg_dumpall -U postgres | gzip > /mnt/ssd/docker-data/backrest/pgdump.sql.gz
+
+  ################################################################################
+# BACKREST CONFIG FOR HETZNER STORAGE BOX BX11 (1TB)
+################################################################################
+#
+# Repo: sftp://u546612@u546612.your-storagebox.de:23/backup
+#
+# === HETZNER BX11 CONSTRAINTS ===
+# - 1 TB total space
+# - 10 concurrent SFTP connections max (exceeding = blocked)
+# - Port 23 (OpenSSH key format)
+# - Set IO_BEST_EFFORT_LOW + CPU_LOW (already done)
+#
+# === SPACE BUDGET (raw, pre-dedup) ===
+# Syncthing important:   ~268G (Berufliches 215G, Dokumente 27G, Bilder 24G, rest ~2G)
+# Docker-data (filtered): ~6G  (postgres, mongo, grafana, vaultwarden, obsidian, gitea, etc)
+# Photos (immich):         7.5G
+# Potatostack repo:       <50M
+# ----------------------------------
+# Total raw:              ~282G
+# With restic dedup+zstd: ~200G estimated
+# With retention policy:  ~400-500G (fits in 1TB)
+#
+# === PATHS TO BACK UP ===
+#
+# [1] Potatostack repo (configs, scripts, compose)
+#     /mnt/potatostack
+#
+# [2] Docker service data (SSD) - critical app state
+#     /mnt/ssd/docker-data/
+#
+# [3] Photos (immich uploads)
+#     /mnt/storage/photos/
+#
+# [4] Syncthing folders - ALL important ones:
+#     /mnt/storage/syncthing/Berufliches/        215G  work files
+#     /mnt/storage/syncthing/Dokumente/           27G  documents
+#     /mnt/storage/syncthing/Bilder/              24G  pictures (MISSING from current config!)
+#     /mnt/storage/syncthing/Privates/           398M  personal
+#     /mnt/storage/syncthing/Obsidian-Vault/     180M  notes
+#     /mnt/storage/syncthing/Desktop/            425M  desktop files
+#     /mnt/storage/syncthing/workdir/            984M  working directory
+#
+# === SYNCTHING FOLDERS TO SKIP ===
+#     OneDrive-Archive/    267G  SKIP - duplicate of above folders (old OneDrive export)
+#     photos/              empty SKIP - symlink placeholder
+#     videos/              empty SKIP
+#     music/               empty SKIP
+#     camera-sync/         empty SKIP
+#     audiobooks/          empty SKIP
+#     podcasts/            empty SKIP
+#     books/               empty SKIP
+#     shared/              empty SKIP
+#     backup/              empty SKIP
+#     Attachments/         empty SKIP
+#     Studium/             empty SKIP
+#     nvim/                empty SKIP
+#     Microsoft-Copilot-Chat-Dateien/  SKIP - AI chat exports, not critical
+#
+# === DOCKER-DATA EXCLUDES (regenerable/cache) ===
+#     stash/cache/**                4.6G  regenerable thumbnails
+#     stash/generated/**            regenerable transcodes
+#     redis-cache/**                ephemeral session data
+#     crowdsec-db/**                regenerable threat DB
+#     prometheus/**                 metrics (regenerable, 30d retention anyway)
+#     loki/**                       logs (regenerable)
+#     recyclarr/**                  281M config templates (re-downloadable)
+#     karakeep-meilisearch/**       search index (rebuilt from karakeep data)
+#     parseable/**                  log storage (regenerable)
+#     diun/**                       image update tracking (regenerable)
+#     cron/**                       cron state (trivial)
+#     code-server/**                VS Code server cache
+#     unpackerr/**                  extraction state
+#     soularr/**                    music matching state
+#     sentry/**                     error tracking (regenerable)
+#
+# === DOCKER-DATA TO KEEP (critical state) ===
+#     postgres/            all 18 databases (CRITICAL)
+#     mongo/               app data (authentik, etc)
+#     vaultwarden/         passwords (CRITICAL)
+#     obsidian-couchdb/    notes sync DB
+#     gitea/               git repos
+#     grafana/             dashboards + datasources
+#     actual-budget/       financial data
+#     healthchecks/        monitoring config
+#     karakeep/            bookmarks
+#     navidrome/           music library DB
+#     stash/config/        stash settings + plugins
+#     stash/metadata/      scene metadata
+#     backrest/            backup config itself
+#     authentik/           SSO/auth data
+#     homarr/              dashboard config
+#     slskd/               soulseek config
+#     bitmagnet/           DHT index config
+#     gokapi/              file sharing config
+#     filebrowser/         file manager config
+#     filestash/           file manager config
+#     velld/               app data
+#     scrutiny/            SMART history
+#     alertmanager/        alert config
+#     n8n/                 automation workflows
+#     wireguard/           VPN keys
+#     woodpecker/          CI config
+#
+# === RECOMMENDED RETENTION (fits 1TB) ===
+#     daily:   7
+#     weekly:  4
+#     monthly: 6
+#     yearly:  2
+#
+# === PERFORMANCE SETTINGS FOR HETZNER ===
+#     - ioNice: IO_BEST_EFFORT_LOW (already set)
+#     - cpuNice: CPU_LOW (already set)
+#     - Prune monthly (already set: 0 0 1 * *)
+#     - Check monthly with 10% read subset (already set)
+#     - autoUnlock: true (already set)
+#     - Consider: --pack-size 32 (larger packs = fewer SFTP connections)
+#
+# === BACKREST CONFIG.JSON CHANGES NEEDED ===
+# 1. Add missing syncthing paths (Bilder, Desktop, workdir)
+# 2. Add all docker-data excludes listed above
+# 3. Remove /mnt/storage/syncthing/ wildcard - use explicit paths only
+#
+# === ACTION: Apply these changes in Backrest WebUI at :9898 ===
+# Or edit /mnt/ssd/docker-data/backrest/config/config.json directly
+################################################################################

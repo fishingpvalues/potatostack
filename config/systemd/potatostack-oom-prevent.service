@@ -1,0 +1,9 @@
+[Unit]
+Description=PotatoStack OOM Prevention Check
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/home/daniel/potatostack/oom-prevent.sh
+User=root
+Environment=OOM_NTFY_URL=http://localhost:8060/potatostack

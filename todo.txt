@@ -1,11 +1,12 @@
-- Check FOR ALL SERVICES if they are alerting or not and make sure WUD updates the images it can, io always get notifications that update is availablel but it should backup easy containers automatically 
-- give healthcheck more ram 
 - for vscode host mcp serbvers: kill all vscoed server instance processes
 - unpackerr has been sloppy integrated let it pick up all files and folders which are archives and have been there before it started and integrate fully: ❯ i have to deflate the downloads of any servie of my stack what will be the best service for this SOTA? Extracting to folder inplace, when stack crashes  
   stopping and resume, lightweight, low HDD IO, low cpu, crash save hardened etc and afterwards when its finished del of original it should always extract 
    to foldername based on the archive inplace should watch ALL DL folders use Unpackerr integrate fully give all ownership etc add to all scripts          
   necessray   
-- add and fully integrate 
-freqtrade
-search plan execute the github docs 
+- add and fully integrate freqtrade
+search plan execute the github docs for both
 add Ghostfolio as well and fully integrate i want to use csv import of my financiial data
+
+- STASH AND POSTGRES ON SSD NOT HDD PLS FIX [DONE - both already on /mnt/ssd/docker-data/ = /dev/sda2 internal SSD]
+- stack doesnt start fix it [DONE - ghost container 1465f0c2ea5c (filestash) corrupted Docker state, removed + restarted]
+

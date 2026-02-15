@@ -104,3 +104,17 @@ scrape_configs:
     static_configs:
       - targets: ["gluetun:3333"]
     metrics_path: "/metrics"
+
+  # Freqtrade - Algorithmic trading bot API metrics
+  - job_name: "freqtrade"
+    static_configs:
+      - targets: ["freqtrade-bot:8080"]
+    metrics_path: "/api/v1/health"
+    scrape_interval: 60s
+
+  # Ghostfolio - Portfolio tracker health
+  - job_name: "ghostfolio"
+    static_configs:
+      - targets: ["ghostfolio:3333"]
+    metrics_path: "/api/v1/health"
+    scrape_interval: 60s

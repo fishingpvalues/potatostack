@@ -39,7 +39,8 @@ mkdir -p \
 	"${STORAGE_BASE}/downloads/slskd" \
 	"${STORAGE_BASE}/photos" \
 	"${STORAGE_BASE}/backrest/repos" \
-	"${STORAGE_BASE}/pairdrop"
+	"${STORAGE_BASE}/pairdrop" \
+	"${STORAGE_BASE}/financial-data"
 
 ################################################################################
 # Service-Specific Incomplete Download Directories (moved from cachehdd)
@@ -152,7 +153,6 @@ mkdir -p \
 	"${SSD_BASE}/code-server" \
 	"${SSD_BASE}/filebrowser" \
 	"${SSD_BASE}/filestash" \
-	"${SSD_BASE}/gokapi" \
 	"${SSD_BASE}/backrest/data" \
 	"${SSD_BASE}/backrest/config" \
 	"${SSD_BASE}/backrest/cache" \
@@ -164,7 +164,8 @@ mkdir -p \
 	"${SSD_BASE}/loki" \
 	"${SSD_BASE}/bitmagnet" \
 	"${SSD_BASE}/slskd/logs" \
-	"${SSD_BASE}/stash/cache"
+	"${SSD_BASE}/stash/cache" \
+	"${SSD_BASE}/freqtrade/user_data"
 # "${SSD_BASE}/uptime-kuma" # DISABLED
 
 # System directory on SSD (cron, etc)
@@ -355,6 +356,9 @@ chown -R 472:472 "${SSD_BASE}/grafana" 2>/dev/null || true
 
 # Bitmagnet (UID 1000) - DHT crawler
 [ -d "${SSD_BASE}/bitmagnet" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/bitmagnet" 2>/dev/null || true
+
+# Freqtrade (UID 1000) - Trading bot user data
+[ -d "${SSD_BASE}/freqtrade" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/freqtrade" 2>/dev/null || true
 
 # Uptime-Kuma (UID 1000) - DISABLED
 # [ -d "${SSD_BASE}/uptime-kuma" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/uptime-kuma"
