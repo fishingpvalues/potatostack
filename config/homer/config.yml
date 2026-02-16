@@ -183,6 +183,12 @@ services:
         url: "https://potatostack.tale-iwato.ts.net:5984"
         target: "_blank"
 
+      - name: "Baïkal"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/baikal.png"
+        subtitle: "Calendar & Contacts"
+        url: "https://potatostack.tale-iwato.ts.net:8085"
+        target: "_blank"
+
       - name: "SearXNG"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/searxng.png"
         subtitle: "Search Engine"

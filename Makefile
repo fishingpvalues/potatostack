@@ -1,7 +1,7 @@
 .PHONY: help up down restart logs test test-quick test-killswitch clean ps services images config containers \
 	containers-check containers-unhealthy containers-exited pull verify validate validate-compose validate-files \
 	lint lint-compose lint-yaml lint-shell lint-dockerfiles lint-full format format-shell format-yaml \
-	format-dockerfiles security health resources doctor fix init fix-permissions fix-configs startup \
+	format-dockerfiles security health resources doctor fix init fix-permissions fix-configs fix-backrest-ssh startup \
 	fix-docker harden recovery \
 	firewall firewall-status firewall-install firewall-apply firewall-list firewall-reset firewall-allow firewall-deny \
 	tailscale-https tailscale-https-setup tailscale-https-monitor \
@@ -163,6 +163,11 @@ fix-docker: ## Fix corrupted Docker storage after crash (WARNING: removes all im
 	@echo "Running Docker storage recovery..."
 	@chmod +x ./scripts/setup/fix-docker-storage.sh
 	@sudo ./scripts/setup/fix-docker-storage.sh
+
+fix-backrest-ssh: ## Fix backrest SSH permissions (run if SSH errors occur)
+	@echo "Fixing backrest SSH permissions..."
+	@chmod +x ./scripts/setup/fix-backrest-ssh.sh
+	@./scripts/setup/fix-backrest-ssh.sh
 
 harden: ## Run enterprise hardening script (watchdog, auto-recovery, etc.)
 	@echo "Running enterprise hardening..."

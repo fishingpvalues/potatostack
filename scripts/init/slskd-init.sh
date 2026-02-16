@@ -81,6 +81,12 @@ if [ ! -f "$CONFIG_FILE" ]; then
 soulseek:
   username: ${SLSKD_SOULSEEK_USERNAME:-~}
   password: ${SLSKD_SOULSEEK_PASSWORD:-~}
+  listen_port: 50000
+  connection:
+    timeout:
+      connect: 30000
+      inactivity: 60000
+      transfer: 120000
 
 directories:
   incomplete: /var/slskd/incomplete
@@ -163,6 +169,19 @@ web:
         cidr: 0.0.0.0/0,::/0
 EOF
 	echo "✓ API key added to existing configuration"
+fi
+
+# Ensure soulseek connection timeouts exist
+if [ -f "$CONFIG_FILE" ] && ! grep -q "connection:" "$CONFIG_FILE"; then
+	echo "Adding soulseek connection timeout settings..."
+	cat >>"$CONFIG_FILE" <<EOF
+  connection:
+    timeout:
+      connect: 30000
+      inactivity: 60000
+      transfer: 120000
+EOF
+	echo "✓ Connection timeouts added"
 fi
 
 # Ensure transfer limits and queue settings exist

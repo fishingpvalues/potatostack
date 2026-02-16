@@ -131,10 +131,10 @@ setup_debrid_accounts() {
 	if [ -n "$REALDEBRID_API_KEY" ]; then
 		ACCOUNT_EXISTS=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM accounts WHERE plugin='RealDebridCom' AND loginname='api';" 2>/dev/null || echo "0")
 		if [ "$ACCOUNT_EXISTS" = "0" ]; then
-			sqlite3 "$DB_FILE" "INSERT INTO accounts (plugin, loginname, owner, activated, password, shared) VALUES ('RealDebridCom', 'api', 1, 1, '$REALDEBRID_API_KEY', 0);" 2>/dev/null && \
+			sqlite3 "$DB_FILE" "INSERT INTO accounts (plugin, loginname, owner, activated, password, shared) VALUES ('RealDebridCom', 'api', 1, 1, '$REALDEBRID_API_KEY', 0);" 2>/dev/null &&
 				echo "✓ Real-Debrid account added" || echo "⚠ Failed to add Real-Debrid account"
 		else
-			sqlite3 "$DB_FILE" "UPDATE accounts SET password='$REALDEBRID_API_KEY', activated=1 WHERE plugin='RealDebridCom' AND loginname='api';" 2>/dev/null && \
+			sqlite3 "$DB_FILE" "UPDATE accounts SET password='$REALDEBRID_API_KEY', activated=1 WHERE plugin='RealDebridCom' AND loginname='api';" 2>/dev/null &&
 				echo "✓ Real-Debrid account updated" || echo "⚠ Failed to update Real-Debrid account"
 		fi
 	fi

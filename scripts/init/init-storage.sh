@@ -429,6 +429,25 @@ fi
 
 chmod 644 /keys/*
 
+################################################################################
+# Backrest SSH Permissions Fix
+################################################################################
+printf '%s\n' ""
+printf '%s\n' "Fixing backrest SSH permissions..."
+
+BACKREST_SSH="/mnt/ssd/docker-data/backrest/ssh"
+if [ -d "$BACKREST_SSH" ]; then
+	chown -R root:root "$BACKREST_SSH" 2>/dev/null || true
+	chmod 700 "$BACKREST_SSH" 2>/dev/null || true
+	[ -f "$BACKREST_SSH/config" ] && chmod 600 "$BACKREST_SSH/config" 2>/dev/null || true
+	[ -f "$BACKREST_SSH/id_ed25519" ] && chmod 600 "$BACKREST_SSH/id_ed25519" 2>/dev/null || true
+	[ -f "$BACKREST_SSH/id_ed25519.pub" ] && chmod 644 "$BACKREST_SSH/id_ed25519.pub" 2>/dev/null || true
+	[ -f "$BACKREST_SSH/known_hosts" ] && chmod 600 "$BACKREST_SSH/known_hosts" 2>/dev/null || true
+	printf '%s\n' "✓ Backrest SSH permissions fixed"
+else
+	printf '%s\n' "⚠ Backrest SSH directory not found (will be created on first setup)"
+fi
+
 printf '%s\n' ""
 printf '%s\n' "✓ Storage initialization complete"
 printf '%s\n' ""

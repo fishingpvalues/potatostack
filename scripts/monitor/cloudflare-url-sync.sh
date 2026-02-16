@@ -18,12 +18,12 @@ old_url=$(cat "$URL_FILE" 2>/dev/null || echo "")
 
 [ "$url" = "$old_url" ] && exit 0
 
-echo "$url" > "$URL_FILE"
+echo "$url" >"$URL_FILE"
 
 if [ -n "$old_url" ]; then
-  sed -i "s|${old_url}|${url}|g" "$HOMER_CONFIG"
+	sed -i "s|${old_url}|${url}|g" "$HOMER_CONFIG"
 else
-  sed -i "s|__CLOUDFLARE_URL__|${url}|g" "$HOMER_CONFIG"
+	sed -i "s|__CLOUDFLARE_URL__|${url}|g" "$HOMER_CONFIG"
 fi
 
 echo "$(date): Updated Homer cloudflare URL to $url"

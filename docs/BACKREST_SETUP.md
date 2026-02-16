@@ -37,6 +37,90 @@ The `/repos` path maps to `/mnt/storage/backrest/repos` on the host HDD.
 4. Configure **retention policy** (how many snapshots to keep)
 5. Add an **on error hook** for notifications (recommended)
 
+## SSH Key Setup (Hetzner Storage Box)
+
+### Generate SSH Key
+
+```bash
+# Create SSH directory
+mkdir -p /mnt/ssd/docker-data/backrest/ssh
+
+# Generate ed25519 key pair (no passphrase)
+ssh-keygen -t ed25519 -f /mnt/ssd/docker-data/backrest/ssh/id_ed25519 -N ""
+```
+
+### Add Public Key to Hetzner Storage Box
+
+1. Log in to Hetzner Robot
+2. Navigate to your Storage Box
+3. Go to "SSH Keys" section
+4. Paste contents of `/mnt/ssd/docker-data/backrest/ssh/id_ed25519.pub`
+
+### Create SSH Config
+
+```bash
+cat > /mnt/ssd/docker-data/backrest/ssh/config <<EOF
+Host u546612.your-storagebox.de
+    Port 23
+    User u546612
+    IdentityFile ~/.ssh/id_ed25519
+    ServerAliveInterval 30
+    ServerAliveCountMax 6
+    TCPKeepAlive yes
+    Compression no
+    IPQoS throughput
+    ConnectTimeout 30
+EOF
+```
+
+### Fix Permissions
+
+SSH keys must be owned by `root:root` with strict permissions (backrest runs as root).
+
+**Automatic fix (recommended):**
+```bash
+make up
+```
+The `storage-init` container will automatically fix permissions on startup.
+
+**Manual fix:**
+```bash
+sudo bash scripts/setup/fix-backrest-ssh.sh
+```
+
+### Verify SSH Connection
+
+```bash
+docker exec backrest ssh -oBatchMode=yes -oConnectTimeout=5 u546612@u546612.your-storagebox.de echo 'Success'
+```
+
+### Troubleshooting SSH Permissions
+
+If you see "Bad owner or permissions on /root/.ssh/config", the SSH files are owned by the wrong user:
+
+```bash
+# Check current ownership
+ls -la /mnt/ssd/docker-data/backrest/ssh/
+
+# Should see:
+# .ssh/          - drwx------  root:root
+# config         - -rw-------  root:root
+# id_ed25519     - -rw-------  root:root
+# id_ed25519.pub - -rw-r--r--  root:root
+# known_hosts    - -rw-------  root:root
+
+# Fix manually if needed
+sudo chown -R root:root /mnt/ssd/docker-data/backrest/ssh
+sudo chmod 700 /mnt/ssd/docker-data/backrest/ssh
+sudo chmod 600 /mnt/ssd/docker-data/backrest/ssh/config
+sudo chmod 600 /mnt/ssd/docker-data/backrest/ssh/id_ed25519
+sudo chmod 644 /mnt/ssd/docker-data/backrest/ssh/id_ed25519.pub
+sudo chmod 600 /mnt/ssd/docker-data/backrest/ssh/known_hosts
+
+# Restart backrest
+docker compose restart backrest
+```
+
 ## Backup Configuration
 
 Back up `/mnt/ssd/docker-data/backrest/config/config.json` -- it contains all repo definitions, plans, and encryption passwords.

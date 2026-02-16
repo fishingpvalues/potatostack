@@ -48,4 +48,15 @@ if [ -d "${SSD_BASE}/velld" ]; then
 	chown -R "${PUID}:${PGID}" "${SSD_BASE}/velld"
 fi
 
+# Backrest SSH permissions
+if [ -d "${SSD_BASE}/backrest/ssh" ]; then
+	echo "  Fixing backrest SSH permissions..."
+	chown -R root:root "${SSD_BASE}/backrest/ssh"
+	chmod 700 "${SSD_BASE}/backrest/ssh"
+	[ -f "${SSD_BASE}/backrest/ssh/id_ed25519" ] && chmod 600 "${SSD_BASE}/backrest/ssh/id_ed25519"
+	[ -f "${SSD_BASE}/backrest/ssh/id_ed25519.pub" ] && chmod 644 "${SSD_BASE}/backrest/ssh/id_ed25519.pub"
+	[ -f "${SSD_BASE}/backrest/ssh/config" ] && chmod 600 "${SSD_BASE}/backrest/ssh/config"
+	[ -f "${SSD_BASE}/backrest/ssh/known_hosts" ] && chmod 600 "${SSD_BASE}/backrest/ssh/known_hosts"
+fi
+
 echo "✓ Bind mount permissions fixed"

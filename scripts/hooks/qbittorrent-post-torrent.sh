@@ -17,7 +17,7 @@ NTFY_TOKEN="${NTFY_TOKEN:-}"
 LOG_FILE="/config/qBittorrent/logs/post-torrent.log"
 
 log() {
-	echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*" >> "$LOG_FILE"
+	echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*" >>"$LOG_FILE"
 }
 
 log "Torrent finished: ${TORRENT_NAME} | category=${CATEGORY} | tags=${TAGS} | path=${CONTENT_PATH}"
@@ -52,7 +52,7 @@ if command -v curl >/dev/null 2>&1; then
 		-H "\"Priority: low\"" \
 		"$auth_header" \
 		-d "\"${TORRENT_NAME}${CATEGORY:+ [${CATEGORY}]}\"" \
-		"\"${NTFY_URL}/${NTFY_TOPIC}\"" >> "$LOG_FILE" 2>&1 || true
+		"\"${NTFY_URL}/${NTFY_TOPIC}\"" >>"$LOG_FILE" 2>&1 || true
 elif command -v wget >/dev/null 2>&1; then
 	wget -q -O- \
 		--header="Title: Torrent Complete" \
@@ -60,5 +60,5 @@ elif command -v wget >/dev/null 2>&1; then
 		--header="Priority: low" \
 		${NTFY_TOKEN:+--header="Authorization: Bearer ${NTFY_TOKEN}"} \
 		--post-data="${TORRENT_NAME}${CATEGORY:+ [${CATEGORY}]}" \
-		"${NTFY_URL}/${NTFY_TOPIC}" >> "$LOG_FILE" 2>&1 || true
+		"${NTFY_URL}/${NTFY_TOPIC}" >>"$LOG_FILE" 2>&1 || true
 fi

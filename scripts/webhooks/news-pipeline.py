@@ -25,6 +25,7 @@ log = logging.getLogger("news-pipeline")
 
 EXTRACTOR_URL = os.environ.get("EXTRACTOR_URL", "http://article-extractor:8084")
 INTERVAL = int(os.environ.get("INTERVAL_SECONDS", "900"))
+NW_INTERVAL = int(os.environ.get("NW_INTERVAL_SECONDS", "300"))
 
 # Miniflux DB purge settings
 MINIFLUX_DB_URL = os.environ.get("MINIFLUX_DB_URL", "")
@@ -33,18 +34,29 @@ PURGE_UNREAD_DAYS = int(os.environ.get("PURGE_UNREAD_DAYS", "30"))
 PURGE_INTERVAL_HOURS = int(os.environ.get("PURGE_INTERVAL_HOURS", "6"))
 _last_purge: float = 0
 
-# RSS feeds to fetch directly
+# RSS/Atom feeds to fetch directly
 # extract=True means try full-text extraction via article-extractor
 # extract=False means use RSS description as-is (for hard paywalls where extraction always fails)
+# cat: category for grouping feeds (news, work, gaming)
 RSS_FEEDS = [
-    {"url": "https://www.faz.net/rss/aktuell/", "source": "FAZ", "extract": True},
-    {"url": "https://www.hltv.org/rss/news", "source": "HLTV", "extract": False},
-    {
-        "url": "https://www.westfalen-blatt.de/rss/feed?subcategory=/owl/bielefeld",
-        "source": "WB",
-        "extract": False,
-    },
-    {"url": "https://feeds.a.dj.com/rss/RSSWorldNews.xml", "source": "WSJ", "extract": False},
+    # German news
+    {"url": "https://www.faz.net/rss/aktuell/", "source": "FAZ", "extract": True, "cat": "news"},
+    {"url": "https://www.westfalen-blatt.de/rss/feed?subcategory=/owl/bielefeld", "source": "WB", "extract": False, "cat": "news"},
+    {"url": "https://www.nzz.ch/recent.rss", "source": "NZZ", "extract": True, "cat": "news"},
+    {"url": "https://www.welt.de/feeds/latest.rss", "source": "WELT", "extract": True, "cat": "news"},
+    {"url": "https://www.cicero.de/rss.xml", "source": "CICERO", "extract": True, "cat": "news"},
+    {"url": "https://www.tichyseinblick.de/feed/", "source": "TE", "extract": True, "cat": "news"},
+    # English news
+    {"url": "https://www.nationalreview.com/feed/", "source": "NR", "extract": True, "cat": "news"},
+    # Gaming
+    {"url": "https://www.hltv.org/rss/news", "source": "HLTV", "extract": False, "cat": "gaming"},
+    # Work / AI & ML
+    {"url": "https://blog.vllm.ai/feed.xml", "source": "VLLM", "extract": False, "cat": "work"},
+    {"url": "https://huggingface.co/blog/feed.xml", "source": "HF", "extract": False, "cat": "work"},
+    {"url": "https://pytorch.org/blog/feed/", "source": "PYTORCH", "extract": False, "cat": "work"},
+    {"url": "https://blog.langchain.com/rss/", "source": "LANGCHAIN", "extract": False, "cat": "work"},
+    {"url": "https://thegradient.pub/rss/", "source": "GRADIENT", "extract": False, "cat": "work"},
+    {"url": "https://simonwillison.net/atom/everything/", "source": "WILLISON", "extract": False, "cat": "work"},
 ]
 
 # NW.de sections to crawl (no RSS available)
@@ -61,10 +73,10 @@ NW_SECTIONS = [
 # Combined feed items: list of {title, url, content, source, published, guid}
 _feed_items: list[dict] = []
 _feed_lock = threading.Lock()
-_FEED_MAX = 500
+_FEED_MAX = 2000
 # Track seen URLs to avoid duplicates
 _seen_urls: set[str] = set()
-_SEEN_MAX = 5000
+_SEEN_MAX = 15000
 
 
 # ---------------------------------------------------------------------------
@@ -158,42 +170,21 @@ def strip_html_tags(html):
 
 def build_combined_rss():
     """Generate RSS XML from all feed items."""
+    return _build_rss_xml("PotatoStack News", "https://potatostack.tale-iwato.ts.net", lambda _: True)
+
+
+def _build_rss_xml(title, link, filter_fn):
+    """Generate RSS XML with items matching filter_fn."""
     items = []
     with _feed_lock:
         for item in _feed_items:
-            source = item.get("source", "")
-            title = f"[{source}] {item['title']}" if source else item["title"]
-            items.append(
-                f"<item>"
-                f"<title>{escape(title)}</title>"
-                f"<link>{escape(item['url'])}</link>"
-                f"<guid isPermaLink=\"false\">{item['guid']}</guid>"
-                f"<pubDate>{item['published']}</pubDate>"
-                f"<description><![CDATA[{item.get('content', '')}]]></description>"
-                f"</item>"
-            )
-    items_xml = "\n".join(items)
-    return (
-        '<?xml version="1.0" encoding="UTF-8"?>\n'
-        '<rss version="2.0">\n<channel>\n'
-        "<title>PotatoStack News</title>\n"
-        "<link>https://potatostack.tale-iwato.ts.net</link>\n"
-        "<description>Combined news feed with full-text extraction</description>\n"
-        f"{items_xml}\n"
-        "</channel>\n</rss>"
-    )
-
-
-def build_source_rss(source, title, link):
-    """Generate RSS XML filtered to a single source."""
-    items = []
-    with _feed_lock:
-        for item in _feed_items:
-            if item.get("source") != source:
+            if not filter_fn(item):
                 continue
+            src = item.get("source", "")
+            item_title = f"[{src}] {item['title']}" if src else item["title"]
             items.append(
                 f"<item>"
-                f"<title>{escape(item['title'])}</title>"
+                f"<title>{escape(item_title)}</title>"
                 f"<link>{escape(item['url'])}</link>"
                 f"<guid isPermaLink=\"false\">{item['guid']}</guid>"
                 f"<pubDate>{item['published']}</pubDate>"
@@ -206,19 +197,47 @@ def build_source_rss(source, title, link):
         '<rss version="2.0">\n<channel>\n'
         f"<title>{escape(title)}</title>\n"
         f"<link>{escape(link)}</link>\n"
-        f"<description>{escape(title)} - full text</description>\n"
+        f"<description>{escape(title)}</description>\n"
         f"{items_xml}\n"
         "</channel>\n</rss>"
     )
 
 
+def build_source_rss(source, title, link):
+    """Generate RSS XML filtered to a single source."""
+    return _build_rss_xml(title, link, lambda item: item.get("source") == source)
+
+
+def build_category_rss(cat_name, sources):
+    """Generate RSS XML filtered to a category (list of sources)."""
+    title = f"PotatoStack - {cat_name.title()}"
+    return _build_rss_xml(title, "https://potatostack.tale-iwato.ts.net", lambda item: item.get("source") in sources)
+
+
 # Source slug -> (title, link)
 _SOURCE_META = {
     "faz": ("FAZ", "https://www.faz.net"),
-    "hltv": ("HLTV", "https://www.hltv.org"),
     "wb": ("Westfalen-Blatt", "https://www.westfalen-blatt.de"),
-    "wsj": ("WSJ", "https://www.wsj.com"),
+    "nzz": ("NZZ", "https://www.nzz.ch"),
+    "welt": ("Welt", "https://www.welt.de"),
+    "cicero": ("Cicero", "https://www.cicero.de"),
+    "te": ("Tichys Einblick", "https://www.tichyseinblick.de"),
+    "nr": ("National Review", "https://www.nationalreview.com"),
+    "hltv": ("HLTV", "https://www.hltv.org"),
     "nw": ("NW.de", "https://www.nw.de"),
+    "vllm": ("vLLM", "https://blog.vllm.ai"),
+    "hf": ("Hugging Face", "https://huggingface.co"),
+    "pytorch": ("PyTorch", "https://pytorch.org"),
+    "langchain": ("LangChain", "https://blog.langchain.com"),
+    "gradient": ("The Gradient", "https://thegradient.pub"),
+    "willison": ("Simon Willison", "https://simonwillison.net"),
+}
+
+# Category -> list of source slugs (uppercase to match feed item source field)
+_CATEGORIES = {
+    "news": ["FAZ", "WB", "NZZ", "WELT", "CICERO", "TE", "NR", "NW"],
+    "work": ["VLLM", "HF", "PYTORCH", "LANGCHAIN", "GRADIENT", "WILLISON"],
+    "gaming": ["HLTV"],
 }
 
 
@@ -229,6 +248,14 @@ class FeedHandler(BaseHTTPRequestHandler):
         if path in ("", "/rss", "/feed"):
             body = build_combined_rss().encode("utf-8")
             self._respond(200, "application/rss+xml; charset=utf-8", body)
+        elif path.startswith("/rss/cat/"):
+            cat = path.split("/rss/cat/", 1)[1]
+            sources = _CATEGORIES.get(cat)
+            if sources:
+                body = build_category_rss(cat, sources).encode("utf-8")
+                self._respond(200, "application/rss+xml; charset=utf-8", body)
+            else:
+                self.send_error(404)
         elif path.startswith("/rss/"):
             slug = path.split("/rss/", 1)[1]
             meta = _SOURCE_META.get(slug)
@@ -309,32 +336,61 @@ def add_feed_item(title, url, content, source, pub_date=None):
 # ---------------------------------------------------------------------------
 
 
+def _iso_to_rfc2822(iso_str):
+    """Convert ISO 8601 date to RFC 2822 format."""
+    try:
+        dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+        return dt.strftime("%a, %d %b %Y %H:%M:%S %z")
+    except Exception:
+        return ""
+
+
 def parse_rss_items(xml_text):
-    """Parse RSS XML and return list of {title, url, pub_date, description}."""
+    """Parse RSS or Atom XML and return list of {title, url, pub_date, description}."""
     items = []
-    for item_match in re.finditer(r"<item>(.*?)</item>", xml_text, re.DOTALL):
-        item_xml = item_match.group(1)
 
-        title_m = re.search(r"<title>(.*?)</title>", item_xml, re.DOTALL)
-        link_m = re.search(r"<link>(.*?)</link>", item_xml, re.DOTALL)
-        pub_m = re.search(r"<pubDate>(.*?)</pubDate>", item_xml, re.DOTALL)
-        desc_m = re.search(r"<description>(.*?)</description>", item_xml, re.DOTALL)
+    # Detect Atom format
+    is_atom = "<feed" in xml_text[:500] and "xmlns=\"http://www.w3.org/2005/Atom\"" in xml_text[:500]
 
-        title = strip_cdata(title_m.group(1)) if title_m else ""
-        url = strip_cdata(link_m.group(1)).strip() if link_m else ""
-        pub_date = strip_cdata(pub_m.group(1)) if pub_m else ""
-        description = strip_cdata(desc_m.group(1)) if desc_m else ""
+    if is_atom:
+        for entry_match in re.finditer(r"<entry>(.*?)</entry>", xml_text, re.DOTALL):
+            entry_xml = entry_match.group(1)
 
-        # Clean HTML from title
-        title = strip_html_tags(title)
+            title_m = re.search(r"<title[^>]*>(.*?)</title>", entry_xml, re.DOTALL)
+            link_m = re.search(r'<link[^>]*href="([^"]+)"', entry_xml)
+            pub_m = re.search(r"<published>(.*?)</published>", entry_xml, re.DOTALL)
+            if not pub_m:
+                pub_m = re.search(r"<updated>(.*?)</updated>", entry_xml, re.DOTALL)
+            summary_m = re.search(r"<summary[^>]*>(.*?)</summary>", entry_xml, re.DOTALL)
+            if not summary_m:
+                summary_m = re.search(r"<content[^>]*>(.*?)</content>", entry_xml, re.DOTALL)
 
-        if url:
-            items.append({
-                "title": title,
-                "url": url,
-                "pub_date": pub_date,
-                "description": description,
-            })
+            title = strip_cdata(strip_html_tags(title_m.group(1))) if title_m else ""
+            url = link_m.group(1).strip() if link_m else ""
+            pub_date = _iso_to_rfc2822(pub_m.group(1).strip()) if pub_m else ""
+            description = strip_cdata(summary_m.group(1)) if summary_m else ""
+
+            if url:
+                items.append({"title": title, "url": url, "pub_date": pub_date, "description": description})
+    else:
+        for item_match in re.finditer(r"<item>(.*?)</item>", xml_text, re.DOTALL):
+            item_xml = item_match.group(1)
+
+            title_m = re.search(r"<title>(.*?)</title>", item_xml, re.DOTALL)
+            link_m = re.search(r"<link>(.*?)</link>", item_xml, re.DOTALL)
+            pub_m = re.search(r"<pubDate>(.*?)</pubDate>", item_xml, re.DOTALL)
+            desc_m = re.search(r"<description>(.*?)</description>", item_xml, re.DOTALL)
+
+            title = strip_cdata(title_m.group(1)) if title_m else ""
+            url = strip_cdata(link_m.group(1)).strip() if link_m else ""
+            pub_date = strip_cdata(pub_m.group(1)) if pub_m else ""
+            description = strip_cdata(desc_m.group(1)) if desc_m else ""
+
+            title = strip_html_tags(title)
+
+            if url:
+                items.append({"title": title, "url": url, "pub_date": pub_date, "description": description})
+
     return items
 
 
@@ -530,29 +586,38 @@ def main():
 
     seed_existing()
 
+    _last_rss = time.time()
+    _last_nw = time.time()
+    _tick = min(NW_INTERVAL, INTERVAL)
+
     while True:
-        try:
-            process_rss_feeds()
-        except Exception:
-            log.exception("Error in RSS processing")
+        now = time.time()
 
-        try:
-            process_nw_articles()
-        except Exception:
-            log.exception("Error in NW.de processing")
+        if now - _last_rss >= INTERVAL:
+            _last_rss = now
+            try:
+                process_rss_feeds()
+            except Exception:
+                log.exception("Error in RSS processing")
+            try:
+                purge_miniflux_entries()
+            except Exception:
+                log.exception("Error in Miniflux purge")
 
-        try:
-            purge_miniflux_entries()
-        except Exception:
-            log.exception("Error in Miniflux purge")
+        if now - _last_nw >= NW_INTERVAL:
+            _last_nw = now
+            try:
+                process_nw_articles()
+            except Exception:
+                log.exception("Error in NW.de processing")
 
         # Trim seen set
         if len(_seen_urls) > _SEEN_MAX:
             excess = len(_seen_urls) - _SEEN_MAX
             _seen_urls.difference_update(set(list(_seen_urls)[:excess]))
 
-        log.info("Sleeping %ds", INTERVAL)
-        time.sleep(INTERVAL)
+        log.info("Sleeping %ds", _tick)
+        time.sleep(_tick)
 
 
 if __name__ == "__main__":

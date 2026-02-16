@@ -121,7 +121,7 @@ docker compose up -d --force-recreate \
   freqtrade-bot regime-classifier ghostfolio
 ```
 
-**PostgreSQL-dependent services:** postgres, pgbouncer, authentik-server, authentik-worker, miniflux, immich-server, grafana, postgres-exporter, healthchecks, karakeep, atuin, gitea, woodpecker-server, homarr, infisical, freqtrade-bot, regime-classifier, ghostfolio
+**PostgreSQL-dependent services:** postgres, pgbouncer, authentik-server, authentik-worker, miniflux, immich-server, grafana, postgres-exporter, healthchecks, karakeep, atuin, gitea, woodpecker-server, homarr, infisical, freqtrade-bot, regime-classifier, ghostfolio, baikal
 
 **Data locations:**
 - PostgreSQL data: `/mnt/ssd/docker-data/postgres`

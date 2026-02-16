@@ -128,7 +128,7 @@ done
 
 # Create categories with save paths matching media folders
 CATEGORIES_FILE="${CONFIG_DIR}/categories.json"
-cat > "$CATEGORIES_FILE" <<'CATEOF'
+cat >"$CATEGORIES_FILE" <<'CATEOF'
 {
     "movies": {"save_path": "/media/movies"},
     "tv": {"save_path": "/media/tv"},

@@ -60,7 +60,7 @@ services:
       <<: *common-env
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-gitea,immich,healthchecks,atuin,miniflux,grafana,bitmagnet,freqtrade,ghostfolio}
+      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-gitea,immich,healthchecks,atuin,miniflux,grafana,bitmagnet,freqtrade,ghostfolio,baikal}
     entrypoint: sh /postgres-wrapper.sh
     command:
       - "postgres"
@@ -545,7 +545,7 @@ services:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
       # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr
-      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,8181,9925,5984,9898,8123,8191,3333,3335,5656"
+      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,8181,9925,5984,9898,8123,8191,3333,3335,5656,8085"
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_MARKER_FILE: /https-marker/setup-complete
@@ -574,7 +574,7 @@ services:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
       # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr
-      TAILSCALE_SERVE_PORTS: 7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,8181,9925,5984,9898,8123,8191,3333,3335,5656
+      TAILSCALE_SERVE_PORTS: 7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,8181,9925,5984,9898,8123,8191,3333,3335,5656,8085
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_SERVE_LOOP: "true"
@@ -2851,8 +2851,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.25"
-          memory: 64M
+          cpus: "0.50"
+          memory: 128M
 
   # Article Extractor - Headless Chromium + Bypass Paywalls Clean + trafilatura
   article-extractor:
@@ -2894,6 +2894,7 @@ services:
       DB_NAME: healthchecks
       DB_USER: postgres
       DB_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+      INTEGRATIONS_ENABLED: "True"
     volumes:
       - /mnt/ssd/docker-data/healthchecks:/config
     networks:
@@ -3868,6 +3869,35 @@ services:
           cpus: "0.05"
           memory: 32M
 
+  # Autoheal Monitor - Sends ntfy notifications when autoheal restarts containers
+  autoheal-monitor:
+    image: docker:${DOCKER_TAG:-cli}
+    container_name: autoheal-monitor
+    logging: *default-logging
+    entrypoint: sh /autoheal-monitor.sh
+    environment:
+      AUTOHEAL_NOTIFY_COOLDOWN: ${AUTOHEAL_NOTIFY_COOLDOWN:-300}
+      NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
+      NTFY_TOPIC_WARNING: ${NTFY_TOPIC_WARNING:-potatostack-warning}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+      NTFY_DEFAULT_TAGS: ${NTFY_DEFAULT_TAGS:-potatostack,monitor}
+      NTFY_DEFAULT_PRIORITY: ${NTFY_DEFAULT_PRIORITY:-default}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./scripts/monitor/autoheal-monitor.sh:/autoheal-monitor.sh:ro
+      - ./scripts/monitor/notify.sh:/notify.sh:ro
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.05"
+          memory: 16M
+        reservations:
+          cpus: "0.05"
+          memory: 8M
+
   # OpenSSH Server - Secure remote shell and SFTP access
   openssh-server:
     image: lscr.io/linuxserver/openssh-server:${OPENSSH_SERVER_TAG:-latest}
@@ -4389,6 +4419,44 @@ services:
         reservations:
           cpus: "0.1"
           memory: 128M
+    labels:
+      - "wud.trigger.docker.update=true"
+
+  ################################################################################
+  # CALENDAR & CONTACTS
+  ################################################################################
+
+  # Baïkal - Lightweight CalDAV/CardDAV Server
+  baikal:
+    image: ckulka/baikal:${BAIKAL_TAG:-latest}
+    container_name: baikal
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:8085:80"
+    environment:
+      <<: *common-env
+    volumes:
+      - /mnt/ssd/docker-data/baikal/config:/var/www/baikal/config
+      - /mnt/ssd/docker-data/baikal/Specific:/var/www/baikal/Specific
+    networks:
+      - potatostack
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:80/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 128M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
     labels:
       - "wud.trigger.docker.update=true"
 
