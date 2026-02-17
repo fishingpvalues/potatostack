@@ -103,3 +103,7 @@ config/rustypaste/config.toml__pycache__/
 killswitch-test-report-*.txt
 
 .related_deps/
+
+# Backrest SSH keys (secrets)
+config/backrest/ssh/id_ed25519
+config/backrest/ssh/known_hosts

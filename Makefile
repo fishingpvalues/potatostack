@@ -5,7 +5,8 @@
 	fix-docker harden recovery \
 	firewall firewall-status firewall-install firewall-apply firewall-list firewall-reset firewall-allow firewall-deny \
 	tailscale-https tailscale-https-setup tailscale-https-monitor \
-	apply-fixes install-autofix uninstall-autofix share-url
+	apply-fixes install-autofix uninstall-autofix share-url \
+	restore restore-preflight restore-test restore-service restore-dry-run
 
 # Detect OS and set appropriate docker command
 ifeq ($(shell test -d /data/data/com.termux && echo yes),yes)
@@ -423,6 +424,38 @@ tailscale-https: ## Setup Tailscale HTTPS on all configured ports
 		fi; \
 	done; \
 	echo "✓ Tailscale HTTPS configured for: $(TAILSCALE_SERVE_PORTS)"
+
+################################################################################
+# Backup Restore
+################################################################################
+
+restore: ## Interactive restore from backup
+	@chmod +x ./scripts/restore/restore.sh
+	@./scripts/restore/restore.sh
+
+restore-preflight: ## Show available snapshots and restore readiness
+	@chmod +x ./scripts/restore/restore-preflight.sh
+	@./scripts/restore/restore-preflight.sh
+
+restore-test: ## Verify backup integrity (restores marker files to temp)
+	@chmod +x ./scripts/restore/restore-test.sh
+	@./scripts/restore/restore-test.sh
+
+restore-service: ## Restore single service (SERVICE=postgres|mongo|gitea|...)
+ifndef SERVICE
+	@echo "Usage: make restore-service SERVICE=<name>"
+	@echo "Examples: make restore-service SERVICE=postgres"
+	@echo "          make restore-service SERVICE=grafana"
+	@exit 1
+endif
+	@chmod +x ./scripts/restore/restore.sh
+	@./scripts/restore/restore.sh --target $(SERVICE)
+
+restore-dry-run: ## Show what a full restore would do (no changes)
+	@chmod +x ./scripts/restore/restore.sh
+	@./scripts/restore/restore.sh --dry-run
+
+################################################################################
 
 tailscale-https-monitor: ## Start Tailscale HTTPS monitor (re-applies every 5 min)
 	@echo "Starting Tailscale HTTPS monitor..."

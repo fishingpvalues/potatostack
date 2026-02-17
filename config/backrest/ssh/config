@@ -1,0 +1,11 @@
+Host u546612.your-storagebox.de
+    Port 23
+    User u546612
+    IdentityFile ~/.ssh/id_ed25519
+    ServerAliveInterval 15
+    ServerAliveCountMax 10
+    TCPKeepAlive yes
+    Compression no
+    IPQoS throughput
+    ConnectTimeout 30
+    ConnectionAttempts 3

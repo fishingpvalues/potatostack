@@ -1379,9 +1379,9 @@ services:
       UN_FOLDER_0_DELETE_FILES: "false"
       UN_FOLDER_0_EXTRACT_ISOS: "false"
 
-      # qBittorrent (adult) - Extract but DON'T delete (preserve seeding)
-      UN_FOLDER_1_PATH: "/adult"
-      UN_FOLDER_1_DELETE_ORIGINAL: "false"
+      # qBittorrent (adult) - Extract + delete (manually copied archives)
+      UN_FOLDER_1_PATH: "/media/adult"
+      UN_FOLDER_1_DELETE_ORIGINAL: "true"
       UN_FOLDER_1_DELETE_AFTER: "0s"
       UN_FOLDER_1_MOVE_BACK: "true"
       UN_FOLDER_1_DELETE_FILES: "false"
@@ -1419,6 +1419,14 @@ services:
       UN_FOLDER_5_DELETE_FILES: "false"
       UN_FOLDER_5_EXTRACT_ISOS: "false"
 
+      # Media folder - Extract + delete (manually copied archives)
+      UN_FOLDER_6_PATH: "/media"
+      UN_FOLDER_6_DELETE_ORIGINAL: "true"
+      UN_FOLDER_6_DELETE_AFTER: "0s"
+      UN_FOLDER_6_MOVE_BACK: "true"
+      UN_FOLDER_6_DELETE_FILES: "false"
+      UN_FOLDER_6_EXTRACT_ISOS: "false"
+
       # NTFY notification hook
       NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
       NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
@@ -1440,7 +1448,7 @@ services:
     volumes:
       - unpackerr-config:/config
       - /mnt/storage/downloads:/downloads
-      - /mnt/storage/media/adult:/adult
+      - /mnt/storage/media:/media
       - /home/daniel/potatostack/scripts/hooks/unpackerr-post-extract.sh:/hooks/post-extract.sh:ro
       - /home/daniel/potatostack/scripts/init/unpackerr-entrypoint.sh:/entrypoint.sh:ro
       - /home/daniel/potatostack/scripts/init/unpackerr-cleanup.sh:/cleanup.sh:ro
