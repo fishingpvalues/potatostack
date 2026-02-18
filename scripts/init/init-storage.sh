@@ -16,6 +16,7 @@
 set -eu
 
 STORAGE_BASE="/mnt/storage"
+STORAGE2_BASE="/mnt/storage2"
 SSD_BASE="/mnt/ssd/docker-data"
 PUID="${PUID:-1000}"
 PGID="${PGID:-1000}"
@@ -31,59 +32,75 @@ printf '%s\n' "Creating main storage directories..."
 mkdir -p \
 	"${STORAGE_BASE}/syncthing" \
 	"${STORAGE_BASE}/obsidian-couchdb" \
-	"${STORAGE_BASE}/downloads/torrent" \
-	"${STORAGE_BASE}/downloads/incomplete" \
-	"${STORAGE_BASE}/downloads/pyload" \
-	"${STORAGE_BASE}/velld/backups" \
 	"${STORAGE_BASE}/rustypaste/uploads" \
-	"${STORAGE_BASE}/downloads/slskd" \
-	"${STORAGE_BASE}/photos" \
-	"${STORAGE_BASE}/backrest/repos" \
 	"${STORAGE_BASE}/pairdrop" \
 	"${STORAGE_BASE}/financial-data"
 
 ################################################################################
-# Service-Specific Incomplete Download Directories (moved from cachehdd)
+# Storage2 Directories (16TB HDD - media, downloads, photos, backups)
 ################################################################################
-printf '%s\n' "Creating service-specific incomplete download directories..."
-mkdir -p \
-	"${STORAGE_BASE}/downloads/incomplete/sonarr" \
-	"${STORAGE_BASE}/downloads/incomplete/radarr" \
-	"${STORAGE_BASE}/downloads/incomplete/lidarr" \
-	"${STORAGE_BASE}/downloads/incomplete/qbittorrent" \
-	"${STORAGE_BASE}/downloads/incomplete/sabnzbd" \
-	"${STORAGE_BASE}/downloads/incomplete/aria2" \
-	"${STORAGE_BASE}/downloads/incomplete/slskd" \
-	"${STORAGE_BASE}/downloads/incomplete/pyload" \
-	"${STORAGE_BASE}/downloads/incomplete/pinchflat"
+if [ -d "$STORAGE2_BASE" ]; then
+    printf '%s\n' "Creating storage2 directories..."
+    mkdir -p \
+        "${STORAGE2_BASE}/media/movies" \
+        "${STORAGE2_BASE}/media/tv" \
+        "${STORAGE2_BASE}/media/adult/telegram" \
+        "${STORAGE2_BASE}/downloads/torrents" \
+        "${STORAGE2_BASE}/downloads/aria2" \
+        "${STORAGE2_BASE}/downloads/slskd" \
+        "${STORAGE2_BASE}/downloads/pyload" \
+        "${STORAGE2_BASE}/downloads/telegram" \
+        "${STORAGE2_BASE}/downloads/incomplete/qbittorrent" \
+        "${STORAGE2_BASE}/downloads/incomplete/aria2" \
+        "${STORAGE2_BASE}/downloads/incomplete/slskd" \
+        "${STORAGE2_BASE}/downloads/incomplete/pyload" \
+        "${STORAGE2_BASE}/downloads/incomplete/sonarr" \
+        "${STORAGE2_BASE}/downloads/incomplete/radarr" \
+        "${STORAGE2_BASE}/downloads/incomplete/pinchflat" \
+        "${STORAGE2_BASE}/photos" \
+        "${STORAGE2_BASE}/backrest/repos" \
+        "${STORAGE2_BASE}/velld/backups"
 
-# Create Immich required directories and markers
-mkdir -p "${STORAGE_BASE}/photos/encoded-video"
-mkdir -p "${STORAGE_BASE}/photos/library"
-mkdir -p "${STORAGE_BASE}/photos/upload"
-mkdir -p "${STORAGE_BASE}/photos/profile"
-mkdir -p "${STORAGE_BASE}/photos/thumbs"
-mkdir -p "${STORAGE_BASE}/photos/backups"
-echo "1769366147925" >"${STORAGE_BASE}/photos/encoded-video/.immich" 2>/dev/null || true
-echo "1769366147925" >"${STORAGE_BASE}/photos/library/.immich" 2>/dev/null || true
-echo "1769366147925" >"${STORAGE_BASE}/photos/upload/.immich" 2>/dev/null || true
-echo "1769366147925" >"${STORAGE_BASE}/photos/profile/.immich" 2>/dev/null || true
-echo "1769366147925" >"${STORAGE_BASE}/photos/thumbs/.immich" 2>/dev/null || true
-echo "1769366147925" >"${STORAGE_BASE}/photos/backups/.immich" 2>/dev/null || true
+    # Immich required markers on storage2
+    mkdir -p \
+        "${STORAGE2_BASE}/photos/encoded-video" \
+        "${STORAGE2_BASE}/photos/library" \
+        "${STORAGE2_BASE}/photos/upload" \
+        "${STORAGE2_BASE}/photos/profile" \
+        "${STORAGE2_BASE}/photos/thumbs" \
+        "${STORAGE2_BASE}/photos/backups"
+    echo "1769366147925" >"${STORAGE2_BASE}/photos/encoded-video/.immich" 2>/dev/null || true
+    echo "1769366147925" >"${STORAGE2_BASE}/photos/library/.immich" 2>/dev/null || true
+    echo "1769366147925" >"${STORAGE2_BASE}/photos/upload/.immich" 2>/dev/null || true
+    echo "1769366147925" >"${STORAGE2_BASE}/photos/profile/.immich" 2>/dev/null || true
+    echo "1769366147925" >"${STORAGE2_BASE}/photos/thumbs/.immich" 2>/dev/null || true
+    echo "1769366147925" >"${STORAGE2_BASE}/photos/backups/.immich" 2>/dev/null || true
+
+    # Only chown the specific dirs we own (not the full tree — too large)
+    for d in \
+        "${STORAGE2_BASE}/media" \
+        "${STORAGE2_BASE}/downloads" \
+        "${STORAGE2_BASE}/photos" \
+        "${STORAGE2_BASE}/backrest" \
+        "${STORAGE2_BASE}/velld"; do
+        chown -R "${PUID}:${PGID}" "$d" 2>/dev/null || true
+    done
+    printf '%s\n' "✓ Storage2 directories initialized"
+else
+    printf '%s\n' "⚠ /mnt/storage2 not mounted, skipping storage2 init"
+fi
 
 ################################################################################
 # Media Directories - AUTHORITATIVE source for *arr stack and Jellyfin
 ################################################################################
 printf '%s\n' "Creating media directories..."
 mkdir -p \
-	"${STORAGE_BASE}/media/tv" \
-	"${STORAGE_BASE}/media/movies" \
 	"${STORAGE_BASE}/media/music" \
 	"${STORAGE_BASE}/media/audiobooks" \
 	"${STORAGE_BASE}/media/podcasts" \
 	"${STORAGE_BASE}/media/books" \
-	"${STORAGE_BASE}/media/adult" \
 	"${STORAGE_BASE}/media/youtube"
+# NOTE: media/movies, media/tv, media/adult are on /mnt/storage2
 
 ################################################################################
 # Syncthing - INPUT/PERSONAL data (synced from devices)
@@ -366,8 +383,7 @@ chown -R 472:472 "${SSD_BASE}/grafana" 2>/dev/null || true
 # Velld (UID 1000)
 [ -d "${SSD_BASE}/velld" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/velld" 2>/dev/null || true
 
-# Incomplete download directories (for torrent/usenet clients)
-[ -d "${STORAGE_BASE}/downloads/incomplete" ] && chown -R "${PUID}:${PGID}" "${STORAGE_BASE}/downloads/incomplete" 2>/dev/null || true
+# Incomplete download directories are on /mnt/storage2 (chowned in storage2 section above)
 
 # PairDrop (UID 911 - LinuxServer.io image)
 [ -d "${STORAGE_BASE}/pairdrop" ] && chown -R 911:911 "${STORAGE_BASE}/pairdrop" 2>/dev/null || true
@@ -452,5 +468,6 @@ printf '%s\n' ""
 printf '%s\n' "✓ Storage initialization complete"
 printf '%s\n' ""
 printf '%s\n' "Directory structure:"
-printf '%s\n' "  /mnt/storage     - Main HDD (media, downloads, syncthing, obsidian, caches)"
+printf '%s\n' "  /mnt/storage     - Main HDD (music, audiobooks, syncthing, obsidian, caches)"
+printf '%s\n' "  /mnt/storage2    - 16TB HDD (media, downloads, photos, backups)"
 printf '%s\n' "  /mnt/ssd         - SSD (docker-data, observability, system)"

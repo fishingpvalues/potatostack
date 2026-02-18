@@ -48,6 +48,15 @@ if [ -d "${SSD_BASE}/velld" ]; then
 	chown -R "${PUID}:${PGID}" "${SSD_BASE}/velld"
 fi
 
+# OpenSSH server host key permissions (LinuxServer.io creates them 0755; sshd needs 0600)
+if docker inspect openssh-server >/dev/null 2>&1; then
+	echo "  Fixing openssh-server host key permissions..."
+	docker exec openssh-server sh -c '
+		find /config/ssh_host_keys -name "ssh_host_*" ! -name "*.pub" -exec chmod 600 {} \; 2>/dev/null
+		echo "  Fixed"
+	' || true
+fi
+
 # Backrest SSH permissions
 if [ -d "${SSD_BASE}/backrest/ssh" ]; then
 	echo "  Fixing backrest SSH permissions..."

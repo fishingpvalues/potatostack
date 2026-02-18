@@ -112,9 +112,4 @@ scrape_configs:
     metrics_path: "/api/v1/health"
     scrape_interval: 60s
 
-  # Ghostfolio - Portfolio tracker health
-  - job_name: "ghostfolio"
-    static_configs:
-      - targets: ["ghostfolio:3333"]
-    metrics_path: "/api/v1/health"
-    scrape_interval: 60s
+  # Ghostfolio removed: /api/v1/health returns JSON, not Prometheus metrics

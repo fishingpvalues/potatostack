@@ -35,6 +35,7 @@ services:
       SNAPSHOT_LOG_FILE: ${SNAPSHOT_LOG_FILE:-/mnt/storage/stack-snapshot.log}
     volumes:
       - /mnt/storage:/mnt/storage
+      - /mnt/storage2:/mnt/storage2
       - /mnt/ssd/docker-data:/mnt/ssd/docker-data
       - ./scripts/init/init-storage.sh:/init-storage.sh:ro
       - ./scripts/backup/stack-snapshot.sh:/stack-snapshot.sh:ro
@@ -44,7 +45,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 64M
+          memory: 256M
 
   ################################################################################
   # CORE DATABASES
@@ -651,6 +652,7 @@ services:
     entrypoint: sh /filebrowser-init.sh
     volumes:
       - /mnt/storage:/srv/storage
+      - /mnt/storage2:/srv/storage2
       - /mnt/ssd/docker-data:/srv/docker-data
       - /mnt/ssd/docker-data/filebrowser:/config
       - ./scripts/init/filebrowser-init.sh:/filebrowser-init.sh:ro
@@ -697,6 +699,7 @@ services:
     volumes:
       # Full storage access (same as filebrowser)
       - /mnt/storage:/mnt/storage
+      - /mnt/storage2:/mnt/storage2
       - /mnt/ssd/docker-data:/mnt/docker-data:ro
       # Config persistence
       - /mnt/ssd/docker-data/filestash:/app/data/state
@@ -1032,6 +1035,7 @@ services:
     environment:
       <<: *common-env
       NODE_ENV: production
+      NODE_OPTIONS: "--max-old-space-size=640"
       DATABASE_URL: postgresql://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/ghostfolio
       REDIS_HOST: redis-cache
       REDIS_PORT: 6379
@@ -1058,10 +1062,10 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 256M
+          memory: 768M
         reservations:
           cpus: "0.1"
-          memory: 128M
+          memory: 256M
     labels:
       - "wud.trigger.docker.update=true"
 
@@ -1146,9 +1150,9 @@ services:
   #     <<: *common-env
   #   volumes:
   #     - sonarr-config:/config
-  #     - /mnt/storage/media/tv:/tv
-  #     - /mnt/storage/downloads:/downloads
-  #     - /mnt/storage/downloads/incomplete/sonarr:/downloads/incomplete
+  #     - /mnt/storage2/media/tv:/tv
+  #     - /mnt/storage2/downloads:/downloads
+  #     - /mnt/storage2/downloads/incomplete/sonarr:/downloads/incomplete
   #   depends_on:
   #     gluetun:
   #       condition: service_healthy
@@ -1183,9 +1187,9 @@ services:
   #     <<: *common-env
   #   volumes:
   #     - radarr-config:/config
-  #     - /mnt/storage/media/movies:/movies
-  #     - /mnt/storage/downloads:/downloads
-  #     - /mnt/storage/downloads/incomplete/radarr:/downloads/incomplete
+  #     - /mnt/storage2/media/movies:/movies
+  #     - /mnt/storage2/downloads:/downloads
+  #     - /mnt/storage2/downloads/incomplete/radarr:/downloads/incomplete
   #   depends_on:
   #     gluetun:
   #       condition: service_healthy
@@ -1221,8 +1225,8 @@ services:
   #   volumes:
   #     - lidarr-config:/config
   #     - /mnt/storage/media/music:/music
-  #     - /mnt/storage/downloads:/downloads
-  #     - /mnt/storage/downloads/incomplete/lidarr:/downloads/incomplete
+  #     - /mnt/storage2/downloads:/downloads
+  #     - /mnt/storage2/downloads/incomplete/lidarr:/downloads/incomplete
   #   depends_on:
   #     gluetun:
   #       condition: service_healthy
@@ -1257,8 +1261,8 @@ services:
   #     <<: *common-env
   #   volumes:
   #     - bazarr-config:/config
-  #     - /mnt/storage/media/movies:/movies
-  #     - /mnt/storage/media/tv:/tv
+  #     - /mnt/storage2/media/movies:/movies
+  #     - /mnt/storage2/media/tv:/tv
   #   tmpfs:
   #     - /tmp:exec,mode=1777,size=500m
   #   depends_on:
@@ -1447,8 +1451,8 @@ services:
 
     volumes:
       - unpackerr-config:/config
-      - /mnt/storage/downloads:/downloads
-      - /mnt/storage/media:/media
+      - /mnt/storage2/downloads:/downloads
+      - /mnt/storage2/media:/media
       - /home/daniel/potatostack/scripts/hooks/unpackerr-post-extract.sh:/hooks/post-extract.sh:ro
       - /home/daniel/potatostack/scripts/init/unpackerr-entrypoint.sh:/entrypoint.sh:ro
       - /home/daniel/potatostack/scripts/init/unpackerr-cleanup.sh:/cleanup.sh:ro
@@ -1775,33 +1779,31 @@ services:
     container_name: jellyfin
     logging: *default-logging
     ports:
-      - "${HOST_BIND:-127.0.0.1}:8096:8096"
-      - "${HOST_BIND:-127.0.0.1}:8920:8920"
-      - "${HOST_BIND:-127.0.0.1}:7359:7359/udp"
-      - "${HOST_BIND:-127.0.0.1}:1900:1900/udp"
+      - "127.0.0.1:8096:8096"          # Tailscale serve
+      - "192.168.178.158:8096:8096"    # LAN (Android TV)
+      - "127.0.0.1:8920:8920"          # Tailscale HTTPS serve
+      - "192.168.178.158:8920:8920"    # LAN HTTPS
+      - "192.168.178.158:7359:7359/udp"  # Service discovery (Android TV)
+      - "192.168.178.158:1900:1900/udp"  # SSDP/DLNA discovery
     environment:
       <<: *common-env
-    # Uncomment group_add and devices for Intel/AMD hardware acceleration
-    # Get render group ID with: getent group render | cut -d: -f3
-    # group_add:
-    #   - "107"  # render group - adjust to match your system
-    # devices:
-    #   - /dev/dri/renderD128:/dev/dri/renderD128
     devices:
-      - /dev/dri/renderD128:/dev/dri/renderD128
+      - /dev/dri/renderD128:/dev/dri/renderD128  # Intel QSV/VAAPI
       - /dev/dri/card0:/dev/dri/card0
     group_add:
-      - "109"
+      - "109"  # render group (getent group render | cut -d: -f3)
     volumes:
       - jellyfin-config:/config
-      - /mnt/storage/media/tv:/data/tvshows
-      - /mnt/storage/media/movies:/data/movies
+      - /mnt/storage2/media/tv:/data/tvshows
+      - /mnt/storage2/media/movies:/data/movies
+      - /mnt/storage/media/tv:/data/tvshows2
+      - /mnt/storage/media/movies:/data/movies2
       - /mnt/storage/media/music:/data/music
       - /mnt/storage/media/audiobooks:/data/audiobooks
       - /mnt/storage/cache/jellyfin:/cache
     tmpfs:
-      - /tmp:exec,mode=1777,size=500m
-      - /transcode:exec,mode=1777,size=2g
+      - /tmp:exec,mode=1777,size=512m
+      - /transcode:exec,mode=1777,size=4g
     networks:
       - potatostack
     depends_on:
@@ -1816,11 +1818,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "2.5"
-          memory: 2G
+          cpus: "3.0"   # 3/4 cores; QSV offloads transcode so CPU is rarely saturated
+          memory: 4G    # library cache + image cache + concurrent streams; tmpfs adds ~4.5GB on top
         reservations:
-          cpus: "1.0"
-          memory: 1G
+          cpus: "0.5"
+          memory: 512M
     labels:
       - "wud.trigger.docker.update=true"
 
@@ -1931,7 +1933,7 @@ services:
       DOWNLOAD_DIR: /downloads
       STATIC_DIR: /app/dist
     volumes:
-      - /mnt/storage/downloads:/downloads
+      - /mnt/storage2/downloads:/downloads
     depends_on:
       gluetun:
         condition: service_healthy
@@ -1977,9 +1979,9 @@ services:
       NTFY_TOKEN: ${NTFY_TOKEN:-}
     volumes:
       - qbittorrent-config:/config
-      - /mnt/storage/downloads/torrents:/downloads
-      - /mnt/storage/downloads/incomplete/qbittorrent:/incomplete
-      - /mnt/storage/media:/media
+      - /mnt/storage2/downloads/torrents:/downloads
+      - /mnt/storage2/downloads/incomplete/qbittorrent:/incomplete
+      - /mnt/storage2/media:/media
       - /home/daniel/potatostack/scripts/init/qbittorrent-init.sh:/custom-cont-init.d/99-qb-init.sh:ro
       - /home/daniel/potatostack/scripts/hooks/qbittorrent-post-torrent.sh:/hooks/post-torrent.sh:ro
     depends_on:
@@ -2022,8 +2024,8 @@ services:
       IPV6_MODE: "false"
     volumes:
       - aria2-config:/config
-      - /mnt/storage/downloads/aria2:/downloads
-      - /mnt/storage/downloads/incomplete/aria2:/incomplete
+      - /mnt/storage2/downloads/aria2:/downloads
+      - /mnt/storage2/downloads/incomplete/aria2:/incomplete
       - /home/daniel/potatostack/scripts/init/aria2-init.sh:/aria2-init.sh:ro
       - shared-keys:/keys:ro
     depends_on:
@@ -2088,8 +2090,8 @@ services:
     volumes:
       - slskd-config:/app
       - /mnt/ssd/docker-data/slskd/logs:/app/logs
-      - /mnt/storage/downloads/slskd:/var/slskd/downloads
-      - /mnt/storage/downloads/incomplete/slskd:/var/slskd/incomplete
+      - /mnt/storage2/downloads/slskd:/var/slskd/downloads
+      - /mnt/storage2/downloads/incomplete/slskd:/var/slskd/incomplete
       - /mnt/storage/slskd-shared:/var/slskd/shared
       - shared-keys:/keys:ro
       - /home/daniel/potatostack/scripts/init/slskd-init.sh:/init.sh:ro
@@ -2170,8 +2172,8 @@ services:
       NTFY_TOKEN: ${NTFY_TOKEN:-}
     volumes:
       - pyload-config:/config
-      - /mnt/storage/downloads/pyload:/downloads
-      - /mnt/storage/downloads/incomplete/pyload:/incomplete
+      - /mnt/storage2/downloads/pyload:/downloads
+      - /mnt/storage2/downloads/incomplete/pyload:/incomplete
       - /home/daniel/potatostack/scripts/init/pyload-init.sh:/pyload-init.sh:ro
     depends_on:
       gluetun:
@@ -2214,9 +2216,9 @@ services:
       <<: *common-env
     volumes:
       - tdl-data:/root/.tdl
-      - /mnt/storage/downloads/telegram:/downloads
-      - /mnt/storage/media/adult:/adult:ro
-      - /mnt/storage/media/adult/telegram:/adult-telegram
+      - /mnt/storage2/downloads/telegram:/downloads
+      - /mnt/storage2/media/adult:/adult:ro
+      - /mnt/storage2/media/adult/telegram:/adult-telegram
       - /home/daniel/potatostack/config/tdl/crontab:/etc/crontabs/root:ro
       - /home/daniel/potatostack/config/tdl/download-saved.sh:/etc/tdl/download-saved.sh:ro
       - /home/daniel/potatostack/config/tdl/blocklist.txt:/etc/tdl/blocklist.txt:ro
@@ -2328,7 +2330,7 @@ services:
     devices:
       - /dev/dri/renderD128:/dev/dri/renderD128
     volumes:
-      - /mnt/storage/photos:/usr/src/app/upload
+      - /mnt/storage2/photos:/usr/src/app/upload
       - /etc/localtime:/etc/localtime:ro
     networks:
       - potatostack
@@ -3437,8 +3439,8 @@ services:
   #     <<: *common-env
   #   volumes:
   #     - pinchflat-config:/config
-  #     - /mnt/storage/media/youtube:/downloads
-  #     - /mnt/storage/downloads/incomplete/pinchflat:/incomplete
+  #     - /mnt/storage2/media/youtube:/downloads
+  #     - /mnt/storage2/downloads/incomplete/pinchflat:/incomplete
   #   depends_on:
   #     gluetun:
   #       condition: service_healthy
@@ -3480,7 +3482,7 @@ services:
       - /mnt/ssd/docker-data/stash/generated:/generated
       - /mnt/ssd/docker-data/stash/metadata:/metadata
       - /mnt/ssd/docker-data/stash/cache:/cache
-      - /mnt/storage/media/adult:/data
+      - /mnt/storage2/media/adult:/data
       - /home/daniel/potatostack/scripts/init/stash-init.sh:/init/stash-init.sh:ro
     depends_on:
       gluetun:
@@ -3824,17 +3826,25 @@ services:
       WUD_WATCHER_LOCAL_CRON: "0 */6 * * *"
       WUD_WATCHER_LOCAL_WATCHBYDEFAULT: "true"
       WUD_LOG_LEVEL: info
-      # Docker Hub authentication to avoid rate limits
-      WUD_REGISTRY_DOCKERHUB_LOGIN: ${DOCKERHUB_LOGIN:-}
-      WUD_REGISTRY_DOCKERHUB_PASSWORD: ${DOCKERHUB_PASSWORD:-}
-      WUD_REGISTRY_DOCKERHUB_TOKEN: ${DOCKERHUB_TOKEN:-}
+      # Docker Hub authentication to avoid rate limits (instance name = "public")
+      WUD_REGISTRY_HUB_PUBLIC_LOGIN: ${DOCKERHUB_LOGIN:-}
+      WUD_REGISTRY_HUB_PUBLIC_TOKEN: ${DOCKERHUB_TOKEN:-}
+      # GitHub Container Registry (ghcr.io) + LinuxServer (lscr.io) (instance name = "public")
+      WUD_REGISTRY_GHCR_PUBLIC_USERNAME: ${GITHUB_USERNAME:-}
+      WUD_REGISTRY_GHCR_PUBLIC_TOKEN: ${GITHUB_TOKEN:-}
+      WUD_REGISTRY_LSCR_PUBLIC_USERNAME: ${GITHUB_USERNAME:-}
+      WUD_REGISTRY_LSCR_PUBLIC_TOKEN: ${GITHUB_TOKEN:-}
       # ntfy trigger
       WUD_TRIGGER_NTFY_POTATOSTACK_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
       WUD_TRIGGER_NTFY_POTATOSTACK_TOPIC: ${NTFY_TOPIC:-potatostack}
       WUD_TRIGGER_NTFY_POTATOSTACK_PRIORITY: "3"
+      # Docker trigger - auto-recreate containers with new images (opt-in via label)
+      WUD_TRIGGER_DOCKER_UPDATE_THRESHOLD: minor
+      WUD_TRIGGER_DOCKER_UPDATE_AUTO: "true"
+      WUD_TRIGGER_DOCKER_UPDATE_PRUNE: "true"
     volumes:
       - wud-data:/data
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - potatostack
     depends_on:
@@ -3930,6 +3940,8 @@ services:
     volumes:
       - openssh-config:/config
       - /mnt/storage:/data/storage
+      - /mnt/storage2:/data/storage2
+      - ./scripts/init/openssh-fix-key-perms.sh:/custom-cont-init.d/99-fix-key-perms.sh:ro
     networks:
       - potatostack
     depends_on:
@@ -4023,8 +4035,21 @@ services:
         force group = daniel
         create mask = 0777
         directory mask = 0777
+      SAMBA_VOLUME_CONFIG_storage2: |
+        [storage2]
+        path = /mnt/storage2
+        browsable = yes
+        writable = yes
+        read only = no
+        guest ok = no
+        valid users = daniel
+        force user = daniel
+        force group = daniel
+        create mask = 0777
+        directory mask = 0777
     volumes:
       - /mnt/storage:/mnt/storage
+      - /mnt/storage2:/mnt/storage2
       - samba-lib:/var/lib/samba
       - samba-cache:/var/cache/samba
     tmpfs:
@@ -4108,6 +4133,7 @@ services:
       NTFY_DEFAULT_PRIORITY: ${NTFY_DEFAULT_PRIORITY:-default}
     volumes:
       - /mnt/storage:/mnt/storage:ro
+      - /mnt/storage2:/mnt/storage2:ro
       - /mnt/ssd:/mnt/ssd:ro
       - ./scripts/monitor/disk-space-monitor.sh:/disk-space-monitor.sh:ro
       - ./scripts/monitor/notify.sh:/notify.sh:ro
@@ -4128,7 +4154,7 @@ services:
     logging: *default-logging
     entrypoint: sh /backup-monitor.sh
     environment:
-      BACKUP_MONITOR_PATHS: ${BACKUP_MONITOR_PATHS:-/mnt/storage/stack-snapshot.log /mnt/storage/velld/backups}
+      BACKUP_MONITOR_PATHS: ${BACKUP_MONITOR_PATHS:-/mnt/storage/stack-snapshot.log /mnt/storage2/velld/backups}
       BACKUP_MAX_AGE_HOURS: ${BACKUP_MAX_AGE_HOURS:-24}
       BACKUP_MONITOR_INTERVAL: ${BACKUP_MONITOR_INTERVAL:-3600}
       NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
@@ -4138,6 +4164,7 @@ services:
       NTFY_DEFAULT_PRIORITY: ${NTFY_DEFAULT_PRIORITY:-default}
     volumes:
       - /mnt/storage:/mnt/storage:ro
+      - /mnt/storage2:/mnt/storage2:ro
       - ./scripts/monitor/backup-monitor.sh:/backup-monitor.sh:ro
       - ./scripts/monitor/notify.sh:/notify.sh:ro
     networks:
@@ -4280,7 +4307,7 @@ services:
       ALLOW_REGISTER: ${VELLD_ALLOW_REGISTER:-false}
     volumes:
       - /mnt/ssd/docker-data/velld:/app/data
-      - /mnt/storage/velld/backups:/app/backups
+      - /mnt/storage2/velld/backups:/app/backups
     networks:
       - potatostack
     depends_on:
@@ -4348,9 +4375,10 @@ services:
       - /mnt/ssd/docker-data/backrest/cache:/cache
       - /mnt/ssd/docker-data/backrest/tmp:/tmp/backrest
       # Repos on HDD (large backup data)
-      - /mnt/storage/backrest/repos:/repos
+      - /mnt/storage2/backrest/repos:/repos
       # Read-write access to ALL data for backing up
       - /mnt/storage:/mnt/storage
+      - /mnt/storage2:/mnt/storage2
       - /mnt/ssd/docker-data:/mnt/ssd/docker-data
       - /home/daniel/potatostack:/mnt/potatostack
     networks:

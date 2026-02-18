@@ -119,33 +119,181 @@ else
 fi
 
 ################################################################################
-# Debrid Account Setup (Real-Debrid, Torbox)
+# Real-Debrid Plugin Patch
+# The stock RealdebridCom plugin requires OAuth credentials (client_id/secret +
+# refresh_token). We patch it to also accept a direct API token as the password,
+# which is what the real-debrid.com account settings page provides.
+################################################################################
+install_realdebrid_plugin_patch() {
+	PLUGIN_DIR="/config/plugins/accounts"
+	PLUGIN_FILE="${PLUGIN_DIR}/RealdebridCom.py"
+	mkdir -p "$PLUGIN_DIR"
+
+	cat >"$PLUGIN_FILE" <<'PYEOF'
+# -*- coding: utf-8 -*-
+# Patched: supports direct API token (password) in addition to OAuth credentials.
+import json
+import time
+
+import pycurl
+from pyload.core.network.http.exceptions import BadHeader
+
+from ..base.multi_account import MultiAccount
+
+
+def args(**kwargs):
+    return kwargs
+
+
+class RealdebridCom(MultiAccount):
+    __name__ = "RealdebridCom"
+    __type__ = "account"
+    __version__ = "0.63"
+    __status__ = "testing"
+
+    __config__ = [
+        ("mh_mode", "all;listed;unlisted", "Filter downloaders to use", "all"),
+        ("mh_list", "str", "Downloader list (comma separated)", ""),
+        ("mh_interval", "int", "Reload interval in hours", 12),
+    ]
+
+    __description__ = """Real-Debrid.com account plugin (patched: direct API token support)"""
+    __license__ = "GPLv3"
+    __authors__ = [
+        ("Devirex Hazzard", "naibaf_11@yahoo.de"),
+        ("GammaC0de", "nitzo2001[AT]yahoo[DOT]com"),
+    ]
+
+    API_URL = "https://api.real-debrid.com"
+
+    def api_request(self, api_type, method, get=None, post=None):
+        if api_type == "rest":
+            endpoint = "/rest/1.0"
+        elif api_type == "oauth":
+            endpoint = "/oauth/v2"
+        else:
+            raise ValueError("Illegal API call type")
+
+        self.req.http.c.setopt(pycurl.USERAGENT, "pyLoad/{}".format(self.pyload.version))
+        try:
+            json_data = self.load(self.API_URL + endpoint + method, get=get, post=post)
+        except BadHeader as exc:
+            json_data = exc.content
+
+        return json.loads(json_data)
+
+    def _refresh_token(self, client_id, client_secret, refresh_token):
+        res = self.api_request("oauth", "/token",
+                               post=args(client_id=client_id,
+                                         client_secret=client_secret,
+                                         code=refresh_token,
+                                         grant_type="http://oauth.net/grant_type/device/1.0"))
+        if 'error' in res:
+            self.log_error(self._("OAuth token refresh failed. For OAuth, use GetRealdebridToken.py. "
+                                  "For direct token, just set password to the API token."))
+            self.fail_login()
+
+        return res['access_token'], res['expires_in']
+
+    def grab_hosters(self, user, password, data):
+        api_data = self.api_request("rest", "/hosts/status", args(auth_token=data['api_token']))
+        hosters = [x[0] for x in api_data.items() if x[1]['supported'] == 1]
+        return hosters
+
+    def grab_info(self, user, password, data):
+        api_data = self.api_request("rest", "/user", args(auth_token=data['api_token']))
+
+        premium_remain = api_data["premium"]
+        premium = premium_remain > 0
+        validuntil = time.time() + premium_remain if premium else -1
+
+        return {"validuntil": validuntil, "trafficleft": -1, "premium": premium}
+
+    def signin(self, user, password, data):
+        user_parts = user.split('/')
+
+        if len(user_parts) == 2:
+            # OAuth mode: username = "client_id/client_secret", password = refresh_token
+            client_id, client_secret = user_parts
+            if 'api_token' not in data:
+                api_token, timeout = self._refresh_token(client_id, client_secret, password)
+                data['api_token'] = api_token
+                self.timeout = timeout - 5 * 60
+        else:
+            # Direct API token mode: password IS the API token
+            data['api_token'] = password
+
+        api_token = data['api_token']
+        api_data = self.api_request("rest", "/user", args(auth_token=api_token))
+
+        if api_data.get('error_code') == 8 and len(user_parts) == 2:
+            # Access token expired — refresh (OAuth mode only)
+            client_id, client_secret = user_parts
+            api_token, timeout = self._refresh_token(client_id, client_secret, password)
+            data['api_token'] = api_token
+            self.timeout = timeout - 5 * 60
+        elif 'error' in api_data:
+            self.log_error(api_data['error'])
+            self.fail_login()
+PYEOF
+
+	echo "✓ Real-Debrid plugin patch installed"
+}
+
+################################################################################
+# Debrid Account Setup (Real-Debrid)
+# Writes to accounts.cfg (not SQLite — pyload-ng stores accounts there)
 ################################################################################
 setup_debrid_accounts() {
-	if [ ! -f "$DB_FILE" ]; then
-		echo "⚠ Database not available, skipping debrid account setup"
-		return
-	fi
+	ACCOUNTS_CFG="/config/settings/accounts.cfg"
 
-	# Real-Debrid: plugin name is "RealDebridCom"
+	# Real-Debrid via direct API token
 	if [ -n "$REALDEBRID_API_KEY" ]; then
-		ACCOUNT_EXISTS=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM accounts WHERE plugin='RealDebridCom' AND loginname='api';" 2>/dev/null || echo "0")
-		if [ "$ACCOUNT_EXISTS" = "0" ]; then
-			sqlite3 "$DB_FILE" "INSERT INTO accounts (plugin, loginname, owner, activated, password, shared) VALUES ('RealDebridCom', 'api', 1, 1, '$REALDEBRID_API_KEY', 0);" 2>/dev/null &&
-				echo "✓ Real-Debrid account added" || echo "⚠ Failed to add Real-Debrid account"
-		else
-			sqlite3 "$DB_FILE" "UPDATE accounts SET password='$REALDEBRID_API_KEY', activated=1 WHERE plugin='RealDebridCom' AND loginname='api';" 2>/dev/null &&
-				echo "✓ Real-Debrid account updated" || echo "⚠ Failed to update Real-Debrid account"
+		# Ensure accounts.cfg exists and has a RealdebridCom section
+		if [ ! -f "$ACCOUNTS_CFG" ]; then
+			printf 'version: 1\n\nRealdebridCom:\n\n' >"$ACCOUNTS_CFG"
 		fi
+
+		# Update or insert the api entry under RealdebridCom section using Python
+		python3 - "$ACCOUNTS_CFG" "$REALDEBRID_API_KEY" <<'PYEOF'
+import sys, re
+
+cfg_path = sys.argv[1]
+api_key = sys.argv[2]
+account_line = f"    api:{api_key}"
+limit_line   = "    @limit_dl 0"
+
+with open(cfg_path, 'r') as f:
+    content = f.read()
+
+# Remove any existing RealdebridCom account lines (lines with api:... or @limit_dl under the section)
+# Strategy: replace the whole RealdebridCom block's account lines
+pattern = r'(RealdebridCom:\n)([^A-Z]*?(?=\n[A-Z]|\Z))'
+
+def replace_section(m):
+    return m.group(1) + "\n" + account_line + "\n" + limit_line + "\n\n"
+
+new_content, count = re.subn(pattern, replace_section, content, flags=re.DOTALL)
+
+if count == 0:
+    # Section doesn't exist, append it
+    new_content = content.rstrip() + "\n\nRealdebridCom:\n\n" + account_line + "\n" + limit_line + "\n"
+
+with open(cfg_path, 'w') as f:
+    f.write(new_content)
+
+print("accounts.cfg updated")
+PYEOF
+		echo "✓ Real-Debrid account configured in accounts.cfg (api:<token>)"
 	fi
 
 	# Torbox: no pyload-ng plugin yet (https://github.com/pyload/pyload/issues/4578)
 	if [ -n "$TORBOX_API_KEY" ]; then
 		echo "⚠ Torbox: pyload-ng plugin not yet available (github.com/pyload/pyload/issues/4578)"
-		echo "  API key stored — will auto-configure when plugin is released"
 	fi
 }
 
+install_realdebrid_plugin_patch
 setup_debrid_accounts
 
 echo "✓ pyLoad configured"
