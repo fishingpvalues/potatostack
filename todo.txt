@@ -3,3 +3,4 @@ rsync -avhP --info=progress2 /mnt/g/ daniel@192.168.178.158:/mnt/storage2/media/
 - fix backrest ntfy notifications it shows unknown in app
 - Fix Rustypaste homepage 
 - fix all grafana dashboards they don't display stuff maybe no sock access etc? 
+- fix backrest ssh stuff again check logs. make sure ssh stuff gets applied permanently 
