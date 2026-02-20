@@ -151,7 +151,7 @@ services:
           memory: 64M
     labels:
       - "potatostack.alerts=critical"
-      - "wud.trigger.docker.update=false"
+      - "wud.trigger.docker.update=true"
 
   # MongoDB - Document database (SOTA 2025)
   mongo:
@@ -259,7 +259,7 @@ services:
           cpus: "0.1"
           memory: 128M
     labels:
-      - "wud.trigger.docker.update=false"
+      - "wud.trigger.docker.update=true"
 
   ################################################################################
   # AUTHENTICATION & SECURITY
@@ -1423,13 +1423,61 @@ services:
       UN_FOLDER_5_DELETE_FILES: "false"
       UN_FOLDER_5_EXTRACT_ISOS: "false"
 
-      # Media folder - Extract + delete (manually copied archives)
-      UN_FOLDER_6_PATH: "/media"
+      # storage2 (SSD) - movies - Extract + delete
+      UN_FOLDER_6_PATH: "/media/movies"
       UN_FOLDER_6_DELETE_ORIGINAL: "true"
       UN_FOLDER_6_DELETE_AFTER: "0s"
       UN_FOLDER_6_MOVE_BACK: "true"
       UN_FOLDER_6_DELETE_FILES: "false"
       UN_FOLDER_6_EXTRACT_ISOS: "false"
+
+      # storage2 (SSD) - tv - Extract + delete
+      UN_FOLDER_12_PATH: "/media/tv"
+      UN_FOLDER_12_DELETE_ORIGINAL: "true"
+      UN_FOLDER_12_DELETE_AFTER: "0s"
+      UN_FOLDER_12_MOVE_BACK: "true"
+      UN_FOLDER_12_DELETE_FILES: "false"
+      UN_FOLDER_12_EXTRACT_ISOS: "false"
+
+      # storage (HDD) - torrent folder - Extract but DON'T delete (preserve seeding)
+      UN_FOLDER_7_PATH: "/storage/downloads/torrent"
+      UN_FOLDER_7_DELETE_ORIGINAL: "false"
+      UN_FOLDER_7_DELETE_AFTER: "0s"
+      UN_FOLDER_7_MOVE_BACK: "true"
+      UN_FOLDER_7_DELETE_FILES: "false"
+      UN_FOLDER_7_EXTRACT_ISOS: "false"
+
+      # storage (HDD) - rdt-client - Extract + delete (debrid synced, no seeding needed)
+      UN_FOLDER_8_PATH: "/storage/downloads/rdt-client"
+      UN_FOLDER_8_DELETE_ORIGINAL: "true"
+      UN_FOLDER_8_DELETE_AFTER: "0s"
+      UN_FOLDER_8_MOVE_BACK: "true"
+      UN_FOLDER_8_DELETE_FILES: "false"
+      UN_FOLDER_8_EXTRACT_ISOS: "false"
+
+      # storage (HDD) - pyload - Extract + delete
+      UN_FOLDER_9_PATH: "/storage/downloads/pyload"
+      UN_FOLDER_9_DELETE_ORIGINAL: "true"
+      UN_FOLDER_9_DELETE_AFTER: "0s"
+      UN_FOLDER_9_MOVE_BACK: "true"
+      UN_FOLDER_9_DELETE_FILES: "false"
+      UN_FOLDER_9_EXTRACT_ISOS: "false"
+
+      # storage (HDD) - slskd - Extract + delete
+      UN_FOLDER_10_PATH: "/storage/downloads/slskd"
+      UN_FOLDER_10_DELETE_ORIGINAL: "true"
+      UN_FOLDER_10_DELETE_AFTER: "0s"
+      UN_FOLDER_10_MOVE_BACK: "true"
+      UN_FOLDER_10_DELETE_FILES: "false"
+      UN_FOLDER_10_EXTRACT_ISOS: "false"
+
+      # storage (HDD) - media - Extract + delete (books, music, audiobooks, etc.)
+      UN_FOLDER_11_PATH: "/storage/media"
+      UN_FOLDER_11_DELETE_ORIGINAL: "true"
+      UN_FOLDER_11_DELETE_AFTER: "0s"
+      UN_FOLDER_11_MOVE_BACK: "true"
+      UN_FOLDER_11_DELETE_FILES: "false"
+      UN_FOLDER_11_EXTRACT_ISOS: "false"
 
       # NTFY notification hook
       NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
@@ -1453,6 +1501,8 @@ services:
       - unpackerr-config:/config
       - /mnt/storage2/downloads:/downloads
       - /mnt/storage2/media:/media
+      - /mnt/storage/downloads:/storage/downloads
+      - /mnt/storage/media:/storage/media
       - /home/daniel/potatostack/scripts/hooks/unpackerr-post-extract.sh:/hooks/post-extract.sh:ro
       - /home/daniel/potatostack/scripts/init/unpackerr-entrypoint.sh:/entrypoint.sh:ro
       - /home/daniel/potatostack/scripts/init/unpackerr-cleanup.sh:/cleanup.sh:ro
@@ -1958,6 +2008,7 @@ services:
     labels:
       - "potatostack.alerts=critical"
       - "autoheal=true"
+      - "wud.trigger.docker.update=true"
 
   ################################################################################
   # DOWNLOAD CLIENTS (behind VPN)
@@ -2241,6 +2292,8 @@ services:
         reservations:
           cpus: "0.05"
           memory: 32M
+    labels:
+      - "wud.trigger.docker.update=true"
 
   # Bitmagnet - DHT crawler and torrent indexer (SOTA 2026)
   bitmagnet:
@@ -2472,7 +2525,7 @@ services:
           memory: 128M
     labels:
       - "potatostack.alerts=critical"
-      - "wud.trigger.docker.update=false"
+      - "wud.trigger.docker.update=true"
 
   # Grafana - Metrics visualization and dashboards (SOTA 2025)
   grafana:
@@ -2520,7 +2573,7 @@ services:
           cpus: "0.25"
           memory: 128M
     labels:
-      - "wud.trigger.docker.update=false"
+      - "wud.trigger.docker.update=true"
 
   # Node Exporter - Host metrics for Prometheus (SOTA 2025)
   # TEMPORARILY DISABLED - corrupted image layer
@@ -2715,7 +2768,7 @@ services:
           cpus: "1.0"
           memory: 384M
     labels:
-      - "wud.trigger.docker.update=false"
+      - "wud.trigger.docker.update=true"
 
   # Grafana Alloy - Unified collector (Promtail replacement)
   alloy:
@@ -2734,7 +2787,7 @@ services:
     depends_on:
       - loki
     labels:
-      - "wud.trigger.docker.update=false"
+      - "wud.trigger.docker.update=true"
     restart: unless-stopped
     deploy:
       resources:
@@ -3334,6 +3387,8 @@ services:
         limits:
           cpus: "0.25"
           memory: 128M
+    labels:
+      - "wud.trigger.docker.update=false"
 
   # Woodpecker CI - Gitea integrated CI/CD (SOTA 2025)
   # woodpecker-server:
@@ -3539,7 +3594,7 @@ services:
     networks:
       - potatostack
     labels:
-      - "wud.trigger.docker.update=false"
+      - "wud.trigger.docker.update=true"
     restart: unless-stopped
     read_only: true
     tmpfs:
@@ -3739,7 +3794,7 @@ services:
           memory: 64M
     labels:
       - "potatostack.alerts=critical"
-      - "wud.trigger.docker.update=false"
+      - "wud.trigger.docker.update=true"
 
   # Alertmanager ntfy Formatter - Enterprise alert formatting -> ntfy
   alertmanager-ntfy:
@@ -4318,6 +4373,8 @@ services:
         limits:
           cpus: "0.5"
           memory: 128M
+    labels:
+      - "wud.trigger.docker.update=true"
 
   velld-web:
     image: ghcr.io/dendianugerah/velld/web:${VELLD_WEB_TAG:-latest}
@@ -4339,6 +4396,8 @@ services:
         limits:
           cpus: "0.25"
           memory: 64M
+    labels:
+      - "wud.trigger.docker.update=true"
 
   ################################################################################
   # Backrest - Restic Backup WebUI & Scheduler
@@ -4401,6 +4460,8 @@ services:
         reservations:
           cpus: "0.25"
           memory: 128M
+    labels:
+      - "wud.trigger.docker.update=true"
 
   # Snapshot Scheduler - Cron-based Kopia snapshots
   snapshot-scheduler:

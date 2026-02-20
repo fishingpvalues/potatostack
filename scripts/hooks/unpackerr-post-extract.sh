@@ -1,6 +1,7 @@
 #!/bin/bash
 ################################################################################
 # Unpackerr Post-Extract Hook - Sends ntfy notifications on extraction events
+# Unpackerr event names: extracting, extracted, extractfailed, deleting, deletefailed
 ################################################################################
 
 NTFY_INTERNAL_URL="${NTFY_INTERNAL_URL:-http://ntfy:80}"
@@ -8,107 +9,79 @@ NTFY_TOPIC="${NTFY_TOPIC:-potatostack}"
 NTFY_TOKEN="${NTFY_TOKEN:-}"
 
 # Variables passed by Unpackerr:
-# UN_EVENT: Event type (extract_start, extract_finish, extract_delete, etc.)
-# UN_APP: App name (or folder name for standalone)
-# UN_PATH: Path to file/folder
-# UN_FOLDER: Folder name
-# UN_ITEM: Item name
-# UN_TYPE: File type (rar, zip, 7z, etc.)
-# UN_ERROR: Error message (if any)
+# UN_EVENT:        extracting | extracted | extractfailed | deleting | deletefailed
+# UN_APP:          "folder" for folder-mode watchers
+# UN_PATH:         path to the item being extracted
+# UN_DATA_OUTPUT:  output folder path
+# UN_DATA_ARCHIVE_0: first archive filename
+# UN_DATA_ERROR:   error message (on failure events)
+# UN_DATA_BYTES:   bytes extracted
+# UN_DATA_FILES:   number of files extracted
 
-title="PotatoStack - Unpackerr"
-tags="unpackerr,extract"
+title=""
+message=""
+tags=""
+priority=""
+
+_item="${UN_DATA_ARCHIVE_0:-${UN_PATH:-unknown}}"
+_item="$(basename "${_item}")"
+_folder="${UN_DATA_OUTPUT:-${UN_PATH:-?}}"
 
 case "${UN_EVENT:-}" in
-extract_start)
-	title="PotatoStack - Unpackerr: Extraction Started"
-	message="Started extracting: ${UN_ITEM}\nFolder: ${UN_FOLDER}\nType: ${UN_TYPE}"
-	tags="unpackerr,extract,started"
-	priority="default"
-	;;
-extract_finish)
-	title="PotatoStack - Unpackerr: Extraction Complete"
-	message="Successfully extracted: ${UN_ITEM}\nFolder: ${UN_FOLDER}\nType: ${UN_TYPE}\nPath: ${UN_PATH}"
-	tags="unpackerr,extract,success"
-	priority="default"
-	;;
-extract_delete)
-	title="PotatoStack - Unpackerr: Archive Deleted"
-	message="Deleted original archive: ${UN_ITEM}\nFolder: ${UN_FOLDER}"
-	tags="unpackerr,deleted"
-	priority="low"
-	;;
-extract_error)
-	title="PotatoStack - Unpackerr: Extraction Failed"
-	message="Failed to extract: ${UN_ITEM}\nFolder: ${UN_FOLDER}\nError: ${UN_ERROR}"
-	tags="unpackerr,extract,error"
-	priority="high"
-	;;
-extract_retries)
-	title="PotatoStack - Unpackerr: Retrying Extraction"
-	message="Retry attempt for: ${UN_ITEM}\nFolder: ${UN_FOLDER}\nAttempt: ${UN_RETRY_COUNT:-unknown}"
-	tags="unpackerr,retry"
-	priority="low"
-	;;
-extract_failed)
-	title="PotatoStack - Unpackerr: Extraction Failed"
-	message="Failed to extract: ${UN_ITEM}\nFolder: ${UN_FOLDER}\nError: ${UN_ERROR}"
-	tags="unpackerr,extract,error,failed"
-	priority="high"
-	;;
-*)
-	# Unknown event - ignore
-	exit 0
-	;;
+  extracting)
+    title="Extracting: ${_item}"
+    message="Folder: ${_folder}"
+    tags="package,arrow_down"
+    priority="default"
+    ;;
+  extracted)
+    title="Extracted: ${_item}"
+    message="Files: ${UN_DATA_FILES:-?}  Size: ${UN_DATA_BYTES:-?}B\nFolder: ${_folder}"
+    tags="white_check_mark,package"
+    priority="default"
+    ;;
+  extractfailed)
+    title="Extract Failed: ${_item}"
+    message="Error: ${UN_DATA_ERROR:-unknown error}\nFolder: ${_folder}"
+    tags="x,package"
+    priority="high"
+    ;;
+  deleting)
+    title="Deleting: ${_item}"
+    message="Folder: ${_folder}"
+    tags="wastebasket"
+    priority="min"
+    ;;
+  deletefailed)
+    title="Delete Failed: ${_item}"
+    message="Error: ${UN_DATA_ERROR:-unknown error}\nFolder: ${_folder}"
+    tags="x,wastebasket"
+    priority="default"
+    ;;
+  *)
+    # Unknown/unhandled event (e.g. imported, startup)
+    exit 0
+    ;;
 esac
 
-url_target="${NTFY_INTERNAL_URL%/}/${NTFY_TOPIC}"
+# Send ntfy notification
+_ntfy_post() {
+  local url="${NTFY_INTERNAL_URL%/}/${NTFY_TOPIC}"
+  local auth_header=""
+  [ -n "$NTFY_TOKEN" ] && auth_header="-H Authorization: Bearer ${NTFY_TOKEN}"
 
-if command -v curl >/dev/null 2>&1; then
-	if [ -n "$NTFY_TOKEN" ]; then
-		curl -fsS -X POST "$url_target" \
-			-H "Title: $title" \
-			-H "Tags: $tags" \
-			-H "Priority: $priority" \
-			-H "Authorization: Bearer $NTFY_TOKEN" \
-			-d "$message" >/dev/null 2>&1 || true
-	else
-		curl -fsS -X POST "$url_target" \
-			-H "Title: $title" \
-			-H "Tags: $tags" \
-			-H "Priority: $priority" \
-			-d "$message" >/dev/null 2>&1 || true
-	fi
-elif command -v wget >/dev/null 2>&1; then
-	headers="--header=Title: $title --header=Tags: $tags --header=Priority: $priority"
-	if [ -n "$NTFY_TOKEN" ]; then
-		headers="$headers --header=Authorization: Bearer $NTFY_TOKEN"
-	fi
-	wget -q -O- --post-data="$message" $headers "$url_target" >/dev/null 2>&1 || true
-fi
+  curl -fsS -X POST "$url" \
+    -H "Title: ${title}" \
+    -H "Tags: ${tags}" \
+    -H "Priority: ${priority}" \
+    ${auth_header:+-H "$auth_header"} \
+    -d "${message}" >/dev/null 2>&1 || true
+}
 
-# Ownership fix for crash safety
+_ntfy_post
+
+# Ownership fix on extracted or failed (ensure files are accessible by daniel:daniel)
 if [ -n "${UN_PATH:-}" ] && [ -d "${UN_PATH}" ]; then
-	chown -R 1000:1000 "${UN_PATH}" 2>/dev/null || true
-	chmod -R 755 "${UN_PATH}" 2>/dev/null || true
-fi
-
-# Manual deletion for non-torrent folders (safety layer)
-# Note: Unpackerr's DELETE_ORIGINAL handles most cases
-# This is backup in case it fails
-if [ -n "${UN_PATH:-}" ] && [ -n "${UN_FOLDER:-}" ]; then
-	case "${UN_FOLDER}" in
-	torrents | /downloads/torrents)
-		# NEVER delete in torrents folder - preserve seeding
-		;;
-	*)
-		# Delete original archive after successful extraction
-		if [ -n "${UN_ITEM:-}" ]; then
-			# Try to find and delete the original archive
-			find "$(dirname "${UN_PATH}")" -maxdepth 1 \
-				\( -name "${UN_ITEM}" -o -name "${UN_ITEM}.part" -o -name "${UN_ITEM}.rar" -o -name "${UN_ITEM}.zip" \) \
-				-delete 2>/dev/null || true
-		fi
-		;;
-	esac
+  chown -R 1000:1000 "${UN_PATH}" 2>/dev/null || true
+  chmod -R 755 "${UN_PATH}" 2>/dev/null || true
 fi
