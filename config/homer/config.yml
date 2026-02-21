@@ -77,6 +77,12 @@ services:
         url: "https://potatostack.tale-iwato.ts.net:4533"
         target: "_blank"
 
+      - name: "Beets"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/beets.png"
+        subtitle: "Music Tagger"
+        url: "https://potatostack.tale-iwato.ts.net:8337"
+        target: "_blank"
+
       - name: "Stash"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/stash.png"
         subtitle: "Adult Media"

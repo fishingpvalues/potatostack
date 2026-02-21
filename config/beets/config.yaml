@@ -1,0 +1,162 @@
+################################################################################
+# Beets - SOTA Music Library Manager Configuration
+# Ingests from: SpotiFLAC (main), slskd, torrents, aria2, pyload
+# Library: /mnt/storage/media/music (organized, tagged)
+# Consumers: Navidrome, Jellyfin, slskd (share)
+################################################################################
+
+directory: /music
+library: /config/library.db
+
+################################################################################
+# Import Settings - Copy mode (preserves originals for seeding)
+################################################################################
+import:
+  copy: yes
+  write: yes
+  move: no
+  timid: no
+  autotag: yes
+  quiet: no
+  log: /config/import.log
+  incremental: yes
+  incremental_skip_later: yes
+  resume: ask
+  from_scratch: no
+  languages: [en, de]
+  default_action: apply
+
+################################################################################
+# MusicBrainz matching
+################################################################################
+musicbrainz:
+  searchlimit: 10
+  extra_tags: [year, catalognum, country, media, label]
+  genres: yes
+  external_ids:
+    discogs: yes
+    beatport: yes
+    spotify: yes
+
+match:
+  strong_rec_thresh: 0.10
+  medium_rec_thresh: 0.25
+  dist_thresh: 0.5
+  preferred:
+    media: ['Digital Media|File', 'Digital Media', 'CD', 'Vinyl']
+    original_year: yes
+  max_rec:
+    missing_tracks: medium
+    unmatched_tracks: medium
+
+################################################################################
+# Path Format - SOTA Soulseek community standard
+# Single disc:  Artist/2023 - Album/01 - Title.flac
+# Multi disc:   Artist/2023 - Album/1-01 - Title.flac
+# Compilations: Various Artists/2023 - Album/01 - Artist - Title.flac
+# Singletons:   Singletons/Artist/Title.flac
+################################################################################
+item_fields:
+  multidisc: 1 if disctotal > 1 else 0
+
+paths:
+  default: $albumartist/%if{$multidisc,$year - $album%aunique{}/$disc-,$year - $album%aunique{}/}$track - $title
+  comp: Various Artists/%if{$multidisc,$year - $album%aunique{}/$disc-,$year - $album%aunique{}/}$track - $artist - $title
+  singleton: Singletons/$artist/$title
+
+replace:
+  '[\\/]': _
+  '^\.': _
+  '[\x00-\x1f]': _
+  '[<>:"?\*\|]': _
+  '\.$': _
+  '\s+$': ''
+
+per_disc_numbering: yes
+
+################################################################################
+# Plugins - Lightweight SOTA selection (no chroma - causes OOM in Docker)
+################################################################################
+plugins:
+  - fetchart
+  - embedart
+  - lastgenre
+  - lyrics
+  - replaygain
+  - duplicates
+  - mbsync
+  - web
+  - scrub
+  - fromfilename
+  - importadded
+  - badfiles
+  - info
+  - missing
+
+################################################################################
+# Plugin Configuration
+################################################################################
+
+fetchart:
+  auto: yes
+  maxwidth: 800
+  quality: 90
+  sources:
+    - filesystem
+    - coverart
+    - itunes
+    - amazon
+    - albumart
+  cover_names: [cover, folder, front, art, album, artwork]
+  filename: cover
+  store_source: yes
+
+embedart:
+  auto: yes
+  maxwidth: 800
+
+lastgenre:
+  auto: yes
+  source: album
+  prefer_specific: yes
+  count: 5
+  separator: ', '
+  fallback: ''
+  min_weight: 10
+
+duplicates:
+  checksum: no
+  copy: no
+  move: no
+  delete: no
+  path: no
+  keys: [mb_trackid, mb_albumid]
+
+scrub:
+  auto: yes
+
+fromfilename:
+  auto: yes
+
+web:
+  host: 0.0.0.0
+  port: 8337
+  readonly: no
+  reverse_proxy: yes
+
+lyrics:
+  auto: yes
+  sources: [genius, tekstowo]
+  force: no
+  fallback: ''
+
+replaygain:
+  auto: yes
+  backend: ffmpeg       # uses /usr/bin/ffmpeg (confirmed available)
+  overwrite: no         # skip if already computed
+  threads: 2            # limit CPU during import
+
+missing:
+  format: $albumartist - $album - ($year) - $title
+  count: yes
+  total: yes
