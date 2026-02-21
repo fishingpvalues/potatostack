@@ -117,11 +117,6 @@ services:
         url: "https://potatostack.tale-iwato.ts.net:8076"
         target: "_blank"
 
-      - name: "Unpackerr"
-        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/unpackerr.png"
-        subtitle: "Archive Extractor"
-        url: "https://potatostack.tale-iwato.ts.net:5656"
-        target: "_blank"
 
   - name: "Photos & Files"
     icon: "fas fa-images"
@@ -142,6 +137,12 @@ services:
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/filestash.png"
         subtitle: "Advanced File Manager"
         url: "https://potatostack.tale-iwato.ts.net:8095"
+        target: "_blank"
+
+      - name: "Filestash Admin"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/filestash.png"
+        subtitle: "Filestash Admin Panel"
+        url: "https://potatostack.tale-iwato.ts.net:8095/admin"
         target: "_blank"
 
       - name: "FileBrowser (Public)"

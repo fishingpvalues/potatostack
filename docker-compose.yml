@@ -4406,6 +4406,12 @@ services:
     image: ghcr.io/garethgeorge/backrest:${BACKREST_TAG:-latest}
     container_name: backrest
     hostname: backrest
+    # Fix SSH key permissions on every start (prevents "too open" auth failures)
+    entrypoint: ["/sbin/tini", "--", "/bin/sh", "-c"]
+    command:
+      - "chmod 700 /root/.ssh 2>/dev/null; chmod 600 /root/.ssh/id_ed25519 /root/.ssh/config
+        /root/.ssh/known_hosts 2>/dev/null; chmod 644 /root/.ssh/id_ed25519.pub 2>/dev/null;
+        exec /docker-entrypoint /backrest"
     logging: *default-logging
     extra_hosts:
       - "u546612.your-storagebox.de:91.98.255.98"
