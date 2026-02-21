@@ -6,941 +6,637 @@
   <title>Rustypaste</title>
   <style>
     :root {
-      --bg: #0a0a0a;
-      --surface: #141414;
-      --surface-hover: #1f1f1f;
-      --surface-active: #2a2a2a;
-      --border: #2a2a2a;
-      --border-hover: #3a3a3a;
+      --bg: #09090b;
+      --surface: #18181b;
+      --surface2: #27272a;
+      --surface3: #3f3f46;
+      --border: #27272a;
+      --border2: #3f3f46;
       --text: #fafafa;
-      --text-muted: #a1a1aa;
-      --text-subtle: #71717a;
-      --primary: #fafafa;
-      --primary-bg: #fafafa;
-      --primary-text: #0a0a0a;
-      --radius: 0.75rem;
-      --shadow: 0 0 0 1px rgba(255,255,255,0.1);
-      --shadow-lg: 0 25px 50px -12px rgba(0,0,0,0.8);
-      --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --muted: #a1a1aa;
+      --subtle: #71717a;
+      --accent: #ffffff;
+      --accent-bg: #ffffff;
+      --accent-text: #09090b;
+      --danger: #7f1d1d;
+      --danger-text: #fca5a5;
+      --success: #14532d;
+      --success-text: #86efac;
+      --radius: 8px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
-
     [data-theme="light"] {
       --bg: #fafafa;
       --surface: #ffffff;
-      --surface-hover: #f4f4f5;
-      --surface-active: #e4e4e7;
+      --surface2: #f4f4f5;
+      --surface3: #e4e4e7;
       --border: #e4e4e7;
-      --border-hover: #d4d4d8;
+      --border2: #d4d4d8;
       --text: #09090b;
-      --text-muted: #52525b;
-      --text-subtle: #a1a1aa;
-      --primary: #18181b;
-      --primary-bg: #18181b;
-      --primary-text: #fafafa;
-      --shadow: 0 0 0 1px rgba(0,0,0,0.1);
-      --shadow-lg: 0 25px 50px -12px rgba(0,0,0,0.15);
+      --muted: #52525b;
+      --subtle: #a1a1aa;
+      --accent: #18181b;
+      --accent-bg: #18181b;
+      --accent-text: #fafafa;
     }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-family: var(--font); background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+    body { min-height: 100vh; display: flex; flex-direction: column; }
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    html {
-      font-family: var(--font-sans);
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.5;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-
-    body {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    /* Header */
+    /* ── Header ── */
     header {
-      padding: 1.5rem 2rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 1.5rem; height: 3.5rem;
       border-bottom: 1px solid var(--border);
-      background: var(--surface);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      backdrop-filter: blur(12px);
+      background: var(--surface); position: sticky; top: 0; z-index: 50;
     }
-
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      font-size: 1.25rem;
-      font-weight: 600;
-      letter-spacing: -0.025em;
+    .logo { display: flex; align-items: center; gap: 0.625rem; font-weight: 600; font-size: 0.9375rem; }
+    .logo-mark {
+      width: 1.75rem; height: 1.75rem; background: var(--accent-bg); color: var(--accent-text);
+      border-radius: 5px; display: grid; place-items: center;
+      font-family: var(--mono); font-size: 0.625rem; font-weight: 700; letter-spacing: -0.05em;
     }
-
-    .logo-icon {
-      width: 2rem;
-      height: 2rem;
-      background: var(--primary-bg);
-      color: var(--primary-text);
-      border-radius: var(--radius);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: var(--font-mono);
-      font-size: 0.875rem;
-      font-weight: 700;
+    .header-right { display: flex; align-items: center; gap: 0.75rem; }
+    .status { display: flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; color: var(--muted); }
+    .status-dot { width: 6px; height: 6px; background: #22c55e; border-radius: 50%; animation: blink 2s ease-in-out infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .icon-btn {
+      width: 2rem; height: 2rem; border: 1px solid var(--border); border-radius: var(--radius);
+      background: transparent; color: var(--muted); cursor: pointer; display: grid; place-items: center;
+      transition: background .15s, color .15s, border-color .15s;
     }
+    .icon-btn:hover { background: var(--surface2); border-color: var(--border2); color: var(--text); }
+    .icon-btn svg { width: 14px; height: 14px; }
 
-    /* Theme Toggle */
-    .theme-toggle {
-      background: var(--surface-hover);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 0.5rem;
-      cursor: pointer;
-      transition: var(--transition);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 2.5rem;
-      height: 2.5rem;
+    /* ── Layout ── */
+    main { flex: 1; display: grid; grid-template-columns: 380px 1fr; gap: 1.25rem; max-width: 1200px; width: 100%; margin: 0 auto; padding: 1.25rem; }
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+    @media (max-width: 640px) { main { padding: 0.75rem; gap: 0.75rem; } }
+
+    /* ── Card ── */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .card-header { padding: 0.875rem 1rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .card-title { font-size: 0.8125rem; font-weight: 500; color: var(--muted); display: flex; align-items: center; gap: 0.375rem; }
+    .card-title svg { width: 13px; height: 13px; }
+    .card-body { padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+
+    /* ── Tabs ── */
+    .tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--surface); }
+    .tab { flex: 1; padding: 0.625rem 1rem; font-size: 0.8125rem; font-weight: 500; cursor: pointer; border: none; background: transparent; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .15s, border-color .15s; }
+    .tab.active { color: var(--text); border-bottom-color: var(--text); }
+    .tab:hover:not(.active) { color: var(--text); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: flex; flex-direction: column; gap: 0.75rem; }
+
+    /* ── Drop Zone ── */
+    .drop-zone {
+      border: 1.5px dashed var(--border2); border-radius: var(--radius); padding: 2rem 1rem;
+      text-align: center; cursor: pointer; transition: border-color .15s, background .15s;
     }
+    .drop-zone:hover, .drop-zone.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 5%, transparent); }
+    .drop-zone svg { width: 2rem; height: 2rem; color: var(--subtle); margin-bottom: 0.5rem; }
+    .drop-zone p { font-size: 0.8125rem; color: var(--muted); }
+    .drop-zone small { font-size: 0.6875rem; color: var(--subtle); margin-top: 0.25rem; display: block; }
+    #file-input { display: none; }
 
-    .theme-toggle:hover {
-      background: var(--surface-active);
-      border-color: var(--border-hover);
+    /* ── Textarea ── */
+    textarea {
+      width: 100%; min-height: 140px; padding: 0.75rem; resize: vertical;
+      background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+      color: var(--text); font-family: var(--mono); font-size: 0.8125rem; line-height: 1.5;
+      transition: border-color .15s;
     }
+    textarea:focus { outline: none; border-color: var(--border2); }
 
-    .theme-toggle svg {
-      width: 1.25rem;
-      height: 1.25rem;
-      fill: currentColor;
+    /* ── Inputs ── */
+    .field { display: flex; flex-direction: column; gap: 0.25rem; }
+    .field label { font-size: 0.75rem; color: var(--muted); font-weight: 500; }
+    input[type="text"], select {
+      width: 100%; height: 2.25rem; padding: 0 0.75rem;
+      background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+      color: var(--text); font-size: 0.8125rem; font-family: inherit;
+      transition: border-color .15s;
     }
+    input[type="text"]:focus, select:focus { outline: none; border-color: var(--border2); }
+    select { cursor: pointer; }
 
-    /* Main Content */
-    main {
-      flex: 1;
-      max-width: 64rem;
-      width: 100%;
-      margin: 0 auto;
-      padding: 2rem;
-    }
+    /* ── Options Row ── */
+    .options-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.625rem; }
 
-    /* Hero Section */
-    .hero {
-      text-align: center;
-      padding: 3rem 0 4rem;
-    }
+    /* ── Progress ── */
+    .progress-bar { height: 2px; background: var(--border); border-radius: 9999px; overflow: hidden; display: none; }
+    .progress-fill { height: 100%; background: var(--accent); width: 0; transition: width .2s; }
 
-    .hero h1 {
-      font-size: 3rem;
-      font-weight: 700;
-      letter-spacing: -0.025em;
-      margin-bottom: 1rem;
-      background: linear-gradient(135deg, var(--text) 0%, var(--text-muted) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .hero p {
-      font-size: 1.125rem;
-      color: var(--text-muted);
-      max-width: 32rem;
-      margin: 0 auto;
-    }
-
-    /* Grid Layout */
-    .grid {
-      display: grid;
-      gap: 1.5rem;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    }
-
-    @media (max-width: 640px) {
-      .grid {
-        grid-template-columns: 1fr;
-      }
-      .hero h1 {
-        font-size: 2rem;
-      }
-      main {
-        padding: 1rem;
-      }
-    }
-
-    /* Cards */
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1.5rem;
-      box-shadow: var(--shadow);
-      transition: var(--transition);
-    }
-
-    .card:hover {
-      border-color: var(--border-hover);
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-lg);
-    }
-
-    .card-title {
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .card-title svg {
-      width: 1rem;
-      height: 1rem;
-    }
-
-    /* Form Elements */
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    input[type="text"],
-    input[type="file"] {
-      width: 100%;
-      padding: 0.75rem 1rem;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      color: var(--text);
-      font-size: 0.875rem;
-      transition: var(--transition);
-      font-family: inherit;
-    }
-
-    input[type="text"]:focus,
-    input[type="file"]:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 2px rgba(250,250,250,0.1);
-    }
-
-    input[type="file"] {
-      padding: 0.5rem;
-      cursor: pointer;
-    }
-
-    input[type="file"]::file-selector-button {
-      background: var(--surface-hover);
-      border: none;
-      border-radius: calc(var(--radius) - 0.25rem);
-      padding: 0.5rem 0.75rem;
-      margin-right: 0.75rem;
-      color: var(--text);
-      cursor: pointer;
-      font-family: inherit;
-      font-size: 0.875rem;
-      transition: var(--transition);
-    }
-
-    input[type="file"]::file-selector-button:hover {
-      background: var(--surface-active);
-    }
-
-    /* Buttons */
+    /* ── Buttons ── */
     .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      padding: 0.75rem 1.5rem;
-      border-radius: var(--radius);
-      font-size: 0.875rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: var(--transition);
-      border: none;
-      font-family: inherit;
-      text-decoration: none;
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem;
+      height: 2.25rem; padding: 0 0.875rem; border-radius: var(--radius);
+      font-size: 0.8125rem; font-weight: 500; cursor: pointer; border: none;
+      font-family: inherit; transition: opacity .15s, background .15s;
     }
+    .btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+    .btn-primary { background: var(--accent-bg); color: var(--accent-text); }
+    .btn-primary:hover { opacity: .9; }
+    .btn-primary:disabled { opacity: .5; cursor: default; }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: var(--surface2); color: var(--text); border-color: var(--border2); }
+    .btn-danger { background: var(--danger); color: var(--danger-text); }
+    .btn-danger:hover { opacity: .9; }
+    .btn-full { width: 100%; }
 
-    .btn-primary {
-      background: var(--primary-bg);
-      color: var(--primary-text);
-    }
+    /* ── Spinner ── */
+    .spinner { width: 13px; height: 13px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin .6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    .btn-primary:hover {
-      opacity: 0.9;
-      transform: translateY(-1px);
-    }
-
-    .btn-secondary {
-      background: var(--surface-hover);
-      color: var(--text);
-      border: 1px solid var(--border);
-    }
-
-    .btn-secondary:hover {
-      background: var(--surface-active);
-      border-color: var(--border-hover);
-    }
-
-    .btn-danger {
-      background: #7f1d1d;
-      color: #fecaca;
-    }
-
-    .btn-danger:hover {
-      background: #991b1b;
-    }
-
-    .btn-full {
-      width: 100%;
-      margin-top: 1rem;
-    }
-
-    /* File List */
-    .file-list-container {
-      margin-top: 2rem;
-    }
-
-    .file-list-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1rem;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-
-    .file-list-header h2 {
-      font-size: 1.5rem;
-      font-weight: 600;
-    }
-
-    .search-box {
-      display: flex;
-      gap: 0.5rem;
-      flex: 1;
-      max-width: 24rem;
-    }
-
-    .search-box input {
-      flex: 1;
-    }
-
-    .file-grid {
-      display: grid;
-      gap: 0.75rem;
-    }
-
+    /* ── File List ── */
+    .file-panel { display: flex; flex-direction: column; }
+    .file-panel .card-header { gap: 0.75rem; }
+    .search-wrap { flex: 1; position: relative; }
+    .search-wrap svg { position: absolute; left: 0.625rem; top: 50%; transform: translateY(-50%); width: 13px; height: 13px; color: var(--subtle); pointer-events: none; }
+    .search-wrap input { padding-left: 2rem; }
+    .file-list { flex: 1; overflow-y: auto; max-height: calc(100vh - 12rem); }
     .file-item {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      padding: 1rem;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      transition: var(--transition);
+      display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 1rem;
+      border-bottom: 1px solid var(--border); transition: background .1s;
     }
+    .file-item:last-child { border-bottom: none; }
+    .file-item:hover { background: var(--surface2); }
+    .file-icon { width: 1.875rem; height: 1.875rem; background: var(--surface2); border-radius: 5px; display: grid; place-items: center; flex-shrink: 0; }
+    .file-icon svg { width: 13px; height: 13px; color: var(--muted); }
+    .file-info { flex: 1; min-width: 0; }
+    .file-name { font-size: 0.8125rem; font-weight: 500; color: var(--text); text-decoration: none; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-name:hover { text-decoration: underline; }
+    .file-meta { font-size: 0.6875rem; color: var(--subtle); margin-top: 1px; }
+    .file-actions { display: flex; gap: 0.375rem; }
+    .file-actions .icon-btn { width: 1.75rem; height: 1.75rem; }
+    .file-actions .icon-btn.danger:hover { background: var(--danger); border-color: var(--danger); color: var(--danger-text); }
 
-    .file-item:hover {
-      background: var(--surface-hover);
-      border-color: var(--border-hover);
+    /* ── Empty / Loading ── */
+    .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; padding: 3rem; color: var(--subtle); }
+    .empty svg { width: 2rem; height: 2rem; opacity: .4; }
+    .empty p { font-size: 0.8125rem; }
+
+    /* ── Result Box ── */
+    .result-box {
+      background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius);
+      padding: 0.75rem; display: none; gap: 0.5rem; align-items: center;
     }
+    .result-box.show { display: flex; }
+    .result-url { flex: 1; font-family: var(--mono); font-size: 0.75rem; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; word-break: break-all; }
 
-    .file-icon {
-      width: 2.5rem;
-      height: 2.5rem;
-      background: var(--surface-active);
-      border-radius: calc(var(--radius) - 0.25rem);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .file-icon svg {
-      width: 1.25rem;
-      height: 1.25rem;
-      color: var(--text-muted);
-    }
-
-    .file-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .file-name {
-      font-weight: 500;
-      color: var(--text);
-      text-decoration: none;
-      display: block;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .file-name:hover {
-      text-decoration: underline;
-    }
-
-    .file-meta {
-      font-size: 0.75rem;
-      color: var(--text-subtle);
-      margin-top: 0.25rem;
-    }
-
-    .file-actions {
-      display: flex;
-      gap: 0.5rem;
-    }
-
-    .file-actions .btn {
-      padding: 0.5rem;
-      min-width: 2.5rem;
-      min-height: 2.5rem;
-    }
-
-    /* Empty State */
-    .empty-state {
-      text-align: center;
-      padding: 3rem;
-      color: var(--text-muted);
-    }
-
-    .empty-state svg {
-      width: 3rem;
-      height: 3rem;
-      margin-bottom: 1rem;
-      opacity: 0.5;
-    }
-
-    /* Toast Notifications */
-    .toast-container {
-      position: fixed;
-      bottom: 1.5rem;
-      right: 1.5rem;
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-
+    /* ── Toast ── */
+    .toasts { position: fixed; bottom: 1.25rem; right: 1.25rem; z-index: 200; display: flex; flex-direction: column; gap: 0.5rem; }
     .toast {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1rem 1.5rem;
-      box-shadow: var(--shadow-lg);
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      animation: slideIn 0.3s ease-out;
-      max-width: 24rem;
+      display: flex; align-items: center; gap: 0.625rem; min-width: 260px; max-width: 340px;
+      padding: 0.75rem 1rem; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0,0,0,.4);
+      animation: slide-in .2s ease; font-size: 0.8125rem;
     }
+    .toast.success { border-color: #22c55e30; }
+    .toast.error { border-color: #ef444430; }
+    .toast svg { width: 14px; height: 14px; flex-shrink: 0; }
+    .toast.success svg { color: #22c55e; }
+    .toast.error svg { color: #ef4444; }
+    @keyframes slide-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-    .toast.success {
-      border-color: #22c55e;
-    }
-
-    .toast.error {
-      border-color: #ef4444;
-    }
-
-    @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateX(100%);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
-    }
-
-    /* Loading Spinner */
-    .spinner {
-      width: 1.25rem;
-      height: 1.25rem;
-      border: 2px solid var(--border);
-      border-top-color: var(--text);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* Status Badge */
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.375rem;
-      padding: 0.25rem 0.75rem;
-      background: var(--surface-active);
-      border: 1px solid var(--border);
-      border-radius: 9999px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      color: var(--text-muted);
-    }
-
-    .badge::before {
-      content: '';
-      width: 0.5rem;
-      height: 0.5rem;
-      background: #22c55e;
-      border-radius: 50%;
-      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-
-    /* Footer */
-    footer {
-      padding: 2rem;
-      text-align: center;
-      border-top: 1px solid var(--border);
-      color: var(--text-subtle);
-      font-size: 0.875rem;
-    }
-
-    /* Modal */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.8);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      opacity: 0;
-      visibility: hidden;
-      transition: var(--transition);
-    }
-
-    .modal-overlay.active {
-      opacity: 1;
-      visibility: visible;
-    }
-
-    .modal {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 2rem;
-      max-width: 28rem;
-      width: 90%;
-      box-shadow: var(--shadow-lg);
-      transform: scale(0.95);
-      transition: var(--transition);
-    }
-
-    .modal-overlay.active .modal {
-      transform: scale(1);
-    }
-
-    .modal h3 {
-      margin-bottom: 1rem;
-      font-size: 1.25rem;
-    }
-
-    .modal-actions {
-      display: flex;
-      gap: 0.75rem;
-      margin-top: 1.5rem;
-    }
-
-    .modal-actions .btn {
-      flex: 1;
-    }
+    /* ── Modal ── */
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: none; place-items: center; z-index: 100; }
+    .overlay.open { display: grid; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; width: 90%; max-width: 22rem; box-shadow: 0 24px 48px rgba(0,0,0,.5); }
+    .modal h3 { font-size: 0.9375rem; margin-bottom: 0.375rem; }
+    .modal p { font-size: 0.8125rem; color: var(--muted); }
+    .modal-actions { display: flex; gap: 0.5rem; margin-top: 1.25rem; }
+    .modal-actions .btn { flex: 1; }
   </style>
-  <script>
-    // Pre-load auth tokens
-    const AUTH_CONFIG = {
-      token: '20230558dbaf35295370a0f89f5b8c7087581f4152a87117774a427d007ed303',
-      delete_token: 'ad1c3357df5268688610c14381c7ae120372424d6530c292ab3f11e59b69c512'
-    };
-
-    // Theme toggle
-    function initTheme() {
-      const saved = localStorage.getItem('theme') || 'dark';
-      document.documentElement.setAttribute('data-theme', saved);
-    }
-
-    function toggleTheme() {
-      const current = document.documentElement.getAttribute('data-theme');
-      const next = current === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', next);
-      localStorage.setItem('theme', next);
-    }
-
-    // Toast notifications
-    function showToast(message, type = 'success') {
-      const container = document.getElementById('toast-container');
-      const toast = document.createElement('div');
-      toast.className = `toast ${type}`;
-      toast.innerHTML = `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          ${type === 'success' 
-            ? '<path d="M20 6L9 17l-5-5"/>'
-            : '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'
-          }
-        </svg>
-        <span>${message}</span>
-      `;
-      container.appendChild(toast);
-      setTimeout(() => toast.remove(), 3000);
-    }
-
-    // File upload handlers
-    async function uploadFile(form, type = 'file') {
-      const btn = form.querySelector('.btn-primary');
-      const originalText = btn.innerHTML;
-      btn.innerHTML = '<div class="spinner"></div>';
-      btn.disabled = true;
-
-      try {
-        const formData = new FormData(form);
-        const response = await fetch('/', {
-          method: 'POST',
-          headers: {
-            'Authorization': AUTH_CONFIG.token
-          },
-          body: formData
-        });
-
-        if (!response.ok) throw new Error('Upload failed');
-        
-        const url = await response.text();
-        showToast('File uploaded successfully!');
-        
-        // Copy to clipboard
-        await navigator.clipboard.writeText(url);
-        showToast('URL copied to clipboard!', 'success');
-        
-        // Reset form
-        form.reset();
-        
-        // Refresh file list
-        loadFiles();
-      } catch (err) {
-        showToast(err.message, 'error');
-      } finally {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-      }
-    }
-
-    // Load and display files
-    async function loadFiles() {
-      const container = document.getElementById('file-list');
-      const searchTerm = document.getElementById('search').value.toLowerCase();
-      
-      try {
-        const response = await fetch('/list', {
-          headers: {
-            'Authorization': AUTH_CONFIG.token
-          }
-        });
-        
-        if (!response.ok) throw new Error('Failed to load files');
-        
-        const files = await response.json();
-        const filtered = files.filter(f => 
-          f.file_name.toLowerCase().includes(searchTerm)
-        );
-
-        if (filtered.length === 0) {
-          container.innerHTML = `
-            <div class="empty-state">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
-                <polyline points="13 2 13 9 20 9"/>
-              </svg>
-              <p>${searchTerm ? 'No files match your search' : 'No files uploaded yet'}</p>
-            </div>
-          `;
-          return;
-        }
-
-        container.innerHTML = filtered.map(file => `
-          <div class="file-item">
-            <div class="file-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
-                <polyline points="13 2 13 9 20 9"/>
-              </svg>
-            </div>
-            <div class="file-info">
-              <a href="/${file.file_name}" target="_blank" class="file-name">${file.file_name}</a>
-              <div class="file-meta">${formatBytes(file.file_size)}</div>
-            </div>
-            <div class="file-actions">
-              <button class="btn btn-secondary" onclick="copyUrl('${file.file_name}')" title="Copy URL">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                </svg>
-              </button>
-              <button class="btn btn-danger" onclick="confirmDelete('${file.file_name}')" title="Delete">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="3 6 5 6 21 6"/>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-        `).join('');
-      } catch (err) {
-        showToast(err.message, 'error');
-      }
-    }
-
-    function formatBytes(bytes) {
-      if (bytes === 0) return '0 Bytes';
-      const k = 1024;
-      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-      const i = Math.floor(Math.log(bytes) / Math.log(k));
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-
-    async function copyUrl(filename) {
-      const url = `${window.location.origin}/${filename}`;
-      try {
-        await navigator.clipboard.writeText(url);
-        showToast('URL copied to clipboard!');
-      } catch {
-        showToast('Failed to copy URL', 'error');
-      }
-    }
-
-    function confirmDelete(filename) {
-      document.getElementById('delete-filename').textContent = filename;
-      document.getElementById('delete-modal').classList.add('active');
-    }
-
-    function closeModal() {
-      document.getElementById('delete-modal').classList.remove('active');
-    }
-
-    async function deleteFile() {
-      const filename = document.getElementById('delete-filename').textContent;
-      closeModal();
-      
-      try {
-        const response = await fetch(`/${filename}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': AUTH_CONFIG.delete_token
-          }
-        });
-
-        if (!response.ok) throw new Error('Delete failed');
-        
-        showToast('File deleted successfully!');
-        loadFiles();
-      } catch (err) {
-        showToast(err.message, 'error');
-      }
-    }
-
-    // Initialize
-    document.addEventListener('DOMContentLoaded', () => {
-      initTheme();
-      loadFiles();
-      
-      // Auto-refresh every 30 seconds
-      setInterval(loadFiles, 30000);
-    });
-  </script>
 </head>
 <body>
-  <header>
-    <div class="logo">
-      <div class="logo-icon">RP</div>
-      <span>Rustypaste</span>
-    </div>
-    <div style="display: flex; align-items: center; gap: 1rem;">
-      <span class="badge">Connected</span>
-      <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
-        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="5"/>
-          <line x1="12" y1="1" x2="12" y2="3"/>
-          <line x1="12" y1="21" x2="12" y2="23"/>
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-          <line x1="1" y1="12" x2="3" y2="12"/>
-          <line x1="21" y1="12" x2="23" y2="12"/>
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-        </svg>
-      </button>
-    </div>
-  </header>
 
-  <main>
-    <section class="hero">
-      <h1>Share Files Instantly</h1>
-      <p>Fast, simple, and secure file sharing. Upload files and get instant URLs to share anywhere.</p>
-    </section>
+<header>
+  <div class="logo">
+    <div class="logo-mark">RP</div>
+    <span>Rustypaste</span>
+  </div>
+  <div class="header-right">
+    <div class="status"><div class="status-dot"></div><span>Online</span></div>
+    <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme" id="theme-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+    </button>
+  </div>
+</header>
 
-    <div class="grid">
-      <div class="card">
-        <div class="card-title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
-            <polyline points="13 2 13 9 20 9"/>
-          </svg>
-          Upload File
-        </div>
-        <form onsubmit="event.preventDefault(); uploadFile(this);" enctype="multipart/form-data">
-          <div class="form-group">
-            <input type="file" name="file" required />
-          </div>
-          <button type="submit" class="btn btn-primary btn-full">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="17 8 12 3 7 8"/>
-              <line x1="12" y1="3" x2="12" y2="15"/>
-            </svg>
-            Upload
-          </button>
-        </form>
+<main>
+  <!-- Left: Upload Panel -->
+  <div>
+    <div class="card">
+      <div class="tabs" id="tabs">
+        <button class="tab active" data-tab="file">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;margin-right:4px;vertical-align:-1px"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+          File
+        </button>
+        <button class="tab" data-tab="text">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;margin-right:4px;vertical-align:-1px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          Text
+        </button>
+        <button class="tab" data-tab="url">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;margin-right:4px;vertical-align:-1px"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          URL
+        </button>
       </div>
 
-      <div class="card">
-        <div class="card-title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="2" y1="12" x2="22" y2="12"/>
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-          </svg>
-          Share URL
-        </div>
-        <form onsubmit="event.preventDefault(); uploadFile(this, 'url');" enctype="multipart/form-data">
-          <div class="form-group">
-            <input type="text" name="url" placeholder="https://example.com/file.pdf" required />
+      <div class="card-body">
+        <!-- File tab -->
+        <div class="tab-panel active" id="tab-file">
+          <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <p>Drop file here or <strong>click to browse</strong></p>
+            <small>Max 50 MB</small>
           </div>
-          <button type="submit" class="btn btn-primary btn-full">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-            </svg>
-            Shorten URL
-          </button>
-        </form>
-      </div>
+          <input type="file" id="file-input" multiple />
+        </div>
 
-      <div class="card">
-        <div class="card-title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-            <line x1="16" y1="13" x2="8" y2="13"/>
-            <line x1="16" y1="17" x2="8" y2="17"/>
-            <polyline points="10 9 9 9 8 9"/>
-          </svg>
-          Remote File
+        <!-- Text tab -->
+        <div class="tab-panel" id="tab-text">
+          <textarea id="text-content" placeholder="Paste or type content here..."></textarea>
         </div>
-        <form onsubmit="event.preventDefault(); uploadFile(this, 'remote');" enctype="multipart/form-data">
-          <div class="form-group">
-            <input type="text" name="remote" placeholder="https://example.com/file.pdf" required />
-          </div>
-          <button type="submit" class="btn btn-primary btn-full">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            Mirror File
-          </button>
-        </form>
-      </div>
 
-      <div class="card">
-        <div class="card-title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-          </svg>
-          One-Time File
-        </div>
-        <form onsubmit="event.preventDefault(); uploadFile(this, 'oneshot');" enctype="multipart/form-data">
-          <div class="form-group">
-            <input type="file" name="oneshot" required />
+        <!-- URL tab -->
+        <div class="tab-panel" id="tab-url">
+          <div class="field">
+            <label>URL to shorten or mirror</label>
+            <input type="text" id="url-input" placeholder="https://example.com/file.pdf" />
           </div>
-          <button type="submit" class="btn btn-secondary btn-full">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
-            Upload Once
+          <div class="options-row">
+            <label style="display:flex;align-items:center;gap:6px;font-size:0.75rem;color:var(--muted);cursor:pointer">
+              <input type="checkbox" id="mirror-url" style="width:auto"> Mirror (copy) file
+            </label>
+          </div>
+        </div>
+
+        <!-- Shared options -->
+        <div class="options-row">
+          <div class="field">
+            <label>Expiry</label>
+            <select id="expiry">
+              <option value="">Never</option>
+              <option value="1h">1 hour</option>
+              <option value="6h">6 hours</option>
+              <option value="24h">24 hours</option>
+              <option value="7d">7 days</option>
+              <option value="30d">30 days</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Custom URL</label>
+            <input type="text" id="custom-url" placeholder="my-file" />
+          </div>
+        </div>
+
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.75rem;color:var(--muted);cursor:pointer">
+          <input type="checkbox" id="oneshot" style="width:auto"> One-time (delete after view)
+        </label>
+
+        <div class="progress-bar" id="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+
+        <div class="result-box" id="result-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" style="width:14px;height:14px;flex-shrink:0"><path d="M20 6L9 17l-5-5"/></svg>
+          <span class="result-url" id="result-url"></span>
+          <button class="icon-btn" id="copy-result-btn" title="Copy URL" onclick="copyResultUrl()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           </button>
-        </form>
+        </div>
+
+        <button class="btn btn-primary btn-full" id="upload-btn" onclick="doUpload()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Upload
+        </button>
       </div>
     </div>
 
-    <section class="file-list-container">
-      <div class="file-list-header">
-        <h2>Your Files</h2>
-        <div class="search-box">
-          <input type="text" id="search" placeholder="Search files..." oninput="loadFiles()" />
-          <button class="btn btn-secondary" onclick="loadFiles()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="23 4 23 10 17 10"/>
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-            </svg>
-          </button>
+    <!-- CLI reference -->
+    <div class="card" style="margin-top:0.75rem;">
+      <div class="card-header">
+        <div class="card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          curl
         </div>
       </div>
-      <div id="file-list" class="file-grid">
-        <div class="empty-state">
-          <div class="spinner"></div>
-          <p>Loading files...</p>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <footer>
-    <p>Rustypaste — Fast, simple file sharing</p>
-  </footer>
-
-  <!-- Delete Modal -->
-  <div id="delete-modal" class="modal-overlay" onclick="if(event.target === this) closeModal()">
-    <div class="modal">
-      <h3>Delete File</h3>
-      <p>Are you sure you want to delete <strong id="delete-filename"></strong>?</p>
-      <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.5rem;">This action cannot be undone.</p>
-      <div class="modal-actions">
-        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-        <button class="btn btn-danger" onclick="deleteFile()">Delete</button>
+      <div style="padding:0.75rem;display:flex;flex-direction:column;gap:0.5rem;">
+        <code style="font-family:var(--mono);font-size:0.6875rem;color:var(--muted);display:block;line-height:1.6;">
+          <span style="color:var(--subtle)"># file</span><br>
+          curl -F "file=@photo.jpg" https://paste.ts.net<br><br>
+          <span style="color:var(--subtle)"># text</span><br>
+          echo "hello" | curl -F "file=@-" https://paste.ts.net<br><br>
+          <span style="color:var(--subtle)"># with auth</span><br>
+          curl -H "Authorization: TOKEN" -F "file=@f" /
+        </code>
       </div>
     </div>
   </div>
 
-  <!-- Toast Container -->
-  <div id="toast-container" class="toast-container"></div>
+  <!-- Right: File List -->
+  <div class="card file-panel">
+    <div class="card-header">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        Files
+      </div>
+      <div class="search-wrap" style="max-width:200px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="search" placeholder="Search..." oninput="renderFiles()" />
+      </div>
+      <button class="icon-btn" onclick="fetchFiles()" title="Refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      </button>
+    </div>
+    <div class="file-list" id="file-list">
+      <div class="empty">
+        <div class="spinner" style="width:1.5rem;height:1.5rem;border-width:2px;"></div>
+        <p>Loading…</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Delete Modal -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h3>Delete file</h3>
+    <p>Delete <strong id="del-name"></strong>? This cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toasts -->
+<div class="toasts" id="toasts"></div>
+
+<script>
+  // ─── Auth ───────────────────────────────────────────────
+  const TOKEN = '__AUTH_TOKEN__';
+  const DEL_TOKEN = '__DELETE_TOKEN__';
+
+  // ─── State ──────────────────────────────────────────────
+  let allFiles = [];
+  let deletePending = null;
+  let activeTab = 'file';
+
+  // ─── Theme ──────────────────────────────────────────────
+  (function() {
+    const t = localStorage.getItem('rp-theme') || 'dark';
+    document.documentElement.dataset.theme = t;
+  })();
+  function toggleTheme() {
+    const cur = document.documentElement.dataset.theme;
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    localStorage.setItem('rp-theme', next);
+  }
+
+  // ─── Tabs ────────────────────────────────────────────────
+  document.getElementById('tabs').addEventListener('click', e => {
+    const btn = e.target.closest('.tab');
+    if (!btn) return;
+    const tab = btn.dataset.tab;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + tab).classList.add('active');
+    activeTab = tab;
+    hideResult();
+  });
+
+  // ─── Drag & Drop ─────────────────────────────────────────
+  const dropZone = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('file-input');
+
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('over');
+    if (e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files);
+  });
+  fileInput.addEventListener('change', () => { if (fileInput.files.length) uploadFiles(fileInput.files); });
+
+  // ─── Upload ──────────────────────────────────────────────
+  async function doUpload() {
+    if (activeTab === 'file') {
+      if (!fileInput.files.length) { toast('Select a file first', 'error'); return; }
+      uploadFiles(fileInput.files);
+    } else if (activeTab === 'text') {
+      const txt = document.getElementById('text-content').value.trim();
+      if (!txt) { toast('Enter some text', 'error'); return; }
+      uploadText(txt);
+    } else {
+      const url = document.getElementById('url-input').value.trim();
+      if (!url) { toast('Enter a URL', 'error'); return; }
+      uploadUrl(url);
+    }
+  }
+
+  function getOptions() {
+    const expiry = document.getElementById('expiry').value;
+    const customUrl = document.getElementById('custom-url').value.trim();
+    const oneshot = document.getElementById('oneshot').checked;
+    return { expiry, customUrl, oneshot };
+  }
+
+  async function uploadFiles(files) {
+    for (const file of files) {
+      const fd = new FormData();
+      const { expiry, customUrl, oneshot } = getOptions();
+      fd.append(oneshot ? 'oneshot' : 'file', file, file.name);
+      if (expiry) fd.append('expire', expiry);
+      if (customUrl) fd.append('url', customUrl);
+      await send(fd, file.name);
+    }
+    fileInput.value = '';
+  }
+
+  async function uploadText(txt) {
+    const fd = new FormData();
+    const { expiry, customUrl } = getOptions();
+    const blob = new Blob([txt], { type: 'text/plain' });
+    fd.append('file', blob, 'paste.txt');
+    if (expiry) fd.append('expire', expiry);
+    if (customUrl) fd.append('url', customUrl);
+    await send(fd, 'text paste');
+  }
+
+  async function uploadUrl(url) {
+    const fd = new FormData();
+    const { expiry, customUrl } = getOptions();
+    const mirror = document.getElementById('mirror-url').checked;
+    fd.append(mirror ? 'remote' : 'url', url);
+    if (expiry) fd.append('expire', expiry);
+    if (customUrl) fd.append('url', customUrl);
+    await send(fd, 'URL');
+  }
+
+  async function send(formData, label) {
+    const btn = document.getElementById('upload-btn');
+    const bar = document.getElementById('progress-bar');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner"></div> Uploading…';
+    bar.style.display = 'block';
+    const fill = document.getElementById('progress-fill');
+
+    let progress = 0;
+    const ticker = setInterval(() => {
+      progress = Math.min(progress + 8, 85);
+      fill.style.width = progress + '%';
+    }, 120);
+
+    try {
+      const res = await fetch('/', {
+        method: 'POST',
+        headers: { 'Authorization': TOKEN },
+        body: formData
+      });
+      clearInterval(ticker);
+      fill.style.width = '100%';
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      const url = (await res.text()).trim();
+      showResult(url);
+      try { await navigator.clipboard.writeText(url); toast('URL copied to clipboard'); } catch { toast('Uploaded: ' + url); }
+      fetchFiles();
+    } catch (err) {
+      clearInterval(ticker);
+      toast(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload';
+      setTimeout(() => { bar.style.display = 'none'; fill.style.width = '0'; }, 600);
+    }
+  }
+
+  // ─── Result box ──────────────────────────────────────────
+  function showResult(url) {
+    const box = document.getElementById('result-box');
+    document.getElementById('result-url').textContent = url;
+    box.classList.add('show');
+  }
+  function hideResult() { document.getElementById('result-box').classList.remove('show'); }
+  async function copyResultUrl() {
+    const url = document.getElementById('result-url').textContent;
+    try { await navigator.clipboard.writeText(url); toast('Copied!'); } catch {}
+  }
+
+  // ─── File List ────────────────────────────────────────────
+  async function fetchFiles() {
+    try {
+      const res = await fetch('/list', { headers: { 'Authorization': TOKEN } });
+      if (!res.ok) throw new Error(res.statusText);
+      allFiles = await res.json();
+      renderFiles();
+    } catch (err) {
+      document.getElementById('file-list').innerHTML = `<div class="empty"><p>Failed to load: ${err.message}</p></div>`;
+    }
+  }
+
+  function renderFiles() {
+    const q = document.getElementById('search').value.toLowerCase();
+    const files = allFiles.filter(f => f.file_name.toLowerCase().includes(q));
+    const el = document.getElementById('file-list');
+
+    if (!files.length) {
+      el.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg><p>${q ? 'No matches' : 'No files yet'}</p></div>`;
+      return;
+    }
+
+    el.innerHTML = files.map(f => {
+      const ext = f.file_name.split('.').pop().toLowerCase();
+      const icon = iconFor(ext);
+      const size = fmtBytes(f.file_size || 0);
+      const name = escHtml(f.file_name);
+      return `<div class="file-item">
+        <div class="file-icon">${icon}</div>
+        <div class="file-info">
+          <a href="/${f.file_name}" target="_blank" class="file-name" title="${name}">${name}</a>
+          <div class="file-meta">${size}</div>
+        </div>
+        <div class="file-actions">
+          <button class="icon-btn" title="Copy URL" onclick="copyUrl('${f.file_name}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+          <button class="icon-btn danger" title="Delete" onclick="openDelete('${f.file_name}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ─── Delete ──────────────────────────────────────────────
+  function openDelete(name) {
+    deletePending = name;
+    document.getElementById('del-name').textContent = name;
+    document.getElementById('overlay').classList.add('open');
+  }
+  function closeModal() { document.getElementById('overlay').classList.remove('open'); deletePending = null; }
+  async function confirmDelete() {
+    if (!deletePending) return;
+    closeModal();
+    try {
+      const res = await fetch('/' + deletePending, { method: 'DELETE', headers: { 'Authorization': DEL_TOKEN } });
+      if (!res.ok) throw new Error(res.statusText);
+      toast('Deleted');
+      fetchFiles();
+    } catch (err) { toast(err.message, 'error'); }
+  }
+
+  // ─── Copy URL ────────────────────────────────────────────
+  async function copyUrl(name) {
+    const url = window.location.origin + '/' + name;
+    try { await navigator.clipboard.writeText(url); toast('Copied!'); }
+    catch { toast('Failed to copy', 'error'); }
+  }
+
+  // ─── Toast ───────────────────────────────────────────────
+  function toast(msg, type = 'success') {
+    const c = document.getElementById('toasts');
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    const icon = type === 'success'
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+    el.innerHTML = icon + `<span>${escHtml(msg)}</span>`;
+    c.appendChild(el);
+    setTimeout(() => el.remove(), 3500);
+  }
+
+  // ─── Helpers ─────────────────────────────────────────────
+  function fmtBytes(b) {
+    if (!b) return '—';
+    const u = ['B','KB','MB','GB'];
+    let i = 0;
+    while (b >= 1024 && i < 3) { b /= 1024; i++; }
+    return b.toFixed(i ? 1 : 0) + ' ' + u[i];
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function iconFor(ext) {
+    const img = ['jpg','jpeg','png','gif','webp','svg','bmp','ico'];
+    const vid = ['mp4','webm','mkv','avi','mov'];
+    const aud = ['mp3','flac','ogg','wav','m4a','opus'];
+    const arc = ['zip','tar','gz','bz2','7z','rar','xz'];
+    const cod = ['js','ts','py','rs','go','sh','yaml','yml','toml','json','xml','html','css'];
+    if (img.includes(ext)) return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
+    if (vid.includes(ext)) return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`;
+    if (aud.includes(ext)) return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`;
+    if (arc.includes(ext)) return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>`;
+    if (cod.includes(ext)) return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`;
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>`;
+  }
+
+  // ─── Init ────────────────────────────────────────────────
+  fetchFiles();
+  setInterval(fetchFiles, 30000);
+</script>
 </body>
 </html>

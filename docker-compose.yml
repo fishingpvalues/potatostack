@@ -61,7 +61,7 @@ services:
       <<: *common-env
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-gitea,immich,healthchecks,atuin,miniflux,grafana,bitmagnet,freqtrade,ghostfolio,baikal}
+      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-gitea,immich,healthchecks,atuin,miniflux,grafana,freqtrade,ghostfolio,baikal}
     entrypoint: sh /postgres-wrapper.sh
     command:
       - "postgres"
@@ -448,9 +448,6 @@ services:
       - "${HOST_BIND:-127.0.0.1}:9666:9666" # pyLoad Click'n'Load
       - "${HOST_BIND:-127.0.0.1}:9900:9900" # Stash
 
-      - "${HOST_BIND:-127.0.0.1}:3333:3333" # Bitmagnet WebUI
-      - "${HOST_BIND:-127.0.0.1}:3334:3334" # Bitmagnet DHT
-      - "${HOST_BIND:-127.0.0.1}:3334:3334/udp"
     environment:
       <<: *common-env
       VPN_SERVICE_PROVIDER: ${VPN_PROVIDER:-surfshark}
@@ -2295,69 +2292,6 @@ services:
     labels:
       - "wud.trigger.docker.update=true"
 
-  # Bitmagnet - DHT crawler and torrent indexer (SOTA 2026)
-  bitmagnet:
-    image: ghcr.io/bitmagnet-io/bitmagnet:${BITMAGNET_TAG:-latest}
-    container_name: bitmagnet
-    logging: *default-logging
-    network_mode: "service:gluetun"
-    command:
-      - worker
-      - run
-      - --keys=http_server
-      - --keys=queue_server
-      - --keys=dht_crawler
-    environment:
-      <<: *common-env
-      # Note: Using container IP because network_mode:service:gluetun can't resolve Docker DNS
-      # If postgres IP changes, update this or restart postgres first
-      POSTGRES_HOST: 172.22.0.3
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      POSTGRES_DATABASE: bitmagnet
-      POSTGRES_SSL_MODE: disable
-      # Redis cache disabled - not exposed on host
-      # REDIS_ADDR: redis-cache:6379
-      REDIS_DB: "15"
-      # Lightweight crawl settings for mini PC
-      DHT_CRAWLER_SCALING_FACTOR: "5"
-      DHT_CRAWLER_SAVE_FILES_THRESHOLD: "50"
-      DHT_CRAWLER_SAVE_PIECES: "false"
-      # TMDB for movie/TV classification (20 req/sec with own key)
-      TMDB_ENABLED: "true"
-      TMDB_API_KEY: ${TMDB_API_KEY}
-      # Logging
-      LOG_LEVEL: info
-      LOG_JSON: "false"
-    volumes:
-      - /mnt/ssd/docker-data/bitmagnet:/root/.config/bitmagnet
-    depends_on:
-      gluetun:
-        condition: service_healthy
-        restart: true
-      postgres:
-        condition: service_healthy
-      redis-cache:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3333/ || exit 1"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 120s
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 1024M
-        reservations:
-          cpus: "0.25"
-          memory: 256M
-    labels:
-      - "autoheal=true"
-      - "wud.trigger.docker.update=true"
-
   ################################################################################
   # PHOTO MANAGEMENT
   ################################################################################
@@ -2575,30 +2509,72 @@ services:
     labels:
       - "wud.trigger.docker.update=true"
 
+  # cAdvisor - Docker container metrics (low-resource config)
+  # Requires containerd socket for cgroup v2 container enumeration.
+  # Key savings vs default: housekeeping_interval=30s (default=1s = 30x less CPU),
+  # docker_only skips host cgroups, enable_metrics keeps only cpu/memory/network
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:${CADVISOR_TAG:-latest}
+    container_name: cadvisor
+    logging: *default-logging
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    command:
+      - "--housekeeping_interval=30s"
+      - "--global_housekeeping_interval=30s"
+      - "--max_housekeeping_interval=35s"
+      - "--allow_dynamic_housekeeping=true"
+      - "--docker_only=true"
+      - "--store_container_labels=false"
+      - "--containerd=/run/containerd/containerd.sock"
+      - "--enable_metrics=cpu,memory,network,diskIO"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /run/containerd/containerd.sock:/run/containerd/containerd.sock:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.15"
+          memory: 128M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
+
   # Node Exporter - Host metrics for Prometheus (SOTA 2025)
-  # TEMPORARILY DISABLED - corrupted image layer
-  # node-exporter:
-  #   image: prom/node-exporter:${NODE_EXPORTER_TAG:-latest}
-  #   container_name: node-exporter
-  #   logging: *default-logging
-  #   command:
-  #     - "--path.rootfs=/host"
-  #     - "--path.procfs=/host/proc"
-  #     - "--path.sysfs=/host/sys"
-  #     - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|run|var/lib/docker/.+)($|/)"
-  #   volumes:
-  #     - /:/host:ro,rslave
-  #   networks:
-  #     - potatostack
-  #   restart: unless-stopped
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: "0.25"
-  #         memory: 128M
-  #       reservations:
-  #         cpus: "0.1"
-  #         memory: 64M
+  node-exporter:
+    image: prom/node-exporter:${NODE_EXPORTER_TAG:-latest}
+    container_name: node-exporter
+    logging: *default-logging
+    command:
+      - "--path.rootfs=/host"
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|run|var/lib/docker/.+)($|/)"
+      - "--collector.systemd"
+      - "--collector.processes"
+      - "--collector.tcpstat"
+      - "--collector.interrupts"
+    volumes:
+      - /:/host:ro,rslave
+      - /run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket:ro
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
 
   # Postgres Exporter - PostgreSQL metrics
   postgres-exporter:
@@ -2980,6 +2956,31 @@ services:
   # UTILITIES & TOOLS
   ################################################################################
 
+  # Rustypaste config init - injects env vars (tokens) into config and landing page at startup
+  rustypaste-config-init:
+    image: alpine:latest
+    container_name: rustypaste-config-init
+    command:
+      - sh
+      - -c
+      - |
+        sed -e "s/__AUTH_TOKEN__/$$RUSTYPASTE_AUTH_TOKEN/g" \
+            -e "s/__DELETE_TOKEN__/$$RUSTYPASTE_DELETE_TOKEN/g" \
+            /templates/config.toml > /config/config.toml
+        sed -e "s/__AUTH_TOKEN__/$$RUSTYPASTE_AUTH_TOKEN/g" \
+            -e "s/__DELETE_TOKEN__/$$RUSTYPASTE_DELETE_TOKEN/g" \
+            /templates/landing_page.html > /config/landing_page.html
+        echo "Rustypaste config generated"
+    environment:
+      RUSTYPASTE_AUTH_TOKEN: ${RUSTYPASTE_AUTH_TOKEN}
+      RUSTYPASTE_DELETE_TOKEN: ${RUSTYPASTE_DELETE_TOKEN}
+    volumes:
+      - ./config/rustypaste:/templates:ro
+      - rustypaste-config:/config
+    networks:
+      - potatostack
+    restart: "no"
+
   # Rustypaste - Pastebin
   rustypaste:
     image: orhunp/rustypaste:${RUSTYPASTE_TAG:-latest}
@@ -2993,13 +2994,14 @@ services:
       RUST_LOG: ${RUSTYPASTE_LOG_LEVEL:-info}
     volumes:
       - /mnt/storage/rustypaste:/data
-      - ./config/rustypaste/config.toml:/config/config.toml:ro
-      - ./config/rustypaste/landing_page.html:/config/landing_page.html:ro
-      - ./config/rustypaste/index.html:/config/index.html:ro
+      - rustypaste-config:/config:ro
     networks:
       - potatostack
     depends_on:
-      - storage-init
+      storage-init:
+        condition: service_completed_successfully
+      rustypaste-config-init:
+        condition: service_completed_successfully
     restart: unless-stopped
     healthcheck:
       disable: true
@@ -4138,7 +4140,7 @@ services:
     environment:
       - GLUETUN_URL=http://gluetun:8008
       - CHECK_INTERVAL=${GLUETUN_CHECK_INTERVAL:-10}
-      - RESTART_CONTAINERS= qbittorrent pyload slskd spotiflac stash aria2 bitmagnet tdl
+      - RESTART_CONTAINERS= qbittorrent pyload slskd spotiflac stash aria2 tdl
       - RESTART_ON_STOP=${GLUETUN_RESTART_ON_STOP:-true}
       - RESTART_ON_FAILURE=${GLUETUN_RESTART_ON_FAILURE:-true}
       - RESTART_COOLDOWN=${GLUETUN_RESTART_COOLDOWN:-120}
@@ -4621,6 +4623,7 @@ volumes:
 
   # Monitoring
   # prometheus uses bind mount to /mnt/ssd/docker-data/prometheus
+  rustypaste-config:
   netdata-config:
   netdata-lib:
   netdata-cache:

@@ -179,7 +179,6 @@ mkdir -p \
 	"${SSD_BASE}/unpackerr" \
 	"${SSD_BASE}/prometheus" \
 	"${SSD_BASE}/loki" \
-	"${SSD_BASE}/bitmagnet" \
 	"${SSD_BASE}/slskd/logs" \
 	"${SSD_BASE}/stash/cache" \
 	"${SSD_BASE}/freqtrade/user_data"
@@ -370,9 +369,6 @@ chown -R 472:472 "${SSD_BASE}/grafana" 2>/dev/null || true
 
 # Unpackerr (UID 1000) - ensure proper ownership
 [ -d "${SSD_BASE}/unpackerr" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/unpackerr" 2>/dev/null || true
-
-# Bitmagnet (UID 1000) - DHT crawler
-[ -d "${SSD_BASE}/bitmagnet" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/bitmagnet" 2>/dev/null || true
 
 # Freqtrade (UID 1000) - Trading bot user data
 [ -d "${SSD_BASE}/freqtrade" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/freqtrade" 2>/dev/null || true

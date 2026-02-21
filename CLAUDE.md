@@ -135,7 +135,7 @@ Services using `network_mode: "service:gluetun"` have special networking constra
 **Problem:** Docker's internal DNS (container name resolution) doesn't work through gluetun's VPN network namespace. Services behind gluetun cannot resolve hostnames like `postgres` or `redis-cache`.
 
 **Solutions:**
-1. **Use container IPs directly** (current approach for bitmagnet):
+1. **Use container IPs directly** (current approach):
    ```yaml
    POSTGRES_HOST: 172.22.0.15  # Get with: docker inspect postgres --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'
    ```
@@ -149,18 +149,13 @@ Services using `network_mode: "service:gluetun"` have special networking constra
 **Required gluetun configuration:**
 ```yaml
 # .env - Add ports for VPN firewall
-VPN_INPUT_PORTS=51413,50000,6888,3333,3334
+VPN_INPUT_PORTS=51413,50000,6888
 
 # docker-compose.yml - Allow Docker network traffic
 FIREWALL_OUTBOUND_SUBNETS: ${LAN_NETWORK:-192.168.178.0/24},172.16.0.0/12
 ```
 
-**Services behind gluetun:** qbittorrent, slskd, aria2, pyload, spotiflac, stash, bitmagnet, tdl
-
-**Bitmagnet-specific:**
-- Uses postgres IP: `172.22.0.15` (check after postgres restart)
-- Redis cache disabled (not exposed on host)
-- DHT port 3334, WebUI port 3333
+**Services behind gluetun:** qbittorrent, slskd, aria2, pyload, spotiflac, stash, tdl
 
 ## Preferences
 

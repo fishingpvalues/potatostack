@@ -51,8 +51,6 @@ All services accessible via HTTPS using Tailscale certificates or Traefik revers
 | slskd | https://potatostack.tale-iwato.ts.net:2234 | https://slskd.potatostack.tale-iwato.ts.net | Soulseek |
 | slskd Peer | - | - | 50000 |
 | SpotiFLAC | https://potatostack.tale-iwato.ts.net:8097 | https://spotiflac.potatostack.tale-iwato.ts.net | Spotify Downloader |
-| Bitmagnet | https://potatostack.tale-iwato.ts.net:3333 | - | DHT Indexer |
-| Bitmagnet DHT | - | - | 3334/tcp, 3334/udp |
 | Unpackerr WebUI | https://potatostack.tale-iwato.ts.net:5656 | - | Archive Extractor |
 
 ## Files & Photos

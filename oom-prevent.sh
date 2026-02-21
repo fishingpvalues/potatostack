@@ -48,7 +48,7 @@ check_memory() {
 		echo 3 >/proc/sys/vm/drop_caches 2>/dev/null || true
 
 		# Stop known memory hogs
-		for container in qbittorrent article-extractor immich-ml jellyfin bitmagnet; do
+		for container in qbittorrent article-extractor immich-ml jellyfin; do
 			local mem_bytes
 			mem_bytes=$(docker inspect --format '{{.HostConfig.Memory}}' "$container" 2>/dev/null) || continue
 			local mem_mb=$((mem_bytes / 1024 / 1024))

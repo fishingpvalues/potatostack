@@ -3,6 +3,7 @@ apiVersion: 1
 datasources:
   # Prometheus - Metrics
   - name: Prometheus
+    uid: PBFA97CFB590B2093
     type: prometheus
     access: proxy
     url: http://prometheus:9090
@@ -14,6 +15,7 @@ datasources:
 
   # Loki - Log aggregation
   - name: Loki
+    uid: P8E80F9AEF21F6940
     type: loki
     access: proxy
     url: http://loki:3100
@@ -21,13 +23,14 @@ datasources:
     jsonData:
       maxLines: 1000
       derivedFields:
-        - datasourceUid: Prometheus
+        - datasourceUid: PBFA97CFB590B2093
           matcherRegex: "traceID=(\\w+)"
           name: TraceID
           url: "$${__value.raw}"
 
   # Alertmanager - Alerts datasource
   - name: Alertmanager
+    uid: P7647F508D5F54FCB
     type: alertmanager
     access: proxy
     url: http://alertmanager:9093

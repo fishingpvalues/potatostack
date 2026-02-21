@@ -184,7 +184,7 @@ Here's what's worth backing up with your 1TB budget:
 
   Total estimate: ~45GB — fits easily in 1TB with tons of room for history/snapshots.
 
-  Note on Postgres: the DB is ~9GB (mostly bitmagnet which is regeneratable). It's inside the docker volume, not
+  Note on Postgres: the DB is inside the docker volume, not
   /mnt/ssd/docker-data/postgres/. You should add a pg_dump cron job to back up to a file that Backrest can pick up:
 
   docker exec postgres pg_dumpall -U postgres | gzip > /mnt/ssd/docker-data/backrest/pgdump.sql.gz
@@ -281,7 +281,6 @@ Here's what's worth backing up with your 1TB budget:
 #     authentik/           SSO/auth data
 #     homarr/              dashboard config
 #     slskd/               soulseek config
-#     bitmagnet/           DHT index config
 #     gokapi/              file sharing config
 #     filebrowser/         file manager config
 #     filestash/           file manager config

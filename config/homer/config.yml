@@ -92,13 +92,6 @@ services:
         url: "https://potatostack.tale-iwato.ts.net:8282"
         target: "_blank"
 
-      - name: "Bitmagnet"
-        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/bittorrent.png"
-        subtitle: "DHT Indexer"
-        url: "https://potatostack.tale-iwato.ts.net:3333"
-        target: "_blank"
-
-
       - name: "slskd"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/slskd.png"
         subtitle: "Soulseek"

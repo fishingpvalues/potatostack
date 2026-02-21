@@ -94,16 +94,17 @@ scrape_configs:
     static_configs:
       - targets: ["node-exporter:9100"]
 
+  # cAdvisor - Docker container metrics
+  - job_name: "cadvisor"
+    static_configs:
+      - targets: ["cadvisor:8080"]
+    metrics_path: "/metrics"
+    scrape_interval: 30s
+
   # SMART disk health via smartctl-exporter
   - job_name: "smartctl-exporter"
     static_configs:
       - targets: ["smartctl-exporter:9633"]
-
-  # Bitmagnet DHT crawler metrics
-  - job_name: "bitmagnet"
-    static_configs:
-      - targets: ["gluetun:3333"]
-    metrics_path: "/metrics"
 
   # Freqtrade - Algorithmic trading bot API metrics
   - job_name: "freqtrade"
