@@ -1373,10 +1373,12 @@ services:
 
       # Folder Watchers - All download folders (incomplete folders excluded)
       # qBittorrent - Extract but DON'T delete (preserve seeding)
+      # MOVE_BACK=false: extracted content goes to <name>_unpackerred/ subdir,
+      # which persists as a marker so restarts don't re-extract the same archives.
       UN_FOLDER_0_PATH: "/downloads/torrents"
       UN_FOLDER_0_DELETE_ORIGINAL: "false"
       UN_FOLDER_0_DELETE_AFTER: "0s"
-      UN_FOLDER_0_MOVE_BACK: "true"
+      UN_FOLDER_0_MOVE_BACK: "false"
       UN_FOLDER_0_DELETE_FILES: "false"
       UN_FOLDER_0_EXTRACT_ISOS: "false"
 
@@ -1437,10 +1439,12 @@ services:
       UN_FOLDER_12_EXTRACT_ISOS: "false"
 
       # storage (HDD) - torrent folder - Extract but DON'T delete (preserve seeding)
+      # MOVE_BACK=false: extracted content goes to <name>_unpackerred/ subdir,
+      # which persists as a marker so restarts don't re-extract the same archives.
       UN_FOLDER_7_PATH: "/storage/downloads/torrent"
       UN_FOLDER_7_DELETE_ORIGINAL: "false"
       UN_FOLDER_7_DELETE_AFTER: "0s"
-      UN_FOLDER_7_MOVE_BACK: "true"
+      UN_FOLDER_7_MOVE_BACK: "false"
       UN_FOLDER_7_DELETE_FILES: "false"
       UN_FOLDER_7_EXTRACT_ISOS: "false"
 

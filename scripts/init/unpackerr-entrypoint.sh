@@ -19,12 +19,6 @@ if [ -f "/cleanup.sh" ]; then
 	/cleanup.sh
 fi
 
-# 2. Run startup scan to process existing archives
-echo "[$(date)] Running startup scan for existing archives..."
-if [ -f "/startup-scan.sh" ]; then
-	/startup-scan.sh
-fi
-
-# 3. Launch Unpackerr with original binary
+# 2. Launch Unpackerr with original binary
 echo "[$(date)] Launching Unpackerr..."
 exec /app/unpackerr "$@"

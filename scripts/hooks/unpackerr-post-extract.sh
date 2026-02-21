@@ -81,7 +81,12 @@ _ntfy_post() {
 _ntfy_post
 
 # Ownership fix on extracted or failed (ensure files are accessible by daniel:daniel)
-if [ -n "${UN_PATH:-}" ] && [ -d "${UN_PATH}" ]; then
+# Note: UN_PATH can be a file (archive) or directory — don't use -d check
+if [ -n "${UN_PATH:-}" ]; then
   chown -R 1000:1000 "${UN_PATH}" 2>/dev/null || true
   chmod -R 755 "${UN_PATH}" 2>/dev/null || true
+fi
+if [ -n "${UN_DATA_OUTPUT:-}" ]; then
+  chown -R 1000:1000 "${UN_DATA_OUTPUT}" 2>/dev/null || true
+  chmod -R 755 "${UN_DATA_OUTPUT}" 2>/dev/null || true
 fi
