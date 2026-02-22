@@ -1,2 +1,0 @@
-- propose a plan for postgres pg18 upgrade and migration and mongo as well all sensible stuff and execute it makel sure all relying services work
-- delete overlapping grafana dashboards keep only the most important ones best ones i want SOTA homelab dashboards best values all visible etc
