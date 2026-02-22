@@ -26,7 +26,7 @@ groups:
 
       - alert: HighMemoryUsage
         expr: (container_memory_usage_bytes{name=~".+"} / container_spec_memory_limit_bytes{name=~".+"}) * 100 > 95
-        for: 20m
+        for: 1h
         labels:
           severity: warning
           component: resources
@@ -35,8 +35,8 @@ groups:
           description: "Container {{ $labels.name }} is using > 95% of its memory limit for 20 minutes. Consider increasing limits or investigating memory leaks."
 
       - alert: HighCPUUsage
-        expr: rate(container_cpu_usage_seconds_total{name=~".+"}[5m]) > 1.5
-        for: 20m
+        expr: rate(container_cpu_usage_seconds_total{name=~".+"}[5m]) > 2.5
+        for: 45m
         labels:
           severity: warning
           component: resources
