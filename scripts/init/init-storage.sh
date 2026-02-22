@@ -49,6 +49,7 @@ if [ -d "$STORAGE2_BASE" ]; then
         "${STORAGE2_BASE}/downloads/aria2" \
         "${STORAGE2_BASE}/downloads/slskd" \
         "${STORAGE2_BASE}/downloads/pyload" \
+        "${STORAGE2_BASE}/downloads/spotiflac" \
         "${STORAGE2_BASE}/downloads/telegram" \
         "${STORAGE2_BASE}/downloads/incomplete/qbittorrent" \
         "${STORAGE2_BASE}/downloads/incomplete/aria2" \

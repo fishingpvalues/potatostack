@@ -7,9 +7,10 @@
 
 directory: /music
 library: /config/library.db
+autoclean: yes
 
 ################################################################################
-# Import Settings - Copy mode (preserves originals for seeding)
+# Import Settings - Move mode (deletes originals after import)
 ################################################################################
 import:
   copy: yes
@@ -21,7 +22,7 @@ import:
   log: /config/import.log
   incremental: yes
   incremental_skip_later: yes
-  resume: ask
+  resume: yes
   from_scratch: no
   languages: [en, de]
   default_action: apply
@@ -125,11 +126,7 @@ lastgenre:
   min_weight: 10
 
 duplicates:
-  checksum: no
-  copy: no
-  move: no
-  delete: no
-  path: no
+  delete: yes
   keys: [mb_trackid, mb_albumid]
 
 scrub:
@@ -146,7 +143,7 @@ web:
 
 lyrics:
   auto: yes
-  sources: [genius, tekstowo]
+  sources: [genius]
   force: no
   fallback: ''
 

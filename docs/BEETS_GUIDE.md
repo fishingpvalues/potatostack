@@ -26,9 +26,10 @@ docker exec -u abc beets beet import /downloads/slskd
 docker exec -u abc beets beet import -A /downloads/slskd
 ```
 
-### All downloads at once
+### All downloads at once (all sources)
 ```bash
-docker exec -u abc beets beet import -A /downloads
+# storage2 (primary) + storage (secondary slskd on HDD)
+docker exec -u abc beets beet import /downloads/slskd /downloads/spotiflac /downloads/aria2 /downloads/pyload /storage-downloads/slskd
 ```
 
 ### Specific album folder
@@ -39,9 +40,10 @@ docker exec -u abc beets beet import -A "/downloads/slskd/Artist - Album (2024)"
 **Import flags:**
 - `-A` / `--nowrite` — auto-apply, skip prompts (use for well-tagged FLAC)
 - `-t` / `--timid` — ask for confirmation even on strong matches
-- `-C` / `--nocopy` — don't copy, just tag in place (use with caution)
 - `--search-artist "Name"` — override artist for matching
 - `--search-album "Title"` — override album for matching
+
+> **Move mode is enabled** — originals are deleted from `/downloads` after import into `/music`.
 
 ---
 
@@ -90,6 +92,9 @@ docker exec -u abc beets beet missing
 # Find duplicates
 docker exec -u abc beets beet duplicates
 docker exec -u abc beets beet duplicates -a  # album level
+
+# Delete duplicates (config: delete: yes, keyed on mb_trackid + mb_albumid)
+docker exec -u abc beets beet duplicates --delete
 ```
 
 ---
@@ -126,11 +131,14 @@ docker exec -u abc beets beet config
 | Path (in container) | Host path | Description |
 |---------------------|-----------|-------------|
 | `/music` | `/mnt/storage/media/music` | Library (RW) |
-| `/downloads` | `/mnt/storage2/downloads` | All download sources |
-| `/downloads/slskd` | `/mnt/storage2/downloads/slskd` | Soulseek |
+| `/downloads` | `/mnt/storage2/downloads` | Primary download sources (storage2) |
+| `/downloads/slskd` | `/mnt/storage2/downloads/slskd` | Soulseek (storage2) |
+| `/downloads/spotiflac` | `/mnt/storage2/downloads/spotiflac` | SpotiFLAC |
 | `/downloads/torrents` | `/mnt/storage2/downloads/torrents` | qBittorrent |
 | `/downloads/aria2` | `/mnt/storage2/downloads/aria2` | Aria2 |
 | `/downloads/pyload` | `/mnt/storage2/downloads/pyload` | pyLoad |
+| `/storage-downloads` | `/mnt/storage/downloads` | Secondary download sources (HDD) |
+| `/storage-downloads/slskd` | `/mnt/storage/downloads/slskd` | Soulseek (HDD) |
 | `/config` | `/mnt/ssd/docker-data/beets` | DB + logs |
 
 ---

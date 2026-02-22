@@ -106,11 +106,11 @@ scrape_configs:
     static_configs:
       - targets: ["smartctl-exporter:9633"]
 
-  # Freqtrade - Algorithmic trading bot API metrics
+  # Freqtrade - Prometheus metrics (requires prometheus_enabled: true in config.json)
   - job_name: "freqtrade"
     static_configs:
       - targets: ["freqtrade-bot:8080"]
-    metrics_path: "/api/v1/health"
+    metrics_path: "/api/v1/metrics"
     scrape_interval: 60s
 
   # Ghostfolio removed: /api/v1/health returns JSON, not Prometheus metrics

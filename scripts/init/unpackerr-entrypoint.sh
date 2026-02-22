@@ -19,6 +19,13 @@ if [ -f "/cleanup.sh" ]; then
 	/cleanup.sh
 fi
 
-# 2. Launch Unpackerr with original binary
+# 2. Start persistent seeding extractor in background (handles seeding folders
+#    that unpackerr cannot track across restarts due to in-memory-only state)
+if [ -f "/seeding-extractor.sh" ]; then
+    echo "[$(date)] Starting seeding extractor..."
+    /seeding-extractor.sh &
+fi
+
+# 3. Launch Unpackerr with original binary
 echo "[$(date)] Launching Unpackerr..."
 exec /app/unpackerr "$@"

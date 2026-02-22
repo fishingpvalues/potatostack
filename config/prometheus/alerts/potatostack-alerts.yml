@@ -25,24 +25,24 @@ groups:
           runbook: "View logs: docker logs -f {{ $labels.name }}"
 
       - alert: HighMemoryUsage
-        expr: (container_memory_usage_bytes{name=~".+"} / container_spec_memory_limit_bytes{name=~".+"}) * 100 > 90
-        for: 5m
+        expr: (container_memory_usage_bytes{name=~".+"} / container_spec_memory_limit_bytes{name=~".+"}) * 100 > 95
+        for: 20m
         labels:
           severity: warning
           component: resources
         annotations:
           summary: "⚠️ High memory: {{ $labels.name }} ({{ $value | humanizePercentage }})"
-          description: "Container {{ $labels.name }} is using > 90% of its memory limit. Consider increasing limits or investigating memory leaks."
+          description: "Container {{ $labels.name }} is using > 95% of its memory limit for 20 minutes. Consider increasing limits or investigating memory leaks."
 
       - alert: HighCPUUsage
-        expr: rate(container_cpu_usage_seconds_total{name=~".+"}[5m]) > 0.8
-        for: 10m
+        expr: rate(container_cpu_usage_seconds_total{name=~".+"}[5m]) > 1.5
+        for: 20m
         labels:
           severity: warning
           component: resources
         annotations:
           summary: "⚡ High CPU: {{ $labels.name }} ({{ $value | humanizePercentage }})"
-          description: "Container {{ $labels.name }} has sustained CPU usage > 80% for 10 minutes. Check for infinite loops or heavy computations."
+          description: "Container {{ $labels.name }} has sustained CPU usage > 1.5 cores for 20 minutes. Check for infinite loops or heavy computations."
 
       - alert: ContainerNotRunning
         expr: container_state_running{name=~".+"} == 0
@@ -330,14 +330,14 @@ groups:
           runbook: "Check: docker logs jellyfin"
 
       - alert: JellyfinHighCPU
-        expr: rate(container_cpu_usage_seconds_total{container_label_com_docker_compose_service="jellyfin"}[5m]) > 0.8
-        for: 15m
+        expr: rate(container_cpu_usage_seconds_total{container_label_com_docker_compose_service="jellyfin"}[5m]) > 2.0
+        for: 30m
         labels:
           severity: warning
           component: media
         annotations:
           summary: "⚡ Jellyfin high CPU usage"
-          description: "Jellyfin has sustained CPU usage > 80% for 15 minutes. Consider hardware acceleration or reduce transcoding."
+          description: "Jellyfin has sustained CPU usage > 2 cores for 30 minutes. Consider hardware acceleration or reduce transcoding."
 
 
   - name: RSS Reader Health

@@ -442,7 +442,7 @@ services:
       - "${HOST_BIND:-127.0.0.1}:6888:6888/udp"
       - "${HOST_BIND:-127.0.0.1}:2234:2234" # slskd WebUI
       - "${HOST_BIND:-127.0.0.1}:50000:50000" # slskd peer
-      - "${HOST_BIND:-127.0.0.1}:8097:8080" # SpotiFLAC
+      - "${HOST_BIND:-127.0.0.1}:8097:8080" # SpotiFLAC WebUI
       # - "${HOST_BIND:-127.0.0.1}:8945:8945" # Pinchflat
       - "${HOST_BIND:-127.0.0.1}:8076:8000" # pyLoad WebUI (internal 8000)
       - "${HOST_BIND:-127.0.0.1}:9666:9666" # pyLoad Click'n'Load
@@ -1372,113 +1372,89 @@ services:
       UN_WEBSERVER_LISTEN_ADDR: "0.0.0.0:5656"
 
       # Folder Watchers - All download folders (incomplete folders excluded)
-      # qBittorrent - Extract but DON'T delete (preserve seeding)
-      # MOVE_BACK=false: extracted content goes to <name>_unpackerred/ subdir,
-      # which persists as a marker so restarts don't re-extract the same archives.
-      UN_FOLDER_0_PATH: "/downloads/torrents"
-      UN_FOLDER_0_DELETE_ORIGINAL: "false"
+      # NOTE: Seeding folders (torrents, adult, HDD torrent) are handled by
+      # seeding-extractor.sh (persistent inode tracking) NOT unpackerr, to
+      # prevent re-extraction on restart when archives are kept for seeding.
+
+      # Aria2 - Extract + delete (normal cleanup)
+      UN_FOLDER_0_PATH: "/downloads/aria2"
+      UN_FOLDER_0_DELETE_ORIGINAL: "true"
       UN_FOLDER_0_DELETE_AFTER: "0s"
-      UN_FOLDER_0_MOVE_BACK: "false"
+      UN_FOLDER_0_MOVE_BACK: "true"
       UN_FOLDER_0_DELETE_FILES: "false"
       UN_FOLDER_0_EXTRACT_ISOS: "false"
 
-      # qBittorrent (adult) - Extract + delete (manually copied archives)
-      UN_FOLDER_1_PATH: "/media/adult"
+      # Slskd - Extract + delete
+      UN_FOLDER_1_PATH: "/downloads/slskd"
       UN_FOLDER_1_DELETE_ORIGINAL: "true"
       UN_FOLDER_1_DELETE_AFTER: "0s"
       UN_FOLDER_1_MOVE_BACK: "true"
       UN_FOLDER_1_DELETE_FILES: "false"
       UN_FOLDER_1_EXTRACT_ISOS: "false"
 
-      # Aria2 - Extract + delete (normal cleanup)
-      UN_FOLDER_2_PATH: "/downloads/aria2"
+      # Pyload - Extract + delete
+      UN_FOLDER_2_PATH: "/downloads/pyload"
       UN_FOLDER_2_DELETE_ORIGINAL: "true"
       UN_FOLDER_2_DELETE_AFTER: "0s"
       UN_FOLDER_2_MOVE_BACK: "true"
       UN_FOLDER_2_DELETE_FILES: "false"
       UN_FOLDER_2_EXTRACT_ISOS: "false"
 
-      # Slskd - Extract + delete
-      UN_FOLDER_3_PATH: "/downloads/slskd"
+      # TDL (Telegram) - Extract + delete
+      UN_FOLDER_3_PATH: "/downloads/telegram"
       UN_FOLDER_3_DELETE_ORIGINAL: "true"
       UN_FOLDER_3_DELETE_AFTER: "0s"
       UN_FOLDER_3_MOVE_BACK: "true"
       UN_FOLDER_3_DELETE_FILES: "false"
       UN_FOLDER_3_EXTRACT_ISOS: "false"
 
-      # Pyload - Extract + delete
-      UN_FOLDER_4_PATH: "/downloads/pyload"
+      # storage2 (SSD) - movies - Extract + delete
+      UN_FOLDER_4_PATH: "/media/movies"
       UN_FOLDER_4_DELETE_ORIGINAL: "true"
       UN_FOLDER_4_DELETE_AFTER: "0s"
       UN_FOLDER_4_MOVE_BACK: "true"
       UN_FOLDER_4_DELETE_FILES: "false"
       UN_FOLDER_4_EXTRACT_ISOS: "false"
 
-      # TDL (Telegram) - Extract + delete
-      UN_FOLDER_5_PATH: "/downloads/telegram"
+      # storage2 (SSD) - tv - Extract + delete
+      UN_FOLDER_5_PATH: "/media/tv"
       UN_FOLDER_5_DELETE_ORIGINAL: "true"
       UN_FOLDER_5_DELETE_AFTER: "0s"
       UN_FOLDER_5_MOVE_BACK: "true"
       UN_FOLDER_5_DELETE_FILES: "false"
       UN_FOLDER_5_EXTRACT_ISOS: "false"
 
-      # storage2 (SSD) - movies - Extract + delete
-      UN_FOLDER_6_PATH: "/media/movies"
+      # storage (HDD) - rdt-client - Extract + delete (debrid synced, no seeding needed)
+      UN_FOLDER_6_PATH: "/storage/downloads/rdt-client"
       UN_FOLDER_6_DELETE_ORIGINAL: "true"
       UN_FOLDER_6_DELETE_AFTER: "0s"
       UN_FOLDER_6_MOVE_BACK: "true"
       UN_FOLDER_6_DELETE_FILES: "false"
       UN_FOLDER_6_EXTRACT_ISOS: "false"
 
-      # storage2 (SSD) - tv - Extract + delete
-      UN_FOLDER_12_PATH: "/media/tv"
-      UN_FOLDER_12_DELETE_ORIGINAL: "true"
-      UN_FOLDER_12_DELETE_AFTER: "0s"
-      UN_FOLDER_12_MOVE_BACK: "true"
-      UN_FOLDER_12_DELETE_FILES: "false"
-      UN_FOLDER_12_EXTRACT_ISOS: "false"
-
-      # storage (HDD) - torrent folder - Extract but DON'T delete (preserve seeding)
-      # MOVE_BACK=false: extracted content goes to <name>_unpackerred/ subdir,
-      # which persists as a marker so restarts don't re-extract the same archives.
-      UN_FOLDER_7_PATH: "/storage/downloads/torrent"
-      UN_FOLDER_7_DELETE_ORIGINAL: "false"
+      # storage (HDD) - pyload - Extract + delete
+      UN_FOLDER_7_PATH: "/storage/downloads/pyload"
+      UN_FOLDER_7_DELETE_ORIGINAL: "true"
       UN_FOLDER_7_DELETE_AFTER: "0s"
-      UN_FOLDER_7_MOVE_BACK: "false"
+      UN_FOLDER_7_MOVE_BACK: "true"
       UN_FOLDER_7_DELETE_FILES: "false"
       UN_FOLDER_7_EXTRACT_ISOS: "false"
 
-      # storage (HDD) - rdt-client - Extract + delete (debrid synced, no seeding needed)
-      UN_FOLDER_8_PATH: "/storage/downloads/rdt-client"
+      # storage (HDD) - slskd - Extract + delete
+      UN_FOLDER_8_PATH: "/storage/downloads/slskd"
       UN_FOLDER_8_DELETE_ORIGINAL: "true"
       UN_FOLDER_8_DELETE_AFTER: "0s"
       UN_FOLDER_8_MOVE_BACK: "true"
       UN_FOLDER_8_DELETE_FILES: "false"
       UN_FOLDER_8_EXTRACT_ISOS: "false"
 
-      # storage (HDD) - pyload - Extract + delete
-      UN_FOLDER_9_PATH: "/storage/downloads/pyload"
+      # storage (HDD) - media - Extract + delete (books, music, audiobooks, etc.)
+      UN_FOLDER_9_PATH: "/storage/media"
       UN_FOLDER_9_DELETE_ORIGINAL: "true"
       UN_FOLDER_9_DELETE_AFTER: "0s"
       UN_FOLDER_9_MOVE_BACK: "true"
       UN_FOLDER_9_DELETE_FILES: "false"
       UN_FOLDER_9_EXTRACT_ISOS: "false"
-
-      # storage (HDD) - slskd - Extract + delete
-      UN_FOLDER_10_PATH: "/storage/downloads/slskd"
-      UN_FOLDER_10_DELETE_ORIGINAL: "true"
-      UN_FOLDER_10_DELETE_AFTER: "0s"
-      UN_FOLDER_10_MOVE_BACK: "true"
-      UN_FOLDER_10_DELETE_FILES: "false"
-      UN_FOLDER_10_EXTRACT_ISOS: "false"
-
-      # storage (HDD) - media - Extract + delete (books, music, audiobooks, etc.)
-      UN_FOLDER_11_PATH: "/storage/media"
-      UN_FOLDER_11_DELETE_ORIGINAL: "true"
-      UN_FOLDER_11_DELETE_AFTER: "0s"
-      UN_FOLDER_11_MOVE_BACK: "true"
-      UN_FOLDER_11_DELETE_FILES: "false"
-      UN_FOLDER_11_EXTRACT_ISOS: "false"
 
       # NTFY notification hook
       NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
@@ -1508,6 +1484,7 @@ services:
       - /home/daniel/potatostack/scripts/init/unpackerr-entrypoint.sh:/entrypoint.sh:ro
       - /home/daniel/potatostack/scripts/init/unpackerr-cleanup.sh:/cleanup.sh:ro
       - /home/daniel/potatostack/scripts/init/unpackerr-startup-scan.sh:/startup-scan.sh:ro
+      - /home/daniel/potatostack/scripts/init/seeding-extractor.sh:/seeding-extractor.sh:ro
     networks:
       - potatostack
     depends_on:
@@ -1941,12 +1918,15 @@ services:
       - "${HOST_BIND:-127.0.0.1}:4533:4533"
     environment:
       <<: *common-env
+      ND_MUSICFOLDER: /music
       ND_SCANSCHEDULE: 1h
       ND_LOGLEVEL: info
       ND_SESSIONTIMEOUT: 24h
       ND_BASEURL: ""
       ND_ENABLETRANSCODINGCONFIG: "true"
       ND_ENABLESHARING: "true"
+      ND_ENABLEDOWNLOADS: "true"
+      ND_COVER_ART_PRIORITY: "folder.*, cover.*, front.*, embedded, external"
     volumes:
       - /mnt/ssd/docker-data/navidrome:/data
       - /mnt/storage/media/music:/music:ro
@@ -1977,6 +1957,7 @@ services:
   # Organizes to: /mnt/storage/media/music (Artist/Year - Album/Track - Title)
   # Consumers: Navidrome (stream), slskd (share), Jellyfin (stream)
   # Usage: docker exec -it -u abc beets beet import /downloads/slskd
+  #        docker exec -it -u abc beets beet import /storage-downloads/slskd
   #        docker exec -it -u abc beets beet import -A /downloads/spotiflac
   beets:
     image: lscr.io/linuxserver/beets:${BEETS_TAG:-latest}
@@ -1990,7 +1971,9 @@ services:
       - /mnt/ssd/docker-data/beets:/config
       - /mnt/storage/media/music:/music             # library (RW - beets writes organized files)
       - /mnt/storage2/downloads:/downloads:ro       # ALL sources: spotiflac, slskd, torrents, aria2, pyload
+      - /mnt/storage/downloads:/storage-downloads:ro # secondary: slskd (HDD)
       - ./config/beets/config.yaml:/config/config.yaml:ro
+      - ./config/beets/auto-import.sh:/config/auto-import.sh:ro
     networks:
       - potatostack
     depends_on:
@@ -2005,11 +1988,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.0"
-          memory: 512M
+          cpus: "2"
+          memory: 1G
         reservations:
-          cpus: "0.1"
-          memory: 128M
+          cpus: "0.5"
+          memory: 256M
     labels:
       - "wud.trigger.docker.update=true"
 
@@ -2021,12 +2004,10 @@ services:
     network_mode: "service:gluetun"
     environment:
       <<: *common-env
-      SERVER_PORT: 8080
-      SERVER_HOST: 0.0.0.0
-      DOWNLOAD_DIR: /downloads
-      STATIC_DIR: /app/dist
     volumes:
-      - /mnt/storage2/downloads:/downloads
+      - /mnt/ssd/docker-data/spotiflac:/config
+      - /mnt/storage2/downloads/spotiflac:/downloads  # isolated to spotiflac subfolder
+      - /mnt/ssd/docker-data/spotiflac/index-BD6DHDqP.js:/app/dist/assets/index-BD6DHDqP.js:ro
     depends_on:
       gluetun:
         condition: service_healthy
@@ -2035,7 +2016,7 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f spotiflac || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/ || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -2043,11 +2024,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.25"
-          memory: 128M
+          cpus: "2"
+          memory: 1G
         reservations:
-          cpus: "0.1"
-          memory: 128M
+          cpus: "0.5"
+          memory: 256M
     labels:
       - "potatostack.alerts=critical"
       - "autoheal=true"
@@ -2704,9 +2685,7 @@ services:
       - /dev/sdc1
     command:
       - "--smartctl.path=/usr/sbin/smartctl"
-      - "--smartctl.device=/dev/sda"
-      - "--smartctl.device=/dev/sdb"
-      - "--smartctl.device=/dev/sdc"
+      - "--smartctl.scan"
     volumes:
       - /dev:/dev
       - /run/udev:/run/udev:ro
@@ -4019,48 +3998,6 @@ services:
           cpus: "0.05"
           memory: 8M
 
-  # OpenSSH Server - Secure remote shell and SFTP access
-  openssh-server:
-    image: lscr.io/linuxserver/openssh-server:${OPENSSH_SERVER_TAG:-latest}
-    container_name: openssh-server
-    logging: *default-logging
-    hostname: openssh-server
-    security_opt:
-      - no-new-privileges:true
-    ports:
-      - "${HOST_BIND:-127.0.0.1}:${OPENSSH_PORT:-2222}:2222"
-    environment:
-      <<: *common-env
-      USER_NAME: ${OPENSSH_USER:-sshuser}
-      USER_PASSWORD: ${OPENSSH_PASSWORD}
-      PASSWORD_ACCESS: ${OPENSSH_PASSWORD_ACCESS:-true}
-      SUDO_ACCESS: ${OPENSSH_SUDO_ACCESS:-false}
-      PUBLIC_KEY: ${OPENSSH_PUBLIC_KEY:-}
-      PUBLIC_KEY_FILE: ${OPENSSH_PUBLIC_KEY_FILE:-}
-      PUBLIC_KEY_DIR: ${OPENSSH_PUBLIC_KEY_DIR:-}
-      PUBLIC_KEY_URL: ${OPENSSH_PUBLIC_KEY_URL:-}
-      LOG_STDOUT: ${OPENSSH_LOG_STDOUT:-true}
-    volumes:
-      - openssh-config:/config
-      - /mnt/storage:/data/storage
-      - /mnt/storage2:/data/storage2
-      - ./scripts/init/openssh-fix-key-perms.sh:/custom-cont-init.d/99-fix-key-perms.sh:ro
-    networks:
-      - potatostack
-    depends_on:
-      - storage-init
-    labels:
-      - "wud.trigger.docker.update=true"
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 128M
-        reservations:
-          cpus: "0.1"
-          memory: 64M
-
   # Samba - Windows file sharing for HDD access
   samba-init:
     image: ghcr.io/servercontainers/samba:${SAMBA_TAG:-latest}
@@ -4720,7 +4657,6 @@ volumes:
   wud-data:
   ntfy-cache:
   ntfy-data:
-  openssh-config:
   samba-lib:
   samba-cache:
 
