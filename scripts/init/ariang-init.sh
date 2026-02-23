@@ -105,23 +105,36 @@ cat >"${HTML_DIR}/rpc-config.js" <<EOF
   try { opts = JSON.parse(localStorage.getItem(k) || '{}'); } catch (e) { opts = {}; }
 
   /* AriaNg 1.1+ stores RPC endpoints as an array under rpcSettings.
-     Older flat keys (rpcHost/rpcPort/…) are ignored by current versions. */
+     Include ALL required fields to avoid angular.merge producing undefined values.
+     protocol "https" = plain HTTPS POST; works reliably through Tailscale HTTPS proxy.
+     (wss would need WebSocket upgrade which is more fragile through proxies.) */
   opts.rpcSettings = [{
-    rpcAlias:          "",
-    rpcHost:           "${RPC_HOST}",
-    rpcPort:           "${RPC_PORT}",
-    rpcInterface:      "jsonrpc",
-    protocol:          "wss",
-    httpMethod:        "POST",
-    rpcRequestHeaders: "",
-    secret:            "${RPC_SECRET}",
-    isDefault:         true
+    rpcAlias:                  "",
+    rpcHost:                   "${RPC_HOST}",
+    rpcPort:                   "${RPC_PORT}",
+    rpcInterface:               "jsonrpc",
+    protocol:                  "https",
+    httpMethod:                "POST",
+    rpcRequestHeaders:         "",
+    secret:                    "${RPC_SECRET}",
+    extendRpcServers:          [],
+    webSocketReconnectInterval: 5000,
+    isDefault:                 true
   }];
+
+  /* Remove legacy flat-format keys written by older versions of this script */
+  delete opts.rpcHost;
+  delete opts.rpcPort;
+  delete opts.protocol;
+  delete opts.secret;
+
+  /* Mark as initialized so AriaNg skips the first-run setup flow */
+  opts.initialized = true;
 
   localStorage.setItem(k, JSON.stringify(opts));
 })();
 EOF
-echo "✓ rpc-config.js generated (host=${RPC_HOST}:${RPC_PORT}, protocol=wss)"
+echo "✓ rpc-config.js generated (host=${RPC_HOST}:${RPC_PORT}, protocol=https)"
 
 ################################################################################
 # Inject <script src="rpc-config.js"> into index.html before </head>
