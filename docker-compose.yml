@@ -187,7 +187,7 @@ services:
           memory: 512M
         reservations:
           cpus: "0.5"
-          memory: 512M
+          memory: 256M
     labels:
       - "potatostack.alerts=critical"
       - "wud.trigger.docker.update=false"
@@ -493,7 +493,7 @@ services:
     labels:
       - "autoheal=true"
       - "potatostack.alerts=critical"
-      # aria2 has no web UI - RPC only on port 6800
+      # aria2 RPC on port 6800, AriaNg web UI on port 6880 (ariang service)
       - "wud.trigger.docker.update=false"
 
   # Tailscale - Mesh VPN for remote access (SOTA 2025 - easiest option)
@@ -542,8 +542,8 @@ services:
     environment:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
-      # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr
-      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,8181,9925,5984,9898,8123,8191,3333,3335,5656,8085,8337"
+      # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr; aria2 RPC (6800) + AriaNg (6880) added
+      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,8181,9925,5984,9898,8123,8191,3333,3335,5656,8085,8337,6800,6880"
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_MARKER_FILE: /https-marker/setup-complete
@@ -571,8 +571,8 @@ services:
     environment:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
-      # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr
-      TAILSCALE_SERVE_PORTS: 7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,8181,9925,5984,9898,8123,8191,3333,3335,5656,8085,8337
+      # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr; aria2 RPC (6800) + AriaNg (6880) added
+      TAILSCALE_SERVE_PORTS: 7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,8181,9925,5984,9898,8123,8191,3333,3335,5656,8085,8337,6800,6880
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_SERVE_LOOP: "true"
@@ -2084,7 +2084,7 @@ services:
       - "autoheal=true"
       - "wud.trigger.docker.update=true"
 
-  # Aria2 - High-performance download client (RPC on port 6800)
+  # Aria2 - High-performance download client (RPC on port 6800, WebUI via AriaNg on 6880)
   aria2:
     image: p3terx/aria2-pro:${ARIA2_TAG:-latest}
     container_name: aria2
@@ -2097,10 +2097,14 @@ services:
       LISTEN_PORT: 6888
       DISK_CACHE: 64M
       IPV6_MODE: "false"
+      NTFY_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
+      NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
     volumes:
       - aria2-config:/config
       - /mnt/storage2/downloads/aria2:/downloads
       - /mnt/storage2/downloads/incomplete/aria2:/incomplete
+      - /mnt/storage2/media:/media                                    # category dirs: /media/movies, /tv, /music, etc.
       - /home/daniel/potatostack/scripts/init/aria2-init.sh:/aria2-init.sh:ro
       - shared-keys:/keys:ro
     depends_on:
@@ -2126,6 +2130,38 @@ services:
           memory: 128M
     labels:
       - "autoheal=true"
+
+  # AriaNg - Web UI for Aria2 (port 6880)
+  # RPC setup: Host=potatostack.tale-iwato.ts.net Port=6800 Path=/jsonrpc Protocol=WebSocket
+  # Get RPC secret from: docker exec aria2 cat /config/aria2.conf | grep rpc-secret
+  ariang:
+    image: p3terx/ariang:${ARIANG_TAG:-latest}
+    container_name: ariang
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:6880:6880"
+    environment:
+      <<: *common-env
+    networks:
+      - potatostack
+    depends_on:
+      - aria2
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:6880/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 32M
+        reservations:
+          cpus: "0.01"
+          memory: 16M
+    labels:
+      - "wud.trigger.docker.update=true"
 
   slskd:
     image: ghcr.io/slskd/slskd:${SLSKD_TAG:-latest}
@@ -2267,7 +2303,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 256M
+          memory: 4G
         reservations:
           cpus: "0.1"
           memory: 128M
@@ -2399,7 +2435,7 @@ services:
           memory: 2G
         reservations:
           cpus: "0.5"
-          memory: 1G
+          memory: 512M
     labels:
       - "wud.trigger.docker.update=false"
 
@@ -2480,10 +2516,10 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 256M
+          memory: 512M
         reservations:
           cpus: "0.25"
-          memory: 128M
+          memory: 256M
     labels:
       - "potatostack.alerts=critical"
       - "wud.trigger.docker.update=true"
@@ -2529,10 +2565,10 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 256M
+          memory: 512M
         reservations:
           cpus: "0.25"
-          memory: 128M
+          memory: 256M
     labels:
       - "wud.trigger.docker.update=true"
 
@@ -2794,7 +2830,7 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 384M
+          memory: 512M
 
   # Parseable - REMOVED (using Loki instead)
   # parseable:
@@ -3993,10 +4029,10 @@ services:
       resources:
         limits:
           cpus: "0.05"
-          memory: 16M
+          memory: 64M
         reservations:
           cpus: "0.05"
-          memory: 8M
+          memory: 32M
 
   # Samba - Windows file sharing for HDD access
   samba-init:
@@ -4287,10 +4323,10 @@ services:
       resources:
         limits:
           cpus: "0.05"
-          memory: 16M
+          memory: 64M
         reservations:
           cpus: "0.05"
-          memory: 8M
+          memory: 32M
 
   # Tailscale Connectivity Monitor
   tailscale-connectivity-monitor:

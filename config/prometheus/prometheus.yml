@@ -114,3 +114,15 @@ scrape_configs:
     scrape_interval: 60s
 
   # Ghostfolio removed: /api/v1/health returns JSON, not Prometheus metrics
+
+  # Aria2 RPC health check via JSON-RPC probe (basic HTTP 200 check)
+  # Container CPU/memory/disk metrics are via cAdvisor job above
+  # For download queue metrics add: https://github.com/JanisVeinbergs/aria2-exporter
+  - job_name: "aria2-rpc"
+    static_configs:
+      - targets: ["gluetun:6800"]
+    metrics_path: "/jsonrpc"
+    params:
+      method: ["aria2.getVersion"]
+    # This will return 200 if aria2 is running; Prometheus records up/down
+    scrape_interval: 60s

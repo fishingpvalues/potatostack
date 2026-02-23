@@ -1,86 +1,232 @@
 #!/bin/sh
 ################################################################################
-# Aria2 Init Script - Auto-configure RPC secret on startup
-# AriaNg connection: http://potatostack.tale-iwato.ts.net:6800/jsonrpc
+# Aria2 Init Script
+# - Loads RPC secret from shared-keys volume
+# - Resolves ntfy IP at startup via Docker's embedded DNS (127.0.0.11),
+#   bypassing gluetun's DNS override (1.1.1.1 via VPN)
+# - Writes notification hooks to /config/ at runtime (like pyload-init.sh)
+#   with the resolved IP baked in; each hook also re-resolves on every call
+#   so ntfy container restarts don't require aria2 restart
+# - Categories work via /media mount: set "dir" per download in AriaNg
 ################################################################################
+
+set -eu
 
 CONFIG_DIR="/config"
 ARIA_CONF="${CONFIG_DIR}/aria2.conf"
+RPC_PORT="${RPC_PORT:-6800}"
+LISTEN_PORT="${LISTEN_PORT:-6888}"
 
-echo "Initializing Aria2 configuration..."
+# Download tuning (all configurable via env)
+ARIA2_MAX_CONCURRENT="${ARIA2_MAX_CONCURRENT:-5}"
+ARIA2_MAX_CONN_PER_SERVER="${ARIA2_MAX_CONN_PER_SERVER:-16}"
+ARIA2_SPLIT="${ARIA2_SPLIT:-16}"
+ARIA2_MIN_SPLIT_SIZE="${ARIA2_MIN_SPLIT_SIZE:-1M}"
+ARIA2_DISK_CACHE="${ARIA2_DISK_CACHE:-${DISK_CACHE:-64M}}"
+ARIA2_FILE_ALLOC="${ARIA2_FILE_ALLOC:-falloc}"
+ARIA2_MAX_TRIES="${ARIA2_MAX_TRIES:-5}"
+ARIA2_RETRY_WAIT="${ARIA2_RETRY_WAIT:-5}"
+ARIA2_MAX_DL_LIMIT="${ARIA2_MAX_DL_LIMIT:-0}"
+ARIA2_MAX_UL_LIMIT="${ARIA2_MAX_UL_LIMIT:-0}"
 
-# Create config directory
+# BitTorrent tuning
+ARIA2_BT_MAX_PEERS="${ARIA2_BT_MAX_PEERS:-55}"
+ARIA2_SEED_RATIO="${ARIA2_SEED_RATIO:-1.0}"
+ARIA2_SEED_TIME="${ARIA2_SEED_TIME:-0}"
+
+# Ntfy
+NTFY_INTERNAL_URL="${NTFY_INTERNAL_URL:-http://ntfy:80}"
+NTFY_TOPIC="${NTFY_TOPIC:-potatostack}"
+NTFY_TOKEN="${NTFY_TOKEN:-}"
+
+echo "╔══════════════════════════════════════════════════════════════════╗"
+echo "║                       Aria2 Init Script                          ║"
+echo "╚══════════════════════════════════════════════════════════════════╝"
+
 mkdir -p "$CONFIG_DIR"
 
-# Read RPC secret from shared volume
+################################################################################
+# RPC Secret
+################################################################################
 if [ -f "/keys/aria2-rpc-secret" ]; then
 	ARIA2_RPC_SECRET=$(cat /keys/aria2-rpc-secret)
-	echo "✓ Loaded Aria2 RPC secret from shared volume"
+	echo "✓ Loaded RPC secret from shared volume"
 else
-	echo "⚠ Warning: RPC secret not found at /keys/aria2-rpc-secret"
-	echo "Using environment variable or generating temporary secret..."
-	if [ -z "$RPC_SECRET" ]; then
+	echo "⚠ RPC secret not found at /keys/aria2-rpc-secret"
+	if [ -z "${RPC_SECRET:-}" ]; then
 		ARIA2_RPC_SECRET=$(head -c 32 /dev/urandom | hexdump -ve '1/1 "%.2x"' | tr -d '\n')
-		echo "✓ Generated temporary RPC secret (hex)"
+		echo "✓ Generated temporary RPC secret"
 	else
 		ARIA2_RPC_SECRET="$RPC_SECRET"
+		echo "✓ Using RPC_SECRET from environment"
 	fi
 fi
 
-# Write RPC secret to environment file for s6-overlay to source
+# Write to s6 environment so aria2-pro's service scripts also see it
 mkdir -p /var/run/s6/container_environment
-echo -n "$ARIA2_RPC_SECRET" > /var/run/s6/container_environment/RPC_SECRET
+printf '%s' "$ARIA2_RPC_SECRET" >/var/run/s6/container_environment/RPC_SECRET
 
-# Create session file if it doesn't exist
-touch "$CONFIG_DIR/aria2.session"
+################################################################################
+# Resolve ntfy IP
+# Gluetun replaces resolv.conf (→ 1.1.1.1 via VPN), but Docker's embedded DNS
+# listener at 127.0.0.11 remains active in the network namespace.
+# Querying it directly bypasses gluetun's DNS override.
+################################################################################
+resolve_ntfy_ip() {
+	# Extract all IPv4 addresses from nslookup output, skip the DNS server itself
+	nslookup ntfy 127.0.0.11 2>/dev/null \
+		| tr ' \t' '\n' \
+		| grep -E '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$' \
+		| grep -v '127\.0\.0\.11' \
+		| head -1 || true
+}
 
-# Configure aria2.conf for external access (Tailscale/LAN)
-rm -f "$ARIA_CONF"
-cat > "$ARIA_CONF" << EOF
-# Aria2 Configuration - PotatoStack
-# RPC endpoint: http://potatostack.tale-iwato.ts.net:6800/jsonrpc
+NTFY_RESOLVED_IP=$(resolve_ntfy_ip)
+if [ -n "$NTFY_RESOLVED_IP" ]; then
+	NTFY_EFFECTIVE_URL="http://${NTFY_RESOLVED_IP}:80"
+	echo "✓ ntfy resolved via 127.0.0.11: ${NTFY_RESOLVED_IP}"
+else
+	NTFY_EFFECTIVE_URL="$NTFY_INTERNAL_URL"
+	echo "⚠ ntfy not resolvable via 127.0.0.11; falling back to: ${NTFY_EFFECTIVE_URL}"
+	echo "  Notifications may fail behind gluetun until ntfy IP is set in NTFY_INTERNAL_URL"
+fi
 
-# Disable IPv6 (VPN compatibility)
+################################################################################
+# Write notification hook scripts at runtime (pyload-init.sh pattern)
+# Variables expanded NOW (baked in): NTFY_EFFECTIVE_URL, NTFY_TOPIC, NTFY_TOKEN
+# Variables escaped (\$): runtime args and re-resolve logic inside the hooks
+# Each hook re-resolves ntfy IP on every call → survives ntfy container restarts
+################################################################################
+cat >"${CONFIG_DIR}/aria2-on-complete.sh" <<EOF
+#!/bin/sh
+# Auto-generated by aria2-init.sh — DO NOT EDIT (overwritten on aria2 restart)
+GID="\${1:-}"
+FILE_PATH="\${3:-}"
+FILE_NAME=\$(basename "\${FILE_PATH:-unknown}")
+LOG_FILE="${CONFIG_DIR}/aria2-notifications.log"
+NTFY_TOPIC="${NTFY_TOPIC}"
+NTFY_TOKEN="${NTFY_TOKEN}"
+
+# Re-resolve ntfy IP on each call (survives ntfy container restarts)
+_ip=\$(nslookup ntfy 127.0.0.11 2>/dev/null | tr ' \t' '\n' | grep -E '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\$' | grep -v '127\.0\.0\.11' | head -1 || true)
+NTFY_URL=\${_ip:+http://\${_ip}:80}
+NTFY_URL=\${NTFY_URL:-${NTFY_EFFECTIVE_URL}}
+
+printf '[%s] complete: GID=%s path=%s\n' "\$(date +'%Y-%m-%d %H:%M:%S')" "\$GID" "\$FILE_PATH" >>"\$LOG_FILE"
+
+if command -v curl >/dev/null 2>&1; then
+  if [ -n "\$NTFY_TOKEN" ]; then
+    curl -fsS -X POST "\${NTFY_URL}/\${NTFY_TOPIC}" \
+      -H "Title: Download Complete" -H "Tags: white_check_mark,aria2" -H "Priority: low" \
+      -H "Authorization: Bearer \${NTFY_TOKEN}" \
+      -d "\${FILE_NAME}" >>\$LOG_FILE 2>&1 || true
+  else
+    curl -fsS -X POST "\${NTFY_URL}/\${NTFY_TOPIC}" \
+      -H "Title: Download Complete" -H "Tags: white_check_mark,aria2" -H "Priority: low" \
+      -d "\${FILE_NAME}" >>\$LOG_FILE 2>&1 || true
+  fi
+fi
+EOF
+
+cat >"${CONFIG_DIR}/aria2-on-error.sh" <<EOF
+#!/bin/sh
+# Auto-generated by aria2-init.sh — DO NOT EDIT (overwritten on aria2 restart)
+GID="\${1:-}"
+FILE_PATH="\${3:-}"
+FILE_NAME=\$(basename "\${FILE_PATH:-unknown}")
+LOG_FILE="${CONFIG_DIR}/aria2-notifications.log"
+NTFY_TOPIC="${NTFY_TOPIC}"
+NTFY_TOKEN="${NTFY_TOKEN}"
+
+_ip=\$(nslookup ntfy 127.0.0.11 2>/dev/null | tr ' \t' '\n' | grep -E '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\$' | grep -v '127\.0\.0\.11' | head -1 || true)
+NTFY_URL=\${_ip:+http://\${_ip}:80}
+NTFY_URL=\${NTFY_URL:-${NTFY_EFFECTIVE_URL}}
+
+printf '[%s] error: GID=%s path=%s\n' "\$(date +'%Y-%m-%d %H:%M:%S')" "\$GID" "\$FILE_PATH" >>"\$LOG_FILE"
+
+if command -v curl >/dev/null 2>&1; then
+  if [ -n "\$NTFY_TOKEN" ]; then
+    curl -fsS -X POST "\${NTFY_URL}/\${NTFY_TOPIC}" \
+      -H "Title: Download Error" -H "Tags: x,aria2" -H "Priority: high" \
+      -H "Authorization: Bearer \${NTFY_TOKEN}" \
+      -d "\${FILE_NAME:-unknown}" >>\$LOG_FILE 2>&1 || true
+  else
+    curl -fsS -X POST "\${NTFY_URL}/\${NTFY_TOPIC}" \
+      -H "Title: Download Error" -H "Tags: x,aria2" -H "Priority: high" \
+      -d "\${FILE_NAME:-unknown}" >>\$LOG_FILE 2>&1 || true
+  fi
+fi
+EOF
+
+chmod +x "${CONFIG_DIR}/aria2-on-complete.sh" "${CONFIG_DIR}/aria2-on-error.sh"
+echo "✓ Notification hooks written (ntfy=${NTFY_EFFECTIVE_URL}, re-resolves each call)"
+
+################################################################################
+# Session file
+################################################################################
+touch "${CONFIG_DIR}/aria2.session"
+
+################################################################################
+# aria2.conf
+################################################################################
+cat >"$ARIA_CONF" <<EOF
+# Aria2 Configuration — PotatoStack
+# Generated: $(date)
+# AriaNg RPC setup: Protocol=WebSocket  Host=potatostack.tale-iwato.ts.net  Port=${RPC_PORT}  Path=/jsonrpc
+
 disable-ipv6=true
 
-# RPC Settings - allow external connections
+# RPC
+enable-rpc=true
 rpc-listen-all=true
 rpc-allow-origin-all=true
+rpc-listen-port=${RPC_PORT}
 rpc-secret=${ARIA2_RPC_SECRET}
 
-# Enable JSON-RPC
-enable-rpc=true
-rpc-listen-port=6800
-
-# Download Settings
+# Paths
 dir=/downloads
-input-file=/config/aria2.session
-save-session=/config/aria2.session
+input-file=${CONFIG_DIR}/aria2.session
+save-session=${CONFIG_DIR}/aria2.session
 save-session-interval=60
+log=${CONFIG_DIR}/aria2.log
+log-level=warn
 
-# Connection Settings
-max-connection-per-server=16
-min-split-size=1M
-split=16
-max-concurrent-downloads=5
-
-# BitTorrent Settings
-bt-enable-lpd=true
-bt-max-peers=55
-bt-request-peer-speed-limit=100K
-listen-port=6888
-dht-listen-port=6888
-
-# File Settings
-file-allocation=falloc
-disk-cache=64M
+# Downloads
+max-concurrent-downloads=${ARIA2_MAX_CONCURRENT}
+max-connection-per-server=${ARIA2_MAX_CONN_PER_SERVER}
+min-split-size=${ARIA2_MIN_SPLIT_SIZE}
+split=${ARIA2_SPLIT}
+max-tries=${ARIA2_MAX_TRIES}
+retry-wait=${ARIA2_RETRY_WAIT}
+max-download-limit=${ARIA2_MAX_DL_LIMIT}
+max-upload-limit=${ARIA2_MAX_UL_LIMIT}
 continue=true
+
+# Disk
+file-allocation=${ARIA2_FILE_ALLOC}
+disk-cache=${ARIA2_DISK_CACHE}
+
+# BitTorrent
+listen-port=${LISTEN_PORT}
+dht-listen-port=${LISTEN_PORT}
+bt-enable-lpd=true
+bt-max-peers=${ARIA2_BT_MAX_PEERS}
+seed-ratio=${ARIA2_SEED_RATIO}
+seed-time=${ARIA2_SEED_TIME}
+
+# Hooks
+on-download-complete=${CONFIG_DIR}/aria2-on-complete.sh
+on-bt-download-complete=${CONFIG_DIR}/aria2-on-complete.sh
+on-download-error=${CONFIG_DIR}/aria2-on-error.sh
 EOF
-echo "✓ Created aria2.conf with RPC enabled for external access"
 
-echo "✓ Aria2 RPC secret configured: ${ARIA2_RPC_SECRET:0:16}..."
-echo "✓ AriaNg connection URL: http://potatostack.tale-iwato.ts.net:6800/jsonrpc"
-echo "  Use the RPC secret in AriaNg settings"
+echo "✓ aria2.conf written"
+echo ""
+echo "  RPC secret (first 16 chars): ${ARIA2_RPC_SECRET:0:16}..."
+echo ""
+echo "  Category dirs — set 'dir' per download in AriaNg:"
+echo "    /media/movies   /media/tv      /media/music"
+echo "    /media/audiobooks  /media/books   /downloads (default)"
+echo ""
 
-# Continue with normal startup
 exec /init "$@"

@@ -110,6 +110,12 @@ services:
         url: "https://potatostack.tale-iwato.ts.net:8097"
         target: "_blank"
 
+      - name: "AriaNg"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/ariang.png"
+        subtitle: "HTTP/FTP/BT Downloader (set RPC: 6800)"
+        url: "https://potatostack.tale-iwato.ts.net:6880"
+        target: "_blank"
+
       - name: "pyLoad"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/pyload.png"
         subtitle: "Direct Downloads"
