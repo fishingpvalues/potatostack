@@ -159,6 +159,15 @@ fi
 EOF
 
 chmod +x "${CONFIG_DIR}/aria2-on-complete.sh" "${CONFIG_DIR}/aria2-on-error.sh"
+
+# s6's 58-permissions script will reset /config/*.sh to 0600 (non-executable).
+# Inject a cont-init.d script at 89 (runs after 58-permissions) to restore +x.
+cat >/etc/cont-init.d/89-aria2-hooks <<'INITEOF'
+#!/bin/sh
+chmod +x /config/aria2-on-complete.sh /config/aria2-on-error.sh 2>/dev/null || true
+INITEOF
+chmod +x /etc/cont-init.d/89-aria2-hooks
+
 echo "✓ Notification hooks written (ntfy=${NTFY_EFFECTIVE_URL}, re-resolves each call)"
 
 ################################################################################

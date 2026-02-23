@@ -277,13 +277,20 @@ recreate_containers() {
 		fi
 	fi
 
-	# Approach 3: Fallback to docker restart if compose fails
+	# Approach 3: Fallback to per-container restart/start
+	# - Existing containers: docker restart (fast, preserves runtime state)
+	# - Removed containers: docker compose up -d (recreates from compose file)
+	#   Handles the case where compose batch failed (e.g. invalid service name in list)
+	#   but individual containers still need to come back up.
 	if [ "$success" = "false" ]; then
-		echo "[$(date +'%Y-%m-%d %H:%M:%S')]   ⚠ Docker compose failed, using docker restart as fallback..."
+		echo "[$(date +'%Y-%m-%d %H:%M:%S')]   ⚠ Batch compose failed, falling back per-container..."
 		for container in $RESTART_CONTAINERS; do
 			if docker inspect "$container" >/dev/null 2>&1; then
 				echo "[$(date +'%Y-%m-%d %H:%M:%S')]   • Restarting $container..."
 				docker restart "$container" 2>&1 | sed "s/^/    /" || true
+			elif [ -f /compose/docker-compose.yml ]; then
+				echo "[$(date +'%Y-%m-%d %H:%M:%S')]   • $container removed, recreating via compose..."
+				docker compose -p potatostack -f /compose/docker-compose.yml up -d "$container" 2>&1 | sed "s/^/    /" || true
 			fi
 		done
 	else

@@ -65,6 +65,33 @@ else
 fi
 
 ################################################################################
+# Write custom nginx config:
+# - SPA fallback: try_files so hard-refreshing any route serves index.html
+# - No-cache for rpc-config.js so browsers always get the latest secret/host
+################################################################################
+cat >/etc/nginx/conf.d/default.conf <<'NGINXCONF'
+server {
+    listen 80;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # rpc-config.js is regenerated on every restart — never cache it
+    location = /rpc-config.js {
+        add_header Cache-Control "no-store, no-cache, must-revalidate";
+        expires -1;
+    }
+
+    # SPA fallback: serve index.html for any unmatched path
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+NGINXCONF
+echo "✓ nginx config written (no-cache rpc-config.js, SPA fallback)"
+
+################################################################################
 # Generate rpc-config.js — overwrites on every container restart so the secret
 # stays in sync if aria2 is recreated.
 # Sets localStorage["AriaNg.Options"] unconditionally so any browser/device
@@ -76,11 +103,21 @@ cat >"${HTML_DIR}/rpc-config.js" <<EOF
   var k = 'AriaNg.Options';
   var opts;
   try { opts = JSON.parse(localStorage.getItem(k) || '{}'); } catch (e) { opts = {}; }
-  opts.rpcHost     = "${RPC_HOST}";
-  opts.rpcPort     = "${RPC_PORT}";
-  opts.rpcInterface = "jsonrpc";
-  opts.protocol    = "wss";
-  opts.secret      = "${RPC_SECRET}";
+
+  /* AriaNg 1.1+ stores RPC endpoints as an array under rpcSettings.
+     Older flat keys (rpcHost/rpcPort/…) are ignored by current versions. */
+  opts.rpcSettings = [{
+    rpcAlias:          "",
+    rpcHost:           "${RPC_HOST}",
+    rpcPort:           "${RPC_PORT}",
+    rpcInterface:      "jsonrpc",
+    protocol:          "wss",
+    httpMethod:        "POST",
+    rpcRequestHeaders: "",
+    secret:            "${RPC_SECRET}",
+    isDefault:         true
+  }];
+
   localStorage.setItem(k, JSON.stringify(opts));
 })();
 EOF
