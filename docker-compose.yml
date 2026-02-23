@@ -444,8 +444,6 @@ services:
       - "${HOST_BIND:-127.0.0.1}:50000:50000" # slskd peer
       - "${HOST_BIND:-127.0.0.1}:8097:8080" # SpotiFLAC WebUI
       # - "${HOST_BIND:-127.0.0.1}:8945:8945" # Pinchflat
-      - "${HOST_BIND:-127.0.0.1}:8076:8000" # pyLoad WebUI (internal 8000)
-      - "${HOST_BIND:-127.0.0.1}:9666:9666" # pyLoad Click'n'Load
       - "${HOST_BIND:-127.0.0.1}:9900:9900" # Stash
 
     environment:
@@ -463,7 +461,7 @@ services:
       DOT: "off"
       HTTPPROXY: "off"
       SHADOWSOCKS: "off"
-      HTTP_CONTROL_SERVER_ADDRESS: :8008 # Changed from 8000 to avoid pyload conflict
+      HTTP_CONTROL_SERVER_ADDRESS: :8008
       HTTP_CONTROL_SERVER_LOG: "off"
       HTTP_CONTROL_SERVER_AUTH: "off"
       IPV6: "off"
@@ -543,7 +541,7 @@ services:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
       # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr; aria2 RPC (6800) + AriaNg (6880) added
-      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,8181,9925,5984,9898,8123,8191,3333,3335,5656,8085,8337,6800,6880"
+      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,8181,9925,5984,9898,8123,8191,3333,3335,5656,8085,8337,6800,6880"
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_MARKER_FILE: /https-marker/setup-complete
@@ -572,7 +570,7 @@ services:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
       # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr; aria2 RPC (6800) + AriaNg (6880) added
-      TAILSCALE_SERVE_PORTS: 7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,8076,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,8181,9925,5984,9898,8123,8191,3333,3335,5656,8085,8337,6800,6880
+      TAILSCALE_SERVE_PORTS: 7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,8181,9925,5984,9898,8123,8191,3333,3335,5656,8085,8337,6800,6880
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_SERVE_LOOP: "true"
@@ -1392,14 +1390,6 @@ services:
       UN_FOLDER_1_DELETE_FILES: "false"
       UN_FOLDER_1_EXTRACT_ISOS: "false"
 
-      # Pyload - Extract + delete
-      UN_FOLDER_2_PATH: "/downloads/pyload"
-      UN_FOLDER_2_DELETE_ORIGINAL: "true"
-      UN_FOLDER_2_DELETE_AFTER: "0s"
-      UN_FOLDER_2_MOVE_BACK: "true"
-      UN_FOLDER_2_DELETE_FILES: "false"
-      UN_FOLDER_2_EXTRACT_ISOS: "false"
-
       # TDL (Telegram) - Extract + delete
       UN_FOLDER_3_PATH: "/downloads/telegram"
       UN_FOLDER_3_DELETE_ORIGINAL: "true"
@@ -1431,14 +1421,6 @@ services:
       UN_FOLDER_6_MOVE_BACK: "true"
       UN_FOLDER_6_DELETE_FILES: "false"
       UN_FOLDER_6_EXTRACT_ISOS: "false"
-
-      # storage (HDD) - pyload - Extract + delete
-      UN_FOLDER_7_PATH: "/storage/downloads/pyload"
-      UN_FOLDER_7_DELETE_ORIGINAL: "true"
-      UN_FOLDER_7_DELETE_AFTER: "0s"
-      UN_FOLDER_7_MOVE_BACK: "true"
-      UN_FOLDER_7_DELETE_FILES: "false"
-      UN_FOLDER_7_EXTRACT_ISOS: "false"
 
       # storage (HDD) - slskd - Extract + delete
       UN_FOLDER_8_PATH: "/storage/downloads/slskd"
@@ -1500,10 +1482,10 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 128M
+          memory: 512M
         reservations:
           cpus: "0.25"
-          memory: 64M
+          memory: 128M
     labels:
       - "wud.trigger.docker.update=true"
   ################################################################################
@@ -1953,7 +1935,7 @@ services:
 
 
   # Beets - Music library manager and tagger (SOTA 2026)
-  # Ingests: SpotiFLAC (main) + slskd + torrents + aria2 + pyload
+  # Ingests: SpotiFLAC (main) + slskd + torrents + aria2
   # Organizes to: /mnt/storage/media/music (Artist/Year - Album/Track - Title)
   # Consumers: Navidrome (stream), slskd (share), Jellyfin (stream)
   # Usage: docker exec -it -u abc beets beet import /downloads/slskd
@@ -1970,7 +1952,7 @@ services:
     volumes:
       - /mnt/ssd/docker-data/beets:/config
       - /mnt/storage/media/music:/music             # library (RW - beets writes organized files)
-      - /mnt/storage2/downloads:/downloads:ro       # ALL sources: spotiflac, slskd, torrents, aria2, pyload
+      - /mnt/storage2/downloads:/downloads:ro       # ALL sources: spotiflac, slskd, torrents, aria2
       - /mnt/storage/downloads:/storage-downloads:ro # secondary: slskd (HDD)
       - ./config/beets/config.yaml:/config/config.yaml:ro
       - ./config/beets/auto-import.sh:/config/auto-import.sh:ro
@@ -2135,20 +2117,27 @@ services:
   # RPC setup: Host=potatostack.tale-iwato.ts.net Port=6800 Path=/jsonrpc Protocol=WebSocket
   # Get RPC secret from: docker exec aria2 cat /config/aria2.conf | grep rpc-secret
   ariang:
-    image: p3terx/ariang:${ARIANG_TAG:-latest}
+    image: nginx:alpine
     container_name: ariang
     logging: *default-logging
+    entrypoint: ["/bin/sh", "/ariang-init.sh"]
     ports:
-      - "${HOST_BIND:-127.0.0.1}:6880:6880"
+      - "${HOST_BIND:-127.0.0.1}:6880:80"
     environment:
       <<: *common-env
+      ARIANG_RPC_HOST: ${ARIANG_RPC_HOST}
+      ARIANG_RPC_PORT: ${ARIANG_RPC_PORT:-6800}
+    volumes:
+      - /home/daniel/potatostack/config/ariang:/AriaNg-static:ro
+      - /home/daniel/potatostack/scripts/init/ariang-init.sh:/ariang-init.sh:ro
+      - shared-keys:/keys:ro
     networks:
       - potatostack
     depends_on:
       - aria2
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:6880/ || exit 1"]
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:80/ || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -2262,54 +2251,6 @@ services:
   #       reservations:
   #         cpus: "0.25"
   #         memory: 128M
-
-  # pyLoad-ng - Web-based download manager (HTTP/FTP/etc)
-  # WebUI: 8076 (external) -> 8000 (internal), Click'n'Load: 9666
-  pyload:
-    image: lscr.io/linuxserver/pyload-ng:latest
-    container_name: pyload
-    logging: *default-logging
-    network_mode: "service:gluetun"
-    entrypoint: /pyload-init.sh
-    environment:
-      <<: *common-env
-      PYLOAD_USER: ${PYLOAD_USER:-pyload}
-      PYLOAD_PASSWORD: ${PYLOAD_PASSWORD:-}
-      PYLOAD_ENABLE_NTFY_HOOKS: ${PYLOAD_ENABLE_NTFY_HOOKS:-true}
-      REALDEBRID_API_KEY: ${REALDEBRID_API_KEY:-}
-      TORBOX_API_KEY: ${TORBOX_API_KEY:-}
-      NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
-      NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
-      NTFY_TOKEN: ${NTFY_TOKEN:-}
-    volumes:
-      - pyload-config:/config
-      - /mnt/storage2/downloads/pyload:/downloads
-      - /mnt/storage2/downloads/incomplete/pyload:/incomplete
-      - /home/daniel/potatostack/scripts/init/pyload-init.sh:/pyload-init.sh:ro
-    depends_on:
-      gluetun:
-        condition: service_healthy
-        restart: true
-      storage-init:
-        condition: service_completed_successfully
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8000/ || exit 1"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 4G
-        reservations:
-          cpus: "0.1"
-          memory: 128M
-    labels:
-      - "autoheal=true"
-      - "wud.trigger.docker.update=true"
 
   # tdl - Telegram downloader toolkit
   tdl:
@@ -3619,10 +3560,10 @@ services:
       resources:
         limits:
           cpus: "2.0"
-          memory: 1024M
+          memory: 3G
         reservations:
           cpus: "0.5"
-          memory: 256M
+          memory: 512M
     labels:
       - "autoheal=true"
       - "wud.trigger.docker.update=true"
@@ -4159,7 +4100,7 @@ services:
     environment:
       - GLUETUN_URL=http://gluetun:8008
       - CHECK_INTERVAL=${GLUETUN_CHECK_INTERVAL:-10}
-      - RESTART_CONTAINERS= qbittorrent pyload slskd spotiflac stash aria2 tdl
+      - RESTART_CONTAINERS= qbittorrent slskd spotiflac stash aria2 tdl
       - RESTART_ON_STOP=${GLUETUN_RESTART_ON_STOP:-true}
       - RESTART_ON_FAILURE=${GLUETUN_RESTART_ON_FAILURE:-true}
       - RESTART_COOLDOWN=${GLUETUN_RESTART_COOLDOWN:-120}
@@ -4632,7 +4573,6 @@ volumes:
   qbittorrent-config:
   sabnzbd-config:
   aria2-config:
-  pyload-config:
   slskd-config:
   tdl-data:
   unpackerr-config:

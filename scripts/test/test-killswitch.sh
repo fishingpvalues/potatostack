@@ -35,7 +35,6 @@ VPN_DEPENDENT_SERVICES=(
 	"spotiflac"
 	"qbittorrent"
 	"slskd"
-	"pyload"
 	"stash"
 )
 

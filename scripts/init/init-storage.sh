@@ -10,7 +10,7 @@
 # Note: cachehdd decommissioned (bad sectors) - all data moved to SSD/storage
 #
 # Note: All incomplete downloads moved from cachehdd to storagehdd:
-#   /mnt/storage/downloads/incomplete/{sonarr,radarr,lidarr,qbittorrent,sabnzbd,aria2,slskd,pyload,pinchflat}
+#   /mnt/storage/downloads/incomplete/{sonarr,radarr,lidarr,qbittorrent,sabnzbd,aria2,slskd,pinchflat}
 ################################################################################
 
 set -eu
@@ -48,13 +48,11 @@ if [ -d "$STORAGE2_BASE" ]; then
         "${STORAGE2_BASE}/downloads/torrents" \
         "${STORAGE2_BASE}/downloads/aria2" \
         "${STORAGE2_BASE}/downloads/slskd" \
-        "${STORAGE2_BASE}/downloads/pyload" \
         "${STORAGE2_BASE}/downloads/spotiflac" \
         "${STORAGE2_BASE}/downloads/telegram" \
         "${STORAGE2_BASE}/downloads/incomplete/qbittorrent" \
         "${STORAGE2_BASE}/downloads/incomplete/aria2" \
         "${STORAGE2_BASE}/downloads/incomplete/slskd" \
-        "${STORAGE2_BASE}/downloads/incomplete/pyload" \
         "${STORAGE2_BASE}/downloads/incomplete/sonarr" \
         "${STORAGE2_BASE}/downloads/incomplete/radarr" \
         "${STORAGE2_BASE}/downloads/incomplete/pinchflat" \

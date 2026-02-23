@@ -116,12 +116,6 @@ services:
         url: "https://potatostack.tale-iwato.ts.net:6880"
         target: "_blank"
 
-      - name: "pyLoad"
-        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/pyload.png"
-        subtitle: "Direct Downloads"
-        url: "https://potatostack.tale-iwato.ts.net:8076"
-        target: "_blank"
-
 
   - name: "Photos & Files"
     icon: "fas fa-images"

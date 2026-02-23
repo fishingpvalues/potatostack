@@ -1,6 +1,6 @@
 ################################################################################
 # Beets - SOTA Music Library Manager Configuration
-# Ingests from: SpotiFLAC (main), slskd, torrents, aria2, pyload
+# Ingests from: SpotiFLAC (main), slskd, torrents, aria2
 # Library: /mnt/storage/media/music (organized, tagged)
 # Consumers: Navidrome, Jellyfin, slskd (share)
 ################################################################################
