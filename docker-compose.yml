@@ -542,7 +542,7 @@ services:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
       # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr; aria2 RPC (6800) + AriaNg (6880) added; Dagu (3080) added
-      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,8181,9925,5984,9898,8123,8191,3333,3335,5656,8085,8337,6800,6880,3080"
+      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,8181,9925,5984,9898,8123,8191,3333,3335,5656,8085,8337,6800,6880,3080,8200"
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_MARKER_FILE: /https-marker/setup-complete
@@ -571,7 +571,7 @@ services:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
       # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr; aria2 RPC (6800) + AriaNg (6880) added; Dagu (3080) added
-      TAILSCALE_SERVE_PORTS: 7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,8181,9925,5984,9898,8123,8191,3333,3335,5656,8085,8337,6800,6880,3080
+      TAILSCALE_SERVE_PORTS: 7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,8181,9925,5984,9898,8123,8191,3333,3335,5656,8085,8337,6800,6880,3080,8200
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_SERVE_LOOP: "true"
@@ -924,10 +924,58 @@ services:
           memory: 128M
       # Use shared-array-chain for SharedArrayBuffer support (COOP/COEP headers)
 
+  # Pairs Screener - Regime-aware cointegration-ranked pair selection for freqtrade
+  # Serves RemotePairList at http://pairs-screener:8000/api/v1/pairs (Kraken public API, no key)
+  pairs-screener:
+    build:
+      context: ${FREQTRADE_STRATEGY_PATH:-/home/daniel/workdir/freqtrader-strategy}
+      dockerfile: Dockerfile
+      target: runtime
+    image: freqtrader-strategy:runtime
+    container_name: pairs-screener
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:8200:8000"
+    command: ["python", "-m", "services.pairs_screener"]
+    env_file:
+      - ${FREQTRADE_STRATEGY_PATH:-/home/daniel/workdir/freqtrader-strategy}/.env
+    environment:
+      <<: *common-env
+      REDIS_URL: redis://redis-cache:6379/10
+      SCREENER_REFRESH_HOURS: ${SCREENER_REFRESH_HOURS:-12}
+      SCREENER_MIN_VOLUME_EUR: ${SCREENER_MIN_VOLUME_EUR:-200000}
+      SCREENER_MAX_SPREAD_PCT: ${SCREENER_MAX_SPREAD_PCT:-0.15}
+      SCREENER_TOP_N_PAIRS: ${SCREENER_TOP_N_PAIRS:-20}
+      SCREENER_OHLCV_DAYS: ${SCREENER_OHLCV_DAYS:-30}
+      SCREENER_UNIVERSE_CAP: ${SCREENER_UNIVERSE_CAP:-50}
+    networks:
+      - potatostack
+    depends_on:
+      redis-cache:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    labels:
+      - "autoheal=true"
+      - "wud.trigger.docker.update=false"
+
   # Freqtrade - Algorithmic trading bot with Adaptive Regime Strategy
   freqtrade-bot:
     build:
-      context: ${FREQTRADE_STRATEGY_PATH:-./.related_deps/freqtrader-strategy}
+      context: ${FREQTRADE_STRATEGY_PATH:-/home/daniel/workdir/freqtrader-strategy}
       dockerfile: Dockerfile
       target: runtime
     image: freqtrader-strategy:runtime
@@ -936,6 +984,8 @@ services:
     ports:
       - "${HOST_BIND:-127.0.0.1}:8181:8080"
     command: ["freqtrade", "trade", "--config", "/app/config.json", "--strategy", "AdaptiveRegimeStrategy", "--strategy-path", "/app/strategies/"]
+    env_file:
+      - ${FREQTRADE_STRATEGY_PATH:-/home/daniel/workdir/freqtrader-strategy}/.env
     environment:
       <<: *common-env
       DATABASE_URL: postgresql://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/freqtrade
@@ -945,14 +995,12 @@ services:
       KRAKEN_API_KEY: ${FREQTRADE_KRAKEN_API_KEY:-}
       KRAKEN_API_SECRET: ${FREQTRADE_KRAKEN_API_SECRET:-}
       FRED_API_KEY: ${FREQTRADE_FRED_API_KEY:-}
-      COINMETRICS_API_KEY: ${FREQTRADE_COINMETRICS_API_KEY:-}
-      SOSOVALUE_API_KEY: ${FREQTRADE_SOSOVALUE_API_KEY:-}
-      COINGLASS_API_KEY: ${FREQTRADE_COINGLASS_API_KEY:-}
+      COINGECKO_API_KEY: ${FREQTRADE_COINGECKO_API_KEY:-}
       REGIME_UPDATE_INTERVAL_SEC: ${FREQTRADE_REGIME_UPDATE_INTERVAL_SEC:-300}
       REGIME_LAZINESS_WINDOW: ${FREQTRADE_REGIME_LAZINESS_WINDOW:-5}
     volumes:
-      - ${FREQTRADE_STRATEGY_PATH:-./.related_deps/freqtrader-strategy}/config.json:/app/config.json:ro
-      - ${FREQTRADE_STRATEGY_PATH:-./.related_deps/freqtrader-strategy}/strategies:/app/strategies:ro
+      - ${FREQTRADE_STRATEGY_PATH:-/home/daniel/workdir/freqtrader-strategy}/config.json:/app/config.json:ro
+      - ${FREQTRADE_STRATEGY_PATH:-/home/daniel/workdir/freqtrader-strategy}/strategies:/app/strategies:ro
       - /mnt/ssd/docker-data/freqtrade/user_data:/app/user_data
     networks:
       - potatostack
@@ -960,6 +1008,8 @@ services:
       postgres:
         condition: service_healthy
       redis-cache:
+        condition: service_healthy
+      pairs-screener:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
@@ -976,20 +1026,25 @@ services:
           cpus: "0.25"
           memory: 256M
     labels:
+      - "autoheal=true"
+      - "potatostack.alerts=critical"
       - "wud.trigger.docker.update=false"
 
   # Regime Classifier - Companion daemon for freqtrade regime detection
   regime-classifier:
     build:
-      context: ${FREQTRADE_STRATEGY_PATH:-./.related_deps/freqtrader-strategy}
+      context: ${FREQTRADE_STRATEGY_PATH:-/home/daniel/workdir/freqtrader-strategy}
       dockerfile: Dockerfile
       target: runtime
     image: freqtrader-strategy:runtime
     container_name: regime-classifier
     logging: *default-logging
     command: ["python", "-m", "services.classifier_service"]
+    env_file:
+      - ${FREQTRADE_STRATEGY_PATH:-/home/daniel/workdir/freqtrader-strategy}/.env
     environment:
       <<: *common-env
+      HOME: /tmp
       DATABASE_URL: postgresql://postgres:${POSTGRES_SUPER_PASSWORD}@postgres:5432/freqtrade
       REDIS_URL: redis://redis-cache:6379/10
       NTFY_URL: http://ntfy:80
@@ -997,9 +1052,7 @@ services:
       KRAKEN_API_KEY: ${FREQTRADE_KRAKEN_API_KEY:-}
       KRAKEN_API_SECRET: ${FREQTRADE_KRAKEN_API_SECRET:-}
       FRED_API_KEY: ${FREQTRADE_FRED_API_KEY:-}
-      COINMETRICS_API_KEY: ${FREQTRADE_COINMETRICS_API_KEY:-}
-      SOSOVALUE_API_KEY: ${FREQTRADE_SOSOVALUE_API_KEY:-}
-      COINGLASS_API_KEY: ${FREQTRADE_COINGLASS_API_KEY:-}
+      COINGECKO_API_KEY: ${FREQTRADE_COINGECKO_API_KEY:-}
       REGIME_UPDATE_INTERVAL_SEC: ${FREQTRADE_REGIME_UPDATE_INTERVAL_SEC:-300}
       REGIME_LAZINESS_WINDOW: ${FREQTRADE_REGIME_LAZINESS_WINDOW:-5}
     networks:
@@ -1019,6 +1072,8 @@ services:
           cpus: "0.25"
           memory: 256M
     labels:
+      - "autoheal=true"
+      - "potatostack.alerts=critical"
       - "wud.trigger.docker.update=false"
 
   # Ghostfolio - Wealth management & portfolio tracker
@@ -4396,7 +4451,7 @@ services:
       - ntfy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:8080/ || exit 1"]
+      test: ["CMD-SHELL", "wget -q --user=${DAGU_BASIC_AUTH_USER} --password=${DAGU_BASIC_AUTH_PASS} -O /dev/null http://127.0.0.1:8080/ || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3

@@ -212,8 +212,14 @@ services:
 
       - name: "Freqtrade"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/freqtrade.png"
-        subtitle: "Algo Trading"
+        subtitle: "Algo Trading Bot"
         url: "https://potatostack.tale-iwato.ts.net:8181"
+        target: "_blank"
+
+      - name: "Pairs Screener"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/freqtrade.png"
+        subtitle: "Regime-Aware Pair Selection"
+        url: "https://potatostack.tale-iwato.ts.net:8200/api/v1/screener/status"
         target: "_blank"
 
   - name: "Home & Infra"
