@@ -4379,7 +4379,7 @@ services:
       NTFY_TOPIC_WARNING: ${NTFY_TOPIC_WARNING:-potatostack-warning}
     volumes:
       - ./config/dagu:/home/dagu/.config/dagu
-      - dagu-data:/home/dagu/.local/share/dagu
+      - /mnt/ssd/docker-data/dagu:/home/dagu/.local/share/dagu
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker:ro
       - /mnt/storage2/velld/backups:/mnt/storage2/velld/backups:ro
@@ -4675,9 +4675,6 @@ volumes:
   # Utilities (DISABLED - paperless commented out)
   # paperless-data:
   # paperless-media:
-
-  # Automation
-  dagu-data:
 
   # System
   wud-data:
