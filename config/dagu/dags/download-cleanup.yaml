@@ -1,0 +1,73 @@
+# Download Staging Cleanup - Daily check and alert on stale downloads
+# Uses docker exec beets which has /downloads mounted (=/mnt/storage2/downloads)
+# Spotiflac files are auto-deleted by beets --move; this handles other sources
+name: download-cleanup
+schedule: "0 23 * * *"
+maxActiveRuns: 1
+
+steps:
+  # Report per-source download directory sizes
+  - name: check-sizes
+    command: >-
+      docker exec beets sh -c '
+        echo "=== Download directory sizes ===";
+        for dir in spotiflac slskd aria2 pyload torrents telegram incomplete; do
+          SIZE=$(du -sh /downloads/$dir 2>/dev/null | cut -f1);
+          [ -n "$SIZE" ] && echo "$dir: $SIZE" || echo "$dir: (empty or missing)";
+        done;
+        echo "--- Total ---";
+        du -sh /downloads 2>/dev/null | cut -f1 | xargs echo "Total:"
+      '
+
+  # Count stale files (older than 14 days, excluding incomplete/temp dirs)
+  - name: find-stale
+    command: >-
+      docker exec beets sh -c '
+        COUNT=$(find /downloads \
+          -not -path "*/incomplete/*" \
+          -not -path "*/.aria2" \
+          -not -name "*.aria2" \
+          -not -path "*/temp/*" \
+          -type f -mtime +14 2>/dev/null | wc -l);
+        echo "Files older than 14 days: $COUNT";
+        if [ "$COUNT" -gt 100 ]; then
+          echo "WARNING: $COUNT stale files found - consider manual review";
+          find /downloads -not -path "*/incomplete/*" -not -name "*.aria2" -type f -mtime +14 2>/dev/null | head -20;
+        fi
+      '
+    depends:
+      - check-sizes
+
+  # Alert if total downloads exceed 100GB
+  - name: check-threshold
+    command: >-
+      docker exec beets sh -c '
+        BYTES=$(du -sb /downloads 2>/dev/null | cut -f1);
+        GB=$(awk "BEGIN{printf \"%.1f\", ${BYTES:-0}/1073741824}");
+        echo "Total downloads: ${GB}GB";
+        awk "BEGIN{exit (${BYTES:-0} > 107374182400)}" || {
+          echo "ALERT: Downloads directory exceeds 100GB (${GB}GB)";
+          exit 1;
+        }
+      '
+    depends:
+      - find-stale
+
+  - name: notify-success
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC:-potatostack}"
+      -H "Title: Download Cleanup Check OK"
+      -H "Priority: low"
+      -H "Tags: inbox_tray,white_check_mark"
+      -d "Download staging check complete. Check Dagu logs for sizes and stale file report."
+    depends:
+      - check-threshold
+
+handlerOn:
+  failure:
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC_WARNING:-potatostack-warning}"
+      -H "Title: Download Staging Alert"
+      -H "Priority: high"
+      -H "Tags: inbox_tray,warning"
+      -d "Download staging area exceeded 100GB or has issues - review /mnt/storage2/downloads"

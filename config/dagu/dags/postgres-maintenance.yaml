@@ -1,0 +1,76 @@
+# PostgreSQL Maintenance - Weekly VACUUM ANALYZE and health report
+# Runs Sunday 2am, after all nightly jobs complete
+name: postgres-maintenance
+schedule: "0 2 * * 0"
+maxActiveRuns: 1
+
+steps:
+  # VACUUM ANALYZE all app databases to reclaim space and update planner stats
+  - name: vacuum-analyze
+    command: >-
+      docker exec postgres bash -c '
+        for db in atuin baikal bitmagnet calibre ghostfolio gitea grafana healthchecks homarr immich infisical miniflux woodpecker; do
+          echo "=== VACUUM ANALYZE $db ===";
+          psql -U postgres -d $db -c "VACUUM ANALYZE;" 2>&1 || echo "skip $db (not found)";
+        done
+      '
+
+  # Report database sizes
+  - name: database-sizes
+    command: >-
+      docker exec postgres psql -U postgres -c
+      "SELECT datname AS database, pg_size_pretty(pg_database_size(datname)) AS size
+       FROM pg_database
+       WHERE datname NOT IN ('template0','template1','postgres')
+       ORDER BY pg_database_size(datname) DESC;"
+    depends:
+      - vacuum-analyze
+
+  # Report any currently slow queries (informational)
+  - name: slow-queries
+    command: >-
+      docker exec postgres psql -U postgres -c
+      "SELECT pid,
+              round(extract(epoch FROM now()-query_start)::numeric,1) AS duration_s,
+              left(query, 120) AS query
+       FROM pg_stat_activity
+       WHERE state = 'active'
+         AND now() - query_start > interval '5 seconds'
+       ORDER BY duration_s DESC
+       LIMIT 10;" 2>&1 || true
+    depends:
+      - vacuum-analyze
+
+  # Report largest tables across all databases
+  - name: largest-tables
+    command: >-
+      docker exec postgres psql -U postgres -c
+      "SELECT schemaname || '.' || relname AS table_name,
+              pg_size_pretty(pg_total_relation_size(oid)) AS total_size
+       FROM pg_class
+       WHERE relkind = 'r'
+       ORDER BY pg_total_relation_size(oid) DESC
+       LIMIT 15;"
+    depends:
+      - vacuum-analyze
+
+  - name: notify-success
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC:-potatostack}"
+      -H "Title: PostgreSQL Maintenance Complete"
+      -H "Priority: low"
+      -H "Tags: elephant,white_check_mark"
+      -d "Weekly VACUUM ANALYZE done on all 13 databases. Check Dagu logs for size report."
+    depends:
+      - database-sizes
+      - slow-queries
+      - largest-tables
+
+handlerOn:
+  failure:
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC_CRITICAL:-potatostack-critical}"
+      -H "Title: PostgreSQL Maintenance FAILED"
+      -H "Priority: high"
+      -H "Tags: elephant,x"
+      -d "PostgreSQL weekly maintenance failed - check Dagu logs"

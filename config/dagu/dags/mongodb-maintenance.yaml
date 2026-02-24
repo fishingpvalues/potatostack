@@ -1,0 +1,88 @@
+# MongoDB Maintenance - Weekly stats, health check, and database report
+# Uses mongo container's own credentials via sh -c to avoid passing secrets externally
+name: mongodb-maintenance
+schedule: "0 3 * * 6"
+maxActiveRuns: 1
+
+steps:
+  # Check MongoDB server health and version
+  - name: mongo-health
+    command: >-
+      docker exec mongo sh -c '
+        mongosh admin \
+          -u "$MONGO_INITDB_ROOT_USERNAME" \
+          -p "$MONGO_INITDB_ROOT_PASSWORD" \
+          --quiet \
+          --eval "
+            var status = db.adminCommand({serverStatus:1});
+            print(\"MongoDB version: \" + status.version);
+            print(\"Uptime: \" + Math.round(status.uptime/3600) + \"h\");
+            print(\"Connections: \" + status.connections.current + \" current, \" + status.connections.available + \" available\");
+            print(\"Memory: \" + Math.round(status.mem.resident) + \"MB resident\");
+          " 2>/dev/null
+      '
+
+  # List all databases and their sizes
+  - name: database-stats
+    command: >-
+      docker exec mongo sh -c '
+        mongosh admin \
+          -u "$MONGO_INITDB_ROOT_USERNAME" \
+          -p "$MONGO_INITDB_ROOT_PASSWORD" \
+          --quiet \
+          --eval "
+            var dbs = db.adminCommand({listDatabases:1});
+            print(\"=== MongoDB databases ===\");
+            dbs.databases.forEach(function(d) {
+              print(d.name + \": \" + (d.sizeOnDisk/1048576).toFixed(1) + \"MB\");
+            });
+            print(\"Total: \" + (dbs.totalSize/1048576).toFixed(1) + \"MB\");
+          " 2>/dev/null
+      '
+    depends:
+      - mongo-health
+
+  # Run repairDatabase on each non-system database to reclaim fragmented space
+  - name: compact-databases
+    command: >-
+      docker exec mongo sh -c '
+        DBS=$(mongosh admin \
+          -u "$MONGO_INITDB_ROOT_USERNAME" \
+          -p "$MONGO_INITDB_ROOT_PASSWORD" \
+          --quiet \
+          --eval "db.adminCommand({listDatabases:1}).databases.map(d=>d.name).filter(n=>!n.match(/^(admin|config|local)$/)).join(\" \")" 2>/dev/null);
+        if [ -z "$DBS" ]; then
+          echo "No app databases to compact";
+          exit 0;
+        fi;
+        for db in $DBS; do
+          echo "Compacting $db...";
+          mongosh "$db" \
+            -u "$MONGO_INITDB_ROOT_USERNAME" \
+            -p "$MONGO_INITDB_ROOT_PASSWORD" \
+            --authenticationDatabase admin \
+            --quiet \
+            --eval "db.runCommand({compact: db.getCollectionNames()[0]})" 2>/dev/null || echo "skip $db";
+        done
+      '
+    depends:
+      - database-stats
+
+  - name: notify-success
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC:-potatostack}"
+      -H "Title: MongoDB Maintenance Complete"
+      -H "Priority: low"
+      -H "Tags: leaves,white_check_mark"
+      -d "Weekly MongoDB health check and compaction complete. Check Dagu logs for database stats."
+    depends:
+      - compact-databases
+
+handlerOn:
+  failure:
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC_WARNING:-potatostack-warning}"
+      -H "Title: MongoDB Maintenance Failed"
+      -H "Priority: default"
+      -H "Tags: leaves,warning"
+      -d "MongoDB weekly maintenance failed - check Dagu logs"

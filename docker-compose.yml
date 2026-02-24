@@ -1952,7 +1952,7 @@ services:
     volumes:
       - /mnt/ssd/docker-data/beets:/config
       - /mnt/storage/media/music:/music             # library (RW - beets writes organized files)
-      - /mnt/storage2/downloads:/downloads:ro       # ALL sources: spotiflac, slskd, torrents, aria2
+      - /mnt/storage2/downloads:/downloads            # ALL sources: spotiflac, slskd, torrents, aria2
       - /mnt/storage/downloads:/storage-downloads:ro # secondary: slskd (HDD)
       - ./config/beets/config.yaml:/config/config.yaml:ro
       - ./config/beets/auto-import.sh:/config/auto-import.sh:ro
@@ -4379,6 +4379,8 @@ services:
       NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
       NTFY_TOPIC_CRITICAL: ${NTFY_TOPIC_CRITICAL:-potatostack-critical}
       NTFY_TOPIC_WARNING: ${NTFY_TOPIC_WARNING:-potatostack-warning}
+      JELLYFIN_API_KEY: ${JELLYFIN_API_KEY:-}   # optional: generate in Jellyfin Dashboard → API Keys
+      IMMICH_API_KEY: ${IMMICH_API_KEY:-}         # optional: generate in Immich Account Settings → API Keys
     volumes:
       - ./config/dagu/dags:/config/dagu/dags:ro
       - /mnt/ssd/docker-data/dagu:/var/lib/dagu

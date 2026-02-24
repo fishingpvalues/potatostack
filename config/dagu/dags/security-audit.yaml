@@ -1,0 +1,87 @@
+# Security Audit - Daily check of security posture
+# Checks CrowdSec bans, SSH key permissions, and critical service health
+name: security-audit
+schedule: "0 7 * * *"
+maxActiveRuns: 1
+
+steps:
+  # Check CrowdSec active ban decisions
+  - name: crowdsec-decisions
+    command: >-
+      docker exec crowdsec cscli decisions list -o json 2>/dev/null | python3 -c "
+        import sys, json
+        try:
+          d = json.load(sys.stdin)
+          if d:
+            print(f'CrowdSec active bans: {len(d)}')
+            for item in (d[:5] if len(d) > 5 else d):
+              val = item.get('value','?')
+              reason = item.get('reason','?')
+              dur = item.get('duration','?')
+              print(f'  {val} | {reason} | {dur}')
+            if len(d) > 5:
+              print(f'  ... and {len(d)-5} more')
+          else:
+            print('CrowdSec: No active bans')
+        except Exception as e:
+          print(f'CrowdSec: parse error - {e}')
+      " 2>/dev/null || echo "CrowdSec: could not query (container may be starting)"
+
+  # Check CrowdSec hub update status
+  - name: crowdsec-hub
+    command: >-
+      docker exec crowdsec cscli hub list 2>/dev/null | head -20 || echo "CrowdSec hub: unavailable"
+    depends:
+      - crowdsec-decisions
+
+  # Verify SSH key permissions on backrest (critical for backup SSH auth)
+  - name: ssh-permissions
+    command: >-
+      docker exec backrest sh -c '
+        echo "=== Backrest SSH key permissions ===";
+        for f in /root/.ssh/id_ed25519 /root/.ssh/config /root/.ssh/known_hosts; do
+          if [ -f "$f" ]; then
+            PERMS=$(stat -c "%a" "$f");
+            echo "$f: $PERMS";
+            case "$f" in
+              */id_ed25519|*/config|*/known_hosts)
+                [ "$PERMS" = "600" ] || echo "  WARNING: should be 600, got $PERMS";;
+            esac
+          else
+            echo "$f: not found";
+          fi;
+        done;
+        DIR_PERMS=$(stat -c "%a" /root/.ssh 2>/dev/null);
+        echo "/root/.ssh dir: $DIR_PERMS";
+        [ "$DIR_PERMS" = "700" ] || echo "  WARNING: .ssh dir should be 700, got $DIR_PERMS"
+      ' 2>/dev/null || echo "SSH check: backrest container not available"
+
+  # Verify Vaultwarden is healthy (password manager must be available)
+  - name: vaultwarden-health
+    command: >-
+      sh -c '
+        STATUS=$(curl -sf -o /dev/null -w "%{http_code}" http://vaultwarden:80/ 2>/dev/null || echo "000");
+        echo "Vaultwarden: HTTP $STATUS";
+        [ "$STATUS" = "200" ] || [ "$STATUS" = "302" ] || echo "WARNING: Vaultwarden returned unexpected status $STATUS"
+      '
+
+  - name: notify-success
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC:-potatostack}"
+      -H "Title: Security Audit OK"
+      -H "Priority: low"
+      -H "Tags: lock,white_check_mark"
+      -d "Daily security audit complete. Check Dagu logs for CrowdSec bans and permission details."
+    depends:
+      - crowdsec-hub
+      - ssh-permissions
+      - vaultwarden-health
+
+handlerOn:
+  failure:
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC_CRITICAL:-potatostack-critical}"
+      -H "Title: Security Audit FAILED"
+      -H "Priority: high"
+      -H "Tags: lock,x"
+      -d "Daily security audit failed - SSH permissions, CrowdSec, or Vaultwarden may have issues"

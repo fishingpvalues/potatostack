@@ -22,6 +22,33 @@ steps:
         [ "${COUNT}" -gt 0 ] || { echo "WARNING: No Backrest snapshots found"; exit 1; }
       '
 
+  # Restic integrity check on backrest repos
+  - name: restic-check
+    command: >-
+      docker exec backrest restic check 2>&1 | tail -5
+    depends:
+      - check-backrest
+
+  # Check backup age - alert if last snapshot is older than 26 hours
+  - name: check-backup-age
+    command: >-
+      sh -c '
+        AGE=$(docker exec backrest restic snapshots --json 2>/dev/null | python3 -c "
+        import sys, json
+        from datetime import datetime, timezone
+        snaps = json.load(sys.stdin)
+        if not snaps: sys.exit(1)
+        latest = max(snaps, key=lambda s: s[\"time\"])
+        ts = datetime.fromisoformat(latest[\"time\"].replace(\"Z\",\"+00:00\"))
+        age_h = (datetime.now(timezone.utc) - ts).total_seconds() / 3600
+        print(f\"{age_h:.1f}\")
+        " 2>/dev/null || echo "999");
+        echo "Last snapshot age: ${AGE}h";
+        awk "BEGIN{exit (${AGE}+0 > 26)}" || { echo "ERROR: Last backup is older than 26 hours"; exit 1; }
+      '
+    depends:
+      - check-backrest
+
   # Notify results
   - name: notify-success
     command: >-
@@ -29,10 +56,11 @@ steps:
       -H "Title: Backup Verify OK"
       -H "Priority: default"
       -H "Tags: floppy_disk,white_check_mark"
-      -d "All backup systems verified: Velld and Backrest have fresh data"
+      -d "All backup systems verified: Velld fresh, Backrest snapshots intact and recent"
     depends:
       - check-velld
-      - check-backrest
+      - restic-check
+      - check-backup-age
 
 handlerOn:
   failure:

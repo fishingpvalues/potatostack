@@ -7,7 +7,7 @@ maxActiveRuns: 1
 steps:
   # Phase 1: Parallel imports from all music sources
   - name: import-spotiflac
-    command: docker exec -u abc beets beet import -q /downloads/spotiflac
+    command: docker exec -u abc beets beet import -q --move /downloads/spotiflac
 
   - name: import-slskd
     command: docker exec -u abc beets beet import -q /downloads/slskd

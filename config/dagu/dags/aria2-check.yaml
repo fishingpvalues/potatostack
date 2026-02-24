@@ -1,0 +1,51 @@
+# Aria2 Download Health Check - Monitors downloader status and clears completed results
+# Runs every 6 hours; uses aria2's own RPC_SECRET env var via docker exec
+name: aria2-check
+schedule: "0 */6 * * *"
+maxActiveRuns: 1
+
+steps:
+  # Query global stats from aria2 RPC
+  - name: check-stats
+    command: >-
+      docker exec aria2 sh -c '
+        STAT=$(curl -sf -X POST http://localhost:6800/jsonrpc \
+          -H "Content-Type: application/json" \
+          -d "{\"jsonrpc\":\"2.0\",\"id\":\"1\",\"method\":\"aria2.getGlobalStat\",\"params\":[\"token:$RPC_SECRET\"]}");
+        echo "Aria2 global stats: $STAT";
+        echo $STAT | grep -q "\"result\"" || { echo "ERROR: aria2 RPC not responding"; exit 1; }
+      '
+
+  # Count active downloads
+  - name: check-active
+    command: >-
+      docker exec aria2 sh -c '
+        ACTIVE=$(curl -sf -X POST http://localhost:6800/jsonrpc \
+          -H "Content-Type: application/json" \
+          -d "{\"jsonrpc\":\"2.0\",\"id\":\"2\",\"method\":\"aria2.tellActive\",\"params\":[\"token:$RPC_SECRET\",[\"gid\",\"status\",\"totalLength\",\"completedLength\"]]}" \
+          | grep -o "\"gid\"" | wc -l);
+        echo "Active downloads: $ACTIVE"
+      '
+    depends:
+      - check-stats
+
+  # Purge completed download results to keep memory clean
+  - name: purge-completed
+    command: >-
+      docker exec aria2 sh -c '
+        RESULT=$(curl -sf -X POST http://localhost:6800/jsonrpc \
+          -H "Content-Type: application/json" \
+          -d "{\"jsonrpc\":\"2.0\",\"id\":\"3\",\"method\":\"aria2.purgeDownloadResult\",\"params\":[\"token:$RPC_SECRET\"]}");
+        echo "Purge result: $RESULT"
+      '
+    depends:
+      - check-active
+
+handlerOn:
+  failure:
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC_WARNING:-potatostack-warning}"
+      -H "Title: Aria2 Check Failed"
+      -H "Priority: default"
+      -H "Tags: arrow_down,warning"
+      -d "Aria2 RPC health check failed - downloader may be unavailable or unresponsive"

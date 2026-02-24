@@ -1,0 +1,72 @@
+# Library Scan - Daily coordinated media library refresh
+# Triggers scans in dependency order to avoid I/O storms
+# Optional: set JELLYFIN_API_KEY and IMMICH_API_KEY env vars to enable API triggers
+name: library-scan
+schedule: "0 21 * * *"
+maxActiveRuns: 1
+
+steps:
+  # Beets library stats (fast, no I/O)
+  - name: beets-stats
+    command: docker exec -u abc beets beet stats
+
+  # Check for any missing files in beets library
+  - name: beets-update
+    command: docker exec -u abc beets beet update -q 2>&1 | tail -10 || true
+    depends:
+      - beets-stats
+
+  # Trigger Jellyfin full library refresh (requires JELLYFIN_API_KEY)
+  - name: jellyfin-scan
+    command: >-
+      sh -c '
+        if [ -z "${JELLYFIN_API_KEY:-}" ]; then
+          echo "JELLYFIN_API_KEY not set - skipping (set in docker-compose dagu environment)";
+          exit 0;
+        fi;
+        STATUS=$(curl -sf -o /dev/null -w "%{http_code}" -X POST "http://jellyfin:8096/Library/Refresh" \
+          -H "X-Emby-Token: ${JELLYFIN_API_KEY}");
+        echo "Jellyfin library refresh: HTTP $STATUS";
+        [ "$STATUS" = "204" ] || [ "$STATUS" = "200" ] || { echo "Unexpected status: $STATUS"; exit 1; }
+      '
+    depends:
+      - beets-update
+
+  # Trigger Immich background jobs: thumbnail generation + metadata extraction
+  - name: immich-jobs
+    command: >-
+      sh -c '
+        if [ -z "${IMMICH_API_KEY:-}" ]; then
+          echo "IMMICH_API_KEY not set - skipping (set in docker-compose dagu environment)";
+          exit 0;
+        fi;
+        for job in thumbnailGeneration metadataExtraction; do
+          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" -X PUT "http://immich-server:2283/api/jobs/$job" \
+            -H "x-api-key: ${IMMICH_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{\"command\":\"start\",\"force\":false}");
+          echo "Immich $job: HTTP $STATUS";
+        done
+      '
+    depends:
+      - beets-update
+
+  - name: notify-success
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC:-potatostack}"
+      -H "Title: Library Scan Triggered"
+      -H "Priority: low"
+      -H "Tags: books,white_check_mark"
+      -d "Daily library refresh: beets updated, Jellyfin and Immich scans queued"
+    depends:
+      - jellyfin-scan
+      - immich-jobs
+
+handlerOn:
+  failure:
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC_WARNING:-potatostack-warning}"
+      -H "Title: Library Scan Failed"
+      -H "Priority: default"
+      -H "Tags: books,warning"
+      -d "Daily library scan pipeline failed - check Dagu logs"
