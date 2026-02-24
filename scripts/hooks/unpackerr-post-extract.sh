@@ -80,13 +80,29 @@ _ntfy_post() {
 
 _ntfy_post
 
+# Delete original archive after extraction as a safety net for when DELETE_ORIGINAL
+# fails (e.g. MOVE_BACK refuses to overwrite existing files). Without this, unpackerr
+# clears history but leaves the archive, and the subsequent chmod below re-triggers
+# inotify detection → infinite re-extraction loop.
+if [ "${UN_EVENT:-}" = "extracted" ]; then
+  # UN_PATH is the archive file path in folder-watcher mode
+  if [ -f "${UN_PATH:-}" ]; then
+    rm -f "${UN_PATH}" 2>/dev/null || true
+  fi
+fi
+
 # Ownership fix on extracted or failed (ensure files are accessible by daniel:daniel)
 # Note: UN_PATH can be a file (archive) or directory — don't use -d check
-if [ -n "${UN_PATH:-}" ]; then
-  chown -R 1000:1000 "${UN_PATH}" 2>/dev/null || true
-  chmod -R 755 "${UN_PATH}" 2>/dev/null || true
+# Only fix ownership on the archive file itself (non-recursive, fast, no inotify flood).
+if [ -n "${UN_PATH:-}" ] && [ -f "${UN_PATH:-}" ]; then
+  chown 1000:1000 "${UN_PATH}" 2>/dev/null || true
+  chmod 755 "${UN_PATH}" 2>/dev/null || true
 fi
-if [ -n "${UN_DATA_OUTPUT:-}" ]; then
-  chown -R 1000:1000 "${UN_DATA_OUTPUT}" 2>/dev/null || true
-  chmod -R 755 "${UN_DATA_OUTPUT}" 2>/dev/null || true
+# For the output directory: only fix the top level, not recursive. Recursive chmod
+# on a large directory generates thousands of inotify CHMOD events — if the archive
+# was not deleted (e.g. DELETE_ORIGINAL failed) those events re-trigger detection
+# of the archive after history is cleared, causing an infinite extraction loop.
+if [ -n "${UN_DATA_OUTPUT:-}" ] && [ -d "${UN_DATA_OUTPUT:-}" ]; then
+  chown 1000:1000 "${UN_DATA_OUTPUT}" 2>/dev/null || true
+  chmod 755 "${UN_DATA_OUTPUT}" 2>/dev/null || true
 fi

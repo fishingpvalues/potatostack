@@ -63,11 +63,6 @@ INTERNET_CHECK_COUNTER=0
 INTERNET_FAIL_COUNT=0
 ORPHAN_CLEANUP_COUNTER=0
 
-# Wait for services to stabilize on startup
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] → Waiting ${INITIAL_STARTUP_DELAY}s for services to stabilize..."
-sleep "$INITIAL_STARTUP_DELAY"
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ Startup delay complete, beginning monitoring"
-
 # Get gluetun container ID
 get_gluetun_id() {
 	docker inspect gluetun --format '{{.Id}}' 2>/dev/null | head -c 12
@@ -198,6 +193,27 @@ verify_service_connectivity() {
 	return 1 # Cannot connect
 }
 
+# Apply killswitch hardening via docker exec (bypasses gluetun's limited iptables parser
+# which rejects -m conntrack/-m state). Removes the global ESTABLISHED,RELATED ACCEPT rule
+# that gluetun adds, replacing it with interface-specific ones to prevent TCP leak via eth0
+# when VPN goes down.
+apply_killswitch_hardening() {
+	echo "[$(date +'%Y-%m-%d %H:%M:%S')] → Applying killswitch iptables hardening..."
+	# Remove the global ESTABLISHED,RELATED rule (allows leaks through eth0 when VPN is down)
+	# Silently fails if already removed (idempotent)
+	docker exec gluetun iptables -D OUTPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || true
+	# Add interface-specific ESTABLISHED rules (check first to avoid duplicates)
+	docker exec gluetun iptables -C OUTPUT -o tun0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || \
+		docker exec gluetun iptables -A OUTPUT -o tun0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || true
+	docker exec gluetun iptables -C OUTPUT -o lo -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || \
+		docker exec gluetun iptables -A OUTPUT -o lo -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || true
+	docker exec gluetun iptables -C OUTPUT -o eth0 -d 172.16.0.0/12 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || \
+		docker exec gluetun iptables -A OUTPUT -o eth0 -d 172.16.0.0/12 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || true
+	docker exec gluetun iptables -C OUTPUT -o eth0 -d 192.168.0.0/16 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || \
+		docker exec gluetun iptables -A OUTPUT -o eth0 -d 192.168.0.0/16 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || true
+	echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ Killswitch hardening applied"
+}
+
 # Force recreate containers (FIXED: uses docker CLI to avoid DinD issues)
 recreate_containers() {
 	local reason="$1"
@@ -310,6 +326,7 @@ recreate_containers() {
 		echo "[$(date +'%Y-%m-%d %H:%M:%S')] ⚠ Warning: Services may have connectivity issues"
 	fi
 
+	apply_killswitch_hardening
 	echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ Containers recreated"
 	notify_event "PotatoStack - VPN containers recreated" "Recreated: ${RESTART_CONTAINERS}" "default" "vpn,gluetun,maintenance"
 	LAST_RESTART_AT="$now"
@@ -335,6 +352,12 @@ restart_containers() {
 	notify_event "PotatoStack - VPN restart complete" "Containers restarted: ${RESTART_CONTAINERS}" "default" "vpn,gluetun"
 	LAST_RESTART_AT="$now"
 }
+
+# Wait for services to stabilize on startup
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] → Waiting ${INITIAL_STARTUP_DELAY}s for services to stabilize..."
+sleep "$INITIAL_STARTUP_DELAY"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ Startup delay complete, beginning monitoring"
+apply_killswitch_hardening
 
 while true; do
 	# Query Gluetun VPN status

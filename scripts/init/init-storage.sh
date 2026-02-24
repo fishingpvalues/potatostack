@@ -291,7 +291,11 @@ printf '%s\n' "Setting permissions..."
 for dir in "${STORAGE_BASE}"/*; do
 	[ -e "$dir" ] && [ "$(basename "$dir")" != "docker" ] && chmod -R 755 "$dir" 2>/dev/null || true
 done
-chmod -R 755 "${SSD_BASE}" 2>/dev/null || true
+# Exclude SSH keys and postgres data — those have strict permission requirements set below
+find "${SSD_BASE}" \
+    -not -path "${SSD_BASE}/backrest/ssh*" \
+    -not -path "${SSD_BASE}/postgres*" \
+    -exec chmod 755 {} + 2>/dev/null || true
 chmod -R 755 "/mnt/ssd/system" 2>/dev/null || true
 
 if [ -f "$SWAP_FILE" ]; then
