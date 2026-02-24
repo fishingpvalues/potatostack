@@ -4366,25 +4366,26 @@ services:
       - "${HOST_BIND:-127.0.0.1}:3080:8080"
     environment:
       <<: *common-env
-      DAGU_PORT: "8080"
+      PUID: "0"  # Run as root for docker socket access
+      PGID: "0"
+      DOCKER_GID: "-1"  # Don't create docker group (running as root)
       DAGU_HOST: "0.0.0.0"
+      DAGU_PORT: "8080"
+      DAGU_HOME: /var/lib/dagu
+      DAGU_DAGS_DIR: /config/dagu/dags
       DAGU_BASIC_AUTH_USER: ${DAGU_ADMIN_USER:-admin}
       DAGU_BASIC_AUTH_PASS: ${DAGU_ADMIN_PASSWORD}
-      DAGU_DAGS_DIR: /home/dagu/.config/dagu/dags
-      DAGU_LOG_DIR: /home/dagu/.local/share/dagu/logs
-      DAGU_DATA_DIR: /home/dagu/.local/share/dagu/data
       NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
       NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
       NTFY_TOPIC_CRITICAL: ${NTFY_TOPIC_CRITICAL:-potatostack-critical}
       NTFY_TOPIC_WARNING: ${NTFY_TOPIC_WARNING:-potatostack-warning}
     volumes:
-      - ./config/dagu:/home/dagu/.config/dagu
-      - /mnt/ssd/docker-data/dagu:/home/dagu/.local/share/dagu
+      - ./config/dagu/dags:/config/dagu/dags:ro
+      - /mnt/ssd/docker-data/dagu:/var/lib/dagu
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker:ro
       - /mnt/storage2/velld/backups:/mnt/storage2/velld/backups:ro
       - ./scripts/setup/apply-log-fixes.sh:/apply-log-fixes.sh:ro
-    user: "root"
     networks:
       - potatostack
     depends_on:
