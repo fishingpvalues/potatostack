@@ -6,7 +6,7 @@ maxActiveRuns: 1
 
 steps:
   - name: apply-fixes
-    command: sh /apply-log-fixes.sh
+    command: bash /scripts/setup/apply-log-fixes.sh
 
 handlerOn:
   failure:

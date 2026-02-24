@@ -464,6 +464,7 @@ services:
       HTTP_CONTROL_SERVER_ADDRESS: :8008
       HTTP_CONTROL_SERVER_LOG: "off"
       HTTP_CONTROL_SERVER_AUTH: "off"
+      HTTP_CONTROL_SERVER_AUTH_DEFAULT_ROLE: '{"auth":"none"}'
       IPV6: "off"
       UPDATER_PERIOD: 24h
       HEALTH_VPN_DURATION_INITIAL: 60s
@@ -4387,7 +4388,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker:ro
       - /mnt/storage2/velld/backups:/mnt/storage2/velld/backups:ro
-      - ./scripts/setup/apply-log-fixes.sh:/apply-log-fixes.sh:ro
+      - ./scripts:/scripts:ro
     networks:
       - potatostack
     depends_on:
