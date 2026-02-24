@@ -1,0 +1,37 @@
+# Docker Maintenance - Weekly cleanup of unused images, containers, and build cache
+name: docker-maintenance
+schedule: "0 5 * * 0"
+maxActiveRuns: 1
+
+steps:
+  - name: prune-images
+    command: docker image prune -f
+
+  - name: prune-containers
+    command: docker container prune -f
+    depends:
+      - prune-images
+
+  - name: prune-builder
+    command: docker builder prune -f
+    depends:
+      - prune-containers
+
+  - name: notify-success
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC:-potatostack}"
+      -H "Title: Docker Maintenance Complete"
+      -H "Priority: default"
+      -H "Tags: broom,white_check_mark"
+      -d "Weekly Docker cleanup completed: images, containers, and build cache pruned"
+    depends:
+      - prune-builder
+
+handlerOn:
+  failure:
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC_WARNING:-potatostack-warning}"
+      -H "Title: Docker Maintenance FAILED"
+      -H "Priority: default"
+      -H "Tags: broom,x"
+      -d "Weekly Docker cleanup failed - check Dagu logs for details"

@@ -1,0 +1,11 @@
+# Dagu server configuration - PotatoStack automation scheduler
+host: "0.0.0.0"
+port: 8080
+logLevel: info
+
+# Paths
+dags: /home/dagu/.config/dagu/dags
+logDir: /home/dagu/.local/share/dagu/logs
+dataDir: /home/dagu/.local/share/dagu/data
+
+# Basic auth - credentials set via DAGU_BASIC_AUTH_USER / DAGU_BASIC_AUTH_PASS env vars

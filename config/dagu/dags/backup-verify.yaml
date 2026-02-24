@@ -1,0 +1,44 @@
+# Backup Verification - Daily check that Velld and Backrest backups are fresh
+name: backup-verify
+schedule: "0 6 * * *"
+maxActiveRuns: 1
+
+steps:
+  # Check Velld backups - count files modified in last 24h
+  - name: check-velld
+    command: >-
+      sh -c '
+        COUNT=$(find /mnt/storage2/velld/backups -mtime -1 -type f 2>/dev/null | wc -l);
+        echo "Velld backup files modified in last 24h: ${COUNT}";
+        [ "${COUNT}" -gt 0 ] || { echo "WARNING: No fresh Velld backups found"; exit 1; }
+      '
+
+  # Check Backrest restic snapshots
+  - name: check-backrest
+    command: >-
+      sh -c '
+        COUNT=$(docker exec backrest restic snapshots --json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d))" 2>/dev/null || echo 0);
+        echo "Backrest snapshots found: ${COUNT}";
+        [ "${COUNT}" -gt 0 ] || { echo "WARNING: No Backrest snapshots found"; exit 1; }
+      '
+
+  # Notify results
+  - name: notify-success
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC:-potatostack}"
+      -H "Title: Backup Verify OK"
+      -H "Priority: default"
+      -H "Tags: floppy_disk,white_check_mark"
+      -d "All backup systems verified: Velld and Backrest have fresh data"
+    depends:
+      - check-velld
+      - check-backrest
+
+handlerOn:
+  failure:
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC_CRITICAL:-potatostack-critical}"
+      -H "Title: Backup Verify FAILED"
+      -H "Priority: urgent"
+      -H "Tags: floppy_disk,x"
+      -d "BACKUP ALERT: One or more backup systems have stale or missing data - investigate immediately"

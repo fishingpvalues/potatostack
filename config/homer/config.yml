@@ -311,3 +311,9 @@ services:
         subtitle: "Docker Updates"
         url: "https://potatostack.tale-iwato.ts.net:3000"
         target: "_blank"
+
+      - name: "Dagu"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/dagu.png"
+        subtitle: "Workflow & Cron Automation"
+        url: "https://potatostack.tale-iwato.ts.net:3080"
+        target: "_blank"

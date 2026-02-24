@@ -183,6 +183,7 @@ mkdir -p \
 	"${SSD_BASE}/freqtrade/user_data"
 # "${SSD_BASE}/uptime-kuma" # DISABLED
 mkdir -p "${SSD_BASE}/beets"
+mkdir -p "${SSD_BASE}/dagu"
 
 # System directory on SSD (cron, etc)
 mkdir -p "/mnt/ssd/system/cron"

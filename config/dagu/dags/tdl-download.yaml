@@ -1,0 +1,30 @@
+# TDL Telegram Downloader - Daily automated download
+# Replaces crond inside tdl container
+name: tdl-download
+schedule: "0 3 * * *"
+maxActiveRuns: 1
+
+steps:
+  - name: download
+    command: >-
+      docker exec tdl sh -c
+      "sh /etc/tdl/download-saved.sh >> /downloads/tdl-download.log 2>&1"
+
+  - name: notify-success
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC:-potatostack}"
+      -H "Title: TDL Download Complete"
+      -H "Priority: default"
+      -H "Tags: white_check_mark,telegram"
+      -d "TDL daily Telegram download completed successfully"
+    depends:
+      - download
+
+handlerOn:
+  failure:
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC_CRITICAL:-potatostack-critical}"
+      -H "Title: TDL Download FAILED"
+      -H "Priority: high"
+      -H "Tags: x,telegram"
+      -d "TDL daily download failed - check Dagu logs for details"

@@ -1,0 +1,68 @@
+# Beets Music Library - Nightly import and metadata enrichment
+# Runs after TDL download (4am), imports from all sources then enriches metadata
+name: beets-nightly
+schedule: "0 4 * * *"
+maxActiveRuns: 1
+
+steps:
+  # Phase 1: Parallel imports from all music sources
+  - name: import-spotiflac
+    command: docker exec -u abc beets beet import -q /downloads/spotiflac
+
+  - name: import-slskd
+    command: docker exec -u abc beets beet import -q /downloads/slskd
+
+  - name: import-storage
+    command: docker exec -u abc beets beet import -q /storage-downloads
+
+  # Phase 2: MusicBrainz sync (depends on all imports)
+  - name: mbsync
+    command: docker exec -u abc beets beet mbsync
+    depends:
+      - import-spotiflac
+      - import-slskd
+      - import-storage
+
+  # Phase 3: Parallel metadata enrichment (all depend on mbsync)
+  - name: fetchart
+    command: docker exec -u abc beets beet fetchart -q
+    depends:
+      - mbsync
+
+  - name: lastgenre
+    command: docker exec -u abc beets beet lastgenre -q
+    depends:
+      - mbsync
+
+  - name: lyrics
+    command: docker exec -u abc beets beet lyrics -q
+    depends:
+      - mbsync
+
+  # Phase 4: ReplayGain (after metadata enrichment)
+  - name: replaygain
+    command: docker exec -u abc beets beet replaygain
+    depends:
+      - fetchart
+      - lastgenre
+      - lyrics
+
+  # Phase 5: Notify completion
+  - name: notify-success
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC:-potatostack}"
+      -H "Title: Beets Nightly Complete"
+      -H "Priority: default"
+      -H "Tags: musical_note,white_check_mark"
+      -d "Music library import and metadata enrichment completed successfully"
+    depends:
+      - replaygain
+
+handlerOn:
+  failure:
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC_CRITICAL:-potatostack-critical}"
+      -H "Title: Beets Nightly FAILED"
+      -H "Priority: high"
+      -H "Tags: musical_note,x"
+      -d "Beets nightly pipeline failed - check Dagu logs for details"
