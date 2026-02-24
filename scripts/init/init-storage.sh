@@ -185,19 +185,6 @@ mkdir -p \
 mkdir -p "${SSD_BASE}/beets"
 mkdir -p "${SSD_BASE}/dagu"
 
-################################################################################
-# Backrest SSH key permissions (SSH requires strict 600 for private keys)
-# storage-init runs privileged as root BEFORE backrest starts - permanent fix
-################################################################################
-if [ -d "${SSD_BASE}/backrest/ssh" ]; then
-    chmod 700 "${SSD_BASE}/backrest/ssh" 2>/dev/null || true
-    chmod 600 "${SSD_BASE}/backrest/ssh/id_ed25519" 2>/dev/null || true
-    chmod 600 "${SSD_BASE}/backrest/ssh/config" 2>/dev/null || true
-    chmod 600 "${SSD_BASE}/backrest/ssh/known_hosts" 2>/dev/null || true
-    chmod 644 "${SSD_BASE}/backrest/ssh/id_ed25519.pub" 2>/dev/null || true
-    printf '%s\n' "✓ Backrest SSH key permissions enforced (700 dir, 600 privkey)"
-fi
-
 # System directory on SSD (cron, etc)
 mkdir -p "/mnt/ssd/system/cron"
 
