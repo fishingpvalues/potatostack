@@ -39,8 +39,9 @@ SLEEP_SECS=$(_interval_secs)
 touch "$STATE_FILE"
 
 _is_extracted() {
-    local inode="$1"
-    grep -qF ":${inode}:" "$STATE_FILE" 2>/dev/null
+    local inode="$1" dest="$2"
+    # Skip only if destination already exists and has content
+    [ -n "$dest" ] && [ -d "$dest" ] && [ -n "$(ls -A "$dest" 2>/dev/null)" ]
 }
 
 _mark_extracted() {
@@ -81,11 +82,10 @@ _is_entry_archive() {
 
 _extract_archive() {
     local archive="$1" inode="$2"
-    local dir name parent dest
+    local dir base dest
     dir=$(dirname "$archive")
-    name=$(basename "$dir")
-    parent=$(dirname "$dir")
-    dest="${parent}/${name}${EXTRACT_SUFFIX}"
+    base=$(basename "${archive%.*}")
+    dest="${dir}/${base}${EXTRACT_SUFFIX}"
 
     mkdir -p "$dest"
 
@@ -118,13 +118,14 @@ _extract_archive() {
 }
 
 _scan_once() {
-    local archive inode
+    local archive inode dest
     for path in $SEEDING_PATHS; do
         [ -d "$path" ] || continue
         while IFS= read -r -d '' archive; do
             _is_entry_archive "$archive" || continue
             inode=$(stat -c "%i" "$archive" 2>/dev/null) || continue
-            _is_extracted "$inode" && continue
+            dest="$(dirname "$archive")/$(basename "${archive%.*}")${EXTRACT_SUFFIX}"
+            _is_extracted "$inode" "$dest" && continue
             _extract_archive "$archive" "$inode"
         done < <(find "$path" -maxdepth 3 -type f \
             \( -name "*.rar" -o -name "*.zip" -o -name "*.7z" \) \

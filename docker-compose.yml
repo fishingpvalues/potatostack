@@ -1447,52 +1447,52 @@ services:
       UN_FOLDER_1_EXTRACT_ISOS: "false"
 
       # TDL (Telegram) - Extract + delete
-      UN_FOLDER_3_PATH: "/downloads/telegram"
+      UN_FOLDER_2_PATH: "/downloads/telegram"
+      UN_FOLDER_2_DELETE_ORIGINAL: "true"
+      UN_FOLDER_2_DELETE_AFTER: "0s"
+      UN_FOLDER_2_MOVE_BACK: "true"
+      UN_FOLDER_2_DELETE_FILES: "false"
+      UN_FOLDER_2_EXTRACT_ISOS: "false"
+
+      # storage2 (SSD) - movies - Extract + delete
+      UN_FOLDER_3_PATH: "/media/movies"
       UN_FOLDER_3_DELETE_ORIGINAL: "true"
       UN_FOLDER_3_DELETE_AFTER: "0s"
       UN_FOLDER_3_MOVE_BACK: "true"
       UN_FOLDER_3_DELETE_FILES: "false"
       UN_FOLDER_3_EXTRACT_ISOS: "false"
 
-      # storage2 (SSD) - movies - Extract + delete
-      UN_FOLDER_4_PATH: "/media/movies"
+      # storage2 (SSD) - tv - Extract + delete
+      UN_FOLDER_4_PATH: "/media/tv"
       UN_FOLDER_4_DELETE_ORIGINAL: "true"
       UN_FOLDER_4_DELETE_AFTER: "0s"
       UN_FOLDER_4_MOVE_BACK: "true"
       UN_FOLDER_4_DELETE_FILES: "false"
       UN_FOLDER_4_EXTRACT_ISOS: "false"
 
-      # storage2 (SSD) - tv - Extract + delete
-      UN_FOLDER_5_PATH: "/media/tv"
+      # storage (HDD) - rdt-client - Extract + delete (debrid synced, no seeding needed)
+      UN_FOLDER_5_PATH: "/storage/downloads/rdt-client"
       UN_FOLDER_5_DELETE_ORIGINAL: "true"
       UN_FOLDER_5_DELETE_AFTER: "0s"
       UN_FOLDER_5_MOVE_BACK: "true"
       UN_FOLDER_5_DELETE_FILES: "false"
       UN_FOLDER_5_EXTRACT_ISOS: "false"
 
-      # storage (HDD) - rdt-client - Extract + delete (debrid synced, no seeding needed)
-      UN_FOLDER_6_PATH: "/storage/downloads/rdt-client"
+      # storage (HDD) - slskd - Extract + delete
+      UN_FOLDER_6_PATH: "/storage/downloads/slskd"
       UN_FOLDER_6_DELETE_ORIGINAL: "true"
       UN_FOLDER_6_DELETE_AFTER: "0s"
       UN_FOLDER_6_MOVE_BACK: "true"
       UN_FOLDER_6_DELETE_FILES: "false"
       UN_FOLDER_6_EXTRACT_ISOS: "false"
 
-      # storage (HDD) - slskd - Extract + delete
-      UN_FOLDER_8_PATH: "/storage/downloads/slskd"
-      UN_FOLDER_8_DELETE_ORIGINAL: "true"
-      UN_FOLDER_8_DELETE_AFTER: "0s"
-      UN_FOLDER_8_MOVE_BACK: "true"
-      UN_FOLDER_8_DELETE_FILES: "false"
-      UN_FOLDER_8_EXTRACT_ISOS: "false"
-
       # storage (HDD) - media - Extract + delete (books, music, audiobooks, etc.)
-      UN_FOLDER_9_PATH: "/storage/media"
-      UN_FOLDER_9_DELETE_ORIGINAL: "true"
-      UN_FOLDER_9_DELETE_AFTER: "0s"
-      UN_FOLDER_9_MOVE_BACK: "true"
-      UN_FOLDER_9_DELETE_FILES: "false"
-      UN_FOLDER_9_EXTRACT_ISOS: "false"
+      UN_FOLDER_7_PATH: "/storage/media"
+      UN_FOLDER_7_DELETE_ORIGINAL: "true"
+      UN_FOLDER_7_DELETE_AFTER: "0s"
+      UN_FOLDER_7_MOVE_BACK: "true"
+      UN_FOLDER_7_DELETE_FILES: "false"
+      UN_FOLDER_7_EXTRACT_ISOS: "false"
 
       # NTFY notification hook
       NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
@@ -4415,7 +4415,9 @@ services:
   # Dagu - DAG-based workflow and automation scheduler
   ################################################################################
   dagu:
-    image: ghcr.io/dagu-org/dagu:${DAGU_TAG:-latest}
+    build:
+      context: ./dockerfiles/dagu
+      dockerfile: Dockerfile
     container_name: dagu
     logging: *default-logging
     ports:
@@ -4446,12 +4448,14 @@ services:
       - ./scripts:/scripts:ro
     networks:
       - potatostack
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - storage-init
       - ntfy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --user=${DAGU_BASIC_AUTH_USER} --password=${DAGU_BASIC_AUTH_PASS} -O /dev/null http://127.0.0.1:8080/ || exit 1"]
+      test: ["CMD-SHELL", "curl -sf -u ${DAGU_BASIC_AUTH_USER}:${DAGU_BASIC_AUTH_PASS} http://127.0.0.1:8080/ || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3

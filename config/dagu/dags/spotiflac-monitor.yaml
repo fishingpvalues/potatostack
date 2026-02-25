@@ -1,0 +1,20 @@
+# SpotiFLAC Stuck Download Monitor
+# Detects when SpotiFLAC is stuck in an infinite retry loop: items show
+# "downloading" status but is_downloading=false and no progress for >30min.
+# Auto-restarts the container to clear the retry loop.
+name: spotiflac-monitor
+schedule: "*/5 * * * *"
+maxActiveRuns: 1
+
+steps:
+  - name: check-and-restart-if-stuck
+    command: /scripts/monitor/spotiflac-check.sh
+
+handlerOn:
+  failure:
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC_WARNING:-potatostack-warning}"
+      -H "Title: SpotiFLAC: stuck downloads detected and restarted"
+      -H "Priority: default"
+      -H "Tags: spotiflac,warning"
+      -d "SpotiFLAC had downloads stuck >30min - container was restarted to clear retry loop"
