@@ -998,9 +998,13 @@ services:
       COINGECKO_API_KEY: ${FREQTRADE_COINGECKO_API_KEY:-}
       REGIME_UPDATE_INTERVAL_SEC: ${FREQTRADE_REGIME_UPDATE_INTERVAL_SEC:-300}
       REGIME_LAZINESS_WINDOW: ${FREQTRADE_REGIME_LAZINESS_WINDOW:-5}
+      FREQTRADE__API_SERVER__USERNAME: ${FREQTRADE_API_USERNAME:-freqtrader}
+      FREQTRADE__API_SERVER__PASSWORD: ${FREQTRADE_API_PASSWORD:-CHANGE_ME_strong_password}
+      FREQTRADE__API_SERVER__JWT_SECRET_KEY: ${FREQTRADE_JWT_SECRET:-CHANGE_ME_use_a_long_random_string}
     volumes:
       - ${FREQTRADE_STRATEGY_PATH:-/home/daniel/workdir/freqtrader-strategy}/config.json:/app/config.json:ro
       - ${FREQTRADE_STRATEGY_PATH:-/home/daniel/workdir/freqtrader-strategy}/strategies:/app/strategies:ro
+      - ${FREQTRADE_STRATEGY_PATH:-/home/daniel/workdir/freqtrader-strategy}/strategies:/app/user_data/strategies:ro
       - /mnt/ssd/docker-data/freqtrade/user_data:/app/user_data
     networks:
       - potatostack
@@ -2149,8 +2153,6 @@ services:
       gluetun:
         condition: service_healthy
         restart: true
-      storage-init:
-        condition: service_completed_successfully
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pgrep -x aria2c || exit 1"]
@@ -4440,7 +4442,7 @@ services:
       JELLYFIN_API_KEY: ${JELLYFIN_API_KEY:-}   # optional: generate in Jellyfin Dashboard → API Keys
       IMMICH_API_KEY: ${IMMICH_API_KEY:-}         # optional: generate in Immich Account Settings → API Keys
     volumes:
-      - ./config/dagu/dags:/config/dagu/dags:ro
+      - ./config/dagu/dags:/config/dagu/dags
       - /mnt/ssd/docker-data/dagu:/var/lib/dagu
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker:ro
@@ -4481,7 +4483,7 @@ services:
     # Fix SSH key permissions on every start (prevents "too open" auth failures)
     entrypoint: ["/sbin/tini", "--", "/bin/sh", "-c"]
     command:
-      - "chmod 700 /root/.ssh 2>/dev/null; chmod 600 /root/.ssh/id_ed25519 /root/.ssh/config
+      - "umask 0077; chmod 700 /root/.ssh 2>/dev/null; chmod 600 /root/.ssh/id_ed25519 /root/.ssh/config
         /root/.ssh/known_hosts 2>/dev/null; chmod 644 /root/.ssh/id_ed25519.pub 2>/dev/null;
         exec /docker-entrypoint /backrest"
     logging: *default-logging

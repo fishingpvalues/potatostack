@@ -1,0 +1,56 @@
+# Freqtrade Weekly Maintenance - Data refresh + performance-gated hyperopt refit
+# Runs Sunday 03:00 — refresh last 7 days of trade data, then refit any regime
+# whose OOS Sharpe has decayed (>30% below baseline or below floor 0.3).
+# All steps run via docker exec into the live freqtrade-bot container.
+# Hyperopt is safe to run alongside the live bot (uses separate in-memory DB).
+name: freqtrade-weekly
+schedule: "0 3 * * 0"
+maxActiveRuns: 1
+
+steps:
+  # Step 1: Extend historical data by 7 days (incremental, keeps existing candles)
+  - name: refresh-data
+    command: >-
+      docker exec freqtrade-bot freqtrade download-data
+      --config /app/config.json
+      --pairs BTC/EUR ETH/EUR SOL/EUR XRP/EUR LTC/EUR LINK/EUR DOGE/EUR ADA/EUR
+      --days 7 --timeframes 1h 4h 1d --dl-trades
+
+  # Step 2: Check performance gates for all regimes (3 gates: data, decay, cooldown)
+  # Exit 0 = refit needed, Exit 1 = all healthy, Exit 2 = not enough history (skip)
+  - name: check-refit
+    command: >-
+      docker exec freqtrade-bot sh -c
+      'python /app/scripts/check_refit.py --json
+      > /app/user_data/logs/refit_decision.json; echo "refit check exit: $?"'
+    depends:
+      - refresh-data
+
+  # Step 3: Run hyperopt for any regime that failed the performance gate.
+  # Deploys new params only if new OOS Sharpe beats current by >= 0.05.
+  - name: run-hyperopt
+    command: >-
+      docker exec freqtrade-bot
+      python /app/scripts/run_auto_refit.py /app/user_data/logs/refit_decision.json
+    depends:
+      - check-refit
+
+  # Step 4: Notify success
+  - name: notify-success
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC:-potatostack}"
+      -H "Title: Freqtrade Weekly Refit Complete"
+      -H "Priority: default"
+      -H "Tags: chart_with_upwards_trend,white_check_mark"
+      -d "Data refreshed and regime hyperopt check completed. See logs for refit decisions."
+    depends:
+      - run-hyperopt
+
+handlerOn:
+  failure:
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC_CRITICAL:-potatostack-critical}"
+      -H "Title: Freqtrade Weekly Refit FAILED"
+      -H "Priority: high"
+      -H "Tags: chart_with_upwards_trend,x"
+      -d "Freqtrade weekly maintenance failed — check Dagu logs for details"
