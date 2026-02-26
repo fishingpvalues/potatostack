@@ -203,6 +203,18 @@ info "Checking Home Assistant configuration..."
 info "Home Assistant warnings require manual configuration updates"
 
 ################################################################################
+# FIX 13: Ensure Velld backup schedules are active
+################################################################################
+info "Checking Velld backup schedules..."
+
+if docker ps -q --filter "name=velld-api" | grep -q .; then
+	VELLD_DB="/mnt/ssd/docker-data/velld/velld.db"
+	if [[ -f "$VELLD_DB" ]]; then
+		"${SCRIPT_DIR}/ensure-velld-schedules.sh" 2>&1 | while read -r line; do info "velld: $line"; done || true
+	fi
+fi
+
+################################################################################
 # Summary
 ################################################################################
 success "System-level fixes completed!"

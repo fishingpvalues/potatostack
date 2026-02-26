@@ -45,8 +45,8 @@ steps:
         BYTES=$(du -sb /downloads 2>/dev/null | cut -f1);
         GB=$(awk "BEGIN{printf \"%.1f\", ${BYTES:-0}/1073741824}");
         echo "Total downloads: ${GB}GB";
-        awk "BEGIN{exit (${BYTES:-0} > 107374182400)}" || {
-          echo "ALERT: Downloads directory exceeds 100GB (${GB}GB)";
+        awk "BEGIN{exit (${BYTES:-0} > 1610612736000)}" || {
+          echo "ALERT: Downloads directory exceeds 1500GB (${GB}GB)";
           exit 1;
         }
       '

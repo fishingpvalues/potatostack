@@ -4,6 +4,8 @@ name: tdl-download
 schedule: "0 3 * * *"
 maxActiveRuns: 1
 
+timeoutSec: 21600  # 6h max - script has infinite retry; kill if stuck all night
+
 steps:
   - name: download
     command: >-

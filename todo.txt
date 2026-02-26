@@ -1,2 +1,0 @@
- - JELLYFIN_API_KEY and IMMICH_API_KEY added to dagu environment (optional — generate in each service's UI to enable
-library-scan triggers)

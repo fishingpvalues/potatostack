@@ -30,7 +30,7 @@ steps:
       - mbsync
 
   - name: lastgenre
-    command: docker exec -u abc beets beet lastgenre -q
+    command: docker exec -u abc beets beet lastgenre
     depends:
       - mbsync
 
