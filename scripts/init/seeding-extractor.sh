@@ -40,7 +40,9 @@ touch "$STATE_FILE"
 
 _is_extracted() {
     local inode="$1" dest="$2"
-    # Skip only if destination already exists and has content
+    # Primary: inode-based state (survives dest dir deletion/rename)
+    grep -q ":${inode}:" "$STATE_FILE" 2>/dev/null && return 0
+    # Fallback: dest dir exists and has content (handles pre-state-file extractions)
     [ -n "$dest" ] && [ -d "$dest" ] && [ -n "$(ls -A "$dest" 2>/dev/null)" ]
 }
 
@@ -123,6 +125,8 @@ _scan_once() {
         [ -d "$path" ] || continue
         while IFS= read -r -d '' archive; do
             _is_entry_archive "$archive" || continue
+            # Skip files actively being downloaded by aria2 (.aria2 control file = in-progress)
+            [ -f "${archive}.aria2" ] && continue
             inode=$(stat -c "%i" "$archive" 2>/dev/null) || continue
             dest="$(dirname "$archive")/$(basename "${archive%.*}")${EXTRACT_SUFFIX}"
             _is_extracted "$inode" "$dest" && continue

@@ -2142,6 +2142,10 @@ services:
       NTFY_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
       NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
       NTFY_TOKEN: ${NTFY_TOKEN:-}
+      # Retry tuning: gluetun VPN reconnects can cause transient DNS failures (errorCode=19).
+      # 10 retries × 30s wait = up to 5 min total, enough for gluetun to stabilize.
+      ARIA2_MAX_TRIES: "10"
+      ARIA2_RETRY_WAIT: "30"
     volumes:
       - aria2-config:/config
       - /mnt/storage2/downloads/aria2:/downloads

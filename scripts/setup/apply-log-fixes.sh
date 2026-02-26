@@ -203,7 +203,20 @@ info "Checking Home Assistant configuration..."
 info "Home Assistant warnings require manual configuration updates"
 
 ################################################################################
-# FIX 13: Ensure Velld backup schedules are active
+# FIX 13: Fix Backrest SSH key permissions (SSH refuses keys with 0755)
+################################################################################
+info "Checking Backrest SSH key permissions..."
+
+if docker ps -q --filter "name=^backrest$" | grep -q .; then
+	docker exec backrest sh -c '
+		chmod 700 /root/.ssh 2>/dev/null
+		chmod 600 /root/.ssh/id_ed25519 /root/.ssh/config /root/.ssh/known_hosts 2>/dev/null
+		chmod 644 /root/.ssh/id_ed25519.pub 2>/dev/null
+	' && success "Backrest SSH permissions verified" || warn "Could not fix backrest SSH permissions"
+fi
+
+################################################################################
+# FIX 14: Ensure Velld backup schedules are active
 ################################################################################
 info "Checking Velld backup schedules..."
 

@@ -308,6 +308,7 @@ retry-wait=${ARIA2_RETRY_WAIT}
 max-download-limit=${ARIA2_MAX_DL_LIMIT}
 max-upload-limit=${ARIA2_MAX_UL_LIMIT}
 continue=true
+force-save=true
 
 # Disk
 file-allocation=${ARIA2_FILE_ALLOC}

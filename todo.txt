@@ -1,0 +1,36 @@
+- make dagu workflow to trigger stash to scan librarty and perform all these tasks at 2am. (if or if not i set in the app, just so you know which areas you have to cover:):
+
+Library
+Scan
+Scan for new content and add it to the database.
+Generate scene covers
+Generate previews
+Generate animated image previews
+Generate scrubber sprites
+Generate perceptual hashes
+Generate thumbnails for images
+Generate previews for image clips
+Rescan files
+Identify
+Automatically set scene metadata using stash-box and scraper sources.
+Auto Tag
+Auto-tag content based on file paths.
+Performers
+Studios
+Tags
+Generated Content
+Generate
+Generate supporting image, sprite, video, vtt and other files.
+Scene covers
+Previews
+Animated Image Previews
+Scene Scrubber Sprites
+Marker Previews
+Marker Animated Image Previews
+Marker Screenshots
+Transcodes
+Perceptual hashes
+Generate heatmaps and speeds for interactive scenes
+Image Clip Previews
+Image Thumbnails
+Overwrite existing files
