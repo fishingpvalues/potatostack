@@ -2330,7 +2330,7 @@ services:
       - /mnt/storage2/media/adult/telegram:/adult-telegram
       - /home/daniel/potatostack/config/tdl/crontab:/etc/crontabs/root:ro
       - /home/daniel/potatostack/config/tdl/download-saved.sh:/etc/tdl/download-saved.sh:ro
-      - /home/daniel/potatostack/config/tdl/blocklist.txt:/etc/tdl/blocklist.txt:ro
+      - /home/daniel/potatostack/config/tdl/blocklist.txt:/etc/tdl/blocklist.txt:rw
     depends_on:
       gluetun:
         condition: service_healthy
