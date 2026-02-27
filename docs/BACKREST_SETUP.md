@@ -203,7 +203,7 @@ Here's what's worth backing up with your 1TB budget:
 #
 # === SPACE BUDGET (raw, pre-dedup) ===
 # Syncthing important:   ~268G (Berufliches 215G, Dokumente 27G, Bilder 24G, rest ~2G)
-# Docker-data (filtered): ~6G  (postgres, mongo, grafana, vaultwarden, obsidian, gitea, etc)
+# Docker-data (filtered): ~6G  (postgres, mongo, grafana, vaultwarden, obsidian, etc)
 # Photos (immich):         7.5G
 # Potatostack repo:       <50M
 # ----------------------------------
@@ -269,7 +269,6 @@ Here's what's worth backing up with your 1TB budget:
 #     mongo/               app data (authentik, etc)
 #     vaultwarden/         passwords (CRITICAL)
 #     obsidian-couchdb/    notes sync DB
-#     gitea/               git repos
 #     grafana/             dashboards + datasources
 #     actual-budget/       financial data
 #     healthchecks/        monitoring config
@@ -289,7 +288,6 @@ Here's what's worth backing up with your 1TB budget:
 #     alertmanager/        alert config
 #     n8n/                 automation workflows
 #     wireguard/           VPN keys
-#     woodpecker/          CI config
 #
 # === RECOMMENDED RETENTION (fits 1TB) ===
 #     daily:   7

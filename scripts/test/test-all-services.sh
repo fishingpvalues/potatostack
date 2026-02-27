@@ -69,10 +69,6 @@ declare -A SERVICE_PORTS=(
 	["healthchecks"]="8000"
 
 	# Development
-	["gitea"]="3000,22"
-	["gitea-runner"]=""
-	["woodpecker-server"]="3006"
-	["woodpecker-agent"]=""
 	["code-server"]="8444"
 	["oauth2-proxy"]="4180"
 
@@ -112,8 +108,6 @@ declare -A SERVICE_TYPES=(
 	["bazarr"]="http"
 	["prowlarr"]="http"
 	["qbittorrent"]="http"
-	["gitea"]="http"
-	["woodpecker-server"]="http"
 	["nextcloud-aio"]="http"
 	["paperless-ngx"]="http"
 	["news-pipeline"]="background"
@@ -156,8 +150,6 @@ declare -A SERVICE_TYPES=(
 	["gluetun"]="background"
 	["gluetun-monitor"]="background"
 	["tailscale"]="background"
-	["gitea-runner"]="background"
-	["woodpecker-agent"]="background"
 	["authentik-worker"]="background"
 	["oauth2-proxy"]="background"
 	["immich-machine-learning"]="background"

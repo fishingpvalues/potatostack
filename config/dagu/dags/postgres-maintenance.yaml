@@ -9,7 +9,7 @@ steps:
   - name: vacuum-analyze
     command: >-
       docker exec postgres bash -c '
-        for db in atuin baikal bitmagnet calibre ghostfolio gitea grafana healthchecks homarr immich infisical miniflux woodpecker; do
+        for db in atuin baikal bitmagnet calibre ghostfolio grafana healthchecks homarr immich infisical miniflux; do
           echo "=== VACUUM ANALYZE $db ===";
           psql -U postgres -d $db -c "VACUUM ANALYZE;" 2>&1 || echo "skip $db (not found)";
         done

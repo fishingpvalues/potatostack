@@ -87,7 +87,6 @@ target_to_path() {
 	postgres) echo "/mnt/ssd/docker-data/postgres" ;;
 	mongo) echo "/mnt/ssd/docker-data/mongo" ;;
 	couchdb) echo "/mnt/ssd/docker-data/couchdb" ;;
-	gitea) echo "/mnt/ssd/docker-data/gitea" ;;
 	grafana) echo "/mnt/ssd/docker-data/grafana" ;;
 	immich) echo "/mnt/ssd/docker-data/immich" ;;
 	syncthing) echo "/mnt/storage/syncthing" ;;
@@ -103,7 +102,7 @@ target_to_path() {
 			echo "/mnt/storage/${target}"
 		else
 			log_error "Unknown target: $target"
-			log_info "Valid targets: all, ssd, storage, stack, postgres, mongo, couchdb, gitea, grafana, immich, syncthing, redis, backrest, authentik, miniflux"
+			log_info "Valid targets: all, ssd, storage, stack, postgres, mongo, couchdb, grafana, immich, syncthing, redis, backrest, authentik, miniflux"
 			return 1
 		fi
 		;;
@@ -115,16 +114,13 @@ services_to_stop() {
 	local target="$1"
 	case "$target" in
 	postgres)
-		echo "postgres pgbouncer authentik-server authentik-worker miniflux immich-server grafana postgres-exporter healthchecks karakeep atuin gitea woodpecker-server homarr infisical freqtrade-bot regime-classifier ghostfolio baikal"
+		echo "postgres pgbouncer authentik-server authentik-worker miniflux immich-server grafana postgres-exporter healthchecks karakeep atuin homarr infisical freqtrade-bot regime-classifier ghostfolio baikal"
 		;;
 	mongo)
 		echo "mongo karakeep"
 		;;
 	couchdb)
 		echo "couchdb obsidian-livesync"
-		;;
-	gitea)
-		echo "gitea woodpecker-server"
 		;;
 	grafana)
 		echo "grafana"

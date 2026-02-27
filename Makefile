@@ -441,8 +441,8 @@ restore-test: ## Verify backup integrity (restores marker files to temp)
 	@chmod +x ./scripts/restore/restore-test.sh
 	@./scripts/restore/restore-test.sh
 
-restore-service: ## Restore single service (SERVICE=postgres|mongo|gitea|...)
-ifndef SERVICE
+restore-service: ## Restore single service (SERVICE=postgres|mongo|...)
+	ifndef SERVICE
 	@echo "Usage: make restore-service SERVICE=<name>"
 	@echo "Examples: make restore-service SERVICE=postgres"
 	@echo "          make restore-service SERVICE=grafana"

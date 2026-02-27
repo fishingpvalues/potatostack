@@ -36,7 +36,6 @@ usage() {
 	echo "  postgres   PostgreSQL data directory"
 	echo "  mongo      MongoDB data directory"
 	echo "  couchdb    CouchDB data directory"
-	echo "  gitea      Gitea data + repos"
 	echo "  grafana    Grafana data"
 	echo "  immich     Immich data"
 	echo "  syncthing  Syncthing data"
@@ -51,14 +50,39 @@ usage() {
 
 while [[ $# -gt 0 ]]; do
 	case "$1" in
-	--snapshot) SNAPSHOT="$2"; shift 2 ;;
-	--target) TARGET="$2"; shift 2 ;;
-	--dry-run) DRY_RUN=true; shift ;;
-	--skip-start) SKIP_START=true; shift ;;
-	--yes) YES=true; shift ;;
-	--list-snapshots) LIST_SNAPSHOTS=true; shift ;;
-	-h | --help) usage; exit 0 ;;
-	*) log_error "Unknown option: $1"; usage; exit 1 ;;
+	--snapshot)
+		SNAPSHOT="$2"
+		shift 2
+		;;
+	--target)
+		TARGET="$2"
+		shift 2
+		;;
+	--dry-run)
+		DRY_RUN=true
+		shift
+		;;
+	--skip-start)
+		SKIP_START=true
+		shift
+		;;
+	--yes)
+		YES=true
+		shift
+		;;
+	--list-snapshots)
+		LIST_SNAPSHOTS=true
+		shift
+		;;
+	-h | --help)
+		usage
+		exit 0
+		;;
+	*)
+		log_error "Unknown option: $1"
+		usage
+		exit 1
+		;;
 	esac
 done
 

@@ -410,8 +410,6 @@ test_service_endpoints() {
 	grep -q "it-tools" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "IT Tools" "http://localhost:8080"
 
 	# Development
-	grep -q "gitea" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Gitea" "http://localhost:3004"
-	grep -q "woodpecker-server" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Woodpecker" "http://localhost:3006"
 	grep -q "code-server" "$LOG_DIR/containers.txt" 2>/dev/null && test_http "Code Server" "http://localhost:8444"
 
 	# Automation

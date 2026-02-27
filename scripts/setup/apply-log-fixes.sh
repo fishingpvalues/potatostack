@@ -76,24 +76,7 @@ for device in /dev/sda /dev/sdb /dev/sdc; do
 done
 
 ################################################################################
-# FIX 3: Fix Gitea runner registration issues
-################################################################################
-info "Checking Gitea runner configuration..."
-
-# Check if gitea runner is properly registered
-if docker ps -q --filter "name=gitea-runner" | grep -q .; then
-	# Get runner token from Gitea if not configured
-	GITEA_URL="${GITEA_URL:-http://gitea:3000}"
-	GITEA_RUNNER_TOKEN="${GITEA_RUNNER_TOKEN:-}"
-
-	if [[ -z "$GITEA_RUNNER_TOKEN" ]]; then
-		warn "GITEA_RUNNER_TOKEN not set. Runner may fail to register."
-		warn "Get token from: $GITEA_URL/admin/actions/runners"
-	fi
-fi
-
-################################################################################
-# FIX 4: Clear stale log entries that cause Loki timestamp errors
+# FIX 3: Clear stale log entries that cause Loki timestamp errors
 ################################################################################
 info "Clearing stale log buffers..."
 
@@ -104,7 +87,7 @@ if command -v journalctl &>/dev/null; then
 fi
 
 ################################################################################
-# FIX 5: Fix Syncthing configuration to disable NAT-PMP (runtime fix)
+# FIX 4: Fix Syncthing configuration to disable NAT-PMP (runtime fix)
 ################################################################################
 info "Ensuring Syncthing NAT-PMP is disabled..."
 
@@ -122,7 +105,7 @@ if docker ps -q --filter "name=syncthing" | grep -q .; then
 fi
 
 ################################################################################
-# FIX 6: Fix Exportarr service false positive errors
+# FIX 5: Fix Exportarr service false positive errors
 ################################################################################
 info "Checking Exportarr services..."
 

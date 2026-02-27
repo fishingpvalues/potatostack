@@ -20,7 +20,6 @@ PGID="${PGID:-1000}"
 
 printf '%s\n' "Initializing storage directories..."
 
-
 ################################################################################
 # Main Storage Directories (HDD)
 ################################################################################
@@ -36,53 +35,53 @@ mkdir -p \
 # Storage2 Directories (16TB HDD - media, downloads, photos, backups)
 ################################################################################
 if [ -d "$STORAGE2_BASE" ]; then
-    printf '%s\n' "Creating storage2 directories..."
-    mkdir -p \
-        "${STORAGE2_BASE}/media/movies" \
-        "${STORAGE2_BASE}/media/tv" \
-        "${STORAGE2_BASE}/media/adult/telegram" \
-        "${STORAGE2_BASE}/downloads/torrents" \
-        "${STORAGE2_BASE}/downloads/aria2" \
-        "${STORAGE2_BASE}/downloads/slskd" \
-        "${STORAGE2_BASE}/downloads/spotiflac" \
-        "${STORAGE2_BASE}/downloads/telegram" \
-        "${STORAGE2_BASE}/downloads/incomplete/qbittorrent" \
-        "${STORAGE2_BASE}/downloads/incomplete/aria2" \
-        "${STORAGE2_BASE}/downloads/incomplete/slskd" \
-        "${STORAGE2_BASE}/downloads/incomplete/sonarr" \
-        "${STORAGE2_BASE}/downloads/incomplete/radarr" \
-        "${STORAGE2_BASE}/downloads/incomplete/pinchflat" \
-        "${STORAGE2_BASE}/photos" \
-        "${STORAGE2_BASE}/backrest/repos" \
-        "${STORAGE2_BASE}/velld/backups"
+	printf '%s\n' "Creating storage2 directories..."
+	mkdir -p \
+		"${STORAGE2_BASE}/media/movies" \
+		"${STORAGE2_BASE}/media/tv" \
+		"${STORAGE2_BASE}/media/adult/telegram" \
+		"${STORAGE2_BASE}/downloads/torrents" \
+		"${STORAGE2_BASE}/downloads/aria2" \
+		"${STORAGE2_BASE}/downloads/slskd" \
+		"${STORAGE2_BASE}/downloads/spotiflac" \
+		"${STORAGE2_BASE}/downloads/telegram" \
+		"${STORAGE2_BASE}/downloads/incomplete/qbittorrent" \
+		"${STORAGE2_BASE}/downloads/incomplete/aria2" \
+		"${STORAGE2_BASE}/downloads/incomplete/slskd" \
+		"${STORAGE2_BASE}/downloads/incomplete/sonarr" \
+		"${STORAGE2_BASE}/downloads/incomplete/radarr" \
+		"${STORAGE2_BASE}/downloads/incomplete/pinchflat" \
+		"${STORAGE2_BASE}/photos" \
+		"${STORAGE2_BASE}/backrest/repos" \
+		"${STORAGE2_BASE}/velld/backups"
 
-    # Immich required markers on storage2
-    mkdir -p \
-        "${STORAGE2_BASE}/photos/encoded-video" \
-        "${STORAGE2_BASE}/photos/library" \
-        "${STORAGE2_BASE}/photos/upload" \
-        "${STORAGE2_BASE}/photos/profile" \
-        "${STORAGE2_BASE}/photos/thumbs" \
-        "${STORAGE2_BASE}/photos/backups"
-    echo "1769366147925" >"${STORAGE2_BASE}/photos/encoded-video/.immich" 2>/dev/null || true
-    echo "1769366147925" >"${STORAGE2_BASE}/photos/library/.immich" 2>/dev/null || true
-    echo "1769366147925" >"${STORAGE2_BASE}/photos/upload/.immich" 2>/dev/null || true
-    echo "1769366147925" >"${STORAGE2_BASE}/photos/profile/.immich" 2>/dev/null || true
-    echo "1769366147925" >"${STORAGE2_BASE}/photos/thumbs/.immich" 2>/dev/null || true
-    echo "1769366147925" >"${STORAGE2_BASE}/photos/backups/.immich" 2>/dev/null || true
+	# Immich required markers on storage2
+	mkdir -p \
+		"${STORAGE2_BASE}/photos/encoded-video" \
+		"${STORAGE2_BASE}/photos/library" \
+		"${STORAGE2_BASE}/photos/upload" \
+		"${STORAGE2_BASE}/photos/profile" \
+		"${STORAGE2_BASE}/photos/thumbs" \
+		"${STORAGE2_BASE}/photos/backups"
+	echo "1769366147925" >"${STORAGE2_BASE}/photos/encoded-video/.immich" 2>/dev/null || true
+	echo "1769366147925" >"${STORAGE2_BASE}/photos/library/.immich" 2>/dev/null || true
+	echo "1769366147925" >"${STORAGE2_BASE}/photos/upload/.immich" 2>/dev/null || true
+	echo "1769366147925" >"${STORAGE2_BASE}/photos/profile/.immich" 2>/dev/null || true
+	echo "1769366147925" >"${STORAGE2_BASE}/photos/thumbs/.immich" 2>/dev/null || true
+	echo "1769366147925" >"${STORAGE2_BASE}/photos/backups/.immich" 2>/dev/null || true
 
-    # Only chown the specific dirs we own (not the full tree — too large)
-    for d in \
-        "${STORAGE2_BASE}/media" \
-        "${STORAGE2_BASE}/downloads" \
-        "${STORAGE2_BASE}/photos" \
-        "${STORAGE2_BASE}/backrest" \
-        "${STORAGE2_BASE}/velld"; do
-        chown -R "${PUID}:${PGID}" "$d" 2>/dev/null || true
-    done
-    printf '%s\n' "✓ Storage2 directories initialized"
+	# Only chown the specific dirs we own (not the full tree — too large)
+	for d in \
+		"${STORAGE2_BASE}/media" \
+		"${STORAGE2_BASE}/downloads" \
+		"${STORAGE2_BASE}/photos" \
+		"${STORAGE2_BASE}/backrest" \
+		"${STORAGE2_BASE}/velld"; do
+		chown -R "${PUID}:${PGID}" "$d" 2>/dev/null || true
+	done
+	printf '%s\n' "✓ Storage2 directories initialized"
 else
-    printf '%s\n' "⚠ /mnt/storage2 not mounted, skipping storage2 init"
+	printf '%s\n' "⚠ /mnt/storage2 not mounted, skipping storage2 init"
 fi
 
 ################################################################################
@@ -147,7 +146,6 @@ mkdir -p \
 	"${SSD_BASE}/mongo" \
 	"${SSD_BASE}/mongo-config" \
 	"${SSD_BASE}/redis-cache" \
-	"${SSD_BASE}/gitea" \
 	"${SSD_BASE}/velld" \
 	"${SSD_BASE}/parseable" \
 	"${SSD_BASE}/scrutiny/config" \
@@ -161,7 +159,6 @@ mkdir -p \
 	"${SSD_BASE}/homarr" \
 	"${SSD_BASE}/grafana" \
 	"${SSD_BASE}/authentik" \
-	"${SSD_BASE}/woodpecker" \
 	"${SSD_BASE}/code-server" \
 	"${SSD_BASE}/filebrowser" \
 	"${SSD_BASE}/filestash" \
@@ -289,9 +286,9 @@ for dir in "${STORAGE_BASE}"/*; do
 done
 # Exclude SSH keys and postgres data — those have strict permission requirements set below
 find "${SSD_BASE}" \
-    -not -path "${SSD_BASE}/backrest/ssh*" \
-    -not -path "${SSD_BASE}/postgres*" \
-    -exec chmod 755 {} + 2>/dev/null || true
+	-not -path "${SSD_BASE}/backrest/ssh*" \
+	-not -path "${SSD_BASE}/postgres*" \
+	-exec chmod 755 {} + 2>/dev/null || true
 chmod -R 755 "/mnt/ssd/system" 2>/dev/null || true
 
 if [ -f "$SWAP_FILE" ]; then

@@ -394,42 +394,6 @@ groups:
           description: "Scrutiny disk health monitoring container has not been seen for > 2 minutes."
           runbook: "Check: docker logs scrutiny"
 
-  - name: CI/CD Health
-    interval: 60s
-    rules:
-      - alert: WoodpeckerServerDown
-        expr: time() - container_last_seen{container_label_com_docker_compose_service="woodpecker-server"} > 120
-        for: 2m
-        labels:
-          severity: warning
-          component: ci
-        annotations:
-          summary: "🪵 Woodpecker Server DOWN"
-          description: "Woodpecker CI server container has not been seen for > 2 minutes."
-          runbook: "Check: docker logs woodpecker-server"
-
-      - alert: WoodpeckerAgentDown
-        expr: time() - container_last_seen{container_label_com_docker_compose_service="woodpecker-agent"} > 120
-        for: 2m
-        labels:
-          severity: warning
-          component: ci
-        annotations:
-          summary: "🔨 Woodpecker Agent DOWN"
-          description: "Woodpecker CI agent container has not been seen for > 2 minutes. CI builds may queue."
-          runbook: "Check: docker logs woodpecker-agent"
-
-      - alert: GiteaDown
-        expr: time() - container_last_seen{container_label_com_docker_compose_service="gitea"} > 120
-        for: 2m
-        labels:
-          severity: critical
-          component: git
-        annotations:
-          summary: "🐙 Gitea DOWN - Git repository service unavailable"
-          description: "Gitea git server container has not been seen for > 2 minutes. Push/pull operations will fail."
-          runbook: "Check: docker logs gitea"
-
   - name: Finance Services Health
     interval: 60s
     rules:

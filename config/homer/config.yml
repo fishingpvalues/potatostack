@@ -291,12 +291,6 @@ services:
         url: "https://potatostack.tale-iwato.ts.net:8888"
         target: "_blank"
 
-      - name: "Gitea"
-        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/gitea.png"
-        subtitle: "Git Hosting"
-        url: "https://potatostack.tale-iwato.ts.net:3004"
-        target: "_blank"
-
   - name: "Utilities"
     icon: "fas fa-tools"
     items:

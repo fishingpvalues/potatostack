@@ -87,7 +87,6 @@
 | **stash** | Heavy ffmpeg processing |
 | **postgres** | Too heavy for 2GB |
 | **prometheus/grafana/loki** | Metrics storage needs disk |
-| **gitea** | Git operations need more RAM |
 | **paperless-ngx** | OOM issues, needs Celery workers |
 | **bitmagnet** | Needs Postgres + heavy I/O |
 | **Any media server** | Storage + transcoding |

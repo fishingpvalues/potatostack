@@ -61,7 +61,7 @@ services:
       <<: *common-env
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
-      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-gitea,immich,healthchecks,atuin,miniflux,grafana,freqtrade,ghostfolio,baikal}
+      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DATABASES:-immich,healthchecks,atuin,miniflux,grafana,freqtrade,ghostfolio,baikal}
     entrypoint: sh /postgres-wrapper.sh
     command:
       - "postgres"
@@ -192,7 +192,7 @@ services:
       - "potatostack.alerts=critical"
       - "wud.trigger.docker.update=false"
 
-  # Redis Shared Cache - SOTA 2025 consolidated (N8n, Gitea, Immich, Paperless, Sentry)
+  # Redis Shared Cache - SOTA 2025 consolidated (N8n, Immich, Paperless, Sentry)
   redis-cache:
     image: redis:${REDIS_TAG:-7-alpine}
     container_name: redis-cache
@@ -3371,86 +3371,86 @@ services:
   # DEVELOPMENT & GIT
   ################################################################################
 
-  # Gitea - Git hosting
-  gitea:
-    image: gitea/gitea:${GITEA_TAG:-latest}
-    container_name: gitea
-    logging: *default-logging
-    ports:
-      - "${HOST_BIND:-127.0.0.1}:3004:3000"
-      - "${HOST_BIND:-127.0.0.1}:${GITEA_SSH_PORT:-2223}:22"
-    environment:
-      <<: *common-env
-      GITEA__database__DB_TYPE: postgres
-      GITEA__database__HOST: postgres:5432
-      GITEA__database__NAME: gitea
-      GITEA__database__USER: postgres
-      GITEA__database__PASSWD: ${POSTGRES_SUPER_PASSWORD}
-      GITEA__server__DOMAIN: git.${HOST_DOMAIN:-local.domain}
-      # For HTTPS via Traefik - access via https://git.danielhomelab.local
-      GITEA__server__ROOT_URL: https://git.${HOST_DOMAIN:-local.domain}/
-      GITEA__server__SSH_DOMAIN: git.${HOST_DOMAIN:-local.domain}
-      GITEA__server__SSH_PORT: ${GITEA_SSH_PORT:-2223}
-      # Allow HTTP access for local development (WebAuthn requires HTTPS for full functionality)
-      GITEA__server__LOCAL_ROOT_URL: http://localhost:3000/
-      GITEA__security__INSTALL_LOCK: "true"
-      GITEA__cache__ENABLED: "true"
-      GITEA__cache__ADAPTER: redis
-      GITEA__cache__HOST: network=tcp,addr=redis-cache:6379,db=0
-      GITEA__session__PROVIDER: redis
-      GITEA__session__PROVIDER_CONFIG: network=tcp,addr=redis-cache:6379,db=2
-      GITEA__queue__TYPE: redis
-      GITEA__queue__CONN_STR: redis://redis-cache:6379/1
-    volumes:
-      - /mnt/ssd/docker-data/gitea:/data
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
-    networks:
-      - potatostack
-    dns:
-      - 127.0.0.11
-      - 1.1.1.1
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis-cache:
-        condition: service_healthy
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 512M
-    labels:
-      - "wud.trigger.docker.update=false"
+  # Gitea - Git hosting (DISABLED)
+  # gitea:
+  #   image: gitea/gitea:${GITEA_TAG:-latest}
+  #   container_name: gitea
+  #   logging: *default-logging
+  #   ports:
+  #     - "${HOST_BIND:-127.0.0.1}:3004:3000"
+  #     - "${HOST_BIND:-127.0.0.1}:${GITEA_SSH_PORT:-2223}:22"
+  #   environment:
+  #     <<: *common-env
+  #     GITEA__database__DB_TYPE: postgres
+  #     GITEA__database__HOST: postgres:5432
+  #     GITEA__database__NAME: gitea
+  #     GITEA__database__USER: postgres
+  #     GITEA__database__PASSWD: ${POSTGRES_SUPER_PASSWORD}
+  #     GITEA__server__DOMAIN: git.${HOST_DOMAIN:-local.domain}
+  #     # For HTTPS via Traefik - access via https://git.danielhomelab.local
+  #     GITEA__server__ROOT_URL: https://git.${HOST_DOMAIN:-local.domain}/
+  #     GITEA__server__SSH_DOMAIN: git.${HOST_DOMAIN:-local.domain}
+  #     GITEA__server__SSH_PORT: ${GITEA_SSH_PORT:-2223}
+  #     # Allow HTTP access for local development (WebAuthn requires HTTPS for full functionality)
+  #     GITEA__server__LOCAL_ROOT_URL: http://localhost:3000/
+  #     GITEA__security__INSTALL_LOCK: "true"
+  #     GITEA__cache__ENABLED: "true"
+  #     GITEA__cache__ADAPTER: redis
+  #     GITEA__cache__HOST: network=tcp,addr=redis-cache:6379,db=0
+  #     GITEA__session__PROVIDER: redis
+  #     GITEA__session__PROVIDER_CONFIG: network=tcp,addr=redis-cache:6379,db=2
+  #     GITEA__queue__TYPE: redis
+  #     GITEA__queue__CONN_STR: redis://redis-cache:6379/1
+  #   volumes:
+  #     - /mnt/ssd/docker-data/gitea:/data
+  #     - /etc/timezone:/etc/timezone:ro
+  #     - /etc/localtime:/etc/localtime:ro
+  #   networks:
+  #     - potatostack
+  #   dns:
+  #     - 127.0.0.11
+  #     - 1.1.1.1
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis-cache:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "1.0"
+  #         memory: 512M
+  #   labels:
+  #     - "wud.trigger.docker.update=false"
 
-  # Gitea Runner - CI/CD for Gitea
-  gitea-runner:
-    image: gitea/act_runner:${GITEA_RUNNER_TAG:-latest}
-    container_name: gitea-runner
-    logging: *default-logging
-    environment:
-      <<: *common-env
-      GITEA_INSTANCE_URL: http://gitea:3000
-      GITEA_RUNNER_REGISTRATION_TOKEN: ${GITEA_RUNNER_TOKEN}
-      GITEA_RUNNER_NAME: docker-runner
-    volumes:
-      - gitea-runner-data:/data
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - potatostack
-    depends_on:
-      - gitea
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 128M
-    labels:
-      - "wud.trigger.docker.update=false"
+  # Gitea Runner - CI/CD for Gitea (DISABLED)
+  # gitea-runner:
+  #   image: gitea/act_runner:${GITEA_RUNNER_TAG:-latest}
+  #   container_name: gitea-runner
+  #   logging: *default-logging
+  #   environment:
+  #     <<: *common-env
+  #     GITEA_INSTANCE_URL: http://gitea:3000
+  #     GITEA_RUNNER_REGISTRATION_TOKEN: ${GITEA_RUNNER_TOKEN}
+  #     GITEA_RUNNER_NAME: docker-runner
+  #   volumes:
+  #     - gitea-runner-data:/data
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #   networks:
+  #     - potatostack
+  #   depends_on:
+  #     - gitea
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.25"
+  #         memory: 128M
+  #   labels:
+  #     - "wud.trigger.docker.update=false"
 
-  # Woodpecker CI - Gitea integrated CI/CD (SOTA 2025)
+  # Woodpecker CI - Gitea integrated CI/CD (DISABLED)
   # woodpecker-server:
   #   image: woodpeckerci/woodpecker-server:${WOODPECKER_TAG:-latest}
   #   container_name: woodpecker-server
@@ -4715,8 +4715,8 @@ volumes:
   atuin-config:
 
   # Development
-  gitea-data:
-  gitea-runner-data:
+  # gitea-data:
+  # gitea-runner-data:
   sentry-data:
 
   # AI & Special

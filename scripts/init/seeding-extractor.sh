@@ -125,8 +125,15 @@ _scan_once() {
         [ -d "$path" ] || continue
         while IFS= read -r -d '' archive; do
             _is_entry_archive "$archive" || continue
-            # Skip files actively being downloaded by aria2 (.aria2 control file = in-progress)
-            [ -f "${archive}.aria2" ] && continue
+            # Skip files actively being downloaded by aria2 (.aria2 control file = in-progress).
+            # Exception: if .aria2 hasn't been modified in >1h, aria2 likely crashed and left
+            # it orphaned — treat the download as complete and proceed with extraction.
+            if [ -f "${archive}.aria2" ]; then
+                aria2_age=$(( $(date +%s) - $(stat -c "%Y" "${archive}.aria2" 2>/dev/null || echo 0) ))
+                [ "$aria2_age" -lt 3600 ] && continue
+                echo "[$(date)] [Seeding] Orphaned .aria2 (${aria2_age}s old), removing: ${archive}.aria2"
+                rm -f "${archive}.aria2"
+            fi
             inode=$(stat -c "%i" "$archive" 2>/dev/null) || continue
             dest="$(dirname "$archive")/$(basename "${archive%.*}")${EXTRACT_SUFFIX}"
             _is_extracted "$inode" "$dest" && continue

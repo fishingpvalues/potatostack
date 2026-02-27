@@ -81,9 +81,7 @@ Your services are accessible at `192.168.178.158` or via Traefik at `*.danielhom
 ### Development
 | Service | HTTPS URL | Direct IP:Port |
 |---------|-----------|----------------|
-| Gitea | https://gitea.danielhomelab.local | 192.168.178.158:3003 |
 | Code Server | https://code.danielhomelab.local | 192.168.178.158:8444 |
-| Woodpecker CI | https://woodpecker.danielhomelab.local | 192.168.178.158:8000 |
 
 ### Security & Networking
 | Service | HTTPS URL | Direct IP:Port |

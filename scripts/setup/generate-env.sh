@@ -170,9 +170,6 @@ main() {
 	read_optional "FritzBox Password" FRITZ_PASSWORD
 	read_input "FritzBox Hostname" FRITZ_HOSTNAME "fritz.box"
 
-	print_header "Development (CI/CD)"
-	read_input "Gitea Admin Username" WOODPECKER_ADMIN "$ADMIN_USER"
-
 	print_header "SSH Server (Optional)"
 	read_input "OpenSSH port" OPENSSH_PORT "2222"
 	read_input "OpenSSH username" OPENSSH_USER "sshuser"
@@ -216,8 +213,6 @@ main() {
 	HEALTHCHECKS_SECRET_KEY="$(gen_base64 32)"
 	CALCOM_NEXTAUTH_SECRET="$(gen_base64 32)"
 	CALCOM_ENCRYPTION_KEY="$(gen_base64 32)"
-	WOODPECKER_AGENT_SECRET="$(gen_base64 32)"
-	DRONE_RPC_SECRET="$(gen_base64 32)"
 	SENTRY_SECRET_KEY="$(gen_base64 32)"
 	OPEN_WEBUI_SECRET_KEY="$(gen_base64 32)"
 	VELLD_JWT_SECRET="$(gen_base64 32)"
@@ -237,11 +232,6 @@ main() {
 	HUGINN_INVITATION_CODE="$(gen_hex 8)"
 
 	print_step "Placeholder tokens..."
-	GITEA_RUNNER_TOKEN="get_from_gitea_after_setup"
-	WOODPECKER_GITEA_CLIENT="get_from_gitea_oauth_app"
-	WOODPECKER_GITEA_SECRET="get_from_gitea_oauth_app"
-	DRONE_GITEA_CLIENT_ID="get_from_gitea_oauth_app"
-	DRONE_GITEA_CLIENT_SECRET="get_from_gitea_oauth_app"
 	OAUTH2_PROXY_CLIENT_ID="get_from_authentik_after_setup"
 	FILESTASH_OIDC_CLIENT_ID="get_from_authentik_after_setup"
 	FILESTASH_OIDC_CLIENT_SECRET="get_from_authentik_after_setup"
@@ -283,7 +273,7 @@ SAMBA_PASSWORD=${SAMBA_PASSWORD}
 # CORE DATABASES
 ################################################################################
 POSTGRES_SUPER_PASSWORD=${POSTGRES_SUPER_PASSWORD}
-POSTGRES_DATABASES=gitea,woodpecker,immich,calibre,karakeep,healthchecks,atuin,homarr,miniflux,grafana,infisical,freqtrade,ghostfolio,baikal
+POSTGRES_DATABASES=immich,calibre,karakeep,healthchecks,atuin,homarr,miniflux,grafana,infisical,freqtrade,ghostfolio,baikal
 MONGO_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
 
 ################################################################################
@@ -339,7 +329,6 @@ OPENSSH_PUBLIC_KEY_FILE=
 OPENSSH_PUBLIC_KEY_DIR=
 OPENSSH_PUBLIC_KEY_URL=
 OPENSSH_LOG_STDOUT=true
-GITEA_SSH_PORT=2223
 
 ################################################################################
 # MONITORING & HEALTHCHECK CONFIG
@@ -522,18 +511,7 @@ CODE_SERVER_SUDO_PASSWORD=${CODE_SERVER_SUDO_PASSWORD}
 ################################################################################
 # DEVELOPMENT & GIT
 ################################################################################
-GITEA_TAG=latest
-GITEA_RUNNER_TOKEN=${GITEA_RUNNER_TOKEN}
-WOODPECKER_GITEA_CLIENT=${WOODPECKER_GITEA_CLIENT}
-WOODPECKER_GITEA_SECRET=${WOODPECKER_GITEA_SECRET}
-WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET}
-WOODPECKER_ADMIN=${WOODPECKER_ADMIN}
-WOODPECKER_MAX_WORKFLOWS=2
 CALIBRE_DB_PASSWORD=${CALIBRE_DB_PASSWORD}
-DRONE_GITEA_CLIENT_ID=${DRONE_GITEA_CLIENT_ID}
-DRONE_GITEA_CLIENT_SECRET=${DRONE_GITEA_CLIENT_SECRET}
-DRONE_RPC_SECRET=${DRONE_RPC_SECRET}
-DRONE_ADMIN_USER=${WOODPECKER_ADMIN}
 SENTRY_DB_PASSWORD=${SENTRY_DB_PASSWORD}
 SENTRY_SECRET_KEY=${SENTRY_SECRET_KEY}
 
@@ -701,12 +679,6 @@ DUCKDB_TAG=latest
 IT_TOOLS_TAG=latest
 
 # Development
-GITEA_TAG=latest
-GITEA_RUNNER_TAG=latest
-WOODPECKER_TAG=latest
-WOODPECKER_AGENT_TAG=latest
-DRONE_TAG=latest
-DRONE_RUNNER_TAG=latest
 SENTRY_TAG=latest
 
 # AI & Special
@@ -762,7 +734,7 @@ ENVFILE
 	echo -e "    • All image tags & monitor config"
 
 	echo -e "\n  ${YELLOW}Post-Setup Required:${NC}"
-	echo -e "    • GITEA_RUNNER_TOKEN, WOODPECKER_GITEA_*, DRONE_GITEA_*, OAUTH2_PROXY_CLIENT_ID, SYNCTHING_API_KEY, PORTAINER_API_KEY"
+	echo -e "    • OAUTH2_PROXY_CLIENT_ID, SYNCTHING_API_KEY, PORTAINER_API_KEY"
 
 	############################################################################
 	# Launch Stack

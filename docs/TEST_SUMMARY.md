@@ -13,7 +13,7 @@ Production-ready testing suite for PotatoStack with **65+ services** across all 
 ✓ **Media (13)**: sonarr, radarr, lidarr, readarr, bazarr, prowlarr, jellyfin, qbittorrent, aria2, ariang, audiobookshelf, slskd
 ✓ **Productivity (7)**: homarr, paperless-ngx, karakeep, miniflux, actual-budget, stirling-pdf, it-tools
 ✓ **Automation (3)**: diun, autoheal, healthchecks
-✓ **Development (3)**: gitea, gitea-runner, code-server
+✓ **Development (1)**: code-server
 ✓ **Network (4)**: gluetun, gluetun-monitor, tailscale, adguardhome
 ✓ **Other (6)**: syncthing, open-webui, immich-server, immich-machine-learning, atuin, storage-init
 
