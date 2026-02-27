@@ -150,8 +150,8 @@ docker compose up -d
 **Fix**:
 ```bash
 # Fix permissions on bind mounts
-sudo chown -R $USER:$USER /mnt/storage /mnt/cachehdd /mnt/ssd/docker-data
-sudo chmod -R 755 /mnt/storage /mnt/cachehdd /mnt/ssd/docker-data
+sudo chown -R $USER:$USER /mnt/storage /mnt/storage2 /mnt/ssd/docker-data
+sudo chmod -R 755 /mnt/storage /mnt/storage2 /mnt/ssd/docker-data
 ```
 
 ## Monitoring URLs (After Stack is Running)

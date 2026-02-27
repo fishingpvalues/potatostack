@@ -96,10 +96,10 @@ See [FULL_INTEGRATION_SUMMARY.md](FULL_INTEGRATION_SUMMARY.md) for complete serv
 ### Prerequisites
 ```bash
 # Create required directories
-sudo mkdir -p /mnt/storage /mnt/cachehdd /mnt/ssd/docker-data
+sudo mkdir -p /mnt/storage /mnt/storage2 /mnt/ssd/docker-data
 
 # Set permissions
-sudo chown -R $(id -u):$(id -g) /mnt/storage /mnt/cachehdd /mnt/ssd/docker-data
+sudo chown -R $(id -u):$(id -g) /mnt/storage /mnt/storage2 /mnt/ssd/docker-data
 ```
 
 ### Configuration
@@ -158,7 +158,6 @@ See [QUICK_START.md](QUICK_START.md) for detailed setup instructions.
 ### Storage Strategy
 - **SSD** (`/mnt/ssd/docker-data`) - Databases, configs, critical data
 - **HDD** (`/mnt/storage`) - Media, photos, documents
-- **HDD** (`/mnt/cachehdd`) - Caches, metrics
 
 ### Resource Optimization
 - CPU limits on all services via `deploy.resources`

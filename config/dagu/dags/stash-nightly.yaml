@@ -1,0 +1,56 @@
+# Stash Nightly - Full library maintenance at 2am
+# Runs: scan → autotag → identify → generate (all content)
+# Stash is single-job-at-a-time; each step waits for completion before next.
+name: stash-nightly
+schedule: "0 2 * * *"
+maxActiveRuns: 1
+timeoutSec: 43200  # 12h max (generate on large library can be slow)
+
+env:
+  - STASH_JOB: python3 /scripts/monitor/stash-job.py
+
+steps:
+  # Phase 1: Scan library for new/changed content
+  # Generates covers, previews, sprites, hashes, thumbnails during scan
+  - name: scan
+    command: python3 /scripts/monitor/stash-job.py scan
+
+  # Phase 2: Auto-tag performers, studios, tags from file paths
+  - name: autotag
+    command: python3 /scripts/monitor/stash-job.py autotag
+    depends:
+      - scan
+
+  # Phase 3: Identify scenes via scrapers/stash-box (graceful - may find nothing)
+  - name: identify
+    command: python3 /scripts/monitor/stash-job.py identify
+    continueOn:
+      failure: true
+    depends:
+      - autotag
+
+  # Phase 4: Full generate pass for all content types
+  # (markers, transcodes, heatmaps, etc. - the heavy lifting)
+  - name: generate
+    command: python3 /scripts/monitor/stash-job.py generate
+    depends:
+      - identify
+
+  - name: notify-success
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC:-potatostack}"
+      -H "Title: Stash Nightly Complete"
+      -H "Priority: low"
+      -H "Tags: white_check_mark,stash"
+      -d "Stash nightly maintenance done: scan, autotag, identify, generate all complete"
+    depends:
+      - generate
+
+handlerOn:
+  failure:
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC_WARNING:-potatostack-warning}"
+      -H "Title: Stash Nightly FAILED"
+      -H "Priority: default"
+      -H "Tags: x,stash"
+      -d "Stash nightly maintenance failed - check Dagu logs for details"

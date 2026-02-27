@@ -254,7 +254,7 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 128M
+          memory: 256M
         reservations:
           cpus: "0.1"
           memory: 128M
@@ -526,11 +526,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 384M
+          cpus: "1.5"
+          memory: 768M
         reservations:
           cpus: "0.25"
-          memory: 256M
+          memory: 384M
 
   # Tailscale HTTPS Setup - Wraps HTTP ports with Tailscale TLS certificates
   tailscale-https-setup:
@@ -667,7 +667,7 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 64M
+          memory: 128M
     labels:
       - "wud.trigger.docker.update=true"
 
@@ -852,10 +852,10 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 128M
+          memory: 256M
         reservations:
           cpus: "0.1"
-          memory: 64M
+          memory: 128M
     labels:
       - "wud.trigger.docker.update=true"
 
@@ -1117,10 +1117,10 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 768M
+          memory: 1024M
         reservations:
           cpus: "0.1"
-          memory: 256M
+          memory: 384M
     labels:
       - "wud.trigger.docker.update=true"
 
@@ -2137,7 +2137,7 @@ services:
       <<: *common-env
       RPC_PORT: 6800
       LISTEN_PORT: 6888
-      DISK_CACHE: 64M
+      DISK_CACHE: 256M
       IPV6_MODE: "false"
       NTFY_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
       NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
@@ -2157,21 +2157,21 @@ services:
       gluetun:
         condition: service_healthy
         restart: true
-    restart: unless-stopped
+    restart: always
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -x aria2c || exit 1"]
-      interval: 60s
+      test: ["CMD-SHELL", "wget --spider -q 'http://127.0.0.1:6800/jsonrpc?method=aria2.getVersion' || exit 1"]
+      interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
     deploy:
       resources:
         limits:
-          cpus: "0.25"
-          memory: 128M
+          cpus: "1.0"
+          memory: 512M
         reservations:
           cpus: "0.1"
-          memory: 128M
+          memory: 256M
     labels:
       - "autoheal=true"
 
@@ -2469,10 +2469,10 @@ services:
       resources:
         limits:
           cpus: "0.1"
-          memory: 64M
+          memory: 128M
         reservations:
           cpus: "0.05"
-          memory: 32M
+          memory: 64M
 
   ################################################################################
   # MONITORING & OBSERVABILITY
@@ -2694,10 +2694,10 @@ services:
       resources:
         limits:
           cpus: "0.1"
-          memory: 64M
+          memory: 128M
         reservations:
           cpus: "0.05"
-          memory: 32M
+          memory: 64M
 
   # Smartctl Exporter - SMART metrics for disk health alerting
   smartctl-exporter:
@@ -2826,7 +2826,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.25"
+          cpus: "0.5"
           memory: 512M
 
   # Parseable - REMOVED (using Loki instead)
@@ -2884,7 +2884,7 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: 192M
+          memory: 384M
 
   # Uptime Kuma - Uptime monitoring with Docker container support (DISABLED)
   # uptime-kuma:
@@ -3005,10 +3005,10 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 256M
+          memory: 512M
         reservations:
           cpus: "0.1"
-          memory: 128M
+          memory: 256M
 
   ################################################################################
   # UTILITIES & TOOLS
@@ -3420,7 +3420,7 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 256M
+          memory: 512M
     labels:
       - "wud.trigger.docker.update=false"
 
@@ -3616,7 +3616,7 @@ services:
       resources:
         limits:
           cpus: "2.0"
-          memory: 3G
+          memory: 2G
         reservations:
           cpus: "0.5"
           memory: 512M
@@ -3983,6 +3983,7 @@ services:
     logging: *default-logging
     environment:
       AUTOHEAL_CONTAINER_LABEL: autoheal
+      AUTOHEAL_RESTART_ONCE_EXITED: "true"
       AUTOHEAL_INTERVAL: 60
       AUTOHEAL_START_PERIOD: 300
       AUTOHEAL_DEFAULT_STOP_TIMEOUT: 10

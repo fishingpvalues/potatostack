@@ -19,7 +19,7 @@ Based on **SOTA 2025 Docker Compose testing best practices**, testing ALL 65+ se
 
 #### Core Test Categories
 - **OS Detection**: Automatically detects Termux/Android (proot) or Linux (native docker)
-- **Drive Structure Validation**: Verifies mount points (/mnt/storage, /mnt/ssd, /mnt/cachehdd)
+- **Drive Structure Validation**: Verifies mount points (/mnt/storage, /mnt/ssd, /mnt/storage2)
 - **Health Check Validation**: Waits up to 3 minutes for all containers to become healthy
 - **Database Connectivity**: Tests PostgreSQL, pgBouncer, Redis, MongoDB, Immich-Postgres
 - **HTTP Endpoint Testing**: Tests ALL 40+ web services including:

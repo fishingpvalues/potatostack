@@ -99,7 +99,7 @@ validate_drive_structure() {
 	local required_dirs=(
 		"/mnt/storage"
 		"/mnt/ssd/docker-data"
-		"/mnt/cachehdd"
+		"/mnt/storage2"
 	)
 
 	for dir in "${required_dirs[@]}"; do

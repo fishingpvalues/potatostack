@@ -127,29 +127,13 @@ docker inspect storage-init | grep -i memory
 
 ## Prevention
 
-### 1. Automatic Swap Setup (Already Configured!)
-**DONE**: The stack now automatically creates and enables 2GB swap on cache HDD!
-
-The `storage-init` container now:
-- Creates `/mnt/cachehdd/swapfile` (2GB)
-- Initializes and enables it automatically
-- Checks and re-enables on every stack start
-- Persists across reboots
-
-**Location**: `/mnt/cachehdd/swapfile`
-**Size**: 2GB
-**Permissions**: 600 (root:root)
-**Status**: Automatically managed
+### 1. Swap Setup (Active)
+**Current swap**: `/dev/sda3` (16GB partition, priority -2) + `/dev/zram0` (4GB compressed, priority 100)
 
 Check swap status:
 ```bash
-swapon --show
+cat /proc/swaps
 free -h
-```
-
-Manual enable (if needed):
-```bash
-sudo swapon /mnt/cachehdd/swapfile
 ```
 
 ### 2. Reduce Memory Footprint

@@ -60,7 +60,7 @@ Configure in app settings:
 
 ## 4. Storage I/O Optimization (Implemented)
 - SSD for databases and Docker data (`/mnt/ssd/docker-data`)
-- HDD for media and caches (`/mnt/storage`, `/mnt/cachehdd`)
+- HDD for media and caches (`/mnt/storage`, `/mnt/storage2`)
 - tmpfs for temp files (Jellyfin, Immich, Paperless)
 
 ## 5. Database Connection Pooling (Implemented)

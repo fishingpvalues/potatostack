@@ -13,5 +13,4 @@
   6. Enter your Linux password for daniel
 
   Other shares:
-  - \\sshfs\daniel@100.90.148.77\mnt\cachehdd
   - \\sshfs\daniel@100.90.148.77\mnt\storage\media

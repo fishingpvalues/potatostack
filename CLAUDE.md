@@ -35,7 +35,6 @@ make format        # Format all files (shfmt, prettier)
 - SSD (`/mnt/ssd/docker-data`) - Databases, configs, critical data
 - HDD (`/mnt/storage`) - Media, photos, documents, knowledge (obsidian)
 - HDD (`/mnt/storage2`) - Additional media storage (16TB ext4)
-- HDD (`/mnt/cachehdd`) - Caches, metrics
 
 **Core Services:**
 - PostgreSQL 16 (pgvector) with PgBouncer - 18 databases consolidated

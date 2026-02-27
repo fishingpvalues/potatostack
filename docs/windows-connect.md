@@ -54,7 +54,6 @@ Current IP: `100.90.148.77` (may change if Tailscale is re-authenticated).
 | Share       | Path on server     | Contents                    |
 |-------------|--------------------|-----------------------------|
 | `storage`   | `/mnt/storage`     | Media, photos, documents    |
-| `cachehdd`  | `/mnt/cachehdd`    | Caches, metrics             |
 | `media`     | `/mnt/storage/media`| TV, movies, music, audiobooks|
 
 ### Troubleshooting SMB

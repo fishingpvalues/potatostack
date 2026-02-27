@@ -162,7 +162,7 @@ RestartSec=30
 
 # Security hardening
 ProtectSystem=strict
-ReadWritePaths=$REPO_ROOT /mnt/ssd /mnt/storage /mnt/cachehdd /var/run/docker.sock
+ReadWritePaths=$REPO_ROOT /mnt/ssd /mnt/storage /mnt/storage2 /var/run/docker.sock
 NoNewPrivileges=false
 PrivateTmp=false
 

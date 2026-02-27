@@ -1,0 +1,27 @@
+# Backrest SSH Key Watchdog
+# Enforces correct SSH key permissions every 5 minutes.
+# SSH refuses keys with permissions looser than 0600 (0755 from Docker defaults causes backup failure).
+# Runs independently of the hourly log-fixes to minimize the race window after WUD container updates.
+name: backrest-ssh-watchdog
+schedule: "*/5 * * * *"
+maxActiveRuns: 1
+
+steps:
+  - name: fix-ssh-permissions
+    command: >-
+      docker exec backrest sh -c '
+        chmod 700 /root/.ssh 2>/dev/null;
+        chmod 600 /root/.ssh/id_ed25519 /root/.ssh/config /root/.ssh/known_hosts 2>/dev/null;
+        chmod 644 /root/.ssh/id_ed25519.pub 2>/dev/null
+      '
+    continueOn:
+      failure: false
+
+handlerOn:
+  failure:
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC_WARNING:-potatostack-warning}"
+      -H "Title: Backrest SSH watchdog FAILED"
+      -H "Priority: high"
+      -H "Tags: lock,x"
+      -d "Could not fix backrest SSH key permissions - backups may fail"

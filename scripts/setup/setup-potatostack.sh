@@ -555,7 +555,7 @@ EOF
 step_storage_setup() {
 	print_header "Step 7: Storage Directory Setup (PotatoStack - N150/16GB/512GB SSD)"
 	print_info "Ensuring base mount points exist..."
-	mkdir -p /mnt/storage /mnt/cachehdd /mnt/ssd/docker-data /docker-data
+	mkdir -p /mnt/storage /mnt/storage2 /mnt/ssd/docker-data /docker-data
 	if [ -f "${SCRIPT_DIR}/../init/init-storage.sh" ]; then
 		print_info "Running init-storage.sh for SOTA directory structure..."
 		local docker_uid
@@ -566,7 +566,7 @@ step_storage_setup() {
 	else
 		print_info "init-storage.sh not found, creating minimal structure..."
 		mkdir -p /mnt/storage/syncthing /mnt/storage/downloads
-		mkdir -p /mnt/cachehdd /mnt/ssd/docker-data
+		mkdir -p /mnt/storage2 /mnt/ssd/docker-data
 	fi
 	print_success "Storage directories created and validated"
 }
@@ -965,7 +965,7 @@ VALIDATION COMMANDS:
   • make test      - Run full integration tests
   • make test-quick - Quick health check
 IMPORTANT NOTES:
-• Storage Paths: Ensure /mnt/storage, /mnt/cachehdd, and /mnt/ssd exist
+• Storage Paths: Ensure /mnt/storage, /mnt/storage2, and /mnt/ssd exist
   and have proper permissions for your user
 • Security: Review docker-compose.yml for passwords and secrets
   Consider using Docker Secrets or environment files

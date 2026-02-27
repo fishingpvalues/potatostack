@@ -6,11 +6,8 @@
 #
 # Structure (2025 consolidated):
 # - /mnt/storage: Main HDD - media, downloads, syncthing, obsidian, caches
+# - /mnt/storage2: Secondary HDD - additional media, downloads
 # - /mnt/ssd/docker-data: SSD - databases, app configs, observability
-# Note: cachehdd decommissioned (bad sectors) - all data moved to SSD/storage
-#
-# Note: All incomplete downloads moved from cachehdd to storagehdd:
-#   /mnt/storage/downloads/incomplete/{sonarr,radarr,lidarr,qbittorrent,sabnzbd,aria2,slskd,pinchflat}
 ################################################################################
 
 set -eu
@@ -23,7 +20,6 @@ PGID="${PGID:-1000}"
 
 printf '%s\n' "Initializing storage directories..."
 
-printf '%s\n' "Note: cachehdd decommissioned (bad sectors) - all data on SSD/storage"
 
 ################################################################################
 # Main Storage Directories (HDD)
@@ -133,7 +129,7 @@ mkdir -p \
 	"${STORAGE_BASE}/syncthing/OneDrive-Archive"
 
 ################################################################################
-# Cache Directories (on storage HDD - moved from decommissioned cachehdd)
+# Cache Directories (on storage HDD)
 ################################################################################
 printf '%s\n' "Creating cache directories on storage..."
 mkdir -p \

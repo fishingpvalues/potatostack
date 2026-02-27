@@ -1,4 +1,13 @@
+- why is aria2 not restarted? autoheal should cover it. fix its healtcheck it was using pgrep but the container crashed and stopped. i want it to be restrarted when it crashes. i also want it to ahve more ram check all resources and how much you can give it 
+- read all services and their RAM and CPU and their usage and check where to adapt what to reduce and what to increase CPU and RAM look at historical usages as well peak and max min and average
 - make dagu workflow to trigger stash to scan librarty and perform all these tasks at 2am. (if or if not i set in the app, just so you know which areas you have to cover:):
+- spotiflac queue drain doesnt work or is it finished downloading?
+- bacjup veroifiy failed of dagu maybe you need to run /home/daniel/potatostack/scripts/setup/apply-log-fixes.sh as sudo. 
+- beets nightly failed as well
+- tdl download failed
+
+TJOS is th einfo from above for stack for the dagu workflow what you should trigger:
+
 
 Library
 Scan

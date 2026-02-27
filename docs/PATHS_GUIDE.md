@@ -35,7 +35,6 @@ When setting up folders in Syncthing UI, use `/data/` paths:
 
 Access paths in FileBrowser:
 - Main storage: `/srv/storage` → `/mnt/storage`
-- Cache HDD: `/srv/cachehdd` → `/mnt/cachehdd`
 
 Full tree:
 ```
@@ -50,12 +49,6 @@ Full tree:
 │   ├── photos/
 │   ├── music/
 │   └── ...
-
-/srv/cachehdd/
-├── media/                   # Media server caches
-├── observability/           # Prometheus, Loki, Alertmanager
-├── sync/                    # Syncthing version history
-└── system/                  # System cache files
 ```
 
 ### qBittorrent
@@ -114,14 +107,6 @@ Full tree:
     └── backup/
 ```
 
-### Cache HDD (`/mnt/cachehdd`)
-```
-/mnt/cachehdd/
-├── media/                     # Media server caches (jellyfin, audiobookshelf, immich-ml)
-├── observability/             # Metrics and logs (prometheus, loki, alertmanager)
-├── sync/                      # Sync caches (syncthing-versions)
-└── system/                    # System files (swap)
-```
 
 **Note:** All incomplete downloads have been moved to `/mnt/storage/downloads/incomplete/<service>` for better data integrity and consistent backup patterns.
 

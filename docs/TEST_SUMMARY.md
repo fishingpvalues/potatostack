@@ -21,7 +21,7 @@ Production-ready testing suite for PotatoStack with **65+ services** across all 
 
 ### 1. OS Detection & Environment
 - Detects Termux (proot) vs Linux (native)
-- Validates drive structure (/mnt/storage, /mnt/ssd, /mnt/cachehdd)
+- Validates drive structure (/mnt/storage, /mnt/ssd, /mnt/storage2)
 
 ### 2. Container Health Validation
 - Waits up to 180 seconds for all containers to become healthy

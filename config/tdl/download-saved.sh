@@ -84,11 +84,14 @@ tdl chat export -c 1015621977 -o "$EXPORT_JSON"
 # Filter out blocked message IDs (broken/hung files)
 if [ -f "$BLOCKLIST" ] && [ -s "$BLOCKLIST" ]; then
   log "Filtering out $(wc -l < "$BLOCKLIST") blocked message IDs"
-  # Build awk pattern from blocklist
+  # Build awk pattern from blocklist (POSIX awk compatible - no 3-arg match)
   awk_pattern=$(awk '{printf "%s|", $1}' "$BLOCKLIST" | sed 's/|$//')
   awk -v ids="$awk_pattern" '
-    BEGIN { split(ids, blocked, "|"); for (i in blocked) b[blocked[i]]=1 }
-    /"id":/ { match($0, /"id": *([0-9]+)/, m); if (m[1] in b) { skip=1; next } }
+    BEGIN { n=split(ids, blocked, "|"); for (i=1; i<=n; i++) b[blocked[i]]=1 }
+    /"id":/ {
+      tmp=$0; sub(/.*"id": */, "", tmp); sub(/[^0-9].*/, "", tmp)
+      if (tmp in b) { skip=1; next }
+    }
     !skip { print }
     skip && /\}/ { skip=0 }
   ' "$EXPORT_JSON" > "$FILTERED_JSON"

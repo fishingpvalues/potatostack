@@ -12,7 +12,6 @@ Advanced file manager with multi-protocol support, media previews, and office do
 | Mount | Host | Access |
 |-------|------|--------|
 | `/mnt/storage` | `/mnt/storage` | RW |
-| `/mnt/cachehdd` | `/mnt/cachehdd` | RW |
 | `/mnt/docker-data` | `/mnt/ssd/docker-data` | RO |
 
 ## Authentik SSO Setup

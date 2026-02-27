@@ -233,8 +233,8 @@ Access these via:
 
 ```
 /mnt/storage          - Main HDD storage (media, downloads, files)
+/mnt/storage2         - Secondary HDD (additional media, downloads)
 /mnt/ssd/docker-data  - SSD docker volumes (databases, configs)
-/mnt/cachehdd        - Cache HDD (temp files, transcodes)
 ```
 
 ## Network Configuration

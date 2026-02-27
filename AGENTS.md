@@ -137,7 +137,6 @@ config/<service>/ - Service-specific configuration files
 - SSD (`/mnt/ssd/docker-data`) - Databases, configs, critical data
 - HDD (`/mnt/storage`) - Media, photos, documents, knowledge (obsidian)
 - HDD (`/mnt/storage2`) - Additional media storage (16TB ext4, UUID: fa11a826-bbc1-4bc3-a612-f1c2924514cc)
-- HDD (`/mnt/cachehdd`) - Caches, metrics
 
 ### PostgreSQL Notes
 - **Password only set on first init** - changing POSTGRES_SUPER_PASSWORD in .env has no effect if data exists

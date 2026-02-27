@@ -260,7 +260,7 @@ RestartSec=60
 
 # Systemd hardening
 ProtectSystem=strict
-ReadWritePaths=$REPO_ROOT /mnt/ssd /mnt/storage /mnt/cachehdd /var/run/docker.sock /var/log
+ReadWritePaths=$REPO_ROOT /mnt/ssd /mnt/storage /mnt/storage2 /var/run/docker.sock /var/log
 NoNewPrivileges=false
 PrivateTmp=false
 
@@ -447,7 +447,7 @@ if [ -n "$EXITED" ]; then
 fi
 
 # Check disk space
-for mount in / /mnt/ssd /mnt/storage /mnt/cachehdd; do
+for mount in / /mnt/ssd /mnt/storage /mnt/storage2; do
     if mountpoint -q "$mount" 2>/dev/null; then
         USAGE=$(df "$mount" | awk 'NR==2 {print $5}' | tr -d '%')
         if [ "$USAGE" -gt 90 ]; then

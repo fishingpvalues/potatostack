@@ -35,7 +35,7 @@ steps:
       - mbsync
 
   - name: lyrics
-    command: docker exec -u abc beets beet lyrics -q
+    command: docker exec -u abc beets beet lyrics
     depends:
       - mbsync
 
