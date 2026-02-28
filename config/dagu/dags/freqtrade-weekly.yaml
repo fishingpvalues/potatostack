@@ -35,17 +35,6 @@ steps:
     depends:
       - check-refit
 
-  # Step 4: Notify success
-  - name: notify-success
-    command: >-
-      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC:-potatostack}"
-      -H "Title: Freqtrade Weekly Refit Complete"
-      -H "Priority: default"
-      -H "Tags: chart_with_upwards_trend,white_check_mark"
-      -d "Data refreshed and regime hyperopt check completed. See logs for refit decisions."
-    depends:
-      - run-hyperopt
-
 handlerOn:
   failure:
     command: >-

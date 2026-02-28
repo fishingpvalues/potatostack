@@ -132,7 +132,7 @@ log "Indexed $(ls "$SKIP_DIR" | wc -l) existing videos for dedup"
 attempt=0
 success=false
 delay=$RETRY_DELAY
-tmplog=$(mktemp /tmp/tdl-run-XXXXXX.log)
+tmplog=$(mktemp /tmp/tdl-run-XXXXXX)
 
 while true; do
 	attempt=$((attempt + 1))

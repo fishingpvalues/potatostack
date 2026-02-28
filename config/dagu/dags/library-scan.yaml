@@ -51,17 +51,6 @@ steps:
     depends:
       - beets-update
 
-  - name: notify-success
-    command: >-
-      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC:-potatostack}"
-      -H "Title: Library Scan Triggered"
-      -H "Priority: low"
-      -H "Tags: books,white_check_mark"
-      -d "Daily library refresh: beets updated, Jellyfin and Immich scans queued"
-    depends:
-      - jellyfin-scan
-      - immich-jobs
-
 handlerOn:
   failure:
     command: >-

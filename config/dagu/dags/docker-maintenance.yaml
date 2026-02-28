@@ -17,16 +17,6 @@ steps:
     depends:
       - prune-containers
 
-  - name: notify-success
-    command: >-
-      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC:-potatostack}"
-      -H "Title: Docker Maintenance Complete"
-      -H "Priority: default"
-      -H "Tags: broom,white_check_mark"
-      -d "Weekly Docker cleanup completed: images, containers, and build cache pruned"
-    depends:
-      - prune-builder
-
 handlerOn:
   failure:
     command: >-

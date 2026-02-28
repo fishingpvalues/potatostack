@@ -54,18 +54,6 @@ steps:
     depends:
       - vacuum-analyze
 
-  - name: notify-success
-    command: >-
-      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC:-potatostack}"
-      -H "Title: PostgreSQL Maintenance Complete"
-      -H "Priority: low"
-      -H "Tags: elephant,white_check_mark"
-      -d "Weekly VACUUM ANALYZE done on all 13 databases. Check Dagu logs for size report."
-    depends:
-      - database-sizes
-      - slow-queries
-      - largest-tables
-
 handlerOn:
   failure:
     command: >-

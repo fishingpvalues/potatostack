@@ -47,17 +47,6 @@ steps:
       - lastgenre
       - lyrics
 
-  # Phase 5: Notify completion
-  - name: notify-success
-    command: >-
-      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC:-potatostack}"
-      -H "Title: Beets Nightly Complete"
-      -H "Priority: default"
-      -H "Tags: musical_note,white_check_mark"
-      -d "Music library import and metadata enrichment completed successfully"
-    depends:
-      - replaygain
-
 handlerOn:
   failure:
     command: >-

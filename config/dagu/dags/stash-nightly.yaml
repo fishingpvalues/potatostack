@@ -36,16 +36,6 @@ steps:
     depends:
       - identify
 
-  - name: notify-success
-    command: >-
-      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC:-potatostack}"
-      -H "Title: Stash Nightly Complete"
-      -H "Priority: low"
-      -H "Tags: white_check_mark,stash"
-      -d "Stash nightly maintenance done: scan, autotag, identify, generate all complete"
-    depends:
-      - generate
-
 handlerOn:
   failure:
     command: >-

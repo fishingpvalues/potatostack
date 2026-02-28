@@ -124,8 +124,9 @@ cleanup_orphan_containers() {
 	# 2. Docker Compose orphans (containers from project but not in compose file)
 	if [ -n "$compose_dir" ] && [ -f "$compose_dir/docker-compose.yml" ]; then
 		local compose_orphans
-		# Get orphan names from docker compose (captures "Removing <name>" lines)
-		compose_orphans=$(docker compose -f "$compose_dir/docker-compose.yml" down --remove-orphans --dry-run 2>&1 | sed 's/.*Removing //' | awk '{print $1}' || true)
+		# Get orphan names from docker compose (captures "Container <name> Removing" lines)
+		# Filter to only valid container names (lowercase alphanumeric/hyphens, no timestamps)
+		compose_orphans=$(docker compose -f "$compose_dir/docker-compose.yml" down --remove-orphans --dry-run 2>&1 | grep ' Removing$' | sed 's/.*Container //' | sed 's/ Removing$//' | grep -E '^[a-z0-9][a-z0-9_-]+$' || true)
 		if [ -n "$compose_orphans" ]; then
 			orphans=$(printf "%s\n%s" "$orphans" "$compose_orphans" | grep -v '^$' | sort -u)
 		fi

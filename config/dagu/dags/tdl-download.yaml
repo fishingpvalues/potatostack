@@ -12,16 +12,6 @@ steps:
       docker exec tdl sh -c
       "sh /etc/tdl/download-saved.sh >> /downloads/tdl-download.log 2>&1"
 
-  - name: notify-success
-    command: >-
-      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC:-potatostack}"
-      -H "Title: TDL Download Complete"
-      -H "Priority: default"
-      -H "Tags: white_check_mark,telegram"
-      -d "TDL daily Telegram download completed successfully"
-    depends:
-      - download
-
 handlerOn:
   failure:
     command: >-

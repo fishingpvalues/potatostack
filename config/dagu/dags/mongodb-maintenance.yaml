@@ -8,18 +8,24 @@ steps:
   # Check MongoDB server health and version
   - name: mongo-health
     command: >-
-      docker exec mongo sh -c '
-        mongosh admin \
-          -u "$MONGO_INITDB_ROOT_USERNAME" \
-          -p "$MONGO_INITDB_ROOT_PASSWORD" \
-          --quiet \
-          --eval "
-            var status = db.adminCommand({serverStatus:1});
-            print(\"MongoDB version: \" + status.version);
-            print(\"Uptime: \" + Math.round(status.uptime/3600) + \"h\");
-            print(\"Connections: \" + status.connections.current + \" current, \" + status.connections.available + \" available\");
-            print(\"Memory: \" + Math.round(status.mem.resident) + \"MB resident\");
-          " 2>/dev/null
+      sh -c '
+        if ! docker inspect mongo >/dev/null 2>&1; then
+          echo "ERROR: mongo container not found - is it running?";
+          exit 1;
+        fi;
+        docker exec mongo sh -c '"'"'
+          mongosh admin \
+            -u "$MONGO_INITDB_ROOT_USERNAME" \
+            -p "$MONGO_INITDB_ROOT_PASSWORD" \
+            --quiet \
+            --eval "
+              var status = db.adminCommand({serverStatus:1});
+              print(\"MongoDB version: \" + status.version);
+              print(\"Uptime: \" + Math.round(status.uptime/3600) + \"h\");
+              print(\"Connections: \" + status.connections.current + \" current, \" + status.connections.available + \" available\");
+              print(\"Memory: \" + Math.round(status.mem.resident) + \"MB resident\");
+            " 2>/dev/null
+        '"'"'
       '
 
   # List all databases and their sizes
@@ -67,16 +73,6 @@ steps:
       '
     depends:
       - database-stats
-
-  - name: notify-success
-    command: >-
-      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC:-potatostack}"
-      -H "Title: MongoDB Maintenance Complete"
-      -H "Priority: low"
-      -H "Tags: leaves,white_check_mark"
-      -d "Weekly MongoDB health check and compaction complete. Check Dagu logs for database stats."
-    depends:
-      - compact-databases
 
 handlerOn:
   failure:

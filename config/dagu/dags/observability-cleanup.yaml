@@ -27,14 +27,14 @@ steps:
     depends:
       - prometheus-health
 
-  # Check Loki health and disk usage
+  # Check Loki health via HTTP (loki is distroless - no shell available)
   - name: loki-health
     command: >-
-      docker exec loki sh -c '
+      sh -c '
         echo "=== Loki ===";
-        wget -qO- http://localhost:3100/ready 2>/dev/null || echo "UNHEALTHY";
-        echo "Loki storage:";
-        du -sh /loki 2>/dev/null || du -sh /tmp/loki 2>/dev/null || echo "unknown";
+        STATUS=$(curl -so /dev/null -w "%{http_code}" "http://loki:3100/ready" 2>/dev/null);
+        echo "Loki /ready: HTTP $STATUS";
+        [ "$STATUS" = "200" ] || { echo " UNHEALTHY (got $STATUS)"; exit 1; };
       '
 
   # Report scrape target health (how many exporters are up)
@@ -55,18 +55,6 @@ steps:
       '
     depends:
       - prometheus-health
-
-  - name: notify-success
-    command: >-
-      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC:-potatostack}"
-      -H "Title: Observability Cleanup Complete"
-      -H "Priority: low"
-      -H "Tags: chart_with_upwards_trend,white_check_mark"
-      -d "Weekly metrics stack maintenance done: Prometheus tombstones cleaned, health checked"
-    depends:
-      - prometheus-clean
-      - loki-health
-      - scrape-targets
 
 handlerOn:
   failure:

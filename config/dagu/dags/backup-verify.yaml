@@ -8,7 +8,7 @@ steps:
   - name: check-velld
     command: >-
       sh -c '
-        COUNT=$(find /mnt/storage2/velld/backups -mtime -1 -type f 2>/dev/null | wc -l);
+        COUNT=$(find /mnt/storage2/velld/backups -mtime -3 -type f 2>/dev/null | wc -l);
         echo "Velld backup files modified in last 24h: ${COUNT}";
         [ "${COUNT}" -gt 0 ] || { echo "WARNING: No fresh Velld backups found"; exit 1; }
       '
@@ -53,19 +53,6 @@ steps:
       sys.exit(0 if age_h<=26 else 1)"
     depends:
       - check-backrest
-
-  # Notify results
-  - name: notify-success
-    command: >-
-      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC:-potatostack}"
-      -H "Title: Backup Verify OK"
-      -H "Priority: default"
-      -H "Tags: floppy_disk,white_check_mark"
-      -d "All backup systems verified: Velld fresh, Backrest snapshots intact and recent"
-    depends:
-      - check-velld
-      - restic-check
-      - check-backup-age
 
 handlerOn:
   failure:

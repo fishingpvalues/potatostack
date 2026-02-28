@@ -65,18 +65,6 @@ steps:
         [ "$STATUS" = "200" ] || [ "$STATUS" = "302" ] || echo "WARNING: Vaultwarden returned unexpected status $STATUS"
       '
 
-  - name: notify-success
-    command: >-
-      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC:-potatostack}"
-      -H "Title: Security Audit OK"
-      -H "Priority: low"
-      -H "Tags: lock,white_check_mark"
-      -d "Daily security audit complete. Check Dagu logs for CrowdSec bans and permission details."
-    depends:
-      - crowdsec-hub
-      - ssh-permissions
-      - vaultwarden-health
-
 handlerOn:
   failure:
     command: >-

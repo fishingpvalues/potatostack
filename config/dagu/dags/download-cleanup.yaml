@@ -53,16 +53,6 @@ steps:
     depends:
       - find-stale
 
-  - name: notify-success
-    command: >-
-      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC:-potatostack}"
-      -H "Title: Download Cleanup Check OK"
-      -H "Priority: low"
-      -H "Tags: inbox_tray,white_check_mark"
-      -d "Download staging check complete. Check Dagu logs for sizes and stale file report."
-    depends:
-      - check-threshold
-
 handlerOn:
   failure:
     command: >-
