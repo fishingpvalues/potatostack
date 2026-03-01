@@ -1,0 +1,46 @@
+- why is aria2 not restarted? autoheal should cover it. fix its healtcheck it was using pgrep but the container crashed and stopped. i want it to be restrarted when it crashes. i also want it to ahve more ram check all resources and how much you can give it
+- read all services and their RAM and CPU and their usage and check where to adapt what to reduce and what to increase CPU and RAM look at historical usages as well peak and max min and average
+- make dagu workflow to trigger stash to scan librarty and perform all these tasks at 2am. (if or if not i set in the app, just so you know which areas you have to cover:):
+- spotiflac queue drain doesnt work or is it finished downloading?
+- bacjup veroifiy failed of dagu maybe you need to run /home/daniel/potatostack/scripts/setup/apply-log-fixes.sh as sudo.
+- beets nightly failed as well
+- tdl download failed
+- RESOLVED: mongo was being killed by WUD (What's Up Docker) every 6h. WUD was ignoring `wud.trigger.docker.update=false` label and auto-updating mongo to `mongo:8-windowsservercore-ltsc2025` (Windows image) on Linux. Fix: changed label to `wud.watch=false` to fully exclude mongo from WUD watcher. Restarted WUD to clear cached state.
+
+TJOS is th einfo from above for stack for the dagu workflow what you should trigger:
+
+
+Library
+Scan
+Scan for new content and add it to the database.
+Generate scene covers
+Generate previews
+Generate animated image previews
+Generate scrubber sprites
+Generate perceptual hashes
+Generate thumbnails for images
+Generate previews for image clips
+Rescan files
+Identify
+Automatically set scene metadata using stash-box and scraper sources.
+Auto Tag
+Auto-tag content based on file paths.
+Performers
+Studios
+Tags
+Generated Content
+Generate
+Generate supporting image, sprite, video, vtt and other files.
+Scene covers
+Previews
+Animated Image Previews
+Scene Scrubber Sprites
+Marker Previews
+Marker Animated Image Previews
+Marker Screenshots
+Transcodes
+Perceptual hashes
+Generate heatmaps and speeds for interactive scenes
+Image Clip Previews
+Image Thumbnails
+Overwrite existing files

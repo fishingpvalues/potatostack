@@ -190,7 +190,7 @@ services:
           memory: 256M
     labels:
       - "potatostack.alerts=critical"
-      - "wud.trigger.docker.update=false"
+      - "wud.watch=false"
 
   # Redis Shared Cache - SOTA 2025 consolidated (N8n, Immich, Paperless, Sentry)
   redis-cache:

@@ -11,6 +11,9 @@ steps:
     command: >-
       docker exec tdl sh -c
       "sh /etc/tdl/download-saved.sh >> /downloads/tdl-download.log 2>&1"
+    retryPolicy:
+      limit: 3
+      intervalSec: 60
 
 handlerOn:
   failure:
