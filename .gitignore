@@ -107,3 +107,7 @@ killswitch-test-report-*.txt
 # Backrest SSH keys (secrets)
 config/backrest/ssh/id_ed25519
 config/backrest/ssh/known_hosts
+
+# TDL
+
+blocklist.txt
