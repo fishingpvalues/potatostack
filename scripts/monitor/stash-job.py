@@ -20,11 +20,11 @@ MUTATIONS = {
   metadataScan(input: {
     scanGenerateCovers: true
     scanGeneratePreviews: true
-    scanGenerateImagePreviews: true
+    scanGenerateImagePreviews: false
     scanGenerateSprites: true
     scanGeneratePhashes: true
-    scanGenerateThumbnails: true
-    scanGenerateClipPreviews: true
+    scanGenerateThumbnails: false
+    scanGenerateClipPreviews: false
   })
 }""",
     },
@@ -34,15 +34,15 @@ MUTATIONS = {
   metadataGenerate(input: {
     covers: true
     previews: true
-    imagePreviews: true
+    imagePreviews: false
     sprites: true
     phashes: true
-    imageThumbnails: true
-    clipPreviews: true
+    imageThumbnails: false
+    clipPreviews: false
     markers: true
     markerImagePreviews: true
     markerScreenshots: true
-    transcodes: true
+    transcodes: false
     interactiveHeatmapsSpeeds: true
     overwrite: false
   })
