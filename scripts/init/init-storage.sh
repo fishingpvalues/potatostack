@@ -93,7 +93,8 @@ mkdir -p \
 	"${STORAGE_BASE}/media/audiobooks" \
 	"${STORAGE_BASE}/media/podcasts" \
 	"${STORAGE_BASE}/media/books" \
-	"${STORAGE_BASE}/media/youtube"
+	"${STORAGE_BASE}/media/youtube" \
+	"${STORAGE_BASE}/media/karaoke"
 # NOTE: media/movies, media/tv, media/adult are on /mnt/storage2
 
 ################################################################################
@@ -173,7 +174,8 @@ mkdir -p \
 	"${SSD_BASE}/loki" \
 	"${SSD_BASE}/slskd/logs" \
 	"${SSD_BASE}/stash/cache" \
-	"${SSD_BASE}/freqtrade/user_data"
+	"${SSD_BASE}/freqtrade/user_data" \
+	"${SSD_BASE}/karaoke-eternal"
 # "${SSD_BASE}/uptime-kuma" # DISABLED
 mkdir -p "${SSD_BASE}/beets"
 mkdir -p "${SSD_BASE}/dagu"

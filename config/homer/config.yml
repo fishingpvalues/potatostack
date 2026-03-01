@@ -71,6 +71,12 @@ services:
         url: "https://potatostack.tale-iwato.ts.net:13378"
         target: "_blank"
 
+      - name: "Kavita"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/kavita.png"
+        subtitle: "Ebooks & Comics"
+        url: "https://potatostack.tale-iwato.ts.net:5000"
+        target: "_blank"
+
       - name: "Navidrome"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/navidrome.png"
         subtitle: "Music"

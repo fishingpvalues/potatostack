@@ -23,3 +23,10 @@ handlerOn:
       -H "Priority: high"
       -H "Tags: x,telegram"
       -d "TDL daily download failed - check Dagu logs for details"
+  cancel:
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC_WARNING:-potatostack-warning}"
+      -H "Title: TDL Download TIMEOUT"
+      -H "Priority: default"
+      -H "Tags: hourglass_done,telegram"
+      -d "TDL download hit 6h timeout - VPN may be down or downloads stalled"

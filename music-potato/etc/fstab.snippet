@@ -1,0 +1,11 @@
+# Add this line to /etc/fstab on the Le Potato
+# Replace HOMELAB_IP with your homelab server's LAN IP (e.g. 192.168.1.100)
+# Replace /mnt/storage/media/music with the NFS export path on homelab
+#
+# IMPORTANT: The homelab server must have NFS exports configured:
+#   /etc/exports on homelab:
+#   /mnt/storage/media/music  192.168.1.0/24(ro,sync,no_subtree_check,no_root_squash)
+#
+# Then on homelab: sudo exportfs -ra && sudo systemctl enable --now nfs-kernel-server
+
+HOMELAB_IP:/mnt/storage/media/music  /mnt/music  nfs  ro,nfsvers=4,hard,intr,timeo=150,retrans=3,_netdev  0  0

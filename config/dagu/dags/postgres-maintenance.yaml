@@ -45,11 +45,12 @@ steps:
   - name: largest-tables
     command: >-
       docker exec postgres psql -U postgres -c
-      "SELECT schemaname || '.' || relname AS table_name,
-              pg_size_pretty(pg_total_relation_size(oid)) AS total_size
-       FROM pg_class
-       WHERE relkind = 'r'
-       ORDER BY pg_total_relation_size(oid) DESC
+      "SELECT n.nspname || '.' || c.relname AS table_name,
+              pg_size_pretty(pg_total_relation_size(c.oid)) AS total_size
+       FROM pg_class c
+       JOIN pg_namespace n ON n.oid = c.relnamespace
+       WHERE c.relkind = 'r'
+       ORDER BY pg_total_relation_size(c.oid) DESC
        LIMIT 15;"
     depends:
       - vacuum-analyze

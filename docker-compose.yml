@@ -541,8 +541,8 @@ services:
     environment:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
-      # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr; aria2 RPC (6800) + AriaNg (6880) added; Dagu (3080) added
-      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,8181,9925,5984,9898,8123,8191,3333,3335,5656,8085,8337,6800,6880,3080,8200"
+      # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr; aria2 RPC (6800) + AriaNg (6880) added; Dagu (3080) added; Snapcast web UI (1780) added; karaoke-eternal (8044) added
+      TAILSCALE_SERVE_PORTS: "7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,8181,9925,5984,9898,8123,8191,3333,3335,5656,8085,8337,6800,6880,3080,8200,1780,5000,8044"
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_MARKER_FILE: /https-marker/setup-complete
@@ -570,8 +570,8 @@ services:
     environment:
       <<: *common-env
       TAILSCALE_CONTAINER: tailscale
-      # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr; aria2 RPC (6800) + AriaNg (6880) added; Dagu (3080) added
-      TAILSCALE_SERVE_PORTS: 7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,8181,9925,5984,9898,8123,8191,3333,3335,5656,8085,8337,6800,6880,3080,8200
+      # Homer (7575), WUD (3000), home-assistant (8123), flaresolverr (8191) added; removed: karakeep (9091), homarr; aria2 RPC (6800) + AriaNg (6880) added; Dagu (3080) added; Snapcast web UI (1780) added; karaoke-eternal (8044) added
+      TAILSCALE_SERVE_PORTS: 7575,8088,3000,3001,3002,8086,8096,8989,7878,8686,9696,6767,13378,4533,9900,8282,2234,8097,8008,2283,8090,8095,8384,3004,3006,8888,8093,5006,9090,3100,9093,10903,10902,8087,6060,8001,8788,8060,8889,8081,3010,3013,8180,8181,9925,5984,9898,8123,8191,3333,3335,5656,8085,8337,6800,6880,3080,8200,1780,5000,8044
       # Special port mappings (external:internal)
       TAILSCALE_SERVE_SPECIAL: ""
       TAILSCALE_SERVE_LOOP: "true"
@@ -1951,6 +1951,29 @@ services:
           cpus: "1.0"
           memory: 256M
 
+  # Kavita - Ebook/manga/comic server with metadata, tags, collections, OPDS
+  kavita:
+    image: jvmilazz0/kavita:${KAVITA_TAG:-latest}
+    container_name: kavita
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:5000:5000"
+    volumes:
+      - kavita-config:/kavita/config
+      - /mnt/storage/media/books:/books:ro
+    networks:
+      - potatostack
+    depends_on:
+      - storage-init
+    labels:
+      - "wud.trigger.docker.update=true"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 200M
+
   # Navidrome - Music streaming server (Subsonic/Airsonic compatible)
   navidrome:
     image: deluan/navidrome:${NAVIDROME_TAG:-latest}
@@ -1993,6 +2016,137 @@ services:
           cpus: "0.25"
           memory: 64M
 
+
+  # KaraokeEternal - Open karaoke party system (CDG+MP3/MP4 format)
+  # Player URL: https://potatostack.tale-iwato.ts.net:8044
+  # Admin URL:  https://potatostack.tale-iwato.ts.net:8044/admin
+  # Media dir:  /mnt/storage/media/karaoke (CDG+MP3 pairs)
+  # Guests queue songs from phone browser; player tab shows lyrics on any screen.
+  karaoke-eternal:
+    image: ghcr.io/bhj/karaoke-eternal:latest
+    container_name: karaoke-eternal
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:8044:8044"
+    volumes:
+      - /mnt/ssd/docker-data/karaoke-eternal:/config
+      - /mnt/storage/media/karaoke:/media:ro
+    environment:
+      <<: *common-env
+    networks:
+      - potatostack
+    depends_on:
+      - storage-init
+    labels:
+      - "wud.trigger.docker.update=true"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:8044 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+
+  ################################################################################
+  # Snapcast — Synchronized multi-room audio
+  # Architecture:
+  #   mpd-snap (this host) ──FIFO──► snapcast (server) ──LAN──► snapcast-client (Le Potato)
+  #
+  # mpd-snap: MPD without a sound card — writes to /tmp/snapcast/music.pipe only.
+  #   Control via port 6601 (mpc -h HOST -p 6601 / any MPD client pointed at 6601).
+  #
+  # snapcast: reads the FIFO, encodes FLAC, distributes to all clients in sync.
+  #   Web UI: https://potatostack.tale-iwato.ts.net:1780
+  #   All rooms hear the same music locked in time — no drift.
+  #
+  # To start multi-room on Le Potato:
+  #   docker compose --profile multiroom up -d      (on Le Potato)
+  ################################################################################
+
+  # MPD Snapcast feeder — reads NFS library, writes to FIFO (no speaker output here)
+  mpd-snap:
+    image: giof71/mpd-alsa:latest
+    container_name: mpd-snap
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:6601:6601"   # MPD control port (6601, not 6600)
+    volumes:
+      - /mnt/storage/media/music:/music:ro
+      - ./config/mpd-snap/mpd.conf:/etc/mpd.conf:ro
+      - mpd-snap-db:/db
+      - mpd-snap-playlists:/playlists
+      - mpd-snap-state:/var/lib/mpd
+      - snapcast-pipe:/tmp/snapcast            # shared pipe volume with snapcast container
+    environment:
+      <<: *common-env
+      MPD_BIND_ADDRESS: "0.0.0.0"
+      MPD_PORT: "6601"
+      MUSIC_DIRECTORY: "/music"
+      BUFFER_SIZE: "8192"
+      AUTO_UPDATE: "yes"
+      AUTO_UPDATE_DEPTH: "3"
+    networks:
+      - potatostack
+    depends_on:
+      - storage-init
+    labels:
+      - "wud.trigger.docker.update=true"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "mpc -p 6601 status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+
+  # Snapcast server — distributes audio from mpd-snap to all room clients
+  snapcast:
+    image: saiyato/snapserver:latest
+    container_name: snapcast
+    logging: *default-logging
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:1780:1780"   # Snapweb UI
+      - "1704:1704"                             # client stream port (needs LAN access)
+      - "1705:1705"                             # control/JSON-RPC port
+    volumes:
+      - ./config/snapcast/snapserver.conf:/etc/snapserver.conf:ro
+      - snapcast-pipe:/tmp/snapcast            # shared FIFO from mpd-snap
+      - snapcast-data:/var/lib/snapserver
+    networks:
+      - potatostack
+    depends_on:
+      mpd-snap:
+        condition: service_healthy
+    labels:
+      - "wud.trigger.docker.update=true"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:1780 > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 64M
+        reservations:
+          cpus: "0.1"
+          memory: 32M
 
   # Beets - Music library manager and tagger (SOTA 2026)
   # Ingests: SpotiFLAC (main) + slskd + torrents + aria2
@@ -4674,6 +4828,18 @@ volumes:
   # nextcloud_aio_mastercontainer:  # DISABLED
   syncthing-config:
 
+  # Snapcast multi-room audio
+  mpd-snap-db:
+  mpd-snap-playlists:
+  mpd-snap-state:
+  snapcast-pipe:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: "size=64m"              # named pipe lives in RAM, auto-cleared on restart
+  snapcast-data:
+
   # Media Management
   prowlarr-config:
   sonarr-config:
@@ -4685,6 +4851,7 @@ volumes:
   jellyfin-config:
 
   audiobookshelf-config:
+  kavita-config:
 
   # Downloads
   qbittorrent-config:

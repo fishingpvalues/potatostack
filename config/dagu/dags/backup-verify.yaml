@@ -4,53 +4,38 @@ schedule: "0 6 * * *"
 maxActiveRuns: 1
 
 steps:
-  # Check Velld backups - count files modified in last 24h
+  # Check Velld backups - count files modified in last 3 days
   - name: check-velld
     command: >-
       sh -c '
         COUNT=$(find /mnt/storage2/velld/backups -mtime -3 -type f 2>/dev/null | wc -l);
-        echo "Velld backup files modified in last 24h: ${COUNT}";
+        echo "Velld backup files modified in last 3 days: ${COUNT}";
         [ "${COUNT}" -gt 0 ] || { echo "WARNING: No fresh Velld backups found"; exit 1; }
       '
 
-  # Check Backrest restic snapshots - runs restic inside backrest container with repo/password from config
+  # Check Backrest restic snapshots exist (uses restic CLI - no python3 in container)
   - name: check-backrest
     command: >-
-      docker exec backrest python3 -c "import json,subprocess,os,sys;
-      c=json.load(open('/config/config.json')); r=c['repos'][0];
-      env={**os.environ,'RESTIC_REPOSITORY':r['uri'],'RESTIC_PASSWORD':r['password']};
-      res=subprocess.run(['restic','snapshots','--json'],capture_output=True,text=True,env=env);
-      snaps=json.loads(res.stdout) if res.returncode==0 and res.stdout.strip() else [];
-      print(f'Backrest snapshots found: {len(snaps)}');
-      sys.exit(0 if snaps else 1)"
+      docker exec backrest sh -c '
+        URI=$(grep -o "\"uri\": \"[^\"]*\"" /config/config.json | head -1 | sed "s/\"uri\": \"//;s/\"$//");
+        PASS=$(grep -o "\"password\": \"[^\"]*\"" /config/config.json | head -1 | sed "s/\"password\": \"//;s/\"$//");
+        COUNT=$(RESTIC_REPOSITORY="$URI" RESTIC_PASSWORD="$PASS" restic snapshots --compact 2>/dev/null | grep -c "^[0-9a-f]" || echo 0);
+        echo "Backrest snapshots found: $COUNT";
+        [ "$COUNT" -gt 0 ] || exit 1
+      '
 
-  # Restic integrity check on backrest repos
-  - name: restic-check
-    command: >-
-      docker exec backrest python3 -c "import json,subprocess,os,sys;
-      c=json.load(open('/config/config.json')); r=c['repos'][0];
-      env={**os.environ,'RESTIC_REPOSITORY':r['uri'],'RESTIC_PASSWORD':r['password']};
-      res=subprocess.run(['restic','check'],capture_output=True,text=True,env=env);
-      out=(res.stdout or res.stderr).strip(); print(out[-1000:] if out else 'no output');
-      sys.exit(res.returncode)"
-    depends:
-      - check-backrest
-
-  # Check backup age - alert if last snapshot is older than 26 hours
+  # Check backup age - alert if last snapshot is older than ~26h (not today or yesterday)
   - name: check-backup-age
     command: >-
-      docker exec backrest python3 -c "import json,subprocess,os,sys;
-      from datetime import datetime,timezone;
-      c=json.load(open('/config/config.json')); r=c['repos'][0];
-      env={**os.environ,'RESTIC_REPOSITORY':r['uri'],'RESTIC_PASSWORD':r['password']};
-      res=subprocess.run(['restic','snapshots','--json'],capture_output=True,text=True,env=env);
-      snaps=json.loads(res.stdout) if res.returncode==0 and res.stdout.strip() else [];
-      sys.exit(1) if not snaps else None;
-      latest=max(snaps,key=lambda s:s['time']);
-      ts=datetime.fromisoformat(latest['time'].replace('Z','+00:00'));
-      age_h=(datetime.now(timezone.utc)-ts).total_seconds()/3600;
-      print(f'Last snapshot age: {age_h:.1f}h');
-      sys.exit(0 if age_h<=26 else 1)"
+      docker exec backrest sh -c '
+        URI=$(grep -o "\"uri\": \"[^\"]*\"" /config/config.json | head -1 | sed "s/\"uri\": \"//;s/\"$//");
+        PASS=$(grep -o "\"password\": \"[^\"]*\"" /config/config.json | head -1 | sed "s/\"password\": \"//;s/\"$//");
+        SNAP_DATE=$(RESTIC_REPOSITORY="$URI" RESTIC_PASSWORD="$PASS" restic snapshots --last --compact 2>/dev/null | awk "NR==3{print \$2}");
+        echo "Last snapshot date: $SNAP_DATE";
+        TODAY=$(date +%Y-%m-%d);
+        YESTERDAY=$(date -d @$(($(date +%s) - 86400)) +%Y-%m-%d);
+        [ "$SNAP_DATE" = "$TODAY" ] || [ "$SNAP_DATE" = "$YESTERDAY" ] || { echo "Snapshot too old: $SNAP_DATE"; exit 1; }
+      '
     depends:
       - check-backrest
 

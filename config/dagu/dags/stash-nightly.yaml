@@ -31,8 +31,12 @@ steps:
 
   # Phase 4: Full generate pass for all content types
   # (markers, transcodes, heatmaps, etc. - the heavy lifting)
+  # continueOn.failure: Stash keeps running the job even after Dagu's watcher times out;
+  # a timeout here is not a real failure, so we don't alert.
   - name: generate
     command: python3 /scripts/monitor/stash-job.py generate
+    continueOn:
+      failure: true
     depends:
       - identify
 

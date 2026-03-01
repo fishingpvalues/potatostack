@@ -1,0 +1,252 @@
+# Le Potato Audio Stack — Docker Compose
+# Hardware: Libre Computer AML-S905X-CC (arm64/aarch64, Armbian Trixie)
+# Run: docker compose up -d
+# Prereqs: docker, docker-compose-plugin, NFS mount at /mnt/music, .env filled
+#
+# IMPORTANT — Le Potato audio specifics:
+#   Architecture    : aarch64 (arm64) — ONLY use arm64 images, never armhf
+#   HDMI audio card : hw:0,0  (aml-augesound, Amlogic S905X built-in)
+#   SPDIF optical   : hw:0,1  (after: sudo ldto merge spdif + reboot)
+#   USB DAC         : hw:1,0  (plug in, verify with: aplay -l)
+#   Set AUDIO_DEVICE in .env before starting.
+#
+# All audio services use network_mode: host — required for:
+#   - AirPlay 2 (mDNS/Bonjour discovery + NQPTP timing on ports 319/320)
+#   - UPnP/DLNA (multicast discovery on 239.255.255.250:1900)
+#   - Spotify Connect (zeroconf LAN discovery)
+# With host networking, services talk to each other via 127.0.0.1.
+
+# ─── Reusable fragments ────────────────────────────────────────────────────────
+x-audio: &audio
+  devices:
+    - /dev/snd:/dev/snd      # ALSA hardware access
+  group_add:
+    - audio                  # GID 29 on Debian/Armbian — non-root ALSA access
+  device_cgroup_rules:
+    - "c 116:* rmw"          # ALSA major 116 — explicit cgroup rule for Armbian kernel
+
+x-restart: &restart
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+# ─── Services ──────────────────────────────────────────────────────────────────
+services:
+
+  # ── AirPlay 2 receiver (Apple Music, iPhone, iPad, Mac) ─────────────────────
+  # Image bundles NQPTP internally (required for lossless AirPlay 2 timing).
+  # NQPTP binds UDP ports 319 + 320 — needs host network + CAP_NET_BIND_SERVICE.
+  # Streams lossless ALAC 24-bit/48kHz from Apple Music natively.
+  shairport-sync:
+    image: mikebrady/shairport-sync:latest    # multi-arch: amd64, arm64, armhf
+    container_name: shairport-sync
+    network_mode: host                        # REQUIRED — AirPlay 2 will not work on bridge
+    <<: [*audio, *restart]
+    cap_add:
+      - NET_BIND_SERVICE                      # bind NQPTP ports 319/320 as non-root
+      - SYS_NICE                              # real-time audio thread priority
+    volumes:
+      - ./config/shairport-sync.conf:/etc/shairport-sync.conf:ro
+      - /etc/asound.conf:/etc/asound.conf:ro  # Le Potato ALSA device map
+    environment:
+      TZ: ${TZ:-Europe/Berlin}
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep shairport-sync || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── MPD — Music Player Daemon (bit-perfect NFS/local library playback) ───────
+  # Reads music directly from NFS mount — no transcoding, bit-perfect ALSA output.
+  # Also exposes an HTTP stream on port 8000 for browser/VLC playback (lossy-free
+  # 16-bit/44.1kHz PCM over HTTP — lower than FLAC source only if source is 16/44).
+  # Clients: NCMPCPP, Cantata, M.A.L.P. (Android), MPDroid, Rigelian (iOS)
+  mpd:
+    image: giof71/mpd-alsa:latest             # multi-arch: arm64 + armhf
+    container_name: mpd
+    network_mode: host                        # port 6600 + 8000 direct on host
+    <<: [*audio, *restart]
+    volumes:
+      - /mnt/music:/music:ro                  # NFS music library (mount before starting)
+      - /etc/asound.conf:/etc/asound.conf:ro
+      - ./config/mpd.conf:/etc/mpd.conf:ro    # full config override
+      - mpd-db:/db
+      - mpd-playlists:/playlists
+      - mpd-state:/var/lib/mpd
+    environment:
+      ALSA_OUTPUT_DEVICE: ${AUDIO_DEVICE:-hw:0,0}    # hw:0,0=HDMI | hw:0,1=SPDIF | hw:1,0=USB DAC
+      ALSA_OUTPUT_MIXER_CONTROL: "Master"
+      ALSA_OUTPUT_MIXER_DEVICE: ${AUDIO_DEVICE:-hw:0,0}
+      MPD_BIND_ADDRESS: "0.0.0.0"
+      MPD_PORT: "6600"
+      MUSIC_DIRECTORY: "/music"
+      BUFFER_SIZE: "8192"                    # kB — survives NFS hiccups
+      BUFFER_BEFORE_PLAY: "5"
+      REPLAYGAIN_MODE: "album"
+      VOLUME_NORMALIZATION: "no"
+      AUTO_UPDATE: "yes"
+      AUTO_UPDATE_DEPTH: "3"
+      TZ: ${TZ:-Europe/Berlin}
+    healthcheck:
+      test: ["CMD-SHELL", "mpc status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── UPnP/DLNA renderer + Navidrome library browser ─────────────────────────
+  # Exposes MPD as a DLNA renderer on the LAN.
+  # Subsonic plugin lets DLNA controllers browse Navidrome library directly.
+  # Clients: BubbleUPnP (Android), mconnect (iOS), Foobar2000, Kazoo
+  upmpdcli:
+    image: giof71/upmpdcli:latest             # multi-arch: amd64, arm64, armhf
+    container_name: upmpdcli
+    network_mode: host                        # REQUIRED — UPnP multicast
+    <<: *restart
+    depends_on:
+      mpd:
+        condition: service_healthy
+    volumes:
+      - upmpdcli-cache:/cache
+    environment:
+      MPD_HOST: "127.0.0.1"                  # localhost — host network mode
+      MPD_PORT: "6600"
+      FRIENDLY_NAME: "${DEVICE_NAME:-music-potato}"
+      SUBSONIC_ENABLE: "${SUBSONIC_ENABLE:-yes}"
+      SUBSONIC_BASE_URL: "${NAVIDROME_URL:-http://192.168.1.100:4533}"
+      SUBSONIC_PORT: "4533"
+      SUBSONIC_USER: "${NAVIDROME_USER:-daniel}"
+      SUBSONIC_PASSWORD: "${NAVIDROME_PASS:-changeme}"
+      SUBSONIC_LEGACYAUTH: "yes"             # required for Navidrome
+      SUBSONIC_SERVER_SIDE_SCROBBLING: "yes" # scrobble plays to Navidrome
+      SUBSONIC_TRANSCODE_CODEC: ""           # no transcoding — lossless passthrough
+      SUBSONIC_TRANSCODE_MAX_BITRATE: ""
+      TZ: ${TZ:-Europe/Berlin}
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep upmpdcli || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── Spotify Connect (spotifyd) ───────────────────────────────────────────────
+  # Appears as a speaker in the Spotify app — any device on the same WiFi.
+  # NOTE: Spotify = OGG Vorbis 320kbps always. Inherently lossy.
+  # For lossless Spotify: use SpotiFLAC downloads on homelab → play via MPD.
+  spotifyd:
+    image: ghcr.io/spotifyd/spotifyd:latest   # multi-arch: amd64, arm64, armhf
+    container_name: spotifyd
+    network_mode: host
+    <<: [*audio, *restart]
+    volumes:
+      - ./config/spotifyd.conf:/etc/spotifyd/spotifyd.conf:ro
+      - /etc/asound.conf:/etc/asound.conf:ro
+      - spotifyd-cache:/var/cache/spotifyd
+    environment:
+      TZ: ${TZ:-Europe/Berlin}
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep spotifyd || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── Avahi: runs at SYSTEM LEVEL (not Docker) ─────────────────────────────────
+  # install.sh installs avahi-daemon + libnss-mdns at system level and enables it.
+  # This means music-potato.local resolves on LAN immediately on boot, before Docker
+  # starts. No Docker container needed here.
+  # System avahi also avoids D-Bus permission issues between container and host.
+
+  # ── Tailscale — VPN / tailnet membership ─────────────────────────────────────
+  # Puts Le Potato in your tailnet so it can:
+  #   - Reach Navidrome at https://potatostack.tale-iwato.ts.net:4533
+  #   - Be reached by MagicDNS from homelab and other tailnet devices
+  #   - Access MPD remotely: mpc -h music-potato.tail-XXXX.ts.net
+  # Set TS_AUTHKEY in .env — generate at https://login.tailscale.com/admin/settings/keys
+  tailscale:
+    image: ghcr.io/tailscale/tailscale:latest # multi-arch: arm64 supported
+    container_name: tailscale-music-potato
+    network_mode: host
+    <<: *restart
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      TS_AUTHKEY: "${TS_AUTHKEY:-}"          # tskey-auth-XXX — one-time auth key
+      TS_HOSTNAME: "${DEVICE_NAME:-music-potato}"
+      TS_STATE_DIR: "/var/lib/tailscale"
+      TS_USERSPACE: "false"                  # kernel WireGuard — better performance on SBC
+      TS_ACCEPT_DNS: "true"                  # use MagicDNS for homelab name resolution
+    healthcheck:
+      test: ["CMD-SHELL", "tailscale status || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+
+  # ── Snapcast client — synchronized multi-room audio ──────────────────────────
+  # Connects to the Snapcast SERVER on the homelab and plays its audio stream
+  # through the Onkyo receiver in perfect sync with any other rooms.
+  #
+  # Control flow:
+  #   mpc -p 6601 (any MPD client) → homelab mpd-snap → snapcast server → this client → Onkyo
+  #
+  # Mode switching:
+  #   Single-room  : shairport-sync / spotifyd / mpd (port 6600) — direct ALSA
+  #   Multi-room   : snapcast-client (port 1704) — synced from homelab
+  #
+  # SNAPSERVER_HOST in .env: use homelab LAN IP (same subnet, lowest latency)
+  # or homelab Tailscale IP for cross-network (adds ~5-10ms, still fine for audio)
+  snapcast-client:
+    image: saiyato/snapclient:latest          # multi-arch: arm64 + armhf
+    container_name: snapcast-client
+    network_mode: host
+    <<: [*audio, *restart]
+    command: >
+      snapclient
+        --host ${SNAPSERVER_HOST:-192.168.1.100}
+        --port 1704
+        --soundcard ${AUDIO_DEVICE:-hw:0,0}
+        --latency 0
+        --logfilter *:info
+        --player alsa
+    environment:
+      TZ: ${TZ:-Europe/Berlin}
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep snapclient || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── Watchtower — automatic image updates ─────────────────────────────────────
+  # Polls Docker Hub / GHCR daily and updates images automatically.
+  # Respects com.centurylinklabs.watchtower.enable labels.
+  watchtower:
+    image: containrrr/watchtower:latest       # multi-arch: arm64 supported
+    container_name: watchtower-music-potato
+    <<: *restart
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      WATCHTOWER_CLEANUP: "true"             # remove old images after update
+      WATCHTOWER_POLL_INTERVAL: "86400"      # check once per day (seconds)
+      WATCHTOWER_INCLUDE_STOPPED: "false"
+      WATCHTOWER_LABEL_ENABLE: "false"       # update ALL containers
+      TZ: ${TZ:-Europe/Berlin}
+
+# ─── Volumes ───────────────────────────────────────────────────────────────────
+volumes:
+  mpd-db:
+    name: music-potato-mpd-db
+  mpd-playlists:
+    name: music-potato-mpd-playlists
+  mpd-state:
+    name: music-potato-mpd-state
+  upmpdcli-cache:
+    name: music-potato-upmpdcli-cache
+  spotifyd-cache:
+    name: music-potato-spotifyd-cache
+  tailscale-state:
+    name: music-potato-tailscale-state
