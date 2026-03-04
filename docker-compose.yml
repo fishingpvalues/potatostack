@@ -864,6 +864,8 @@ services:
     image: python:3.12-alpine
     container_name: miniflux-webhook
     logging: *default-logging
+    labels:
+      wud.watch: "false"
     command: ["python", "/app/miniflux-webhook.py"]
     environment:
       <<: *common-env
@@ -1901,6 +1903,8 @@ services:
     image: python:3.12-alpine
     container_name: jellyfin-webhook
     logging: *default-logging
+    labels:
+      wud.watch: "false"
     command: ["python", "/app/jellyfin-webhook.py"]
     environment:
       <<: *common-env
@@ -1972,7 +1976,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 200M
+          memory: 512M
 
   # Navidrome - Music streaming server (Subsonic/Airsonic compatible)
   navidrome:
@@ -3084,6 +3088,8 @@ services:
     image: python:3.12-alpine
     container_name: news-pipeline
     logging: *default-logging
+    labels:
+      wud.watch: "false"
     command: ["sh", "-c", "pip install -q pg8000 && python /app/news-pipeline.py"]
     environment:
       <<: *common-env
@@ -3110,6 +3116,8 @@ services:
     image: python:3.12-alpine
     container_name: article-extractor
     logging: *default-logging
+    labels:
+      wud.watch: "false"
     entrypoint: ["/bin/sh", "/app/init.sh"]
     environment:
       <<: *common-env
@@ -4015,6 +4023,8 @@ services:
     image: python:3.12-alpine
     container_name: alertmanager-ntfy
     logging: *default-logging
+    labels:
+      wud.watch: "false"
     command: ["python", "/app/alertmanager-ntfy.py"]
     environment:
       NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
@@ -4420,10 +4430,12 @@ services:
       DB_RESTART_ON_FAILURE: ${DB_RESTART_ON_FAILURE:-true}
       DB_CHECK_POSTGRES: ${DB_CHECK_POSTGRES:-true}
       DB_CHECK_REDIS: ${DB_CHECK_REDIS:-true}
-      DB_CHECK_MONGO: ${DB_CHECK_MONGO:-false}
+      DB_CHECK_MONGO: ${DB_CHECK_MONGO:-true}
+      DB_CHECK_PGBOUNCER: ${DB_CHECK_PGBOUNCER:-true}
       POSTGRES_CONTAINER: postgres
       REDIS_CONTAINER: redis-cache
       MONGO_CONTAINER: mongo
+      PGBOUNCER_CONTAINER: pgbouncer
       NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
       NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
       NTFY_TOKEN: ${NTFY_TOKEN:-}
@@ -4514,6 +4526,66 @@ services:
         reservations:
           cpus: "0.05"
           memory: 32M
+
+  # Internet Connectivity Monitor
+  internet-connectivity-monitor:
+    image: alpine:${ALPINE_TAG:-3.21}
+    container_name: internet-connectivity-monitor
+    logging: *default-logging
+    entrypoint: sh /internet-connectivity-monitor.sh
+    environment:
+      INTERNET_CHECK_INTERVAL: ${INTERNET_CHECK_INTERVAL:-30}
+      INTERNET_FAIL_THRESHOLD: ${INTERNET_FAIL_THRESHOLD:-3}
+      INTERNET_CHECK_TIMEOUT: ${INTERNET_CHECK_TIMEOUT:-5}
+      NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
+      NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+      NTFY_DEFAULT_TAGS: ${NTFY_DEFAULT_TAGS:-potatostack,monitor}
+      NTFY_DEFAULT_PRIORITY: ${NTFY_DEFAULT_PRIORITY:-default}
+    volumes:
+      - ./scripts/monitor/internet-connectivity-monitor.sh:/internet-connectivity-monitor.sh:ro
+      - ./scripts/monitor/notify.sh:/notify.sh:ro
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.05"
+          memory: 32M
+        reservations:
+          cpus: "0.025"
+          memory: 16M
+
+  # Service HTTP Health Monitor
+  service-health-monitor:
+    image: alpine:${ALPINE_TAG:-3.21}
+    container_name: service-health-monitor
+    logging: *default-logging
+    entrypoint: sh /service-health-monitor.sh
+    environment:
+      SERVICE_MONITOR_INTERVAL: ${SERVICE_MONITOR_INTERVAL:-60}
+      SERVICE_MONITOR_FAIL_THRESHOLD: ${SERVICE_MONITOR_FAIL_THRESHOLD:-3}
+      SERVICE_MONITOR_TIMEOUT: ${SERVICE_MONITOR_TIMEOUT:-5}
+      NTFY_INTERNAL_URL: ${NTFY_INTERNAL_URL:-http://ntfy:80}
+      NTFY_TOPIC: ${NTFY_TOPIC:-potatostack}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+      NTFY_DEFAULT_TAGS: ${NTFY_DEFAULT_TAGS:-potatostack,monitor}
+      NTFY_DEFAULT_PRIORITY: ${NTFY_DEFAULT_PRIORITY:-default}
+    volumes:
+      - ./scripts/monitor/service-health-monitor.sh:/service-health-monitor.sh:ro
+      - ./scripts/monitor/notify.sh:/notify.sh:ro
+    networks:
+      - potatostack
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.05"
+          memory: 32M
+        reservations:
+          cpus: "0.025"
+          memory: 16M
 
   ################################################################################
   # Velld - Database Backup Scheduler (Postgres, Mongo, Redis)
@@ -4711,6 +4783,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /mnt/ssd/docker-data/cron:/etc/crontabs
+      - /mnt/storage:/mnt/storage
       - ./scripts/backup/stack-snapshot.sh:/stack-snapshot.sh:ro
     networks:
       - potatostack

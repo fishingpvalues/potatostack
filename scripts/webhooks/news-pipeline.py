@@ -37,19 +37,17 @@ _last_purge: float = 0
 # RSS/Atom feeds to fetch directly
 # extract=True means try full-text extraction via article-extractor
 # extract=False means use RSS description as-is (for hard paywalls where extraction always fails)
-# cat: category for grouping feeds (news, work, gaming)
+# cat: category for grouping feeds (news, work)
 RSS_FEEDS = [
     # German news
     {"url": "https://www.faz.net/rss/aktuell/", "source": "FAZ", "extract": True, "cat": "news"},
-    {"url": "https://www.westfalen-blatt.de/rss/feed?subcategory=/owl/bielefeld", "source": "WB", "extract": False, "cat": "news"},
     {"url": "https://www.nzz.ch/recent.rss", "source": "NZZ", "extract": True, "cat": "news"},
     {"url": "https://www.welt.de/feeds/latest.rss", "source": "WELT", "extract": True, "cat": "news"},
     {"url": "https://www.cicero.de/rss.xml", "source": "CICERO", "extract": True, "cat": "news"},
     {"url": "https://www.tichyseinblick.de/feed/", "source": "TE", "extract": True, "cat": "news"},
     # English news
     {"url": "https://www.nationalreview.com/feed/", "source": "NR", "extract": True, "cat": "news"},
-    # Gaming
-    {"url": "https://www.hltv.org/rss/news", "source": "HLTV", "extract": False, "cat": "gaming"},
+    {"url": "https://thefederalist.com/feed/", "source": "TF", "extract": True, "cat": "news"},
     # Work / AI & ML
     {"url": "https://blog.vllm.ai/feed.xml", "source": "VLLM", "extract": False, "cat": "work"},
     {"url": "https://huggingface.co/blog/feed.xml", "source": "HF", "extract": False, "cat": "work"},
@@ -217,13 +215,12 @@ def build_category_rss(cat_name, sources):
 # Source slug -> (title, link)
 _SOURCE_META = {
     "faz": ("FAZ", "https://www.faz.net"),
-    "wb": ("Westfalen-Blatt", "https://www.westfalen-blatt.de"),
     "nzz": ("NZZ", "https://www.nzz.ch"),
     "welt": ("Welt", "https://www.welt.de"),
     "cicero": ("Cicero", "https://www.cicero.de"),
     "te": ("Tichys Einblick", "https://www.tichyseinblick.de"),
     "nr": ("National Review", "https://www.nationalreview.com"),
-    "hltv": ("HLTV", "https://www.hltv.org"),
+    "tf": ("The Federalist", "https://thefederalist.com"),
     "nw": ("NW.de", "https://www.nw.de"),
     "vllm": ("vLLM", "https://blog.vllm.ai"),
     "hf": ("Hugging Face", "https://huggingface.co"),
@@ -235,10 +232,14 @@ _SOURCE_META = {
 
 # Category -> list of source slugs (uppercase to match feed item source field)
 _CATEGORIES = {
-    "news": ["FAZ", "WB", "NZZ", "WELT", "CICERO", "TE", "NR", "NW"],
+    "news": ["FAZ", "NZZ", "WELT", "CICERO", "TE", "NR", "TF", "NW"],
     "work": ["VLLM", "HF", "PYTORCH", "LANGCHAIN", "GRADIENT", "WILLISON"],
-    "gaming": ["HLTV"],
 }
+
+# Per-source tracking: last successful fetch timestamp and items added
+_source_last_fetched: dict[str, float] = {}
+_source_items_added: dict[str, int] = {}
+_source_lock = threading.Lock()
 
 
 class FeedHandler(BaseHTTPRequestHandler):
@@ -265,10 +266,39 @@ class FeedHandler(BaseHTTPRequestHandler):
             else:
                 self.send_error(404)
         elif path == "/health":
-            body = json.dumps({"status": "ok", "items": len(_feed_items)}).encode()
+            with _source_lock:
+                sources = {
+                    src: {
+                        "last_fetched": _source_last_fetched.get(src, 0),
+                        "items_added": _source_items_added.get(src, 0),
+                    }
+                    for src in sorted(set(list(_source_last_fetched.keys()) + list(_source_items_added.keys())))
+                }
+            body = json.dumps({"status": "ok", "items": len(_feed_items), "sources": sources}).encode()
             self._respond(200, "application/json", body)
+        elif path == "/metrics":
+            body = self._build_metrics().encode()
+            self._respond(200, "text/plain; version=0.0.4; charset=utf-8", body)
         else:
             self.send_error(404)
+
+    def _build_metrics(self):
+        lines = [
+            "# HELP news_pipeline_items_total Total feed items currently in memory",
+            "# TYPE news_pipeline_items_total gauge",
+            f"news_pipeline_items_total {len(_feed_items)}",
+            "# HELP news_pipeline_source_last_fetch_timestamp_seconds Unix timestamp of last successful fetch per source",
+            "# TYPE news_pipeline_source_last_fetch_timestamp_seconds gauge",
+        ]
+        with _source_lock:
+            for src, ts in _source_last_fetched.items():
+                lines.append(f'news_pipeline_source_last_fetch_timestamp_seconds{{source="{src}"}} {ts:.3f}')
+        lines.append("# HELP news_pipeline_source_items_added_total Items added per source since startup")
+        lines.append("# TYPE news_pipeline_source_items_added_total counter")
+        with _source_lock:
+            for src, count in _source_items_added.items():
+                lines.append(f'news_pipeline_source_items_added_total{{source="{src}"}} {count}')
+        return "\n".join(lines) + "\n"
 
     def _respond(self, code, content_type, body):
         self.send_response(code)
@@ -408,6 +438,9 @@ def process_rss_feeds():
         items = parse_rss_items(xml)
         new_items = [i for i in items if i["url"] not in _seen_urls]
 
+        with _source_lock:
+            _source_last_fetched[source] = time.time()
+
         if not new_items:
             log.info("%s: no new articles", source)
             continue
@@ -432,6 +465,8 @@ def process_rss_feeds():
                 content = item.get("description", "")
 
             add_feed_item(title, url, content, source, item.get("pub_date"))
+            with _source_lock:
+                _source_items_added[source] = _source_items_added.get(source, 0) + 1
 
 
 # ---------------------------------------------------------------------------
@@ -450,6 +485,9 @@ def process_nw_articles():
         parser.feed(html)
         new_urls = [u for u in parser.links if u not in _seen_urls]
         all_new.extend(new_urls)
+
+    with _source_lock:
+        _source_last_fetched["NW"] = time.time()
 
     if not all_new:
         log.info("NW.de: no new articles")
@@ -476,6 +514,8 @@ def process_nw_articles():
             title = url.split("/")[-1].replace(".html", "").replace("-", " ")
 
         add_feed_item(title, url, content, "NW")
+        with _source_lock:
+            _source_items_added["NW"] = _source_items_added.get("NW", 0) + 1
 
 
 # ---------------------------------------------------------------------------

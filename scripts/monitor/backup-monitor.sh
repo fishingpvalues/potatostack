@@ -39,7 +39,6 @@ touch "$STATE_FILE"
 
 while true; do
 	now=$(date +%s)
-	now=$(date +%s)
 	for path in $BACKUP_PATHS; do
 		if [ -f "$path" ]; then
 			mtime=$(stat -c %Y "$path" 2>/dev/null || echo 0)
@@ -53,6 +52,16 @@ while true; do
 			mtime=$(stat -c %Y "$path/$latest" 2>/dev/null || echo 0)
 			age=$((now - mtime))
 		else
+			state="missing"
+			age=0
+			echo "[$(date +'%Y-%m-%d %H:%M:%S')] ⚠ Backup path missing: $path"
+			prev=$(grep -F "${path}=" "$STATE_FILE" | tail -n1 | cut -d= -f2 || true)
+			if [ "$state" != "$prev" ]; then
+				notify_backup "PotatoStack - Backup missing" "Backup path does not exist: ${path}" "high"
+				grep -v -F "${path}=" "$STATE_FILE" >"${STATE_FILE}.tmp" || true
+				mv "${STATE_FILE}.tmp" "$STATE_FILE"
+				echo "${path}=${state}" >>"$STATE_FILE"
+			fi
 			continue
 		fi
 
@@ -66,8 +75,6 @@ while true; do
 		if [ "$state" != "$prev" ]; then
 			if [ "$state" = "stale" ]; then
 				notify_backup "PotatoStack - Backup stale" "Backup stale for ${path} (age ${age}s, limit ${MAX_AGE_SECONDS}s)" "high"
-			elif [ "$state" = "ok" ] && [ -n "$prev" ]; then
-				notify_backup "PotatoStack - Backup recovered" "Backup updated for ${path}" "low"
 			fi
 			grep -v -F "${path}=" "$STATE_FILE" >"${STATE_FILE}.tmp" || true
 			mv "${STATE_FILE}.tmp" "$STATE_FILE"

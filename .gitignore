@@ -111,3 +111,4 @@ config/backrest/ssh/known_hosts
 # TDL
 
 blocklist.txt
+scripts/stash/filename-tagger.py

@@ -32,14 +32,17 @@ notify_db() {
 POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-postgres}"
 REDIS_CONTAINER="${REDIS_CONTAINER:-redis-cache}"
 MONGO_CONTAINER="${MONGO_CONTAINER:-mongo}"
+PGBOUNCER_CONTAINER="${PGBOUNCER_CONTAINER:-pgbouncer}"
 
 CHECK_POSTGRES="${DB_CHECK_POSTGRES:-true}"
 CHECK_REDIS="${DB_CHECK_REDIS:-true}"
 CHECK_MONGO="${DB_CHECK_MONGO:-false}"
+CHECK_PGBOUNCER="${DB_CHECK_PGBOUNCER:-true}"
 
 pg_fail=0
 redis_fail=0
 mongo_fail=0
+pgbouncer_fail=0
 last_restart=0
 
 echo "=========================================="
@@ -63,9 +66,6 @@ restart_container() {
 while true; do
 	if [ "$CHECK_POSTGRES" = "true" ]; then
 		if docker exec "$POSTGRES_CONTAINER" pg_isready -U postgres >/dev/null 2>&1; then
-			if [ "$pg_fail" -gt 0 ]; then
-				notify_db "PotatoStack - Postgres recovered" "Postgres health check succeeded." "low" "${NTFY_TAGS},postgres"
-			fi
 			pg_fail=0
 		else
 			pg_fail=$((pg_fail + 1))
@@ -80,9 +80,6 @@ while true; do
 
 	if [ "$CHECK_REDIS" = "true" ]; then
 		if docker exec "$REDIS_CONTAINER" redis-cli ping >/dev/null 2>&1; then
-			if [ "$redis_fail" -gt 0 ]; then
-				notify_db "PotatoStack - Redis recovered" "Redis health check succeeded." "low" "${NTFY_TAGS},redis"
-			fi
 			redis_fail=0
 		else
 			redis_fail=$((redis_fail + 1))
@@ -97,9 +94,6 @@ while true; do
 
 	if [ "$CHECK_MONGO" = "true" ]; then
 		if docker exec "$MONGO_CONTAINER" mongosh --quiet --eval "db.adminCommand('ping')" >/dev/null 2>&1; then
-			if [ "$mongo_fail" -gt 0 ]; then
-				notify_db "PotatoStack - MongoDB recovered" "MongoDB health check succeeded." "low" "${NTFY_TAGS},mongodb"
-			fi
 			mongo_fail=0
 		else
 			mongo_fail=$((mongo_fail + 1))
@@ -108,6 +102,20 @@ while true; do
 				notify_db "PotatoStack - MongoDB down" "MongoDB failed ${mongo_fail}/${FAIL_THRESHOLD} checks. Restarting ${MONGO_CONTAINER}." "urgent" "${NTFY_TAGS},mongodb,critical"
 				restart_container "$MONGO_CONTAINER"
 				mongo_fail=0
+			fi
+		fi
+	fi
+
+	if [ "$CHECK_PGBOUNCER" = "true" ]; then
+		if docker exec "$POSTGRES_CONTAINER" pg_isready -h "$PGBOUNCER_CONTAINER" -p 5432 >/dev/null 2>&1; then
+			pgbouncer_fail=0
+		else
+			pgbouncer_fail=$((pgbouncer_fail + 1))
+			echo "[$(date +'%Y-%m-%d %H:%M:%S')] ⚠ PgBouncer health failed ($pgbouncer_fail/$FAIL_THRESHOLD)"
+			if [ "$RESTART_ON_FAILURE" = "true" ] && [ "$pgbouncer_fail" -ge "$FAIL_THRESHOLD" ]; then
+				notify_db "PotatoStack - PgBouncer down" "PgBouncer failed ${pgbouncer_fail}/${FAIL_THRESHOLD} checks. Restarting ${PGBOUNCER_CONTAINER}." "urgent" "${NTFY_TAGS},pgbouncer,critical"
+				restart_container "$PGBOUNCER_CONTAINER"
+				pgbouncer_fail=0
 			fi
 		fi
 	fi

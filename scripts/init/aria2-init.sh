@@ -294,7 +294,7 @@ rpc-secret=${ARIA2_RPC_SECRET}
 dir=/incomplete
 input-file=${CONFIG_DIR}/aria2.session
 save-session=${CONFIG_DIR}/aria2.session
-save-session-interval=60
+save-session-interval=10
 log=${CONFIG_DIR}/aria2.log
 log-level=warn
 
@@ -329,6 +329,24 @@ on-download-error=${CONFIG_DIR}/aria2-on-error.sh
 EOF
 
 echo "✓ aria2.conf written"
+
+################################################################################
+# Startup: move orphaned-complete files from /incomplete to /downloads.
+# A file in /incomplete with no .aria2 sibling is fully downloaded but was
+# never moved (aria2 was killed before on-complete fired — e.g. VPN restart).
+# Only process direct children (not subdirs, which belong to BT torrents).
+################################################################################
+for f in /incomplete/*; do
+  [ -e "$f" ] || continue
+  [ -f "$f" ] || continue                      # skip directories (BT torrents)
+  case "$f" in *.aria2) continue ;; esac       # skip control files
+  [ -f "${f}.aria2" ] && continue              # skip still-in-progress files
+  dest="/downloads/$(basename "$f")"
+  if mv -f "$f" "$dest" 2>/dev/null; then
+    printf '[%s] startup-moved: %s -> %s\n' "$(date +'%Y-%m-%d %H:%M:%S')" "$f" "$dest" >>"${CONFIG_DIR}/aria2-notifications.log"
+    echo "  ✓ Recovered orphaned download: $(basename "$f")"
+  fi
+done
 echo ""
 echo "  RPC secret (first 16 chars): ${ARIA2_RPC_SECRET:0:16}..."
 echo ""

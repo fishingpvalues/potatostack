@@ -13,9 +13,9 @@ autoclean: yes
 # Import Settings - Move mode (deletes originals after import)
 ################################################################################
 import:
-  copy: yes
+  copy: no
   write: yes
-  move: no
+  move: yes
   timid: no
   autotag: yes
   quiet: no

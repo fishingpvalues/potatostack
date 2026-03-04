@@ -115,6 +115,13 @@ scrape_configs:
 
   # Ghostfolio removed: /api/v1/health returns JSON, not Prometheus metrics
 
+  # News Pipeline - per-source staleness metrics
+  - job_name: "news-pipeline"
+    static_configs:
+      - targets: ["news-pipeline:8085"]
+    metrics_path: "/metrics"
+    scrape_interval: 60s
+
   # Aria2 RPC health check via JSON-RPC probe (basic HTTP 200 check)
   # Container CPU/memory/disk metrics are via cAdvisor job above
   # For download queue metrics add: https://github.com/JanisVeinbergs/aria2-exporter

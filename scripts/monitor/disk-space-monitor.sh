@@ -64,11 +64,6 @@ while true; do
 			warn)
 				notify_disk "PotatoStack - Disk warning" "${path} usage ${usage}% (>${WARN_THRESHOLD}%)" "high"
 				;;
-			ok)
-				if [ -n "$prev" ] && [ "$prev" != "ok" ]; then
-					notify_disk "PotatoStack - Disk recovered" "${path} usage ${usage}% back to normal" "low"
-				fi
-				;;
 			esac
 			grep -v -F "${path}=" "$STATE_FILE" >"${STATE_FILE}.tmp" || true
 			mv "${STATE_FILE}.tmp" "$STATE_FILE"

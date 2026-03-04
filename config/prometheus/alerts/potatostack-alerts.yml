@@ -232,6 +232,86 @@ groups:
           description: "Gluetun VPN container is not running. All VPN-dependent services may be exposed."
           runbook: "Restart: docker restart gluetun"
 
+      - alert: TailscaleDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="tailscale"} > 120
+        for: 2m
+        labels:
+          severity: critical
+          component: vpn
+        annotations:
+          summary: "🔑 Tailscale DOWN - Remote access lost!"
+          description: "Tailscale container has not been seen for > 2 minutes. Remote access via Tailscale will be unavailable."
+          runbook: "Check: docker logs tailscale"
+
+      - alert: CloudflaredDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="cloudflared"} > 120
+        for: 2m
+        labels:
+          severity: warning
+          component: vpn
+        annotations:
+          summary: "☁️ Cloudflared tunnel DOWN"
+          description: "Cloudflared tunnel container has not been seen for > 2 minutes."
+          runbook: "Check: docker logs cloudflared"
+
+  - name: Monitoring Stack Health
+    interval: 60s
+    rules:
+      - alert: GrafanaDown
+        expr: up{job="grafana"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          component: monitoring
+        annotations:
+          summary: "📊 Grafana DOWN"
+          description: "Grafana metrics endpoint unreachable. Dashboard access will be unavailable."
+          runbook: "Check: docker logs grafana"
+
+      - alert: LokiDown
+        expr: up{job="loki"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          component: monitoring
+        annotations:
+          summary: "📋 Loki DOWN"
+          description: "Loki log aggregation is unreachable. Log ingestion and querying will fail."
+          runbook: "Check: docker logs loki"
+
+      - alert: AlertmanagerDown
+        expr: up{job="alertmanager"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: monitoring
+        annotations:
+          summary: "🚨 Alertmanager DOWN - Alerts not routing!"
+          description: "Alertmanager is unreachable. Prometheus alerts will not be delivered."
+          runbook: "Check: docker logs alertmanager"
+
+      - alert: NtfyDown
+        expr: up{job="ntfy"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: monitoring
+        annotations:
+          summary: "🔔 Ntfy DOWN - Push notifications dead!"
+          description: "Ntfy notification server is unreachable. No push alerts will be delivered."
+          runbook: "Check: docker logs ntfy"
+
+      - alert: DaguDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="dagu"} > 120
+        for: 2m
+        labels:
+          severity: warning
+          component: monitoring
+        annotations:
+          summary: "⚙️ Dagu DOWN"
+          description: "Dagu workflow scheduler has not been seen for > 2 minutes. Scheduled tasks (backups, maintenance) will not run."
+          runbook: "Check: docker logs dagu"
+
   - name: slskd Health
     interval: 60s
     rules:
@@ -339,6 +419,61 @@ groups:
           summary: "⚡ Jellyfin high CPU usage"
           description: "Jellyfin has sustained CPU usage > 2 cores for 30 minutes. Consider hardware acceleration or reduce transcoding."
 
+      - alert: KavitaDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="kavita"} > 120
+        for: 2m
+        labels:
+          severity: warning
+          component: media
+        annotations:
+          summary: "📚 Kavita DOWN"
+          description: "Kavita manga/book server has not been seen for > 2 minutes."
+          runbook: "Check: docker logs kavita"
+
+      - alert: ImmichDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="immich-server"} > 120
+        for: 2m
+        labels:
+          severity: warning
+          component: media
+        annotations:
+          summary: "📷 Immich DOWN"
+          description: "Immich photo server has not been seen for > 2 minutes. Photo backup and browsing unavailable."
+          runbook: "Check: docker logs immich-server"
+
+      - alert: NavidromeDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="navidrome"} > 120
+        for: 2m
+        labels:
+          severity: warning
+          component: media
+        annotations:
+          summary: "🎵 Navidrome DOWN"
+          description: "Navidrome music server has not been seen for > 2 minutes."
+          runbook: "Check: docker logs navidrome"
+
+      - alert: AudiobookshelfDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="audiobookshelf"} > 120
+        for: 2m
+        labels:
+          severity: warning
+          component: media
+        annotations:
+          summary: "🎙️ Audiobookshelf DOWN"
+          description: "Audiobookshelf server has not been seen for > 2 minutes."
+          runbook: "Check: docker logs audiobookshelf"
+
+      - alert: StashDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="stash"} > 120
+        for: 2m
+        labels:
+          severity: warning
+          component: media
+        annotations:
+          summary: "🗄️ Stash DOWN"
+          description: "Stash media organizer has not been seen for > 2 minutes."
+          runbook: "Check: docker logs stash"
+
 
   - name: RSS Reader Health
     interval: 60s
@@ -353,6 +488,39 @@ groups:
           summary: "📰 Miniflux DOWN"
           description: "Miniflux RSS reader metrics endpoint is unreachable. Container may be down."
           runbook: "Check: docker logs miniflux"
+
+      - alert: NewsPipelineDown
+        expr: up{job="news-pipeline"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          component: tools
+        annotations:
+          summary: "📡 News pipeline DOWN"
+          description: "news-pipeline /metrics is unreachable for > 5 minutes. RSS feeds will go stale."
+          runbook: "Check: docker logs news-pipeline"
+
+      - alert: NewsPipelineSourceStale
+        expr: time() - news_pipeline_source_last_fetch_timestamp_seconds > 7200
+        for: 10m
+        labels:
+          severity: warning
+          component: tools
+        annotations:
+          summary: "⏰ News source stale: {{ $labels.source }}"
+          description: "Source {{ $labels.source }} has not been fetched for > 2 hours. Check for RSS errors."
+          runbook: "Check: docker logs news-pipeline | grep {{ $labels.source }}"
+
+      - alert: NewsPipelineEmpty
+        expr: news_pipeline_items_total == 0
+        for: 30m
+        labels:
+          severity: warning
+          component: tools
+        annotations:
+          summary: "📭 News pipeline has no items"
+          description: "news-pipeline feed is empty for > 30 minutes. Seeding may have failed."
+          runbook: "Check: docker logs news-pipeline && docker restart news-pipeline"
 
   - name: Uptime Monitoring
     interval: 60s
@@ -393,6 +561,86 @@ groups:
           summary: "🔍 Scrutiny DOWN"
           description: "Scrutiny disk health monitoring container has not been seen for > 2 minutes."
           runbook: "Check: docker logs scrutiny"
+
+      - alert: BackrestDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="backrest"} > 120
+        for: 2m
+        labels:
+          severity: critical
+          component: storage
+        annotations:
+          summary: "💾 Backrest DOWN - Backups not running!"
+          description: "Backrest backup manager has not been seen for > 2 minutes. Scheduled backups will be missed."
+          runbook: "Check: docker logs backrest"
+
+      - alert: SyncthingDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="syncthing"} > 120
+        for: 2m
+        labels:
+          severity: warning
+          component: storage
+        annotations:
+          summary: "🔄 Syncthing DOWN"
+          description: "Syncthing file sync has not been seen for > 2 minutes. File synchronization will stop."
+          runbook: "Check: docker logs syncthing"
+
+  - name: Tools & Productivity
+    interval: 60s
+    rules:
+      - alert: VaultwardenDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="vaultwarden"} > 120
+        for: 2m
+        labels:
+          severity: critical
+          component: tools
+        annotations:
+          summary: "🔐 Vaultwarden DOWN - Password manager unavailable!"
+          description: "Vaultwarden password manager has not been seen for > 2 minutes."
+          runbook: "Check: docker logs vaultwarden"
+
+      - alert: ActualBudgetDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="actual-budget"} > 120
+        for: 2m
+        labels:
+          severity: warning
+          component: tools
+        annotations:
+          summary: "💸 Actual Budget DOWN"
+          description: "Actual Budget finance app has not been seen for > 2 minutes."
+          runbook: "Check: docker logs actual-budget"
+
+      - alert: AtuinDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="atuin"} > 120
+        for: 5m
+        labels:
+          severity: warning
+          component: tools
+        annotations:
+          summary: "🐚 Atuin DOWN"
+          description: "Atuin shell history sync has not been seen for > 5 minutes."
+          runbook: "Check: docker logs atuin"
+
+      - alert: BaikalDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="baikal"} > 120
+        for: 2m
+        labels:
+          severity: warning
+          component: tools
+        annotations:
+          summary: "📅 Baikal DOWN"
+          description: "Baikal CalDAV/CardDAV server has not been seen for > 2 minutes. Calendar and contact sync will fail."
+          runbook: "Check: docker logs baikal"
+
+      - alert: PgBouncerDown
+        expr: time() - container_last_seen{container_label_com_docker_compose_service="pgbouncer"} > 120
+        for: 2m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "🔀 PgBouncer DOWN - DB connections pooling broken!"
+          description: "PgBouncer connection pooler has not been seen for > 2 minutes. Services relying on pooled connections may fail."
+          runbook: "Check: docker logs pgbouncer && docker restart pgbouncer"
 
   - name: Finance Services Health
     interval: 60s

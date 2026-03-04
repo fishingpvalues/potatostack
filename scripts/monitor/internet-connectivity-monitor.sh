@@ -61,9 +61,6 @@ while true; do
 	done
 
 	if [ "$up" = "true" ]; then
-		if [ "$last_state" = "down" ]; then
-			notify_internet "PotatoStack - Internet restored" "External connectivity restored." "low"
-		fi
 		fail_count=0
 		last_state="up"
 	else
