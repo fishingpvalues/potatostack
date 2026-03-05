@@ -830,6 +830,7 @@ services:
       ADMIN_PASSWORD: ${MINIFLUX_ADMIN_PASSWORD}
       BASE_URL: https://rss.${HOST_DOMAIN:-local.domain}
       POLLING_FREQUENCY: 60
+      POLLING_PARSING_ERROR_LIMIT: 0
       BATCH_SIZE: 100
       WORKER_POOL_SIZE: 5
       METRICS_COLLECTOR: "1"
@@ -1436,65 +1437,65 @@ services:
       # seeding-extractor.sh (persistent inode tracking) NOT unpackerr, to
       # prevent re-extraction on restart when archives are kept for seeding.
 
-      # Aria2 - Extract + delete (normal cleanup)
+      # Aria2 - Extract + keep original (7z fallback handles corrupt archives)
       UN_FOLDER_0_PATH: "/downloads/aria2"
-      UN_FOLDER_0_DELETE_ORIGINAL: "true"
+      UN_FOLDER_0_DELETE_ORIGINAL: "false"
       UN_FOLDER_0_DELETE_AFTER: "0s"
       UN_FOLDER_0_MOVE_BACK: "true"
       UN_FOLDER_0_DELETE_FILES: "false"
       UN_FOLDER_0_EXTRACT_ISOS: "false"
 
-      # Slskd - Extract + delete
+      # Slskd - Extract + keep original
       UN_FOLDER_1_PATH: "/downloads/slskd"
-      UN_FOLDER_1_DELETE_ORIGINAL: "true"
+      UN_FOLDER_1_DELETE_ORIGINAL: "false"
       UN_FOLDER_1_DELETE_AFTER: "0s"
       UN_FOLDER_1_MOVE_BACK: "true"
       UN_FOLDER_1_DELETE_FILES: "false"
       UN_FOLDER_1_EXTRACT_ISOS: "false"
 
-      # TDL (Telegram) - Extract + delete
+      # TDL (Telegram) - Extract + keep original
       UN_FOLDER_2_PATH: "/downloads/telegram"
-      UN_FOLDER_2_DELETE_ORIGINAL: "true"
+      UN_FOLDER_2_DELETE_ORIGINAL: "false"
       UN_FOLDER_2_DELETE_AFTER: "0s"
       UN_FOLDER_2_MOVE_BACK: "true"
       UN_FOLDER_2_DELETE_FILES: "false"
       UN_FOLDER_2_EXTRACT_ISOS: "false"
 
-      # storage2 (SSD) - movies - Extract + delete
+      # storage2 (SSD) - movies - Extract + keep original
       UN_FOLDER_3_PATH: "/media/movies"
-      UN_FOLDER_3_DELETE_ORIGINAL: "true"
+      UN_FOLDER_3_DELETE_ORIGINAL: "false"
       UN_FOLDER_3_DELETE_AFTER: "0s"
       UN_FOLDER_3_MOVE_BACK: "true"
       UN_FOLDER_3_DELETE_FILES: "false"
       UN_FOLDER_3_EXTRACT_ISOS: "false"
 
-      # storage2 (SSD) - tv - Extract + delete
+      # storage2 (SSD) - tv - Extract + keep original
       UN_FOLDER_4_PATH: "/media/tv"
-      UN_FOLDER_4_DELETE_ORIGINAL: "true"
+      UN_FOLDER_4_DELETE_ORIGINAL: "false"
       UN_FOLDER_4_DELETE_AFTER: "0s"
       UN_FOLDER_4_MOVE_BACK: "true"
       UN_FOLDER_4_DELETE_FILES: "false"
       UN_FOLDER_4_EXTRACT_ISOS: "false"
 
-      # storage (HDD) - rdt-client - Extract + delete (debrid synced, no seeding needed)
+      # storage (HDD) - rdt-client - Extract + keep original
       UN_FOLDER_5_PATH: "/storage/downloads/rdt-client"
-      UN_FOLDER_5_DELETE_ORIGINAL: "true"
+      UN_FOLDER_5_DELETE_ORIGINAL: "false"
       UN_FOLDER_5_DELETE_AFTER: "0s"
       UN_FOLDER_5_MOVE_BACK: "true"
       UN_FOLDER_5_DELETE_FILES: "false"
       UN_FOLDER_5_EXTRACT_ISOS: "false"
 
-      # storage (HDD) - slskd - Extract + delete
+      # storage (HDD) - slskd - Extract + keep original
       UN_FOLDER_6_PATH: "/storage/downloads/slskd"
-      UN_FOLDER_6_DELETE_ORIGINAL: "true"
+      UN_FOLDER_6_DELETE_ORIGINAL: "false"
       UN_FOLDER_6_DELETE_AFTER: "0s"
       UN_FOLDER_6_MOVE_BACK: "true"
       UN_FOLDER_6_DELETE_FILES: "false"
       UN_FOLDER_6_EXTRACT_ISOS: "false"
 
-      # storage (HDD) - media - Extract + delete (books, music, audiobooks, etc.)
+      # storage (HDD) - media - Extract + keep original (books, music, audiobooks, etc.)
       UN_FOLDER_7_PATH: "/storage/media"
-      UN_FOLDER_7_DELETE_ORIGINAL: "true"
+      UN_FOLDER_7_DELETE_ORIGINAL: "false"
       UN_FOLDER_7_DELETE_AFTER: "0s"
       UN_FOLDER_7_MOVE_BACK: "true"
       UN_FOLDER_7_DELETE_FILES: "false"
@@ -2275,8 +2276,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "2.0"
-          memory: 2G
+          cpus: "4.0"
+          memory: 4G
         reservations:
           cpus: "1.0"
           memory: 1G
@@ -2502,11 +2503,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.1"
-          memory: 64M
+          cpus: "2.0"
+          memory: 1G
         reservations:
-          cpus: "0.05"
-          memory: 32M
+          cpus: "0.5"
+          memory: 256M
     labels:
       - "wud.trigger.docker.update=true"
 
@@ -4779,7 +4780,7 @@ services:
     image: docker:${DOCKER_CLI_TAG:-27.2.1}-cli
     container_name: snapshot-scheduler
     logging: *default-logging
-    entrypoint: sh -c "chmod 600 /etc/crontabs/root 2>/dev/null || true; crond -f -l 8"
+    entrypoint: sh -c "chown root:root /etc/crontabs/root 2>/dev/null || true; chmod 600 /etc/crontabs/root 2>/dev/null || true; crond -f -l 2"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /mnt/ssd/docker-data/cron:/etc/crontabs
