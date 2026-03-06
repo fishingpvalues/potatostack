@@ -135,26 +135,7 @@ if [ -n "\$SRC" ] && [ -e "\$SRC" ]; then
   fi
 fi
 
-FILE_NAME=\$(basename "\${FINAL_PATH:-unknown}")
 printf '[%s] complete: GID=%s path=%s\n' "\$(date +'%Y-%m-%d %H:%M:%S')" "\$GID" "\$FINAL_PATH" >>"\$LOG_FILE"
-
-# Re-resolve ntfy IP on each call (survives ntfy container restarts)
-_ip=\$(nslookup ntfy 127.0.0.11 2>/dev/null | tr ' \t' '\n' | grep -E '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\$' | grep -v '127\.0\.0\.11' | head -1 || true)
-NTFY_URL=\${_ip:+http://\${_ip}:80}
-NTFY_URL=\${NTFY_URL:-${NTFY_EFFECTIVE_URL}}
-
-if command -v curl >/dev/null 2>&1; then
-  if [ -n "\$NTFY_TOKEN" ]; then
-    curl -fsS -X POST "\${NTFY_URL}/\${NTFY_TOPIC}" \
-      -H "Title: Download Complete" -H "Tags: white_check_mark,aria2" -H "Priority: low" \
-      -H "Authorization: Bearer \${NTFY_TOKEN}" \
-      -d "\${FILE_NAME}" >>\$LOG_FILE 2>&1 || true
-  else
-    curl -fsS -X POST "\${NTFY_URL}/\${NTFY_TOPIC}" \
-      -H "Title: Download Complete" -H "Tags: white_check_mark,aria2" -H "Priority: low" \
-      -d "\${FILE_NAME}" >>\$LOG_FILE 2>&1 || true
-  fi
-fi
 EOF
 
 ########################################################################
@@ -196,25 +177,7 @@ if [ -n "\$MOVE_SRC" ] && [ -e "\$MOVE_SRC" ]; then
   fi
 fi
 
-FILE_NAME=\$(basename "\${FINAL_PATH:-unknown}")
 printf '[%s] bt-complete: GID=%s path=%s\n' "\$(date +'%Y-%m-%d %H:%M:%S')" "\$GID" "\$FINAL_PATH" >>"\$LOG_FILE"
-
-_ip=\$(nslookup ntfy 127.0.0.11 2>/dev/null | tr ' \t' '\n' | grep -E '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\$' | grep -v '127\.0\.0\.11' | head -1 || true)
-NTFY_URL=\${_ip:+http://\${_ip}:80}
-NTFY_URL=\${NTFY_URL:-${NTFY_EFFECTIVE_URL}}
-
-if command -v curl >/dev/null 2>&1; then
-  if [ -n "\$NTFY_TOKEN" ]; then
-    curl -fsS -X POST "\${NTFY_URL}/\${NTFY_TOPIC}" \
-      -H "Title: Torrent Complete" -H "Tags: white_check_mark,aria2" -H "Priority: low" \
-      -H "Authorization: Bearer \${NTFY_TOKEN}" \
-      -d "\${FILE_NAME}" >>\$LOG_FILE 2>&1 || true
-  else
-    curl -fsS -X POST "\${NTFY_URL}/\${NTFY_TOPIC}" \
-      -H "Title: Torrent Complete" -H "Tags: white_check_mark,aria2" -H "Priority: low" \
-      -d "\${FILE_NAME}" >>\$LOG_FILE 2>&1 || true
-  fi
-fi
 EOF
 
 cat >"${CONFIG_DIR}/aria2-on-error.sh" <<EOF

@@ -41,10 +41,7 @@ case "${UN_EVENT:-}" in
     priority="default"
     ;;
   extractfailed)
-    title="Extract Failed: ${_item}"
-    message="Error: ${UN_DATA_ERROR:-unknown error}\nFolder: ${_folder}"
-    tags="x,package"
-    priority="high"
+    # Notification deferred until after 7z attempt below
     ;;
   deleting)
     title="Deleting: ${_item}"
@@ -78,30 +75,63 @@ _ntfy_post() {
     -d "${message}" >/dev/null 2>&1 || true
 }
 
-_ntfy_post
+# Send ntfy for all events except extractfailed (that one is sent after 7z below)
+[ "${UN_EVENT:-}" != "extractfailed" ] && _ntfy_post
 
-# Delete original archive after extraction as a safety net for when DELETE_ORIGINAL
-# fails (e.g. MOVE_BACK refuses to overwrite existing files). Without this, unpackerr
-# clears history but leaves the archive, and the subsequent chmod below re-triggers
-# inotify detection → infinite re-extraction loop.
-if [ "${UN_EVENT:-}" = "extracted" ]; then
-  # UN_PATH is the archive file path in folder-watcher mode
-  if [ -f "${UN_PATH:-}" ]; then
-    rm -f "${UN_PATH}" 2>/dev/null || true
+# 7z fallback extraction on failure: extract all files possible, log errors, keep original
+if [ "${UN_EVENT:-}" = "extractfailed" ] && [ -f "${UN_PATH:-}" ]; then
+  _archive="${UN_PATH}"
+  _outdir="${UN_DATA_OUTPUT:-$(dirname "${_archive}")}"
+  _logfile="$(dirname "${_archive}")/.extract-errors.log"
+
+  mkdir -p "${_outdir}" 2>/dev/null || true
+
+  # Run 7z — extracts everything it can even on CRC errors (-y = yes to all)
+  _7z_out=$(7z x -y "${_archive}" -o"${_outdir}" 2>&1) || true
+  _7z_errors=$(echo "${_7z_out}" | grep -E "^ERROR" || true)
+
+  # Write logfile entry
+  {
+    echo "=== $(date -Iseconds) === ${_archive}"
+    if [ -n "${_7z_errors}" ]; then
+      echo "FAILED FILES:"
+      echo "${_7z_errors}"
+    else
+      echo "OK: 7z extracted all files (unpackerr had checksum issues)"
+    fi
+    echo ""
+  } >> "${_logfile}"
+
+  # Send follow-up ntfy with 7z result; delete original only on clean 7z success
+  if [ -n "${_7z_errors}" ]; then
+    _failed_count=$(echo "${_7z_errors}" | wc -l)
+    curl -fsS -X POST "${NTFY_INTERNAL_URL%/}/${NTFY_TOPIC}" \
+      -H "Title: 7z partial: ${_item} (${_failed_count} file(s) corrupt)" \
+      -H "Tags: x,package" \
+      -H "Priority: default" \
+      -d "Bad files logged to: ${_logfile}" >/dev/null 2>&1 || true
+    # Keep original — extraction was incomplete
+  else
+    curl -fsS -X POST "${NTFY_INTERNAL_URL%/}/${NTFY_TOPIC}" \
+      -H "Title: 7z OK: ${_item}" \
+      -H "Tags: white_check_mark,package" \
+      -H "Priority: default" \
+      -d "7z extracted successfully. Deleting archive." >/dev/null 2>&1 || true
+    # Clean success — delete original
+    rm -f "${_archive}" 2>/dev/null || true
   fi
+
+  # Fix ownership of output dir
+  chown 1000:1000 "${_outdir}" 2>/dev/null || true
+  chmod 755 "${_outdir}" 2>/dev/null || true
 fi
 
-# Ownership fix on extracted or failed (ensure files are accessible by daniel:daniel)
-# Note: UN_PATH can be a file (archive) or directory — don't use -d check
-# Only fix ownership on the archive file itself (non-recursive, fast, no inotify flood).
+# Ownership fix on archive file (non-recursive to avoid inotify flood)
 if [ -n "${UN_PATH:-}" ] && [ -f "${UN_PATH:-}" ]; then
   chown 1000:1000 "${UN_PATH}" 2>/dev/null || true
   chmod 755 "${UN_PATH}" 2>/dev/null || true
 fi
-# For the output directory: only fix the top level, not recursive. Recursive chmod
-# on a large directory generates thousands of inotify CHMOD events — if the archive
-# was not deleted (e.g. DELETE_ORIGINAL failed) those events re-trigger detection
-# of the archive after history is cleared, causing an infinite extraction loop.
+# Fix top-level output dir ownership only
 if [ -n "${UN_DATA_OUTPUT:-}" ] && [ -d "${UN_DATA_OUTPUT:-}" ]; then
   chown 1000:1000 "${UN_DATA_OUTPUT}" 2>/dev/null || true
   chmod 755 "${UN_DATA_OUTPUT}" 2>/dev/null || true

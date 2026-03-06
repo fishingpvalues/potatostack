@@ -23,21 +23,27 @@ steps:
       - import-slskd
       - import-storage
 
-  # Phase 3: Parallel metadata enrichment (all depend on mbsync)
+  # Phase 2.5: Prune library entries whose files no longer exist on disk
+  - name: update-library
+    command: docker exec -u abc beets beet update
+    depends:
+      - mbsync
+
+  # Phase 3: Parallel metadata enrichment (all depend on update-library)
   - name: fetchart
     command: docker exec -u abc beets beet fetchart -q
     depends:
-      - mbsync
+      - update-library
 
   - name: lastgenre
     command: docker exec -u abc beets beet lastgenre
     depends:
-      - mbsync
+      - update-library
 
   - name: lyrics
     command: docker exec -u abc beets beet lyrics
     depends:
-      - mbsync
+      - update-library
 
   # Phase 4: ReplayGain (after metadata enrichment)
   - name: replaygain

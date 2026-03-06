@@ -18,11 +18,11 @@ MUTATIONS = {
         "field": "metadataScan",
         "query": """mutation {
   metadataScan(input: {
-    scanGenerateCovers: true
-    scanGeneratePreviews: true
+    scanGenerateCovers: false
+    scanGeneratePreviews: false
     scanGenerateImagePreviews: false
-    scanGenerateSprites: true
-    scanGeneratePhashes: true
+    scanGenerateSprites: false
+    scanGeneratePhashes: false
     scanGenerateThumbnails: false
     scanGenerateClipPreviews: false
   })

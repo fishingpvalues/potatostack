@@ -22,16 +22,3 @@ NTFY_URL=${_ip:+http://${_ip}:80}
 NTFY_URL=${NTFY_URL:-${NTFY_INTERNAL_URL:-http://ntfy:80}}
 
 printf '[%s] complete: GID=%s path=%s\n' "$(date +'%Y-%m-%d %H:%M:%S')" "$GID" "$FILE_PATH" >>"$LOG_FILE"
-
-if command -v curl >/dev/null 2>&1; then
-  if [ -n "$NTFY_TOKEN" ]; then
-    curl -fsS -X POST "${NTFY_URL}/${NTFY_TOPIC}" \
-      -H "Title: Download Complete" -H "Tags: white_check_mark,aria2" -H "Priority: low" \
-      -H "Authorization: Bearer ${NTFY_TOKEN}" \
-      -d "${FILE_NAME}" >>"$LOG_FILE" 2>&1 || true
-  else
-    curl -fsS -X POST "${NTFY_URL}/${NTFY_TOPIC}" \
-      -H "Title: Download Complete" -H "Tags: white_check_mark,aria2" -H "Priority: low" \
-      -d "${FILE_NAME}" >>"$LOG_FILE" 2>&1 || true
-  fi
-fi

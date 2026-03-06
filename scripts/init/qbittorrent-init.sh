@@ -1,7 +1,8 @@
 #!/bin/bash
 ################################################################################
-# qBittorrent SOTA Low-RAM Init Script (2026 Mini PC Optimized)
-# Target: 16GB system, heavy Docker stack → aim for 250-450MB steady RSS
+# qBittorrent SOTA Init Script (2026 Mini PC Optimized)
+# Target: Intel N250 4-core, 16GB system → 5+ parallel downloads
+# Expected RAM: 600-900MB RSS under load
 ################################################################################
 
 PUID="${PUID:-1000}"
@@ -84,26 +85,26 @@ if [ -n "$QB_PASSWORD" ]; then
 	fi
 fi
 
-# === RAM-CRITICAL SETTINGS ===
-# Queueing — the single biggest RAM saver
-set_config "BitTorrent" "Session\\\\MaxActiveTorrents" "12" # Total active (DL + UL)
-set_config "BitTorrent" "Session\\\\MaxActiveDownloads" "3" # Simultaneous downloads
-set_config "BitTorrent" "Session\\\\MaxActiveUploads" "6"   # Simultaneous uploads/seeding
+# === QUEUEING — 5 parallel downloads target ===
+set_config "BitTorrent" "Session\\\\MaxActiveTorrents" "25"  # Total active (DL + UL)
+set_config "BitTorrent" "Session\\\\MaxActiveDownloads" "8"  # Allow bursting above 5
+set_config "BitTorrent" "Session\\\\MaxActiveUploads" "12"   # More seeding slots
 
-# Connections (moderate)
-set_config "BitTorrent" "Session\\\\MaxConnections" "150"
-set_config "BitTorrent" "Session\\\\MaxConnectionsPerTorrent" "40"
-set_config "BitTorrent" "Session\\\\MaxUploads" "25"
-set_config "BitTorrent" "Session\\\\MaxUploadsPerTorrent" "6"
+# Connections (N250 4-core can handle this)
+set_config "BitTorrent" "Session\\\\MaxConnections" "400"
+set_config "BitTorrent" "Session\\\\MaxConnectionsPerTorrent" "80"
+set_config "BitTorrent" "Session\\\\MaxUploads" "40"
+set_config "BitTorrent" "Session\\\\MaxUploadsPerTorrent" "8"
 
-# Disk cache & I/O — keep in RAM low
-set_config "BitTorrent" "Session\\\\DiskCacheSize" "32" # 16-32 MB recommended
-set_config "BitTorrent" "Session\\\\AsyncIOThreads" "1" # Saves RAM vs 2
+# Disk cache & I/O — tuned for 5+ concurrent HDD writers
+set_config "BitTorrent" "Session\\\\DiskCacheSize" "128"        # 128MB — prevents I/O stalls with 5 torrents
+set_config "BitTorrent" "Session\\\\AsyncIOThreads" "4"         # Match N250 core count
 set_config "BitTorrent" "Session\\\\UseMemoryMapping" "true"
 set_config "BitTorrent" "Session\\\\CoalesceReadWrite" "true"
 set_config "BitTorrent" "Session\\\\PieceExtentAffinity" "true"
-set_config "BitTorrent" "Session\\\\SendBufferWatermark" "256"
-set_config "BitTorrent" "Session\\\\SendBufferLowWatermark" "5"
+set_config "BitTorrent" "Session\\\\SendBufferWatermark" "1024" # Larger send buffer for multi-DL
+set_config "BitTorrent" "Session\\\\SendBufferLowWatermark" "64"
+set_config "BitTorrent" "Session\\\\SendBufferWatermarkFactor" "150"
 
 # Disable network features that consume RAM (safe behind Gluetun)
 set_config "Preferences" "BitTorrent\\\\DHT" "false"
@@ -146,4 +147,4 @@ chown "${PUID}:${PGID}" "$CATEGORIES_FILE" 2>/dev/null || true
 set_config "AutoRun" "enabled" "true"
 set_config "AutoRun" "program" "/hooks/post-torrent.sh \\\"%N\\\" \\\"%C\\\" \\\"%F\\\" \\\"%D\\\" \\\"%G\\\""
 
-echo "[qb-init] Low-RAM SOTA configuration applied (target ~300-450MB RSS)"
+echo "[qb-init] SOTA configuration applied (5+ parallel DLs, 128MB cache, 4 IO threads)"
