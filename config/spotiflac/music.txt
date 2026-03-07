@@ -1,0 +1,11 @@
+# SpotiFLAC bulk download list
+# Format: Apple Music tab-separated export (Title\tDuration\tArtist\tAlbum\tGenre\tPlays\t...)
+# Lines starting with # are ignored. Blank lines are ignored.
+# Duplicate entries (same title+artist) are automatically skipped.
+# Tracks already in your beets library are automatically skipped.
+#
+# To export from Apple Music:
+#   File → Library → Export Library → save as XML, then convert with a tool
+#   or copy-paste from the Apple Music app (Cmd+A to select all, Cmd+C)
+#
+# Add your tracks below:

@@ -13,6 +13,20 @@ steps:
         [ "${COUNT}" -gt 0 ] || { echo "WARNING: No fresh Velld backups found"; exit 1; }
       '
 
+  # Check pg_dumpall backup - must exist and be newer than 26h
+  - name: check-postgres-dumpall
+    command: >-
+      sh -c '
+        LATEST=$(find /mnt/storage2/backups/postgres -name "pgdumpall_*.sql.gz" -mtime -2 2>/dev/null | sort | tail -1);
+        if [ -z "$LATEST" ]; then
+          echo "ERROR: No pg_dumpall backup found in last 2 days";
+          exit 1;
+        fi;
+        SIZE=$(du -sh "$LATEST" | cut -f1);
+        echo "Latest pg_dumpall: $LATEST ($SIZE)";
+        [ "$(stat -c%s "$LATEST")" -gt 1024 ] || { echo "ERROR: Backup too small (< 1KB), likely empty"; exit 1; }
+      '
+
   # Check Backrest restic snapshots exist (uses restic CLI - no python3 in container)
   - name: check-backrest
     command: >-

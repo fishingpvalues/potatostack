@@ -5,15 +5,27 @@ schedule: "0 4 * * *"
 maxActiveRuns: 1
 
 steps:
+  # Phase 0: Download queued music from music.txt via SpotiFLAC
+  - name: spotiflac-from-list
+    command: python3 /home/daniel/potatostack/config/spotiflac/spotiflac-bulk-queue.py
+    continueOn:
+      failure: true  # don't abort pipeline if music.txt empty or SpotiFLAC unavailable
+
   # Phase 1: Parallel imports from all music sources
   - name: import-spotiflac
     command: docker exec -u abc beets beet import -q --move /downloads/spotiflac
+    depends:
+      - spotiflac-from-list
 
   - name: import-slskd
     command: docker exec -u abc beets beet import -q /downloads/slskd
+    depends:
+      - spotiflac-from-list
 
   - name: import-storage
     command: docker exec -u abc beets beet import -q /storage-downloads
+    depends:
+      - spotiflac-from-list
 
   # Phase 2: MusicBrainz sync (depends on all imports)
   - name: mbsync
@@ -29,23 +41,23 @@ steps:
     depends:
       - mbsync
 
-  # Phase 3: Parallel metadata enrichment (all depend on update-library)
+  # Phase 3: Parallel metadata enrichment — all skip already-processed items
   - name: fetchart
-    command: docker exec -u abc beets beet fetchart -q
+    command: docker exec -u abc beets beet fetchart -q  # skips albums that already have art
     depends:
       - update-library
 
   - name: lastgenre
-    command: docker exec -u abc beets beet lastgenre
+    command: docker exec -u abc beets beet lastgenre --no-force  # skips tracks that already have genre
     depends:
       - update-library
 
   - name: lyrics
-    command: docker exec -u abc beets beet lyrics
+    command: docker exec -u abc beets beet lyrics  # skips tracks that already have lyrics
     depends:
       - update-library
 
-  # Phase 4: ReplayGain (after metadata enrichment)
+  # Phase 4: ReplayGain (after metadata enrichment, skips via overwrite:no in config)
   - name: replaygain
     command: docker exec -u abc beets beet replaygain
     depends:

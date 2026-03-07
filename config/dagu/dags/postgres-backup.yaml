@@ -1,0 +1,55 @@
+# PostgreSQL Full Backup - Daily pg_dumpall for all databases
+# Runs at 1AM daily, before velld's 2AM job
+# Stores compressed timestamped dumps in /mnt/storage2/backups/postgres/
+# Retention: 7 days
+name: postgres-backup
+schedule: "0 1 * * *"
+maxActiveRuns: 1
+
+steps:
+  - name: dump
+    command: >-
+      sh -c '
+        BACKUP_DIR=/mnt/storage2/backups/postgres;
+        mkdir -p "$BACKUP_DIR";
+        DUMP_FILE="$BACKUP_DIR/pgdumpall_$(date +%Y%m%d_%H%M%S).sql.gz";
+        echo "Dumping all PostgreSQL databases to $DUMP_FILE ...";
+        docker exec -u postgres postgres pg_dumpall | gzip > "$DUMP_FILE";
+        SIZE=$(du -sh "$DUMP_FILE" | cut -f1);
+        echo "Done: $DUMP_FILE ($SIZE)"
+      '
+
+  - name: retention
+    command: >-
+      sh -c '
+        BACKUP_DIR=/mnt/storage2/backups/postgres;
+        DELETED=0;
+        for f in $(find "$BACKUP_DIR" -name "pgdumpall_*.sql.gz" -mtime +7); do
+          rm -f "$f" && echo "Removed old backup: $f";
+          DELETED=$((DELETED+1));
+        done;
+        echo "Retention cleanup: removed $DELETED file(s)";
+        echo "Current backups:";
+        ls -lh "$BACKUP_DIR"/pgdumpall_*.sql.gz 2>/dev/null || echo "(none)"
+      '
+    depends:
+      - dump
+
+handlerOn:
+  success:
+    command: >-
+      sh -c '
+        SIZE=$(du -sh /mnt/storage2/backups/postgres/pgdumpall_*.sql.gz 2>/dev/null | tail -1 | cut -f1);
+        curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC:-potatostack}"
+        -H "Title: PostgreSQL Backup OK"
+        -H "Priority: low"
+        -H "Tags: elephant,white_check_mark"
+        -d "pg_dumpall completed successfully (${SIZE:-?})"
+      '
+  failure:
+    command: >-
+      curl -s -X POST "${NTFY_INTERNAL_URL:-http://ntfy:80}/${NTFY_TOPIC_CRITICAL:-potatostack-critical}"
+      -H "Title: PostgreSQL Backup FAILED"
+      -H "Priority: urgent"
+      -H "Tags: elephant,x"
+      -d "pg_dumpall failed - all database backups at risk - check Dagu logs immediately"

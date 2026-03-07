@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """Bulk download tracks from a tab-separated music export via SpotiFLAC.
 
-Input format (Apple Music export):
+Input format (Apple Music export / manual):
   Title\tDuration\tArtist\tAlbum\tGenre\tPlays\t...
 
 Usage:
-  python3 scripts/spotiflac-bulk-queue.py music.txt
-  python3 scripts/spotiflac-bulk-queue.py music.txt --dry-run
-  python3 scripts/spotiflac-bulk-queue.py music.txt --delay 1.0
-  python3 scripts/spotiflac-bulk-queue.py --drain-queue   # process stuck queue items
+  python3 config/spotiflac/spotiflac-bulk-queue.py                     # uses music.txt in same dir
+  python3 config/spotiflac/spotiflac-bulk-queue.py path/to/music.txt
+  python3 config/spotiflac/spotiflac-bulk-queue.py music.txt --dry-run
+  python3 config/spotiflac/spotiflac-bulk-queue.py music.txt --delay 1.0
+  python3 config/spotiflac/spotiflac-bulk-queue.py --drain-queue       # process stuck queue items
 """
 
 import argparse
@@ -21,7 +22,9 @@ import urllib.request
 import urllib.error
 from pathlib import Path
 
+SPOTIFLAC_URL = "http://127.0.0.1:8097"
 BEETS_DB = Path("/mnt/ssd/docker-data/beets/library.db")
+DEFAULT_MUSIC_TXT = Path(__file__).parent / "music.txt"
 
 
 def _normalize(s: str) -> str:
@@ -42,24 +45,18 @@ def in_beets(title: str, artist: str) -> bool:
     try:
         con = sqlite3.connect(f"file:{BEETS_DB}?mode=ro", uri=True)
         cur = con.cursor()
-        # Check primary artist and all artists fields
         cur.execute(
             "SELECT 1 FROM items WHERE lower(title)=? AND (lower(artist)=? OR lower(artists) LIKE ?) LIMIT 1",
             (nt, na, f"%{na}%"),
         )
         found = cur.fetchone() is not None
         if not found:
-            # Broader: title only, artist starts with
-            cur.execute(
-                "SELECT 1 FROM items WHERE lower(title)=? LIMIT 1", (nt,)
-            )
+            cur.execute("SELECT 1 FROM items WHERE lower(title)=? LIMIT 1", (nt,))
             found = cur.fetchone() is not None
         con.close()
         return found
     except Exception:
         return False
-
-SPOTIFLAC_URL = "http://127.0.0.1:8097"
 
 
 def api_post(path: str, payload: dict, timeout: int = 15) -> dict:
@@ -119,17 +116,12 @@ def parse_music_txt(path: Path) -> list[tuple[str, str, str]]:
         for line in f:
             line = line.rstrip("\n")
             parts = line.split("\t")
-            # Need at least title + duration + artist
             if len(parts) < 3:
                 continue
             title = parts[0].strip()
             artist = parts[2].strip()
             album = parts[3].strip() if len(parts) > 3 else ""
-            # Skip section headers (no artist column or looks like header)
-            if not title or not artist:
-                continue
-            # Skip lines that are playlist headers like "30." or "MY PLAYLISTS"
-            if not artist or artist.isdigit():
+            if not title or not artist or artist.isdigit():
                 continue
             key = (_normalize(title), _normalize(artist))
             if key in seen:
@@ -166,7 +158,7 @@ def drain_queue(delay: float) -> None:
                 "album_name": item["album_name"],
             }, timeout=120)
             if result.get("success"):
-                print(f"→ done")
+                print("→ done")
                 done += 1
             else:
                 print(f"→ FAILED: {result.get('error', '?')}")
@@ -181,7 +173,8 @@ def drain_queue(delay: float) -> None:
 
 def main():
     parser = argparse.ArgumentParser(description="Bulk download music via SpotiFLAC")
-    parser.add_argument("input", nargs="?", help="Path to music.txt (tab-separated export)")
+    parser.add_argument("input", nargs="?", default=str(DEFAULT_MUSIC_TXT),
+                        help=f"Path to music.txt (default: {DEFAULT_MUSIC_TXT})")
     parser.add_argument("--dry-run", action="store_true", help="Parse only, no API calls")
     parser.add_argument("--delay", type=float, default=0.3, help="Seconds between requests (default: 0.3)")
     parser.add_argument("--skip", type=int, default=0, help="Skip first N tracks")
@@ -193,11 +186,17 @@ def main():
         drain_queue(args.delay)
         return
 
-    if not args.input:
-        parser.error("input file required unless --drain-queue")
+    music_txt = Path(args.input)
+    if not music_txt.exists():
+        print(f"music.txt not found at {music_txt} — nothing to do")
+        sys.exit(0)
 
-    tracks = parse_music_txt(Path(args.input))
-    print(f"Parsed {len(tracks)} tracks from {args.input}")
+    tracks = parse_music_txt(music_txt)
+    if not tracks:
+        print(f"No tracks in {music_txt} — nothing to do")
+        sys.exit(0)
+
+    print(f"Parsed {len(tracks)} tracks from {music_txt.name}")
 
     if args.skip:
         tracks = tracks[args.skip:]
@@ -212,28 +211,24 @@ def main():
             print(f"  {t} — {a} [{al}]")
         return
 
-    downloaded = 0
-    failed = 0
-    not_found = 0
-    already_have = 0
-
-    beets_available = BEETS_DB.exists()
-    if beets_available:
-        print(f"Beets library found at {BEETS_DB} — will skip already-imported tracks")
+    if BEETS_DB.exists():
+        print(f"Beets library found — will skip already-imported tracks")
     else:
         print(f"Warning: beets library not found at {BEETS_DB}, skipping collection check")
+
+    downloaded = failed = not_found = already_have = 0
 
     for i, (title, artist, album) in enumerate(tracks, 1):
         print(f"[{i}/{len(tracks)}] {title} — {artist}", end=" ", flush=True)
 
         if in_beets(title, artist):
-            print(f"→ already in library, skipping")
+            print("→ already in library, skipping")
             already_have += 1
             continue
 
         result = search_track(title, artist)
         if not result:
-            print(f"→ NOT FOUND")
+            print("→ NOT FOUND")
             not_found += 1
             time.sleep(args.delay)
             continue
@@ -243,7 +238,7 @@ def main():
             print(f"→ done ({result['name']} — {result['artists']})")
             downloaded += 1
         else:
-            print(f"→ FAILED")
+            print("→ FAILED")
             failed += 1
 
         time.sleep(args.delay)
