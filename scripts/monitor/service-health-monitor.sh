@@ -25,6 +25,7 @@ prometheus|http://prometheus:9090/-/healthy \
 loki|http://loki:3100/ready \
 atuin|http://atuin:8888 \
 crowdsec|http://crowdsec:6060/metrics \
+uptime-kuma|http://uptime-kuma:3001 \
 healthchecks|tcp://healthchecks:8000 \
 music-potato-ssh|tcp://music-potato:22 \
 music-potato-backrest|tcp://music-potato:9898 \

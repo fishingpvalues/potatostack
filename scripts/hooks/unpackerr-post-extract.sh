@@ -86,37 +86,51 @@ if [ "${UN_EVENT:-}" = "extractfailed" ] && [ -f "${UN_PATH:-}" ]; then
 
   mkdir -p "${_outdir}" 2>/dev/null || true
 
-  # Run 7z — extracts everything it can even on CRC errors (-y = yes to all)
-  _7z_out=$(7z x -y "${_archive}" -o"${_outdir}" 2>&1) || true
-  _7z_errors=$(echo "${_7z_out}" | grep -E "^ERROR" || true)
+  # Use unrar for RAR archives (official extractor, -kb keeps broken/truncated files
+  # like WinRAR default — extracts everything even on CRC/checksum/truncation errors).
+  # Fall back to 7z for all other archive formats.
+  case "${_archive}" in
+    *.rar|*.cbr|*.r[0-9][0-9]|*.r[0-9][0-9][0-9])
+      _extract_out=$(unrar x -kb -y "${_archive}" "${_outdir}/" 2>&1) || true
+      # unrar warns on CRC errors and truncated archives; -kb keeps them anyway
+      _7z_errors=$(echo "${_extract_out}" | grep -E "(CRC error|checksum error|Unexpected end)" || true)
+      _extractor="unrar"
+      ;;
+    *)
+      _extract_out=$(7z x -y "${_archive}" -o"${_outdir}" 2>&1) || true
+      _7z_errors=$(echo "${_extract_out}" | grep -E "^ERROR" || true)
+      _extractor="7z"
+      ;;
+  esac
+  _7z_out="${_extract_out}"
 
   # Write logfile entry
   {
     echo "=== $(date -Iseconds) === ${_archive}"
     if [ -n "${_7z_errors}" ]; then
-      echo "FAILED FILES:"
+      echo "PARTIAL (${_extractor}, kept broken files):"
       echo "${_7z_errors}"
     else
-      echo "OK: 7z extracted all files (unpackerr had checksum issues)"
+      echo "OK: ${_extractor} extracted all files (unpackerr rardecode had issues)"
     fi
     echo ""
   } >> "${_logfile}"
 
-  # Send follow-up ntfy with 7z result; delete original only on clean 7z success
+  # Send follow-up ntfy; on clean success delete original, on partial keep it
   if [ -n "${_7z_errors}" ]; then
     _failed_count=$(echo "${_7z_errors}" | wc -l)
     curl -fsS -X POST "${NTFY_INTERNAL_URL%/}/${NTFY_TOPIC}" \
-      -H "Title: 7z partial: ${_item} (${_failed_count} file(s) corrupt)" \
-      -H "Tags: x,package" \
+      -H "Title: ${_extractor} partial: ${_item} (${_failed_count} issue(s), kept broken)" \
+      -H "Tags: warning,package" \
       -H "Priority: default" \
-      -d "Bad files logged to: ${_logfile}" >/dev/null 2>&1 || true
-    # Keep original — extraction was incomplete
+      -d "Partial extraction — archive may be truncated. Log: ${_logfile}" >/dev/null 2>&1 || true
+    # Keep original — archive may be re-downloadable
   else
     curl -fsS -X POST "${NTFY_INTERNAL_URL%/}/${NTFY_TOPIC}" \
-      -H "Title: 7z OK: ${_item}" \
+      -H "Title: ${_extractor} OK: ${_item}" \
       -H "Tags: white_check_mark,package" \
       -H "Priority: default" \
-      -d "7z extracted successfully. Deleting archive." >/dev/null 2>&1 || true
+      -d "${_extractor} extracted successfully. Deleting archive." >/dev/null 2>&1 || true
     # Clean success — delete original
     rm -f "${_archive}" 2>/dev/null || true
   fi

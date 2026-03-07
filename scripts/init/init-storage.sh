@@ -46,7 +46,7 @@ if [ -d "$STORAGE2_BASE" ]; then
 		"${STORAGE2_BASE}/downloads/spotiflac" \
 		"${STORAGE2_BASE}/downloads/telegram" \
 		"${STORAGE2_BASE}/downloads/incomplete/qbittorrent" \
-		"${STORAGE2_BASE}/downloads/incomplete/aria2" \
+		"${STORAGE2_BASE}/downloads/aria2/incomplete" \
 		"${STORAGE2_BASE}/downloads/incomplete/slskd" \
 		"${STORAGE2_BASE}/downloads/incomplete/sonarr" \
 		"${STORAGE2_BASE}/downloads/incomplete/radarr" \
@@ -175,8 +175,8 @@ mkdir -p \
 	"${SSD_BASE}/slskd/logs" \
 	"${SSD_BASE}/stash/cache" \
 	"${SSD_BASE}/freqtrade/user_data" \
-	"${SSD_BASE}/karaoke-eternal"
-# "${SSD_BASE}/uptime-kuma" # DISABLED
+	"${SSD_BASE}/karaoke-eternal" \
+	"${SSD_BASE}/uptime-kuma"
 mkdir -p "${SSD_BASE}/beets"
 mkdir -p "${SSD_BASE}/dagu"
 
@@ -373,8 +373,8 @@ chown -R 472:472 "${SSD_BASE}/grafana" 2>/dev/null || true
 # Freqtrade (UID 1000) - Trading bot user data
 [ -d "${SSD_BASE}/freqtrade" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/freqtrade" 2>/dev/null || true
 
-# Uptime-Kuma (UID 1000) - DISABLED
-# [ -d "${SSD_BASE}/uptime-kuma" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/uptime-kuma"
+# Uptime-Kuma (UID 1000)
+[ -d "${SSD_BASE}/uptime-kuma" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/uptime-kuma" 2>/dev/null || true
 
 # Velld (UID 1000)
 [ -d "${SSD_BASE}/velld" ] && chown -R "${PUID}:${PGID}" "${SSD_BASE}/velld" 2>/dev/null || true

@@ -22,7 +22,7 @@ ARIA2_MAX_CONCURRENT="${ARIA2_MAX_CONCURRENT:-5}"
 ARIA2_MAX_CONN_PER_SERVER="${ARIA2_MAX_CONN_PER_SERVER:-16}"
 ARIA2_SPLIT="${ARIA2_SPLIT:-16}"
 ARIA2_MIN_SPLIT_SIZE="${ARIA2_MIN_SPLIT_SIZE:-1M}"
-ARIA2_DISK_CACHE="${ARIA2_DISK_CACHE:-${DISK_CACHE:-64M}}"
+ARIA2_DISK_CACHE="${ARIA2_DISK_CACHE:-0}"
 ARIA2_FILE_ALLOC="${ARIA2_FILE_ALLOC:-none}"
 ARIA2_MAX_TRIES="${ARIA2_MAX_TRIES:-5}"
 ARIA2_RETRY_WAIT="${ARIA2_RETRY_WAIT:-5}"
@@ -99,12 +99,12 @@ fi
 ################################################################################
 ########################################################################
 # on-download-complete: handles HTTP/direct downloads.
-# aria2 downloads to /incomplete; move to /downloads when done so
+# aria2 downloads to /downloads/incomplete; move to /downloads when done so
 # unpackerr only ever sees fully-completed files.
 #
 # For BT multi-file downloads aria2 also fires on-download-complete for
 # each individual file — those files live inside a subdirectory of
-# /incomplete. Skip them here; on-bt-download-complete handles the move
+# /downloads/incomplete. Skip them here; on-bt-download-complete handles the move
 # for the whole torrent directory once seeding criteria are met.
 ########################################################################
 cat >"${CONFIG_DIR}/aria2-on-complete.sh" <<EOF
@@ -115,22 +115,59 @@ SRC="\${3:-}"
 LOG_FILE="${CONFIG_DIR}/aria2-notifications.log"
 NTFY_TOPIC="${NTFY_TOPIC}"
 NTFY_TOKEN="${NTFY_TOKEN}"
+RPC_PORT="${RPC_PORT}"
+RPC_SECRET="${ARIA2_RPC_SECRET}"
+
+# Resolve ntfy IP (re-resolves on each call, survives ntfy restarts)
+_ip=\$(nslookup ntfy 127.0.0.11 2>/dev/null | tr ' \t' '\n' | grep -E '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\$' | grep -v '127\.0\.0\.11' | head -1 || true)
+NTFY_URL=\${_ip:+http://\${_ip}:80}
+NTFY_URL=\${NTFY_URL:-${NTFY_EFFECTIVE_URL}}
+
+_ntfy() {
+  [ -n "\$NTFY_TOKEN" ] && _auth="-H Authorization: Bearer \${NTFY_TOKEN}" || _auth=""
+  curl -fsS -X POST "\${NTFY_URL}/\${NTFY_TOPIC}" \
+    -H "Title: \$1" -H "Tags: \$2" -H "Priority: \$3" \
+    \${_auth:+-H "\$_auth"} -d "\$4" >/dev/null 2>&1 || true
+}
 
 # Skip BT per-file callbacks: those paths are inside a subdirectory of
-# /incomplete (e.g. /incomplete/TorrentName/file.mkv). The BT-complete
+# /downloads/incomplete (e.g. /downloads/incomplete/TorrentName/file.mkv). The BT-complete
 # hook handles moving the whole directory when the torrent is done.
-if [ -n "\$SRC" ] && [ "\$(dirname "\$SRC")" != "/incomplete" ]; then
+if [ -n "\$SRC" ] && [ "\$(dirname "\$SRC")" != "/downloads/incomplete" ]; then
   exit 0
 fi
 
-# Move completed file from /incomplete to /downloads (same fs = instant rename)
+# Verify file size matches aria2's reported totalLength before moving.
+# Real-debrid CDN sometimes serves truncated files (expired URLs mid-download,
+# wrong Content-Length). This catches those cases before they reach unpackerr.
+if [ -n "\$GID" ] && [ -n "\$SRC" ] && [ -f "\$SRC" ]; then
+  _resp=\$(wget -qO- "http://127.0.0.1:\${RPC_PORT}/jsonrpc" \
+    --post-data="{\"jsonrpc\":\"2.0\",\"id\":\"1\",\"method\":\"aria2.tellStatus\",\"params\":[\"token:\${RPC_SECRET}\",\"\${GID}\",[\"totalLength\",\"completedLength\"]]}" \
+    2>/dev/null || true)
+  _total=\$(echo "\$_resp" | sed 's/.*"totalLength":"\([0-9]*\)".*/\1/' 2>/dev/null || echo "0")
+  _file_size=\$(stat -c%s "\$SRC" 2>/dev/null || echo "0")
+  if [ "\$_total" -gt "0" ] && [ "\$_file_size" -lt "\$_total" ] 2>/dev/null; then
+    printf '[%s] TRUNCATED: %s (got %s bytes, expected %s)\n' \
+      "\$(date +'%Y-%m-%d %H:%M:%S')" "\$SRC" "\$_file_size" "\$_total" >>"\$LOG_FILE"
+    _ntfy "Download Truncated: \$(basename "\$SRC")" "x,down_arrow" "high" \
+      "File is truncated (\${_file_size} of \${_total} bytes). Re-download from real-debrid."
+    exit 0  # Leave file in /downloads/incomplete, do not move partial download
+  fi
+fi
+
+# Move completed file from /downloads/incomplete to /downloads (same fs = instant rename).
+# Create a .done sentinel first — startup scan uses this to recover moves that
+# were interrupted (e.g. aria2 killed after on-complete but before mv finished).
 FINAL_PATH="\$SRC"
 if [ -n "\$SRC" ] && [ -e "\$SRC" ]; then
   DEST="/downloads/\$(basename "\$SRC")"
+  touch "\${SRC}.done" 2>/dev/null || true
   if mv -f "\$SRC" "\$DEST" 2>/dev/null; then
+    rm -f "\${SRC}.done" 2>/dev/null || true
     printf '[%s] moved: %s -> %s\n' "\$(date +'%Y-%m-%d %H:%M:%S')" "\$SRC" "\$DEST" >>"\$LOG_FILE"
     FINAL_PATH="\$DEST"
   else
+    rm -f "\${SRC}.done" 2>/dev/null || true
     printf '[%s] move-failed: %s\n' "\$(date +'%Y-%m-%d %H:%M:%S')" "\$SRC" >>"\$LOG_FILE"
   fi
 fi
@@ -141,7 +178,7 @@ EOF
 ########################################################################
 # on-bt-download-complete: called once when an entire BitTorrent
 # download finishes (seeding criteria met). Moves the top-level
-# directory or single-file torrent from /incomplete to /downloads.
+# directory or single-file torrent from /downloads/incomplete to /downloads.
 ########################################################################
 cat >"${CONFIG_DIR}/aria2-on-bt-complete.sh" <<EOF
 #!/bin/sh
@@ -152,16 +189,16 @@ LOG_FILE="${CONFIG_DIR}/aria2-notifications.log"
 NTFY_TOPIC="${NTFY_TOPIC}"
 NTFY_TOKEN="${NTFY_TOKEN}"
 
-# Resolve the top-level item under /incomplete
-# Single-file torrent: SRC = /incomplete/file.rar     → top = /incomplete/file.rar
-# Multi-file torrent:  SRC = /incomplete/Name/a.mkv   → top = /incomplete/Name
+# Resolve the top-level item under /downloads/incomplete
+# Single-file torrent: SRC = /downloads/incomplete/file.rar     → top = /downloads/incomplete/file.rar
+# Multi-file torrent:  SRC = /downloads/incomplete/Name/a.mkv   → top = /downloads/incomplete/Name
 MOVE_SRC=""
 if [ -n "\$SRC" ]; then
   case "\$SRC" in
-    /incomplete/*)
-      REL="\${SRC#/incomplete/}"          # strip leading /incomplete/
+    /downloads/incomplete/*)
+      REL="\${SRC#/downloads/incomplete/}"          # strip leading /downloads/incomplete/
       TOPNAME="\${REL%%/*}"               # first path component
-      MOVE_SRC="/incomplete/\${TOPNAME}"
+      MOVE_SRC="/downloads/incomplete/\${TOPNAME}"
       ;;
   esac
 fi
@@ -221,11 +258,11 @@ INITEOF
 chmod +x /etc/cont-init.d/89-aria2-hooks
 
 # p3terx/aria2-pro's 28-fix script forces dir=/downloads after our aria2.conf is written.
-# Inject a 29-dir-override to restore dir=/incomplete immediately after 28-fix.
+# Inject a 29-dir-override to restore dir=/downloads/incomplete immediately after 28-fix.
 cat >/etc/cont-init.d/29-dir-override <<'INITEOF'
 #!/bin/sh
 ARIA2_CONF="${ARIA2_CONF:-/config/aria2.conf}"
-sed -i "s@^\(dir=\).*@\1/incomplete@" "${ARIA2_CONF}"
+sed -i "s@^\(dir=\).*@\1/downloads/incomplete@" "${ARIA2_CONF}"
 INITEOF
 chmod +x /etc/cont-init.d/29-dir-override
 
@@ -254,7 +291,7 @@ rpc-listen-port=${RPC_PORT}
 rpc-secret=${ARIA2_RPC_SECRET}
 
 # Paths
-dir=/incomplete
+dir=/downloads/incomplete
 input-file=${CONFIG_DIR}/aria2.session
 save-session=${CONFIG_DIR}/aria2.session
 save-session-interval=10
@@ -271,7 +308,9 @@ retry-wait=${ARIA2_RETRY_WAIT}
 max-download-limit=${ARIA2_MAX_DL_LIMIT}
 max-upload-limit=${ARIA2_MAX_UL_LIMIT}
 continue=true
-force-save=true
+allow-overwrite=true
+force-save=false
+auto-file-renaming=false
 
 # Disk
 file-allocation=${ARIA2_FILE_ALLOC}
@@ -294,22 +333,26 @@ EOF
 echo "✓ aria2.conf written"
 
 ################################################################################
-# Startup: move orphaned-complete files from /incomplete to /downloads.
-# A file in /incomplete with no .aria2 sibling is fully downloaded but was
-# never moved (aria2 was killed before on-complete fired — e.g. VPN restart).
-# Only process direct children (not subdirs, which belong to BT torrents).
+# Startup: move orphaned-complete files from /downloads/incomplete to /downloads.
+# Only moves files that have a .done sentinel (created by on-complete hook
+# after verifying file integrity). Runs in background so large files don't
+# block aria2 startup and fail healthchecks.
 ################################################################################
-for f in /incomplete/*; do
-  [ -e "$f" ] || continue
-  [ -f "$f" ] || continue                      # skip directories (BT torrents)
-  case "$f" in *.aria2) continue ;; esac       # skip control files
-  [ -f "${f}.aria2" ] && continue              # skip still-in-progress files
-  dest="/downloads/$(basename "$f")"
-  if mv -f "$f" "$dest" 2>/dev/null; then
-    printf '[%s] startup-moved: %s -> %s\n' "$(date +'%Y-%m-%d %H:%M:%S')" "$f" "$dest" >>"${CONFIG_DIR}/aria2-notifications.log"
-    echo "  ✓ Recovered orphaned download: $(basename "$f")"
-  fi
-done
+(
+  for f in /downloads/incomplete/*; do
+    [ -e "$f" ] || continue
+    [ -f "$f" ] || continue                      # skip directories (BT torrents)
+    case "$f" in *.aria2|*.done) continue ;; esac  # skip control files
+    sentinel="${f}.done"
+    [ -f "$sentinel" ] || continue              # only move files with .done sentinel
+    [ -f "${f}.aria2" ] && continue              # skip still-in-progress files
+    dest="/downloads/$(basename "$f")"
+    if mv -f "$f" "$dest" 2>/dev/null; then
+      rm -f "$sentinel" 2>/dev/null || true
+      printf '[%s] startup-moved: %s -> %s\n' "$(date +'%Y-%m-%d %H:%M:%S')" "$f" "$dest" >>"${CONFIG_DIR}/aria2-notifications.log"
+    fi
+  done
+) &
 echo ""
 echo "  RPC secret (first 16 chars): ${ARIA2_RPC_SECRET:0:16}..."
 echo ""

@@ -57,8 +57,11 @@ port_is_listening() {
 		ss -tlnH "sport = :$port" 2>/dev/null | grep -q "$port"
 	elif command -v netstat >/dev/null 2>&1; then
 		netstat -tlnp 2>/dev/null | grep -q ":$port "
+	elif command -v nc >/dev/null 2>&1; then
+		# nc -z works in busybox (alpine)
+		nc -z 127.0.0.1 "$port" 2>/dev/null
 	else
-		# Fallback: try to connect
+		# Fallback: try to connect (bash only)
 		(echo >/dev/tcp/127.0.0.1/$port) 2>/dev/null
 	fi
 }

@@ -133,3 +133,13 @@ scrape_configs:
       method: ["aria2.getVersion"]
     # This will return 200 if aria2 is running; Prometheus records up/down
     scrape_interval: 60s
+
+  # Uptime Kuma - exposes Prometheus metrics at /metrics (requires API key)
+  # To enable: Settings → API Keys → create key → add to UPTIME_KUMA_METRICS_TOKEN in .env
+  # Then uncomment and reload Prometheus
+  # - job_name: "uptime-kuma"
+  #   static_configs:
+  #     - targets: ["uptime-kuma:3001"]
+  #   metrics_path: "/metrics"
+  #   bearer_token: "${UPTIME_KUMA_METRICS_TOKEN}"
+  #   scrape_interval: 60s

@@ -30,7 +30,7 @@ declare -A SERVICE_PORTS=(
 	["loki"]="3100"
 	["alloy"]=""
 	["netdata"]="19999"
-	# ["uptime-kuma"]="3001" # DISABLED
+	["uptime-kuma"]="3001"
 	["scrutiny"]="8087"
 	["parseable"]="8094"
 	["ntfy"]="8060"
@@ -98,7 +98,7 @@ declare -A SERVICE_TYPES=(
 	# Web services with HTTP endpoints
 	["grafana"]="http"
 	["prometheus"]="http"
-	# ["uptime-kuma"]="http" # DISABLED
+	["uptime-kuma"]="http"
 	["homarr"]="http"
 	["jellyfin"]="http"
 	["sonarr"]="http"

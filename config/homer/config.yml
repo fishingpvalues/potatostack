@@ -252,6 +252,12 @@ services:
   - name: "Monitoring"
     icon: "fas fa-chart-line"
     items:
+      - name: "Uptime Kuma"
+        logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/uptime-kuma.png"
+        subtitle: "Uptime Monitoring"
+        url: "https://potatostack.tale-iwato.ts.net:3001"
+        target: "_blank"
+
       - name: "Grafana"
         logo: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/grafana.png"
         subtitle: "Dashboards"
